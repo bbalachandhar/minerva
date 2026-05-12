@@ -58,13 +58,63 @@ function mcc_abbr($db_name) {
     return isset($map[$db_name]) ? $map[$db_name] : strtoupper(substr($db_name, 0, 5));
 }
 ?>
-<link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/multi_branch.css">
+<style>
+/* MCC — embedded styles (Bootstrap grid handles layout) */
+@keyframes mcc-shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
+}
+.sk-shimmer {
+    border-radius: 4px;
+    background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
+    background-size: 400px 100%;
+    animation: mcc-shimmer 1.4s infinite linear;
+    display: block;
+}
+.sk-inline  { display: inline-block !important; height: 14px; width: 80px; vertical-align: middle; }
+.sk-block   { height: 38px; margin-bottom: 6px; }
+.sk-block.alt { opacity: .6; }
+.sk-chart   { height: 280px; margin-bottom: 0; }
+.sk-card    { height: 64px; margin-bottom: 10px; }
+.mcc-gender-m { color: #3c8dbc; font-size: 11px; font-weight: 700; }
+.mcc-gender-f { color: #e91e63; font-size: 11px; font-weight: 700; }
+.mcc-dot    { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+.mcc-dot-lg { display: inline-block; width: 13px; height: 13px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.mcc-pct-wrap { background: #eee; border-radius: 3px; height: 6px; width: 80px; display: inline-block; vertical-align: middle; margin-right: 4px; }
+.mcc-pct-bar  { height: 6px; border-radius: 3px; }
+.mcc-tfoot-row td { background: #f0f4f8 !important; font-weight: 600; }
+.mcc-table thead th { background: #f5f5f5; font-size: 12px; white-space: nowrap; }
+.mcc-table td  { font-size: 13px; vertical-align: middle !important; }
+.mcc-table-sm td, .mcc-table-sm th { padding: 5px 8px !important; font-size: 12px; }
+.mcc-stat-card { border-left: 4px solid; border-radius: 3px; background: #fafafa; padding: 10px 14px; margin-bottom: 10px; }
+.mcc-stat-card .lbl { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: .4px; }
+.mcc-stat-card .val { font-size: 18px; font-weight: 700; color: #222; margin-top: 2px; }
+.mcc-load-err { text-align: center; color: #cc0000; padding: 20px; font-size: 13px; }
+.mcc-inst-box { border-radius: 4px; overflow: hidden; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,.08); background: #fff; }
+.mcc-inst-box-header { padding: 10px 14px 6px; }
+.mcc-inst-box-body   { padding: 0 14px 12px; }
+.mcc-inst-name-link  { font-size: 13px; font-weight: 600; color: #333; text-decoration: none !important; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
+.mcc-inst-name-link:hover { color: #3c8dbc !important; }
+.mcc-fees-collected   { font-size: 13px; font-weight: 600; color: #00a65a; }
+#mcc-nav > li > a     { font-weight: 600; font-size: 13px; }
+#mcc-nav > li.active > a { color: #3c8dbc; }
+</style>
 
-<div class="content-wrapper mcc-wrapper">
-<section class="content">
+<div class="content-wrapper" style="background:#f0f2f5">
+<section class="content" style="padding:15px">
+
+<!-- PAGE TITLE -->
+<div class="row" style="margin-bottom:14px">
+  <div class="col-xs-12">
+    <h3 style="margin:0; font-size:20px; font-weight:700; color:#333; display:inline-block">
+      <i class="fa fa-building-o" style="color:#3c8dbc; margin-right:8px"></i>Management Command Centre
+    </h3>
+    <small style="color:#aaa; margin-left:12px"><?php echo count($branches); ?> institutions &mdash; <?php echo date('d M Y'); ?></small>
+  </div>
+</div>
 
 <!-- INSTITUTION CARDS -->
-<div class="mcc-inst-strip">
+<div class="row">
 <?php $ci = 0; foreach ($branches as $db_name => $bi):
     $color    = $inst_colors[$ci % count($inst_colors)];
     $abbr     = mcc_abbr($db_name);
@@ -79,281 +129,300 @@ function mcc_abbr($db_name) {
     $female_staff    = isset($staff_list[$db_name])      ? $staff_list[$db_name]['female_staff']        : 0;
     $ci++;
 ?>
-<div class="mcc-inst-card" style="border-top:3px solid <?php echo $color; ?>">
-    <div class="mcc-inst-top">
-        <div class="mcc-inst-badge" style="background:<?php echo $color; ?>"><?php echo $abbr; ?></div>
-        <div class="mcc-inst-meta">
-            <a href="<?php echo $card_url; ?>" target="_blank" class="mcc-inst-name"><?php echo htmlspecialchars($disp_name); ?></a>
-            <span class="mcc-inst-session">
-                <?php if ($is_home): ?><span class="mcc-home-pill">Home</span><?php endif; ?>
-                <?php echo htmlspecialchars($bi->session); ?>
-            </span>
+<div class="col-xs-12 col-sm-6 col-md-3">
+  <div class="mcc-inst-box" style="border-top:4px solid <?php echo $color; ?>">
+    <div class="mcc-inst-box-header">
+      <div style="display:table; width:100%; table-layout:fixed">
+        <div style="display:table-cell; vertical-align:top; width:1%; white-space:nowrap; padding-right:8px; padding-top:2px">
+          <span style="background:<?php echo $color; ?>; color:#fff; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; letter-spacing:.5px; white-space:nowrap"><?php echo $abbr; ?><?php if($is_home): ?> <i class="fa fa-home"></i><?php endif; ?></span>
         </div>
+        <div style="display:table-cell; vertical-align:top; overflow:hidden">
+          <a href="<?php echo $card_url; ?>" target="_blank" class="mcc-inst-name-link" title="<?php echo htmlspecialchars($disp_name); ?>"><?php echo htmlspecialchars($disp_name); ?></a>
+          <span style="font-size:11px; color:#bbb; display:block"><?php echo htmlspecialchars($bi->session); ?></span>
+        </div>
+      </div>
     </div>
-    <div class="mcc-inst-stats">
-        <div class="mcc-inst-stat">
-            <i class="fa fa-users" style="color:<?php echo $color; ?>"></i>
-            <span class="mcc-stat-num"><?php echo number_format($students); ?></span>
-            <span class="mcc-stat-lbl">Students</span>
-            <span class="mcc-gender-line">
-                <span class="mcc-gender-m" title="Male">&#9794; <?php echo number_format($male_students); ?></span>
-                <span class="mcc-gender-f" title="Female">&#9792; <?php echo number_format($female_students); ?></span>
+    <div class="mcc-inst-box-body">
+      <div style="border-top:1px solid #f5f5f5; margin:0 0 8px"></div>
+      <table style="width:100%; border-collapse:collapse">
+        <tr>
+          <td style="border:0; padding:3px 6px 3px 0; width:50%; vertical-align:top">
+            <i class="fa fa-graduation-cap" style="color:<?php echo $color; ?>; width:16px; text-align:center"></i>
+            <strong style="font-size:16px; color:#222; margin-left:3px"><?php echo number_format($students); ?></strong>
+            <div style="margin-left:20px; margin-top:2px">
+              <span class="mcc-gender-m">&#9794;<?php echo number_format($male_students); ?></span>
+              <span class="mcc-gender-f" style="margin-left:6px">&#9792;<?php echo number_format($female_students); ?></span>
+            </div>
+          </td>
+          <td style="border:0; padding:3px 0; width:50%; vertical-align:top">
+            <i class="fa fa-id-badge" style="color:<?php echo $color; ?>; width:16px; text-align:center"></i>
+            <strong style="font-size:16px; color:#222; margin-left:3px"><?php echo number_format($staff); ?></strong>
+            <div style="margin-left:20px; margin-top:2px">
+              <span class="mcc-gender-m">&#9794;<?php echo number_format($male_staff); ?></span>
+              <span class="mcc-gender-f" style="margin-left:6px">&#9792;<?php echo number_format($female_staff); ?></span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="border:0; border-top:1px solid #f5f5f5; padding:7px 0 0">
+            <i class="fa fa-money" style="color:<?php echo $color; ?>; width:16px; text-align:center"></i>
+            <span style="font-size:11px; color:#bbb; margin-left:3px; text-transform:uppercase; letter-spacing:.4px">Collected</span>
+            <span class="mcc-fees-collected" data-db="<?php echo $db_name; ?>" style="float:right">
+              <span class="sk-shimmer sk-inline" style="width:60px"></span>
             </span>
-        </div>
-        <div class="mcc-inst-stat">
-            <i class="fa fa-id-badge" style="color:<?php echo $color; ?>"></i>
-            <span class="mcc-stat-num"><?php echo number_format($staff); ?></span>
-            <span class="mcc-stat-lbl">Staff</span>
-            <span class="mcc-gender-line">
-                <span class="mcc-gender-m" title="Male">&#9794; <?php echo number_format($male_staff); ?></span>
-                <span class="mcc-gender-f" title="Female">&#9792; <?php echo number_format($female_staff); ?></span>
-            </span>
-        </div>
-        <div class="mcc-inst-stat">
-            <i class="fa fa-money" style="color:<?php echo $color; ?>"></i>
-            <span class="mcc-stat-num mcc-fees-collected" data-db="<?php echo $db_name; ?>">
-                <span class="sk-inline sk-w60"></span>
-            </span>
-            <span class="mcc-stat-lbl">Collected</span>
-        </div>
+          </td>
+        </tr>
+      </table>
     </div>
+  </div>
 </div>
 <?php endforeach; ?>
 </div>
 
-<!-- KPI TILES -->
-<div class="mcc-kpi-strip">
-    <div class="mcc-kpi-tile" style="--kpi-color:#3c8dbc">
-        <div class="mcc-kpi-icon"><i class="fa fa-graduation-cap"></i></div>
-        <div class="mcc-kpi-body">
-            <div class="mcc-kpi-val"><?php echo number_format($grand_students); ?></div>
-            <div class="mcc-kpi-label">Total Students</div>
-            <div class="mcc-kpi-gender">
-                <span class="mcc-gender-m">&#9794; <?php echo number_format($grand_male_students); ?></span>
-                &nbsp;
-                <span class="mcc-gender-f">&#9792; <?php echo number_format($grand_female_students); ?></span>
-            </div>
+<!-- KPI STRIP -->
+<div class="row" style="margin-bottom:6px">
+  <div class="col-xs-6 col-sm-4 col-md-2">
+    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
+      <span class="info-box-icon" style="background:#3c8dbc; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-graduation-cap"></i></span>
+      <div class="info-box-content" style="padding:10px 10px 8px">
+        <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Students</span>
+        <span class="info-box-number" style="font-size:22px; line-height:1.1"><?php echo number_format($grand_students); ?></span>
+        <div style="margin-top:3px">
+          <span class="mcc-gender-m">&#9794; <?php echo number_format($grand_male_students); ?></span>
+          &nbsp;<span class="mcc-gender-f">&#9792; <?php echo number_format($grand_female_students); ?></span>
         </div>
+      </div>
     </div>
-    <div class="mcc-kpi-tile" style="--kpi-color:#605ca8">
-        <div class="mcc-kpi-icon"><i class="fa fa-id-badge"></i></div>
-        <div class="mcc-kpi-body">
-            <div class="mcc-kpi-val"><?php echo number_format($grand_staff); ?></div>
-            <div class="mcc-kpi-label">Total Staff</div>
-            <div class="mcc-kpi-gender">
-                <span class="mcc-gender-m">&#9794; <?php echo number_format($grand_male_staff); ?></span>
-                &nbsp;
-                <span class="mcc-gender-f">&#9792; <?php echo number_format($grand_female_staff); ?></span>
-            </div>
+  </div>
+  <div class="col-xs-6 col-sm-4 col-md-2">
+    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
+      <span class="info-box-icon" style="background:#605ca8; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-id-badge"></i></span>
+      <div class="info-box-content" style="padding:10px 10px 8px">
+        <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Staff</span>
+        <span class="info-box-number" style="font-size:22px; line-height:1.1"><?php echo number_format($grand_staff); ?></span>
+        <div style="margin-top:3px">
+          <span class="mcc-gender-m">&#9794; <?php echo number_format($grand_male_staff); ?></span>
+          &nbsp;<span class="mcc-gender-f">&#9792; <?php echo number_format($grand_female_staff); ?></span>
         </div>
+      </div>
     </div>
-    <div class="mcc-kpi-tile" style="--kpi-color:#00a65a">
-        <div class="mcc-kpi-icon"><i class="fa fa-inr"></i></div>
-        <div class="mcc-kpi-body">
-            <div class="mcc-kpi-val" id="kpi-fees-collected"><span class="sk-inline sk-w80"></span></div>
-            <div class="mcc-kpi-label">Fees Collected</div>
-        </div>
+  </div>
+  <div class="col-xs-6 col-sm-4 col-md-2">
+    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
+      <span class="info-box-icon" style="background:#00a65a; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-inr"></i></span>
+      <div class="info-box-content" style="padding:10px 10px 8px">
+        <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Fees Collected</span>
+        <span class="info-box-number" id="kpi-fees-collected" style="font-size:20px; line-height:1.2"><span class="sk-shimmer sk-inline"></span></span>
+      </div>
     </div>
-    <div class="mcc-kpi-tile" style="--kpi-color:#f39c12">
-        <div class="mcc-kpi-icon"><i class="fa fa-cubes"></i></div>
-        <div class="mcc-kpi-body">
-            <div class="mcc-kpi-val" id="kpi-asset-value"><span class="sk-inline sk-w80"></span></div>
-            <div class="mcc-kpi-label">Asset Value</div>
-        </div>
+  </div>
+  <div class="col-xs-6 col-sm-4 col-md-2">
+    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
+      <span class="info-box-icon" style="background:#f39c12; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-cubes"></i></span>
+      <div class="info-box-content" style="padding:10px 10px 8px">
+        <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Asset Value</span>
+        <span class="info-box-number" id="kpi-asset-value" style="font-size:20px; line-height:1.2"><span class="sk-shimmer sk-inline"></span></span>
+      </div>
     </div>
-    <div class="mcc-kpi-tile" style="--kpi-color:#00c0ef">
-        <div class="mcc-kpi-icon"><i class="fa fa-book"></i></div>
-        <div class="mcc-kpi-body">
-            <div class="mcc-kpi-val" id="kpi-total-books"><span class="sk-inline sk-w60"></span></div>
-            <div class="mcc-kpi-label">Library Books</div>
-        </div>
+  </div>
+  <div class="col-xs-6 col-sm-4 col-md-2">
+    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
+      <span class="info-box-icon" style="background:#00c0ef; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-book"></i></span>
+      <div class="info-box-content" style="padding:10px 10px 8px">
+        <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Library Books</span>
+        <span class="info-box-number" id="kpi-total-books" style="font-size:20px; line-height:1.2"><span class="sk-shimmer sk-inline" style="width:65px"></span></span>
+      </div>
     </div>
+  </div>
 </div>
 
-<!-- STICKY NAV -->
-<div class="mcc-section-nav" id="mcc-section-nav">
-    <a href="#section-fees"      class="mcc-nav-link active" data-section="fees"><i class="fa fa-money"></i> Fees</a>
-    <a href="#section-hr"        class="mcc-nav-link" data-section="hr"><i class="fa fa-users"></i> HR &amp; Payroll</a>
-    <a href="#section-assets"    class="mcc-nav-link" data-section="assets"><i class="fa fa-cubes"></i> Assets</a>
-    <a href="#section-academics" class="mcc-nav-link" data-section="academics"><i class="fa fa-graduation-cap"></i> Academics</a>
-    <span class="mcc-nav-spacer"></span>
-    <button class="btn btn-default btn-xs mcc-print-btn" onclick="window.print()"><i class="fa fa-print"></i></button>
+<!-- SECTION NAV -->
+<ul class="nav nav-tabs" id="mcc-nav" style="margin-bottom:20px; border-bottom:2px solid #ddd">
+  <li class="active" id="nav-fees">
+    <a href="#section-fees" data-section="fees"><i class="fa fa-money"></i> Fees</a>
+  </li>
+  <li id="nav-hr">
+    <a href="#section-hr" data-section="hr"><i class="fa fa-users"></i> HR &amp; Payroll</a>
+  </li>
+  <li id="nav-assets">
+    <a href="#section-assets" data-section="assets"><i class="fa fa-cubes"></i> Assets</a>
+  </li>
+  <li id="nav-academics">
+    <a href="#section-academics" data-section="academics"><i class="fa fa-graduation-cap"></i> Academics</a>
+  </li>
+  <li class="pull-right">
+    <a href="javascript:window.print()" title="Print"><i class="fa fa-print"></i></a>
+  </li>
+</ul>
+
+<!-- FEES -->
+<div class="box" id="section-fees" data-section="fees" style="border-radius:4px; border-top:3px solid #3c8dbc">
+  <div class="box-header with-border" style="background:#3c8dbc; padding:12px 18px">
+    <h3 class="box-title" style="color:#fff; font-size:15px; font-weight:600"><i class="fa fa-money"></i> Fees Overview</h3>
+    <span class="pull-right" style="color:rgba(255,255,255,.75); font-size:12px">Current session &mdash; billed vs collected across all institutions</span>
+  </div>
+  <div class="box-body">
+    <div class="row">
+      <div class="col-md-8">
+        <div id="fees-chart-skeleton"><div class="sk-shimmer sk-chart"></div></div>
+        <div id="fees-chart-box" style="display:none; position:relative; height:300px"><canvas id="fees_chart"></canvas></div>
+      </div>
+      <div class="col-md-4">
+        <div id="fees-summary-cards">
+          <div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:18px">
+      <div class="col-md-12">
+        <div id="fees-table-skeleton">
+          <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
+          <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
+        </div>
+        <div class="table-responsive" id="fees-table-box" style="display:none">
+          <table class="table table-hover table-bordered mcc-table">
+            <thead><tr>
+              <th>Institution</th><th>Session</th>
+              <th class="text-right">Billed</th>
+              <th class="text-right">Collected</th>
+              <th class="text-right">Balance</th>
+              <th class="text-center">Collection %</th>
+            </tr></thead>
+            <tbody id="fees-tbody"></tbody>
+            <tfoot id="fees-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- SECTION: FEES -->
-<div class="mcc-section" id="section-fees" data-section="fees">
-    <div class="mcc-section-header" style="background:#3c8dbc">
-        <i class="fa fa-money"></i>
-        <span>Fees Overview</span>
-        <span class="mcc-section-sub">Current session — billed vs collected across all institutions</span>
-    </div>
-    <div class="mcc-section-body">
-        <div class="row">
-            <div class="col-md-8">
-                <div class="mcc-chart-box" id="fees-chart-skeleton"><div class="sk-chart-placeholder"></div></div>
-                <div class="mcc-chart-box" id="fees-chart-box" style="display:none;position:relative;height:300px">
-                    <canvas id="fees_chart"></canvas>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="mcc-stat-card-group" id="fees-summary-cards">
-                    <div class="sk-card-block"></div><div class="sk-card-block"></div><div class="sk-card-block"></div>
-                </div>
-            </div>
+<!-- HR -->
+<div class="box" id="section-hr" data-section="hr" style="border-radius:4px; border-top:3px solid #00a65a">
+  <div class="box-header with-border" style="background:#00a65a; padding:12px 18px">
+    <h3 class="box-title" style="color:#fff; font-size:15px; font-weight:600"><i class="fa fa-users"></i> HR &amp; Payroll</h3>
+    <span class="pull-right" style="color:rgba(255,255,255,.75); font-size:12px" id="hr-month-label">Last month payroll &middot; today's attendance</span>
+  </div>
+  <div class="box-body">
+    <div class="row">
+      <div class="col-md-8">
+        <div id="hr-chart-skeleton"><div class="sk-shimmer sk-chart"></div></div>
+        <div id="hr-chart-box" style="display:none; position:relative; height:300px"><canvas id="hr_chart"></canvas></div>
+      </div>
+      <div class="col-md-4">
+        <div id="hr-summary-cards">
+          <div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div>
         </div>
-        <div class="row" style="margin-top:18px">
-            <div class="col-md-12">
-                <div class="mcc-data-table-wrap" id="fees-table-skeleton">
-                    <div class="sk-table-row"></div><div class="sk-table-row sk-alt"></div>
-                    <div class="sk-table-row"></div><div class="sk-table-row sk-alt"></div>
-                </div>
-                <div class="table-responsive" id="fees-table-box" style="display:none">
-                    <table class="table table-hover table-bordered mcc-table">
-                        <thead><tr>
-                            <th>Institution</th><th>Session</th>
-                            <th class="text-right">Billed</th>
-                            <th class="text-right">Collected</th>
-                            <th class="text-right">Balance</th>
-                            <th class="text-center">Collection %</th>
-                        </tr></thead>
-                        <tbody id="fees-tbody"></tbody>
-                        <tfoot id="fees-tfoot"></tfoot>
-                    </table>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+    <div class="row" style="margin-top:18px">
+      <div class="col-md-12">
+        <div id="hr-table-skeleton">
+          <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
+          <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
+        </div>
+        <div class="table-responsive" id="hr-table-box" style="display:none">
+          <table class="table table-hover table-bordered mcc-table">
+            <thead><tr>
+              <th>Institution</th>
+              <th class="text-center">Total Staff</th>
+              <th class="text-center">Payroll Generated</th>
+              <th class="text-center">Payroll Paid</th>
+              <th class="text-center">Not Generated</th>
+              <th class="text-right">Net Payroll</th>
+              <th class="text-right">Amount Paid</th>
+              <th class="text-center">Present Today</th>
+              <th class="text-center">Absent Today</th>
+            </tr></thead>
+            <tbody id="hr-tbody"></tbody>
+            <tfoot id="hr-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- SECTION: HR -->
-<div class="mcc-section" id="section-hr" data-section="hr">
-    <div class="mcc-section-header" style="background:#00a65a">
-        <i class="fa fa-users"></i>
-        <span>HR &amp; Payroll</span>
-        <span class="mcc-section-sub" id="hr-month-label">Last month payroll · today's attendance</span>
-    </div>
-    <div class="mcc-section-body">
-        <div class="row">
-            <div class="col-md-8">
-                <div class="mcc-chart-box" id="hr-chart-skeleton"><div class="sk-chart-placeholder"></div></div>
-                <div class="mcc-chart-box" id="hr-chart-box" style="display:none;position:relative;height:300px">
-                    <canvas id="hr_chart"></canvas>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="mcc-stat-card-group" id="hr-summary-cards">
-                    <div class="sk-card-block"></div><div class="sk-card-block"></div><div class="sk-card-block"></div>
-                </div>
-            </div>
+<!-- ASSETS -->
+<div class="box" id="section-assets" data-section="assets" style="border-radius:4px; border-top:3px solid #f39c12">
+  <div class="box-header with-border" style="background:#f39c12; padding:12px 18px">
+    <h3 class="box-title" style="color:#fff; font-size:15px; font-weight:600"><i class="fa fa-cubes"></i> Asset Inventory</h3>
+    <span class="pull-right" style="color:rgba(255,255,255,.75); font-size:12px">Stock value at purchase cost across all institutions</span>
+  </div>
+  <div class="box-body">
+    <div class="row">
+      <div class="col-md-7">
+        <div id="assets-chart-skeleton"><div class="sk-shimmer sk-chart"></div></div>
+        <div id="assets-chart-box" style="display:none; position:relative; height:280px"><canvas id="assets_chart"></canvas></div>
+      </div>
+      <div class="col-md-5">
+        <div id="assets-summary-cards">
+          <div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div>
         </div>
-        <div class="row" style="margin-top:18px">
-            <div class="col-md-12">
-                <div class="mcc-data-table-wrap" id="hr-table-skeleton">
-                    <div class="sk-table-row"></div><div class="sk-table-row sk-alt"></div>
-                    <div class="sk-table-row"></div><div class="sk-table-row sk-alt"></div>
-                </div>
-                <div class="table-responsive" id="hr-table-box" style="display:none">
-                    <table class="table table-hover table-bordered mcc-table">
-                        <thead><tr>
-                            <th>Institution</th>
-                            <th class="text-center">Total Staff</th>
-                            <th class="text-center">Payroll Generated</th>
-                            <th class="text-center">Payroll Paid</th>
-                            <th class="text-center">Not Generated</th>
-                            <th class="text-right">Net Payroll</th>
-                            <th class="text-right">Amount Paid</th>
-                            <th class="text-center">Present Today</th>
-                            <th class="text-center">Absent Today</th>
-                        </tr></thead>
-                        <tbody id="hr-tbody"></tbody>
-                        <tfoot id="hr-tfoot"></tfoot>
-                    </table>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+    <div class="row" style="margin-top:18px">
+      <div class="col-md-12">
+        <div id="assets-table-skeleton">
+          <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
+          <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
+        </div>
+        <div id="assets-table-box" style="display:none">
+          <div id="assets-institution-panels"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- SECTION: ASSETS -->
-<div class="mcc-section" id="section-assets" data-section="assets">
-    <div class="mcc-section-header" style="background:#f39c12">
-        <i class="fa fa-cubes"></i>
-        <span>Asset Inventory</span>
-        <span class="mcc-section-sub">Stock value at purchase cost across all institutions</span>
+<!-- ACADEMICS -->
+<div class="box" id="section-academics" data-section="academics" style="border-radius:4px; border-top:3px solid #605ca8">
+  <div class="box-header with-border" style="background:#605ca8; padding:12px 18px">
+    <h3 class="box-title" style="color:#fff; font-size:15px; font-weight:600"><i class="fa fa-graduation-cap"></i> Academics &amp; Library</h3>
+    <span class="pull-right" style="color:rgba(255,255,255,.75); font-size:12px">Admissions, library activity and alumni</span>
+  </div>
+  <div class="box-body">
+    <div id="academics-skeleton">
+      <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
+      <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
     </div>
-    <div class="mcc-section-body">
-        <div class="row">
-            <div class="col-md-7">
-                <div class="mcc-chart-box" id="assets-chart-skeleton"><div class="sk-chart-placeholder"></div></div>
-                <div class="mcc-chart-box" id="assets-chart-box" style="display:none;position:relative;height:280px">
-                    <canvas id="assets_chart"></canvas>
-                </div>
-            </div>
-            <div class="col-md-5">
-                <div class="mcc-stat-card-group" id="assets-summary-cards">
-                    <div class="sk-card-block"></div><div class="sk-card-block"></div><div class="sk-card-block"></div>
-                </div>
-            </div>
+    <div id="academics-content" style="display:none">
+      <div class="row">
+        <div class="col-md-6">
+          <p style="font-size:13px; font-weight:700; color:#444; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px">
+            <i class="fa fa-book" style="color:#3c8dbc"></i> Library
+          </p>
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered mcc-table">
+              <thead><tr>
+                <th>Institution</th>
+                <th class="text-right">Books</th>
+                <th class="text-right">Members</th>
+                <th class="text-right">Issued</th>
+              </tr></thead>
+              <tbody id="lib-tbody"></tbody>
+            </table>
+          </div>
         </div>
-        <div class="row" style="margin-top:18px">
-            <div class="col-md-12">
-                <div class="mcc-data-table-wrap" id="assets-table-skeleton">
-                    <div class="sk-table-row"></div><div class="sk-table-row sk-alt"></div>
-                    <div class="sk-table-row"></div><div class="sk-table-row sk-alt"></div>
-                </div>
-                <div id="assets-table-box" style="display:none">
-                    <div id="assets-institution-panels"></div>
-                </div>
-            </div>
+        <div class="col-md-6">
+          <p style="font-size:13px; font-weight:700; color:#444; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px">
+            <i class="fa fa-pencil-square-o" style="color:#605ca8"></i> Admissions &amp; Alumni
+          </p>
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered mcc-table">
+              <thead><tr>
+                <th>Institution</th>
+                <th class="text-right">Offline Adm.</th>
+                <th class="text-right">Online Adm.</th>
+                <th class="text-right">Alumni</th>
+              </tr></thead>
+              <tbody id="adm-tbody"></tbody>
+            </table>
+          </div>
         </div>
+      </div>
     </div>
-</div>
-
-<!-- SECTION: ACADEMICS -->
-<div class="mcc-section" id="section-academics" data-section="academics">
-    <div class="mcc-section-header" style="background:#605ca8">
-        <i class="fa fa-graduation-cap"></i>
-        <span>Academics &amp; Library</span>
-        <span class="mcc-section-sub">Admissions, library activity and alumni</span>
-    </div>
-    <div class="mcc-section-body">
-        <div class="mcc-data-table-wrap" id="academics-skeleton">
-            <div class="sk-table-row"></div><div class="sk-table-row sk-alt"></div>
-            <div class="sk-table-row"></div><div class="sk-table-row sk-alt"></div>
-        </div>
-        <div id="academics-content" style="display:none">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mcc-sub-section-title"><i class="fa fa-book"></i> Library</div>
-                    <div class="table-responsive">
-                        <table class="table table-hover table-bordered mcc-table">
-                            <thead><tr>
-                                <th>Institution</th>
-                                <th class="text-right">Books</th>
-                                <th class="text-right">Members</th>
-                                <th class="text-right">Issued</th>
-                            </tr></thead>
-                            <tbody id="lib-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mcc-sub-section-title"><i class="fa fa-pencil-square-o"></i> Admissions &amp; Alumni</div>
-                    <div class="table-responsive">
-                        <table class="table table-hover table-bordered mcc-table">
-                            <thead><tr>
-                                <th>Institution</th>
-                                <th class="text-right">Offline Adm.</th>
-                                <th class="text-right">Online Adm.</th>
-                                <th class="text-right">Alumni</th>
-                            </tr></thead>
-                            <tbody id="adm-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+  </div>
 </div>
 
 </section>
@@ -612,16 +681,16 @@ function loadAssets() {
             }
 
             panelsHtml +=
-                '<div class="mcc-asset-panel" style="border-top:3px solid '+color+'">'+
-                    '<div class="mcc-asset-panel-hdr">'+
+                '<div class="box" style="border-radius:4px; border-top:3px solid '+color+'; margin-bottom:12px">'+'
+                    '<div class="box-header" style="padding:10px 15px; background:#fafafa; border-bottom:1px solid #eee">'+'
                         '<span class="mcc-dot-lg" style="background:'+color+'"></span>'+
-                        '<strong>'+escHtml(row.name)+'</strong>'+
-                        '<span class="mcc-akpi-row">'+
-                            '<span class="mcc-akpi"><i class="fa fa-tag"></i> '+row.total_items+' item types</span>'+
-                            '<span class="mcc-akpi"><i class="fa fa-archive"></i> '+numFmt(row.total_stock)+' units</span>'+
-                            '<span class="mcc-akpi mcc-akpi-val"><i class="fa fa-inr"></i> '+row.total_value_fmt+'</span>'+
+                        '<strong style="font-size:14px">'+escHtml(row.name)+'</strong>'+
+                        '<span class="pull-right" style="font-size:12px; color:#666">'+
+                            '<i class="fa fa-tag"></i> '+row.total_items+' types &nbsp;'+
+                            '<i class="fa fa-archive"></i> '+numFmt(row.total_stock)+' units &nbsp;'+
+                            '<strong style="color:#e67e22"><i class="fa fa-inr"></i> '+row.total_value_fmt+'</strong>'+
                         '</span>'+
-                    '</div>'+
+                    '</div>'+'
                     '<div class="table-responsive">'+
                         '<table class="table table-condensed table-bordered mcc-table mcc-table-sm">'+
                             '<thead><tr><th>Category</th><th class="text-center">Items</th><th class="text-center">Units</th><th class="text-right">Value</th></tr></thead>'+
@@ -730,8 +799,8 @@ function loadAcademics() {
 // ---- Stat card builder ----
 function mkStatCard(color, label, value) {
     return '<div class="mcc-stat-card" style="border-left-color:'+color+'">'+
-        '<div class="mcc-sc-lbl">'+escHtml(label)+'</div>'+
-        '<div class="mcc-sc-val">'+value+'</div>'+
+        '<div class="lbl">'+escHtml(label)+'</div>'+'
+        '<div class="val">'+value+'</div>'+
         '</div>';
 }
 
@@ -742,12 +811,12 @@ function updateNavActive() {
         var el=document.getElementById('section-'+s);
         if(el && el.getBoundingClientRect().top <= 120) current=s;
     });
-    $('.mcc-nav-link').removeClass('active');
-    $('.mcc-nav-link[data-section="'+current+'"]').addClass('active');
+    $('#mcc-nav li').removeClass('active');
+    $('#nav-'+current).addClass('active');
 }
 
 // ---- Smooth scroll ----
-$(document).on('click','.mcc-nav-link',function(e){
+$(document).on('click','#mcc-nav a[data-section]',function(e){
     e.preventDefault();
     var $t = $($(this).attr('href'));
     if($t.length) $('html,body').animate({ scrollTop: $t.offset().top - 105 }, 350);
