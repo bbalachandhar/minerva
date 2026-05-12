@@ -31,9 +31,9 @@ class Branch extends MY_Addon_MBController
         $staff_list      = $this->multi_common_model->getStaff($branches);
 
         // Home branch real name (getSchoolCurrentSessions overwrites it with lang string)
-        $home_row        = $this->db->select('name, short_name')->from('sch_settings')->limit(1)->get()->row();
-        $data['home_name']       = $home_row ? $home_row->name       : $this->lang->line('home_branch');
-        $data['home_short_name'] = $home_row ? $home_row->short_name  : '';
+        $home_row        = $this->db->select('name')->from('sch_settings')->limit(1)->get()->row();
+        $data['home_name']       = $home_row ? $home_row->name : $this->lang->line('home_branch');
+        $data['home_short_name'] = '';
 
         $data['branches']        = $branches;
         $data['school_students'] = $school_students;
