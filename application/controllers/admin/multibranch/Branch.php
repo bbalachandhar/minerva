@@ -55,6 +55,7 @@ class Branch extends MY_Addon_MBController
         if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
             access_denied();
         }
+        session_write_close(); // release session lock so parallel AJAX calls don't queue
 
         $this->load->model("multibranch/multi_common_model");
         $branches = $this->multibranch_model->getSchoolCurrentSessions();
@@ -143,6 +144,7 @@ class Branch extends MY_Addon_MBController
         if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
             access_denied();
         }
+        session_write_close(); // release session lock so parallel AJAX calls don't queue
 
         $this->load->model("multibranch/multi_common_model");
         $branches        = $this->multibranch_model->getSchoolCurrentSessions();
@@ -195,6 +197,7 @@ class Branch extends MY_Addon_MBController
         if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
             access_denied();
         }
+        session_write_close(); // release session lock so parallel AJAX calls don't queue
 
         $this->load->model("multibranch/multi_common_model");
         $branches = $this->multibranch_model->getSchoolCurrentSessions();
@@ -231,6 +234,7 @@ class Branch extends MY_Addon_MBController
         if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
             access_denied();
         }
+        session_write_close(); // release session lock so parallel AJAX calls don't queue
 
         $branches        = $this->multibranch_model->getSchoolCurrentSessions();
         $branches_list   = $this->multibranch_model->get();
