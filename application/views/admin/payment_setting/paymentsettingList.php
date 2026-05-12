@@ -2145,6 +2145,9 @@ $onepay_result = check_in_array('onepay', $paymentlist);
                                             <h4 style="border-bottom:1px solid #e0e0e0;padding-bottom:8px;margin-bottom:12px;">
                                                 <i class="fa fa-table"></i> Payment Method Charges
                                                 <small class="text-muted">&nbsp;(as per BillDesk contract)</small>
+                                                <?php if ($this->rbac->hasPrivilege('payment_methods', 'can_add')): ?>
+                                                <button type="button" class="btn btn-success btn-xs pull-right" data-toggle="modal" data-target="#bdSlabAddModal"><i class="fa fa-plus"></i> Add Method</button>
+                                                <?php endif; ?>
                                             </h4>
                                             <p class="text-muted" style="font-size:12px;margin-bottom:8px;">
                                                 Convenience fee charged to student per payment method.
@@ -2159,12 +2162,17 @@ $onepay_result = check_in_array('onepay', $paymentlist);
                                                         <th style="width:100px;">Threshold&nbsp;(₹)</th>
                                                         <th style="width:120px;">Rate <small>(&gt;&nbsp;Threshold)</small></th>
                                                         <th style="width:60px;text-align:center;">Active</th>
+                                                        <?php if ($this->rbac->hasPrivilege('payment_methods', 'can_delete')): ?><th style="width:40px;"></th><?php endif; ?>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     <?php if (!empty($billdesk_slabs)): foreach ($billdesk_slabs as $slab): ?>
-                                                    <tr>
-                                                        <td><?php echo htmlspecialchars($slab->label); ?></td>
+                                                    <tr id="bdslabrow_<?php echo $slab->id; ?>">
+                                                        <td>
+                                                            <input type="text" name="slabs[<?php echo $slab->id; ?>][label]" class="form-control input-sm" value="<?php echo htmlspecialchars($slab->label); ?>">
+                                                            <input type="hidden" name="slabs[<?php echo $slab->id; ?>][payment_method]" value="<?php echo htmlspecialchars($slab->payment_method); ?>">
+                                                            <small class="text-muted"><?php echo htmlspecialchars($slab->payment_method); ?></small>
+                                                        </td>
                                                         <td>
                                                             <select name="slabs[<?php echo $slab->id; ?>][charge_type]" class="form-control input-sm">
                                                                 <option value="percentage" <?php echo $slab->charge_type == 'percentage' ? 'selected' : ''; ?>>% Per</option>
@@ -2174,39 +2182,142 @@ $onepay_result = check_in_array('onepay', $paymentlist);
                                                         <td>
                                                             <input type="number" step="0.0001" min="0" name="slabs[<?php echo $slab->id; ?>][charge_value]" class="form-control input-sm" value="<?php echo $slab->charge_value; ?>">
                                                         </td>
-                                                        <td class="text-center" style="vertical-align:middle;">
-                                                            <?php if ($slab->amount_threshold > 0): ?>
-                                                                <?php echo number_format((float)$slab->amount_threshold, 0); ?>
-                                                                <input type="hidden" name="slabs[<?php echo $slab->id; ?>][amount_threshold]" value="<?php echo $slab->amount_threshold; ?>">
-                                                            <?php else: ?>
-                                                                <span class="text-muted">—</span>
-                                                                <input type="hidden" name="slabs[<?php echo $slab->id; ?>][amount_threshold]" value="0">
-                                                            <?php endif; ?>
+                                                        <td>
+                                                            <input type="number" step="1" min="0" name="slabs[<?php echo $slab->id; ?>][amount_threshold]" class="form-control input-sm" value="<?php echo (float)$slab->amount_threshold; ?>" placeholder="0 = none">
                                                         </td>
                                                         <td>
-                                                            <?php if ($slab->amount_threshold > 0): ?>
-                                                                <input type="number" step="0.0001" min="0" name="slabs[<?php echo $slab->id; ?>][charge_value_above]" class="form-control input-sm" value="<?php echo $slab->charge_value_above; ?>">
-                                                            <?php else: ?>
-                                                                <input type="hidden" name="slabs[<?php echo $slab->id; ?>][charge_value_above]" value="0">
-                                                                <span class="text-muted">—</span>
-                                                            <?php endif; ?>
+                                                            <input type="number" step="0.0001" min="0" name="slabs[<?php echo $slab->id; ?>][charge_value_above]" class="form-control input-sm" value="<?php echo $slab->charge_value_above; ?>">
                                                         </td>
                                                         <td class="text-center" style="vertical-align:middle;">
                                                             <input type="checkbox" name="slabs[<?php echo $slab->id; ?>][is_active]" value="1" <?php echo $slab->is_active ? 'checked' : ''; ?>>
                                                         </td>
+                                                        <?php if ($this->rbac->hasPrivilege('payment_methods', 'can_delete')): ?>
+                                                        <td class="text-center" style="vertical-align:middle;">
+                                                            <a href="javascript:void(0)" class="btn btn-danger btn-xs bd-slab-delete" data-id="<?php echo $slab->id; ?>" title="Delete"><i class="fa fa-trash"></i></a>
+                                                        </td>
+                                                        <?php endif; ?>
                                                     </tr>
                                                     <?php endforeach; else: ?>
-                                                    <tr><td colspan="6" class="text-center text-muted">Run <code>tools/billdesk_charge_slabs.sql</code> to seed slab data.</td></tr>
+                                                    <tr><td colspan="7" class="text-center text-muted">No payment method slabs found. Click <strong>Add Method</strong> to create one.</td></tr>
                                                     <?php endif; ?>
                                                 </tbody>
                                             </table>
                                             <p class="text-muted" style="font-size:11px;">
-                                                <strong>Note:</strong> For Debit Card Visa/MC: first rate applies when amount ≤ ₹2000; second rate applies when amount &gt; ₹2000.
-                                                For all other methods the Threshold/second-rate columns are not applicable.
+                                                <strong>Note:</strong> Set Threshold to 0 to disable two-slab pricing (Rate Above Threshold is ignored).
+                                                For Debit Card Visa/MC the BillDesk contract specifies a lower rate for amounts ≤ ₹2000.
                                                 GST is applicable in addition (BillDesk agreement clause a).
                                             </p>
                                         </div>
                                     </div>
+
+                                    <!-- Add BillDesk Slab Modal -->
+                                    <div class="modal fade" id="bdSlabAddModal" tabindex="-1" role="dialog">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                                                    <h4 class="modal-title"><i class="fa fa-plus"></i> Add Payment Method</h4>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="form-group">
+                                                        <label>Display Label <span class="text-danger">*</span></label>
+                                                        <input type="text" id="bd_new_label" class="form-control" placeholder="e.g. EMI / BNPL">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Method Key <span class="text-danger">*</span> <small class="text-muted">(unique identifier, no spaces)</small></label>
+                                                        <input type="text" id="bd_new_pm" class="form-control" placeholder="e.g. emi_bnpl">
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-xs-6">
+                                                            <div class="form-group">
+                                                                <label>Charge Type</label>
+                                                                <select id="bd_new_charge_type" class="form-control">
+                                                                    <option value="percentage">% Per</option>
+                                                                    <option value="flat">Flat ₹</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-xs-6">
+                                                            <div class="form-group">
+                                                                <label>Rate</label>
+                                                                <input type="number" id="bd_new_charge_value" step="0.0001" min="0" value="0" class="form-control">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-xs-6">
+                                                            <div class="form-group">
+                                                                <label>Threshold ₹ <small class="text-muted">(0 = no two-slab)</small></label>
+                                                                <input type="number" id="bd_new_threshold" step="1" min="0" value="0" class="form-control">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-xs-6">
+                                                            <div class="form-group">
+                                                                <label>Rate Above Threshold</label>
+                                                                <input type="number" id="bd_new_charge_above" step="0.0001" min="0" value="0" class="form-control">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label><input type="checkbox" id="bd_new_is_active" value="1" checked> Active</label>
+                                                    </div>
+                                                    <div id="bd_add_error" class="alert alert-danger" style="display:none;"></div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-primary" id="bd_slab_add_btn"><i class="fa fa-save"></i> Add</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <script>
+                                    $(function(){
+                                        // Delete slab
+                                        $(document).on('click', '.bd-slab-delete', function(){
+                                            var id   = $(this).data('id');
+                                            var $row = $('#bdslabrow_' + id);
+                                            if (!confirm('Delete this payment method slab?')) return;
+                                            $.post('<?php echo site_url('admin/paymentsettings/billdesk_slab_delete/'); ?>' + id, {}, function(res){
+                                                if (res.st === 0) {
+                                                    $row.fadeOut(300, function(){ $(this).remove(); });
+                                                } else {
+                                                    alert(res.msg || 'Delete failed.');
+                                                }
+                                            }, 'json').fail(function(){ alert('Request failed.'); });
+                                        });
+                                        // Add slab
+                                        $('#bd_slab_add_btn').on('click', function(){
+                                            var label = $.trim($('#bd_new_label').val());
+                                            var pm    = $.trim($('#bd_new_pm').val()).replace(/\s+/g, '_').toLowerCase();
+                                            if (!label || !pm) {
+                                                $('#bd_add_error').text('Label and Method Key are required.').show();
+                                                return;
+                                            }
+                                            $('#bd_add_error').hide();
+                                            $('#bd_slab_add_btn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+                                            $.post('<?php echo site_url('admin/paymentsettings/billdesk_slab_add'); ?>', {
+                                                label:              label,
+                                                payment_method:     pm,
+                                                charge_type:        $('#bd_new_charge_type').val(),
+                                                charge_value:       $('#bd_new_charge_value').val(),
+                                                amount_threshold:   $('#bd_new_threshold').val(),
+                                                charge_value_above: $('#bd_new_charge_above').val(),
+                                                is_active:          $('#bd_new_is_active').is(':checked') ? 1 : 0,
+                                                sort_order:         99
+                                            }, function(res){
+                                                if (res.st === 0) {
+                                                    location.reload();
+                                                } else {
+                                                    $('#bd_add_error').text(res.msg || 'Failed to add.').show();
+                                                    $('#bd_slab_add_btn').prop('disabled', false).html('<i class="fa fa-save"></i> Add');
+                                                }
+                                            }, 'json').fail(function(){
+                                                $('#bd_add_error').text('Request failed.').show();
+                                                $('#bd_slab_add_btn').prop('disabled', false).html('<i class="fa fa-save"></i> Add');
+                                            });
+                                        });
+                                    });
+                                    </script>
                                 </div>
                                 <!-- /.box-body -->
                                 <div class="box-footer">

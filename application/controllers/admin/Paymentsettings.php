@@ -877,6 +877,42 @@ class Paymentsettings extends Admin_Controller
         }
     }
     
+    public function billdesk_slab_add()
+    {
+        if (!$this->rbac->hasPrivilege('payment_methods', 'can_add')) {
+            echo json_encode(['st' => 1, 'msg' => 'Access denied']);
+            return;
+        }
+        $pm    = trim($this->input->post('payment_method', true));
+        $label = trim($this->input->post('label', true));
+        if ($pm === '' || $label === '') {
+            echo json_encode(['st' => 1, 'msg' => 'Payment method key and label are required.']);
+            return;
+        }
+        $data = [
+            'payment_method'     => $pm,
+            'label'              => $label,
+            'charge_type'        => $this->input->post('charge_type', true),
+            'charge_value'       => $this->input->post('charge_value', true),
+            'amount_threshold'   => $this->input->post('amount_threshold', true),
+            'charge_value_above' => $this->input->post('charge_value_above', true),
+            'is_active'          => $this->input->post('is_active', true),
+            'sort_order'         => $this->input->post('sort_order', true),
+        ];
+        $this->paymentsetting_model->addBilldeskSlab($data);
+        echo json_encode(['st' => 0, 'msg' => 'Added successfully.']);
+    }
+
+    public function billdesk_slab_delete($id)
+    {
+        if (!$this->rbac->hasPrivilege('payment_methods', 'can_delete')) {
+            echo json_encode(['st' => 1, 'msg' => 'Access denied']);
+            return;
+        }
+        $deleted = $this->paymentsetting_model->deleteBilldeskSlab((int)$id);
+        echo json_encode($deleted ? ['st' => 0, 'msg' => 'Deleted'] : ['st' => 1, 'msg' => 'Not found']);
+    }
+
     public function payment_gateway_config()
     {
         $account_type = $this->input->post('account_type');

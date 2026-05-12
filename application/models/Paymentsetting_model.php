@@ -129,21 +129,52 @@ class Paymentsetting_model extends MY_Model {
     }
 
     /**
-     * Upserts BillDesk slab rows from admin form POST.
-     * $slabs = [ id => ['charge_type'=>, 'charge_value'=>, 'charge_value_above'=>, 'is_active'=>], ... ]
+     * Updates BillDesk slab rows from admin form POST.
+     * $slabs = [ id => ['label'=>, 'charge_type'=>, 'charge_value'=>, 'amount_threshold'=>, 'charge_value_above'=>, 'is_active'=>], ... ]
      */
     public function saveBilldeskSlabs($slabs) {
+        $allowed_types = ['percentage', 'flat'];
         foreach ($slabs as $id => $row) {
-            $allowed_types = ['percentage', 'flat'];
             $update = [
                 'charge_type'        => in_array($row['charge_type'], $allowed_types) ? $row['charge_type'] : 'percentage',
-                'charge_value'       => max(0, (float)$row['charge_value']),
+                'charge_value'       => max(0, (float)($row['charge_value'] ?? 0)),
+                'amount_threshold'   => max(0, (float)($row['amount_threshold'] ?? 0)),
                 'charge_value_above' => max(0, (float)($row['charge_value_above'] ?? 0)),
                 'is_active'          => !empty($row['is_active']) ? 1 : 0,
             ];
+            if (!empty($row['label'])) {
+                $update['label'] = trim($row['label']);
+            }
             $this->db->where('id', (int)$id);
             $this->db->update('billdesk_charge_slabs', $update);
         }
+    }
+
+    /**
+     * Inserts a new BillDesk slab row.
+     */
+    public function addBilldeskSlab($data) {
+        $allowed_types = ['percentage', 'flat'];
+        $insert = [
+            'payment_method'     => trim($data['payment_method'] ?? ''),
+            'label'              => trim($data['label'] ?? ''),
+            'charge_type'        => in_array($data['charge_type'], $allowed_types) ? $data['charge_type'] : 'percentage',
+            'charge_value'       => max(0, (float)($data['charge_value'] ?? 0)),
+            'amount_threshold'   => max(0, (float)($data['amount_threshold'] ?? 0)),
+            'charge_value_above' => max(0, (float)($data['charge_value_above'] ?? 0)),
+            'is_active'          => !empty($data['is_active']) ? 1 : 0,
+            'sort_order'         => (int)($data['sort_order'] ?? 99),
+        ];
+        return $this->db->insert('billdesk_charge_slabs', $insert);
+    }
+
+    /**
+     * Deletes a BillDesk slab row by ID.
+     */
+    public function deleteBilldeskSlab($id) {
+        $this->db->where('id', (int)$id);
+        $this->db->delete('billdesk_charge_slabs');
+        return $this->db->affected_rows() > 0;
     }
 
     public function payment_gateway_config($data, $other = false) {
