@@ -852,10 +852,9 @@ class Billdesk extends Student_Controller
                 }
             }
         } else {
-            // No POST data — user likely cancelled from the Billdesk window
+            // No POST data — user cancelled from the BillDesk window
             log_message('error', 'Billdesk Callback: Empty transaction_response POST data (possible user cancellation).');
-            $this->session->set_flashdata('msg', '<div class="alert alert-warning">Payment was cancelled.</div>');
-            // Fall back to session params to determine where to redirect
+            $this->session->set_flashdata('error', 'Payment was cancelled. You have not been charged.');
             $session_params = $this->session->userdata('params');
             $module = $session_params['item_type'] ?? 'fees';
             if ($module == 'online_admission_fee') {
@@ -863,8 +862,28 @@ class Billdesk extends Student_Controller
             } elseif ($module == 'online_course_fee') {
                 redirect(base_url("public_admission/applicant_dashboard"));
             } else {
-                $this->fail(['transaction_error_desc' => 'Payment cancelled']);
+                // Return student to their fees page
+                redirect(base_url('user/user/getfees'));
             }
         }
+    }
+
+    private function success($response)
+    {
+        $this->session->set_userdata('top_menu', 'fees');
+        $this->session->set_userdata('sub_menu', 'student/getFees');
+        redirect(base_url('user/gateway/payment/successinvoice'));
+    }
+
+    private function fail($response)
+    {
+        $this->session->set_flashdata('error', 'Payment failed. Please try again or contact support.');
+        redirect(base_url('user/gateway/payment/paymentfailed'));
+    }
+
+    private function pending($response)
+    {
+        $this->session->set_flashdata('msg', '<div class="alert alert-warning">Payment is being processed. You will be notified once confirmed.</div>');
+        redirect(base_url('user/gateway/payment/paymentprocessing'));
     }
 }
