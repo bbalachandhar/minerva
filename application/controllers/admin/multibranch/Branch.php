@@ -16,201 +16,214 @@ class Branch extends MY_Addon_MBController
     }
 
     /*
-    This function is used to view overview details of all branche
+    Management Command Centre — lightweight page load; heavy data via AJAX
     */
     public function overview()
     {
-
         $data = array();
+        $this->load->model("multibranch/multi_common_model");
 
         $branches = $this->multibranch_model->getSchoolCurrentSessions();
 
-        $this->load->model("multibranch/multi_common_model");
-
-        $month = date("F", strtotime('-1 month'));
-        $year  = date("Y", strtotime('-1 month'));
-
-        $staff_payslip = $this->multi_common_model->getStaffPayslipCount($month, $year, $branches);
-
+        // Student + staff counts are fast (COUNT queries) — include server-side
+        // so institution cards render instantly without waiting for AJAX
         $school_students = $this->multi_common_model->getStudentCount($branches);
+        $staff_list      = $this->multi_common_model->getStaff($branches);
 
-        $school_transport_fees = $this->multi_common_model->getStudentTransportFees($branches);
+        // Home branch real name (getSchoolCurrentSessions overwrites it with lang string)
+        $home_row        = $this->db->select('name, short_name')->from('sch_settings')->limit(1)->get()->row();
+        $data['home_name']       = $home_row ? $home_row->name       : $this->lang->line('home_branch');
+        $data['home_short_name'] = $home_row ? $home_row->short_name  : '';
 
-        $staff_list = $this->multi_common_model->getStaff($branches);
-
-        $staff_attendance_list = $this->multi_common_model->getStaffAttendance(date('Y-m-d'), $branches);
-
-        $student_admission_list = $this->multi_common_model->getOfflineStudentAdmissions($branches);
-
-        $student_online_admission_list = $this->multi_common_model->getOnlineStudentAdmissions($branches);
-
-        $student_books_list = $this->multi_common_model->getBooks($branches);
-
-        $libarary_members_list = $this->multi_common_model->getLibararyMembers($branches);
-
-        $libarary_book_issued_list = $this->multi_common_model->getLibararyBookIssued($branches);
-
-        $alumni_student_list = $this->multi_common_model->getAlumniStudents($branches);
-
-        $user_log_list = $this->multi_common_model->getUserLog($branches);
-
-        foreach ($branches as $_branch_key => $_branch_value) {
-
-//============Staff Payroll==============================
-            $payroll_data = $staff_payslip[$_branch_key]['total_payroll_record'];
-
-            $total_net_salary       = 0;
-            $salary_generated_staff = 0;
-            $salary_paid_staff      = 0;
-            $total_amount_paid      = 0;
-
-            if (!empty($payroll_data)) {
-
-                foreach ($payroll_data as $payroll_data_key => $payroll_data_value) {
-
-                    $total_net_salary += $payroll_data_value->net_salary;
-
-                    if ($payroll_data_value->status == "generated") {
-                        $salary_generated_staff++;
-                    } else {
-                        $salary_paid_staff++;
-                        $total_amount_paid += $payroll_data_value->net_salary;
-                    }
-                }
-
-            }
-
-            $staff_payslip[$_branch_key]['staff']                  = $staff_list[$_branch_key]['total_staff'];
-            $staff_payslip[$_branch_key]['staff_status_generated'] = $salary_generated_staff;
-            $staff_payslip[$_branch_key]['payroll_amount']         = $total_net_salary;
-            $staff_payslip[$_branch_key]['staff_status_paid']      = $salary_paid_staff;
-            $staff_payslip[$_branch_key]['payroll_amount_paid']    = $total_amount_paid;
-
-//============Staff Payroll end==============================
-
-            //===============fees=======================
-            $school_students[$_branch_key]['total_fees']    = 0;
-            $school_students[$_branch_key]['total_paid']    = 0;
-            $school_students[$_branch_key]['total_balance'] = 0;
-//==========================================
-
-            //===============staff attendance=======================
-
-            $staff_present = "0";
-            $staff_absent  = "0";
-
-            if (!empty($staff_attendance_list[$_branch_key])) {
-
-                foreach ($staff_attendance_list[$_branch_key] as $staff_attendance_key => $staff_attendance_value) {
-
-                    if ($staff_attendance_value->attendence_id > 0) {
-
-                        if ($staff_attendance_value->att_type == "Absent") {
-                            $staff_absent += 1;
-                        } else {
-                            $staff_present += 1;
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-            $staff_list[$_branch_key]['staff_present'] = $staff_present;
-            $staff_list[$_branch_key]['staff_absent']  = $staff_absent;
-//==========================================
-
-            //===============student online admission=======================
-
-            $student_admission_list[$_branch_key]['online_admission'] = $student_online_admission_list[$_branch_key]['online_admission'];
-//==========================================
-
-            //===============libarary members=======================
-
-            $student_books_list[$_branch_key]['libarary_members'] = $libarary_members_list[$_branch_key]['total_members'];
-//==========================================
-
-            //===============libarary book issued=======================
-
-            $student_books_list[$_branch_key]['book_issued'] = $libarary_book_issued_list[$_branch_key]['total_book_issued'];
-//==========================================
-
-            //==================Transport Fees Details
-            $school_transport_total_fees = 0;
-            $school_transport_total_paid = 0;
-            if (!empty($school_transport_fees[$_branch_key]['total_fees_record'])) {
-
-                foreach ($school_transport_fees[$_branch_key]['total_fees_record'] as $transport_fee_key => $transport_fee_value) {
-                    $school_transport_total_fees += $transport_fee_value->fees;
-                    if (isJSON($transport_fee_value->amount_detail)) {
-                        $amount_paid_array = json_decode($transport_fee_value->amount_detail);
-                        foreach ($amount_paid_array as $amount_paid_key => $amount_paid_value) {
-                            $school_transport_total_paid += ($amount_paid_value->amount + $amount_paid_value->amount_discount);
-                        }
-
-                    }
-                }
-
-            }
-
-            $school_transport_fees[$_branch_key]['total_fees']    = $school_transport_total_fees;
-            $school_transport_fees[$_branch_key]['total_paid']    = $school_transport_total_paid;
-            $school_transport_fees[$_branch_key]['total_balance'] = ($school_transport_total_fees - $school_transport_total_paid);
-
-        }
-
-        $data['month']                 = $month;
-        $data['staff_payslip']         = $staff_payslip;
-        $data['school_transport_fees'] = $school_transport_fees;
-        $data['staff_list']            = $staff_list;
-
-        $data['school_students']        = $school_students;
-        $data['student_admission_list'] = $student_admission_list;
-        $data['student_books_list']     = $student_books_list;
-        $data['alumni_student_list']    = $alumni_student_list;
-        $data['user_log_list']          = $user_log_list;
-
-        $fees_chart_data = [
-            'labels' => [],
-            'datasets' => [
-                [
-                    'label' => 'Total Fees',
-                    'data' => [],
-                    'backgroundColor' => 'rgba(255, 99, 132, 0.2)',
-                    'borderColor' => 'rgba(255, 99, 132, 1)',
-                    'borderWidth' => 1
-                ],
-                [
-                    'label' => 'Paid Fees',
-                    'data' => [],
-                    'backgroundColor' => 'rgba(54, 162, 235, 0.2)',
-                    'borderColor' => 'rgba(54, 162, 235, 1)',
-                    'borderWidth' => 1
-                ],
-                [
-                    'label' => 'Balance Fees',
-                    'data' => [],
-                    'backgroundColor' => 'rgba(255, 206, 86, 0.2)',
-                    'borderColor' => 'rgba(255, 206, 86, 1)',
-                    'borderWidth' => 1
-                ]
-            ]
-        ];
-
-        foreach ($school_students as $school_key => $school_value) {
-            $fees_chart_data['labels'][] = $school_value['name'];
-            $fees_chart_data['datasets'][0]['data'][] = 0;
-            $fees_chart_data['datasets'][1]['data'][] = 0;
-            $fees_chart_data['datasets'][2]['data'][] = 0;
-        }
-
-        $data['fees_chart_data'] = json_encode($fees_chart_data);
+        $data['branches']        = $branches;
+        $data['school_students'] = $school_students;
+        $data['staff_list']      = $staff_list;
+        $data['branch_list']     = $this->multibranch_model->get();
+        $data['month']           = date("F", strtotime('-1 month'));
+        $data['year']            = date("Y", strtotime('-1 month'));
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/multibranch/overview', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+    /*
+    AJAX — HR & Payroll section data
+    */
+    public function hr_async()
+    {
+        if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
+            access_denied();
+        }
+
+        $this->load->model("multibranch/multi_common_model");
+        $branches = $this->multibranch_model->getSchoolCurrentSessions();
+
+        $month = date("F", strtotime('-1 month'));
+        $year  = date("Y", strtotime('-1 month'));
+
+        $staff_payslip         = $this->multi_common_model->getStaffPayslipCount($month, $year, $branches);
+        $staff_list            = $this->multi_common_model->getStaff($branches);
+        $staff_attendance_list = $this->multi_common_model->getStaffAttendance(date('Y-m-d'), $branches);
+
+        $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
+        $rows            = [];
+        $chart_labels    = [];
+        $chart_payroll   = [];
+        $chart_paid      = [];
+
+        foreach ($branches as $db_name => $branch_info) {
+            $payroll_data      = $staff_payslip[$db_name]['total_payroll_record'];
+            $total_payroll     = 0;
+            $payroll_paid_amt  = 0;
+            $payroll_generated = 0;
+            $payroll_paid_cnt  = 0;
+
+            if (!empty($payroll_data)) {
+                foreach ($payroll_data as $p) {
+                    $total_payroll += $p->net_salary;
+                    if ($p->status === 'generated') {
+                        $payroll_generated++;
+                    } else {
+                        $payroll_paid_cnt++;
+                        $payroll_paid_amt += $p->net_salary;
+                    }
+                }
+            }
+
+            $staff_present = 0;
+            $staff_absent  = 0;
+            if (!empty($staff_attendance_list[$db_name])) {
+                foreach ($staff_attendance_list[$db_name] as $att) {
+                    if ($att->attendence_id > 0) {
+                        if ($att->att_type === 'Absent') $staff_absent++;
+                        else                             $staff_present++;
+                    }
+                }
+            }
+
+            $total_staff        = $staff_list[$db_name]['total_staff'];
+            $payroll_not_gen    = max(0, $total_staff - $payroll_generated - $payroll_paid_cnt);
+
+            $rows[] = [
+                'db_name'           => $db_name,
+                'name'              => $branch_info->name,
+                'total_staff'       => $total_staff,
+                'payroll_amount'    => $total_payroll,
+                'payroll_paid'      => $payroll_paid_amt,
+                'payroll_amount_fmt'=> $currency_symbol . amountFormat($total_payroll),
+                'payroll_paid_fmt'  => $currency_symbol . amountFormat($payroll_paid_amt),
+                'payroll_generated' => $payroll_generated,
+                'payroll_paid_cnt'  => $payroll_paid_cnt,
+                'payroll_not_gen'   => $payroll_not_gen,
+                'staff_present'     => $staff_present,
+                'staff_absent'      => $staff_absent,
+            ];
+
+            $chart_labels[]  = $branch_info->name;
+            $chart_payroll[] = $total_payroll;
+            $chart_paid[]    = $payroll_paid_amt;
+        }
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status' => 'success',
+                'month'  => $month,
+                'rows'   => $rows,
+                'chart'  => ['labels' => $chart_labels, 'payroll' => $chart_payroll, 'paid' => $chart_paid],
+            ]));
+    }
+
+    /*
+    AJAX — Assets / Inventory section data
+    */
+    public function assets_async()
+    {
+        if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
+            access_denied();
+        }
+
+        $this->load->model("multibranch/multi_common_model");
+        $branches        = $this->multibranch_model->getSchoolCurrentSessions();
+        $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
+        $inventory       = $this->multi_common_model->getInventorySummary($branches);
+
+        $rows         = [];
+        $chart_labels = [];
+        $chart_values = [];
+
+        foreach ($branches as $db_name => $branch_info) {
+            $inv = $inventory[$db_name];
+            $cats = [];
+            foreach ($inv['categories'] as $cat) {
+                $cats[] = [
+                    'name'           => $cat->category_name,
+                    'item_types'     => (int) $cat->item_types,
+                    'total_stock'    => (int) $cat->total_stock,
+                    'total_value'    => (float) $cat->total_value,
+                    'total_value_fmt'=> $currency_symbol . amountFormat($cat->total_value),
+                ];
+            }
+            $rows[] = [
+                'db_name'        => $db_name,
+                'name'           => $branch_info->name,
+                'total_items'    => $inv['total_items'],
+                'total_stock'    => $inv['total_stock'],
+                'total_value'    => $inv['total_value'],
+                'total_value_fmt'=> $currency_symbol . amountFormat($inv['total_value']),
+                'categories'     => $cats,
+            ];
+            $chart_labels[] = $branch_info->name;
+            $chart_values[] = $inv['total_value'];
+        }
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status' => 'success',
+                'rows'   => $rows,
+                'chart'  => ['labels' => $chart_labels, 'values' => $chart_values],
+            ]));
+    }
+
+    /*
+    AJAX — Academics section data (library, admissions, alumni)
+    */
+    public function academics_async()
+    {
+        if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
+            access_denied();
+        }
+
+        $this->load->model("multibranch/multi_common_model");
+        $branches = $this->multibranch_model->getSchoolCurrentSessions();
+
+        $books           = $this->multi_common_model->getBooks($branches);
+        $members         = $this->multi_common_model->getLibararyMembers($branches);
+        $issued          = $this->multi_common_model->getLibararyBookIssued($branches);
+        $offline_adm     = $this->multi_common_model->getOfflineStudentAdmissions($branches);
+        $online_adm      = $this->multi_common_model->getOnlineStudentAdmissions($branches);
+        $alumni          = $this->multi_common_model->getAlumniStudents($branches);
+
+        $rows = [];
+        foreach ($branches as $db_name => $branch_info) {
+            $rows[] = [
+                'db_name'          => $db_name,
+                'name'             => $branch_info->name,
+                'session'          => $branch_info->session,
+                'total_books'      => $books[$db_name]['total_books'],
+                'library_members'  => $members[$db_name]['total_members'],
+                'book_issued'      => $issued[$db_name]['total_book_issued'],
+                'offline_admission'=> $offline_adm[$db_name]['offline_admission'],
+                'online_admission' => $online_adm[$db_name]['online_admission'],
+                'total_alumni'     => $alumni[$db_name]['total_alumni_student'],
+            ];
+        }
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(['status' => 'success', 'rows' => $rows]));
     }
 
     public function fees_overview_async()

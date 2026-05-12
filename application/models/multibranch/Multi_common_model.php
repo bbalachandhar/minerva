@@ -750,4 +750,88 @@ class Multi_common_model extends MY_Model
         //=========================================
         return $results;
     }
+
+    /*
+    This function returns inventory summary (total value, stock, categories) for all branches
+    */
+    public function getInventorySummary($school_array = [])
+    {
+        $results = [];
+
+        $default_db = $this->db_default->database;
+        $current_db = $school_array[$default_db];
+
+        $sql = "SELECT ic.item_category AS category_name,
+                  COUNT(DISTINCT i.id) AS item_types,
+                  IFNULL(SUM(ist.quantity),0) AS total_stock,
+                  IFNULL(ROUND(SUM(ist.quantity * ist.purchase_price)),0) AS total_value
+                FROM `$default_db`.item_category ic
+                LEFT JOIN `$default_db`.item i ON i.item_category_id = ic.id
+                LEFT JOIN `$default_db`.item_stock ist ON ist.item_id = i.id AND ist.is_active = 'yes'
+                WHERE ic.is_active = 'yes'
+                GROUP BY ic.id
+                ORDER BY total_value DESC";
+
+        $categories  = $this->db->query($sql)->result();
+        $total_value = 0;
+        $total_stock = 0;
+        $total_items = 0;
+        foreach ($categories as $cat) {
+            $total_value += (float) $cat->total_value;
+            $total_stock += (int)   $cat->total_stock;
+            $total_items += (int)   $cat->item_types;
+        }
+
+        $results[$default_db] = [
+            'name'        => $current_db->name,
+            'db_name'     => $default_db,
+            'total_value' => $total_value,
+            'total_stock' => $total_stock,
+            'total_items' => $total_items,
+            'categories'  => $categories,
+        ];
+
+        $this->load->model("multibranch_model");
+        $branches = $this->multibranch_model->get();
+
+        if (!empty($branches)) {
+            foreach ($branches as $branch_value) {
+                $db_dynamic      = $this->load->database('branch_' . $branch_value->id, true);
+                $db_dynamic_name = $db_dynamic->database;
+                $current_db      = $school_array[$db_dynamic_name];
+
+                $sql = "SELECT ic.item_category AS category_name,
+                          COUNT(DISTINCT i.id) AS item_types,
+                          IFNULL(SUM(ist.quantity),0) AS total_stock,
+                          IFNULL(ROUND(SUM(ist.quantity * ist.purchase_price)),0) AS total_value
+                        FROM `$db_dynamic_name`.item_category ic
+                        LEFT JOIN `$db_dynamic_name`.item i ON i.item_category_id = ic.id
+                        LEFT JOIN `$db_dynamic_name`.item_stock ist ON ist.item_id = i.id AND ist.is_active = 'yes'
+                        WHERE ic.is_active = 'yes'
+                        GROUP BY ic.id
+                        ORDER BY total_value DESC";
+
+                $categories  = $this->db->query($sql)->result();
+                $total_value = 0;
+                $total_stock = 0;
+                $total_items = 0;
+                foreach ($categories as $cat) {
+                    $total_value += (float) $cat->total_value;
+                    $total_stock += (int)   $cat->total_stock;
+                    $total_items += (int)   $cat->item_types;
+                }
+
+                $results[$db_dynamic_name] = [
+                    'name'        => $current_db->name,
+                    'db_name'     => $db_dynamic_name,
+                    'total_value' => $total_value,
+                    'total_stock' => $total_stock,
+                    'total_items' => $total_items,
+                    'categories'  => $categories,
+                ];
+            }
+        }
+
+        return $results;
+    }
 }
