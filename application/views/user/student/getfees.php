@@ -33,9 +33,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     </div><!--./box-header-->
 
                     <div class="box-body" style="padding-top:0;">
+                        <?php $flash_error = $this->session->flashdata('error'); $this->session->unset_userdata('error'); ?>
+                        <?php if ($flash_error): ?>
+                        <script>
+                        $(function(){
+                            toastr.options = { positionClass: 'toast-top-right', timeOut: 5000, extendedTimeOut: 2000, closeButton: true, progressBar: true };
+                            toastr.warning(<?php echo json_encode(strip_tags($flash_error)); ?>);
+                        });
+                        </script>
+                        <?php endif; ?>
                         <div class="row">
-                            <?php echo $this->session->flashdata('error');
-                            $this->session->unset_userdata('error'); ?>
                             <?php if ($this->session->flashdata('msg')) {
                             ?>
                                 <?php echo $this->session->flashdata('msg');
