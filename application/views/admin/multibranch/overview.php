@@ -681,8 +681,8 @@ function loadAssets() {
             }
 
             panelsHtml +=
-                '<div class="box" style="border-radius:4px; border-top:3px solid '+color+'; margin-bottom:12px">'+'
-                    '<div class="box-header" style="padding:10px 15px; background:#fafafa; border-bottom:1px solid #eee">'+'
+                '<div class="box" style="border-radius:4px; border-top:3px solid '+color+'; margin-bottom:12px">'+
+                    '<div class="box-header" style="padding:10px 15px; background:#fafafa; border-bottom:1px solid #eee">'+
                         '<span class="mcc-dot-lg" style="background:'+color+'"></span>'+
                         '<strong style="font-size:14px">'+escHtml(row.name)+'</strong>'+
                         '<span class="pull-right" style="font-size:12px; color:#666">'+
@@ -690,7 +690,7 @@ function loadAssets() {
                             '<i class="fa fa-archive"></i> '+numFmt(row.total_stock)+' units &nbsp;'+
                             '<strong style="color:#e67e22"><i class="fa fa-inr"></i> '+row.total_value_fmt+'</strong>'+
                         '</span>'+
-                    '</div>'+'
+                    '</div>'+
                     '<div class="table-responsive">'+
                         '<table class="table table-condensed table-bordered mcc-table mcc-table-sm">'+
                             '<thead><tr><th>Category</th><th class="text-center">Items</th><th class="text-center">Units</th><th class="text-right">Value</th></tr></thead>'+
@@ -799,7 +799,7 @@ function loadAcademics() {
 // ---- Stat card builder ----
 function mkStatCard(color, label, value) {
     return '<div class="mcc-stat-card" style="border-left-color:'+color+'">'+
-        '<div class="lbl">'+escHtml(label)+'</div>'+'
+        '<div class="lbl">'+escHtml(label)+'</div>'+
         '<div class="val">'+value+'</div>'+
         '</div>';
 }
