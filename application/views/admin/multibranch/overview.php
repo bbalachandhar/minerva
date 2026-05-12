@@ -576,7 +576,9 @@ function loadFees() {
         }
 
     }).fail(function(){
-        $('#fees-chart-skeleton').html('<p class="mcc-load-err">Failed to load fee data.</p>');
+        var errMsg = '<p class="mcc-load-err"><i class="fa fa-exclamation-triangle"></i> Failed to load fee data. <a href="javascript:location.reload()">Reload page</a></p>';
+        $('#fees-chart-skeleton').html(errMsg);
+        $('#fees-table-skeleton').html(errMsg);
     });
 }
 
@@ -652,7 +654,10 @@ function loadHR() {
         }
 
     }).fail(function(){
-        $('#hr-chart-skeleton').html('<p class="mcc-load-err">Failed to load HR data.</p>');
+        var errMsg = '<p class="mcc-load-err"><i class="fa fa-exclamation-triangle"></i> Failed to load HR data. <a href="javascript:location.reload()">Reload page</a></p>';
+        $('#hr-chart-skeleton').html(errMsg);
+        $('#hr-table-skeleton').html(errMsg);
+        loaded.hr = false;
     });
 }
 
@@ -743,7 +748,10 @@ function loadAssets() {
         }
 
     }).fail(function(){
-        $('#assets-chart-skeleton').html('<p class="mcc-load-err">Failed to load asset data.</p>');
+        var errMsg = '<p class="mcc-load-err"><i class="fa fa-exclamation-triangle"></i> Failed to load asset data. <a href="javascript:location.reload()">Reload page</a></p>';
+        $('#assets-chart-skeleton').html(errMsg);
+        $('#assets-table-skeleton').html(errMsg);
+        loaded.assets = false;
     });
 }
 
@@ -801,7 +809,8 @@ function loadAcademics() {
         $('#academics-content').show();
 
     }).fail(function(){
-        $('#academics-skeleton').html('<p class="mcc-load-err">Failed to load academics data.</p>');
+        $('#academics-skeleton').html('<p class="mcc-load-err"><i class="fa fa-exclamation-triangle"></i> Failed to load academics data. <a href="javascript:location.reload()">Reload page</a></p>');
+        loaded.academics = false;
     });
 }
 
