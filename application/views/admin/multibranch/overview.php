@@ -87,7 +87,7 @@ function mcc_abbr($db_name) {
 .mcc-table td  { font-size: 13px; vertical-align: middle !important; }
 .mcc-table-sm td, .mcc-table-sm th { padding: 5px 8px !important; font-size: 12px; }
 .mcc-stat-card { border-left: 4px solid; border-radius: 3px; background: #fafafa; padding: 10px 14px; margin-bottom: 10px; }
-.mcc-stat-card .lbl { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: .4px; }
+.mcc-stat-card .lbl { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
 .mcc-stat-card .val { font-size: 18px; font-weight: 700; color: #222; margin-top: 2px; }
 .mcc-load-err { text-align: center; color: #cc0000; padding: 20px; font-size: 13px; }
 .mcc-inst-box { border-radius: 4px; overflow: hidden; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,.08); background: #fff; }
@@ -118,7 +118,7 @@ function mcc_abbr($db_name) {
     <h3 style="margin:0; font-size:20px; font-weight:700; color:#333; display:inline-block">
       <i class="fa fa-building-o" style="color:#3c8dbc; margin-right:8px"></i>Management Command Centre
     </h3>
-    <small style="color:#aaa; margin-left:12px"><?php echo count($branches); ?> institutions &mdash; <?php echo date('d M Y'); ?></small>
+    <small style="color:#666; margin-left:12px"><?php echo count($branches); ?> institutions &mdash; <?php echo date('d M Y'); ?></small>
   </div>
 </div>
 
