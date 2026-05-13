@@ -107,6 +107,30 @@ function mcc_abbr($db_name) {
 .mcc-kpi-row > [class*='col-'] { display: flex; float: none; }
 .mcc-kpi-row .info-box { flex: 1; min-height: 0; margin-bottom: 15px; }
 .mcc-kpi-row .info-box-icon { display: flex; align-items: center; justify-content: center; height: auto; min-height: 0; line-height: normal; }
+/* Carousel */
+.mcc-carousel-outer    { position: relative; margin-bottom: 15px; }
+.mcc-carousel-viewport { overflow: hidden; margin: 0 42px; }
+.mcc-carousel-track    { display: flex; transition: transform .35s cubic-bezier(.4,0,.2,1); will-change: transform; }
+.mcc-card-slide        { flex: 0 0 100%; padding: 0 7px; box-sizing: border-box; }
+@media (min-width:768px)  { .mcc-card-slide { flex: 0 0 50%; } }
+@media (min-width:992px)  { .mcc-card-slide { flex: 0 0 25%; } }
+.mcc-carousel-btn {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #fff; border: 1px solid #ccc;
+    box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    cursor: pointer; z-index: 10;
+    display: none; /* shown by JS when needed */
+    align-items: center; justify-content: center;
+    color: #555; font-size: 14px; line-height: 1;
+    transition: background .15s, box-shadow .15s;
+    padding: 0;
+}
+.mcc-carousel-btn:hover  { background: #f0f0f0; box-shadow: 0 3px 10px rgba(0,0,0,.22); color: #333; }
+.mcc-carousel-btn:active { background: #e4e4e4; }
+.mcc-carousel-btn:disabled { opacity: .35; cursor: default; pointer-events: none; }
+#mcc-prev-btn { left: 0; }
+#mcc-next-btn { right: 0; }
 </style>
 
 <div class="content-wrapper" style="background:#f0f2f5">
@@ -122,8 +146,11 @@ function mcc_abbr($db_name) {
   </div>
 </div>
 
-<!-- INSTITUTION CARDS -->
-<div class="row">
+<!-- INSTITUTION CARDS CAROUSEL -->
+<div class="mcc-carousel-outer">
+  <button class="mcc-carousel-btn" id="mcc-prev-btn" onclick="mccCarousel(-1)" title="Previous"><i class="fa fa-chevron-left"></i></button>
+  <div class="mcc-carousel-viewport">
+    <div class="mcc-carousel-track" id="mcc-cards-track">
 <?php $ci = 0; foreach ($branches as $db_name => $bi):
     $color    = $inst_colors[$ci % count($inst_colors)];
     $abbr     = mcc_abbr($db_name);
@@ -138,7 +165,7 @@ function mcc_abbr($db_name) {
     $female_staff    = isset($staff_list[$db_name])      ? $staff_list[$db_name]['female_staff']        : 0;
     $ci++;
 ?>
-<div class="col-xs-12 col-sm-6 col-md-3">
+<div class="mcc-card-slide">
   <div class="mcc-inst-box" style="border-top:4px solid <?php echo $color; ?>">
     <div class="mcc-inst-box-header">
       <div class="mcc-card-header-row">
@@ -193,7 +220,10 @@ function mcc_abbr($db_name) {
   </div>
 </div>
 <?php endforeach; ?>
-</div>
+    </div><!-- /mcc-cards-track -->
+  </div><!-- /mcc-carousel-viewport -->
+  <button class="mcc-carousel-btn" id="mcc-next-btn" onclick="mccCarousel(1)" title="Next"><i class="fa fa-chevron-right"></i></button>
+</div><!-- /mcc-carousel-outer -->
 
 <!-- KPI STRIP -->
 <div class="row mcc-kpi-row" style="margin-bottom:6px">
@@ -1036,5 +1066,48 @@ $(document).ready(function(){
     }
 
     $(window).on('scroll', updateNavActive);
+
+    // ---- Institution Cards Carousel ----
+    (function() {
+        var track     = document.getElementById('mcc-cards-track');
+        var prevBtn   = document.getElementById('mcc-prev-btn');
+        var nextBtn   = document.getElementById('mcc-next-btn');
+        if (!track || !track.children.length) return;
+
+        var total  = track.children.length;
+        var offset = 0; // index of leftmost visible card
+
+        function getVisible() {
+            var w = window.innerWidth;
+            if (w >= 992) return 4;
+            if (w >= 768) return 2;
+            return 1;
+        }
+
+        function update() {
+            var vis    = getVisible();
+            var maxOff = Math.max(0, total - vis);
+            offset = Math.min(offset, maxOff);
+            var cardPct = 100 / vis;
+            track.style.transform = 'translateX(-' + (offset * cardPct) + '%)';
+            if (total <= vis) {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+            } else {
+                prevBtn.style.display = offset > 0       ? 'flex' : 'none';
+                nextBtn.style.display = offset < maxOff  ? 'flex' : 'none';
+            }
+        }
+
+        window.mccCarousel = function(dir) {
+            var vis    = getVisible();
+            var maxOff = Math.max(0, total - vis);
+            offset = Math.max(0, Math.min(maxOff, offset + dir));
+            update();
+        };
+
+        update();
+        $(window).on('resize', function() { update(); });
+    })();
 });
 </script>
