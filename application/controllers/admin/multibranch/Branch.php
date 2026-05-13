@@ -747,4 +747,46 @@ class Branch extends MY_Addon_MBController
         $this->load->view('layout/footer', $data);
     }
 
+    /*
+    AJAX — Attendance section: today's student + staff attendance per institution
+    */
+    public function attendance_async()
+    {
+        if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
+            access_denied();
+        }
+        session_write_close();
+
+        $this->load->model('multibranch/multi_common_model');
+        $branches = $this->multibranch_model->getSchoolCurrentSessions();
+        $today    = date('Y-m-d');
+
+        $summary = $this->multi_common_model->getAttendanceSummary($today, $branches);
+
+        $rows = [];
+        foreach ($branches as $db_name => $branch_info) {
+            $data = isset($summary[$db_name]) ? $summary[$db_name] : [];
+            $rows[] = [
+                'db_name'               => $db_name,
+                'name'                  => $branch_info->name,
+                'student_present'       => $data['student_present']       ?? 0,
+                'student_boys_present'  => $data['student_boys_present']  ?? 0,
+                'student_girls_present' => $data['student_girls_present'] ?? 0,
+                'student_absent'        => $data['student_absent']        ?? 0,
+                'student_total'         => $data['student_total']         ?? 0,
+                'staff_present'         => $data['staff_present']         ?? 0,
+                'staff_absent'          => $data['staff_absent']          ?? 0,
+                'staff_total'           => $data['staff_total']           ?? 0,
+            ];
+        }
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status' => 'success',
+                'date'   => $today,
+                'rows'   => $rows,
+            ]));
+    }
+
 }

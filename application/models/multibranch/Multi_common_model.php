@@ -878,4 +878,85 @@ class Multi_common_model extends MY_Model
 
         return $results;
     }
+
+    /**
+     * Get daily attendance summary (student + staff) for all branches.
+     * Returns an array keyed by db_name with keys:
+     *   student_present, student_boys_present, student_girls_present,
+     *   student_absent, student_total,
+     *   staff_present, staff_absent, staff_total
+     */
+    public function getAttendanceSummary($date, $school_array = [])
+    {
+        $results     = [];
+        $default_db  = $this->db_default->database;
+        $branch_info = $school_array[$default_db];
+
+        // ── Home branch ──────────────────────────────────────────────────────
+        $session_id = $branch_info->session_id;
+        $results[$default_db] = $this->_attendance_summary_for_db(
+            $this->db, $default_db, $date, $session_id
+        );
+
+        // ── Branch DBs ───────────────────────────────────────────────────────
+        $this->load->model('multibranch_model');
+        $branches = $this->multibranch_model->get();
+        if (!empty($branches)) {
+            foreach ($branches as $branch_value) {
+                $db_dyn      = $this->load->database('branch_' . $branch_value->id, true);
+                $db_dyn_name = $db_dyn->database;
+                if (!isset($school_array[$db_dyn_name])) continue;
+                $session_id  = $school_array[$db_dyn_name]->session_id;
+                $results[$db_dyn_name] = $this->_attendance_summary_for_db(
+                    $db_dyn, $db_dyn_name, $date, $session_id
+                );
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Run student + staff attendance aggregate queries against one DB connection.
+     */
+    private function _attendance_summary_for_db($db, $db_name, $date, $session_id)
+    {
+        // Student attendance (type IDs: 1=Present,2=LateExcuse,3=Late,6=HalfDay → present;  4=Absent)
+        $stu = $db->query(
+            "SELECT
+               SUM(CASE WHEN sa.attendence_type_id IN (1,2,3,6) THEN 1 ELSE 0 END)                                     AS present,
+               SUM(CASE WHEN sa.attendence_type_id IN (1,2,3,6) AND s.gender = 'Male'   THEN 1 ELSE 0 END)             AS boys_present,
+               SUM(CASE WHEN sa.attendence_type_id IN (1,2,3,6) AND s.gender = 'Female' THEN 1 ELSE 0 END)             AS girls_present,
+               SUM(CASE WHEN sa.attendence_type_id = 4 THEN 1 ELSE 0 END)                                              AS absent,
+               COUNT(sa.id)                                                                                             AS total_marked
+             FROM `$db_name`.student_attendences sa
+             JOIN `$db_name`.student_session ss ON ss.id = sa.student_session_id
+             JOIN `$db_name`.students s          ON s.id  = ss.student_id AND s.is_active = 'yes'
+             WHERE sa.date = ? AND ss.session_id = ?",
+            [$date, $session_id]
+        )->row();
+
+        // Staff attendance (key_values that count as present vs absent)
+        $sta = $db->query(
+            "SELECT
+               SUM(CASE WHEN sat.key_value IN ('P','FHL','HD','FHP','SHL','SHP') THEN 1 ELSE 0 END) AS present,
+               SUM(CASE WHEN sat.key_value IN ('A','FHA','SHA')                  THEN 1 ELSE 0 END) AS absent,
+               COUNT(sa.id)                                                                         AS total
+             FROM `$db_name`.staff_attendance sa
+             JOIN `$db_name`.staff_attendance_type sat ON sat.id = sa.staff_attendance_type_id
+             WHERE sa.date = ?",
+            [$date]
+        )->row();
+
+        return [
+            'student_present'      => (int) ($stu->present       ?? 0),
+            'student_boys_present' => (int) ($stu->boys_present  ?? 0),
+            'student_girls_present'=> (int) ($stu->girls_present ?? 0),
+            'student_absent'       => (int) ($stu->absent        ?? 0),
+            'student_total'        => (int) ($stu->total_marked  ?? 0),
+            'staff_present'        => (int) ($sta->present ?? 0),
+            'staff_absent'         => (int) ($sta->absent  ?? 0),
+            'staff_total'          => (int) ($sta->total   ?? 0),
+        ];
+    }
 }

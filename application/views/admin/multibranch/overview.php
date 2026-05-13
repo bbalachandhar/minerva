@@ -257,6 +257,9 @@ function mcc_abbr($db_name) {
   <li id="nav-academics">
     <a href="#section-academics" data-section="academics"><i class="fa fa-graduation-cap"></i> Academics</a>
   </li>
+  <li id="nav-attendance">
+    <a href="#section-attendance" data-section="attendance"><i class="fa fa-check-square-o"></i> Attendance</a>
+  </li>
   <li class="pull-right">
     <a href="javascript:window.print()" title="Print"><i class="fa fa-print"></i></a>
   </li>
@@ -432,6 +435,69 @@ function mcc_abbr($db_name) {
   </div>
 </div>
 
+<!-- ATTENDANCE -->
+<div class="box" id="section-attendance" data-section="attendance" style="border-radius:4px; border-top:3px solid #d81b60; margin-top:20px">
+  <div class="box-header with-border" style="background:#d81b60; padding:12px 18px">
+    <h3 class="box-title" style="color:#fff; font-size:15px; font-weight:600"><i class="fa fa-check-square-o"></i> Attendance &mdash; Today</h3>
+    <span class="pull-right" style="color:rgba(255,255,255,.75); font-size:12px" id="att-date-label"></span>
+  </div>
+  <div class="box-body">
+    <div class="row">
+      <div class="col-md-3" id="att-summary-cards">
+        <div class="sk-shimmer sk-card"></div>
+        <div class="sk-shimmer sk-card"></div>
+      </div>
+      <div class="col-md-9">
+        <div id="att-skeleton">
+          <div class="sk-shimmer sk-block"></div>
+          <div class="sk-shimmer sk-block alt"></div>
+          <div class="sk-shimmer sk-block"></div>
+          <div class="sk-shimmer sk-block alt"></div>
+        </div>
+        <div id="att-content" style="display:none">
+          <div class="row">
+            <div class="col-sm-7">
+              <p style="font-size:13px; font-weight:700; color:#444; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px">
+                <i class="fa fa-graduation-cap" style="color:#d81b60"></i> Student Attendance
+              </p>
+              <div class="table-responsive">
+                <table class="table table-hover table-bordered mcc-table">
+                  <thead><tr>
+                    <th>Institution</th>
+                    <th class="text-right">&#9794; Boys</th>
+                    <th class="text-right">&#9792; Girls</th>
+                    <th class="text-right text-danger">Absent</th>
+                    <th class="text-right">Marked</th>
+                  </tr></thead>
+                  <tbody id="att-stu-tbody"></tbody>
+                  <tfoot id="att-stu-tfoot"></tfoot>
+                </table>
+              </div>
+            </div>
+            <div class="col-sm-5">
+              <p style="font-size:13px; font-weight:700; color:#444; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px">
+                <i class="fa fa-id-badge" style="color:#605ca8"></i> Staff Attendance
+              </p>
+              <div class="table-responsive">
+                <table class="table table-hover table-bordered mcc-table">
+                  <thead><tr>
+                    <th>Institution</th>
+                    <th class="text-right">Present</th>
+                    <th class="text-right text-danger">Absent</th>
+                    <th class="text-right">Total</th>
+                  </tr></thead>
+                  <tbody id="att-stf-tbody"></tbody>
+                  <tfoot id="att-stf-tfoot"></tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </section>
 </div>
 
@@ -444,7 +510,8 @@ var MCC = {
         fees:      '<?php echo site_url("admin/multibranch/branch/fees_overview_async"); ?>',
         hr:        '<?php echo site_url("admin/multibranch/branch/hr_async"); ?>',
         assets:    '<?php echo site_url("admin/multibranch/branch/assets_async"); ?>',
-        academics: '<?php echo site_url("admin/multibranch/branch/academics_async"); ?>'
+        academics:  '<?php echo site_url("admin/multibranch/branch/academics_async"); ?>',
+        attendance: '<?php echo site_url("admin/multibranch/branch/attendance_async"); ?>'
     },
     branchOrder: <?php echo json_encode($js_branch_order); ?>,
     colors:      <?php echo json_encode($js_branch_colors); ?>,
@@ -457,7 +524,7 @@ var branchSessions = <?php
     echo json_encode($bs);
 ?>;
 
-var loaded = { fees: false, hr: false, assets: false, academics: false };
+var loaded = { fees: false, hr: false, assets: false, academics: false, attendance: false };
 
 // ---- Helpers ----
 function escHtml(str) {
@@ -816,6 +883,98 @@ function loadAcademics() {
     });
 }
 
+// ================================================================
+// ATTENDANCE
+// ================================================================
+function loadAttendance() {
+    if (loaded.attendance) return;
+    loaded.attendance = true;
+
+    $.getJSON(MCC.urls.attendance).done(function(resp) {
+        if (!resp || resp.status !== 'success') return;
+
+        if (resp.date) {
+            var d = new Date(resp.date);
+            $('#att-date-label').text(d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }));
+        }
+
+        var tStuPresent=0, tBoys=0, tGirls=0, tStuAbsent=0, tStuTotal=0;
+        var tStfPresent=0, tStfAbsent=0, tStfTotal=0;
+        var stuTbody='', stfTbody='';
+
+        function attColor(present, total) {
+            if (!total) return '';
+            var pct = (present / total) * 100;
+            if (pct >= 90) return 'style="color:#00a65a; font-weight:700"';
+            if (pct >= 75) return 'style="color:#f39c12; font-weight:700"';
+            return 'style="color:#dd4b39; font-weight:700"';
+        }
+
+        resp.rows.forEach(function(row, i) {
+            tStuPresent += row.student_present;
+            tBoys       += row.student_boys_present;
+            tGirls      += row.student_girls_present;
+            tStuAbsent  += row.student_absent;
+            tStuTotal   += row.student_total;
+            tStfPresent += row.staff_present;
+            tStfAbsent  += row.staff_absent;
+            tStfTotal   += row.staff_total;
+            var color = MCC.colors[i] || '#d81b60';
+            var dot   = '<span class="mcc-dot" style="background:'+color+'"></span>';
+
+            stuTbody += '<tr>'+
+                '<td>'+dot+escHtml(MCC.names[row.db_name]||row.db_name)+'</td>'+
+                '<td class="text-right" '+attColor(row.student_boys_present, row.student_total)+'>'+numFmt(row.student_boys_present)+'</td>'+
+                '<td class="text-right" '+attColor(row.student_girls_present, row.student_total)+'>'+numFmt(row.student_girls_present)+'</td>'+
+                '<td class="text-right text-danger">'+numFmt(row.student_absent)+'</td>'+
+                '<td class="text-right">'+numFmt(row.student_total)+'</td>'+
+                '</tr>';
+
+            stfTbody += '<tr>'+
+                '<td>'+dot+escHtml(MCC.names[row.db_name]||row.db_name)+'</td>'+
+                '<td class="text-right" '+attColor(row.staff_present, row.staff_total)+'>'+numFmt(row.staff_present)+'</td>'+
+                '<td class="text-right text-danger">'+numFmt(row.staff_absent)+'</td>'+
+                '<td class="text-right">'+numFmt(row.staff_total)+'</td>'+
+                '</tr>';
+        });
+
+        // Totals
+        stuTbody += '<tr class="mcc-tfoot-row">'+
+            '<td><strong>Grand Total</strong></td>'+
+            '<td class="text-right"><strong>'+numFmt(tBoys)+'</strong></td>'+
+            '<td class="text-right"><strong>'+numFmt(tGirls)+'</strong></td>'+
+            '<td class="text-right text-danger"><strong>'+numFmt(tStuAbsent)+'</strong></td>'+
+            '<td class="text-right"><strong>'+numFmt(tStuTotal)+'</strong></td>'+
+            '</tr>';
+        stfTbody += '<tr class="mcc-tfoot-row">'+
+            '<td><strong>Grand Total</strong></td>'+
+            '<td class="text-right"><strong>'+numFmt(tStfPresent)+'</strong></td>'+
+            '<td class="text-right text-danger"><strong>'+numFmt(tStfAbsent)+'</strong></td>'+
+            '<td class="text-right"><strong>'+numFmt(tStfTotal)+'</strong></td>'+
+            '</tr>';
+
+        $('#att-stu-tbody, #att-stu-tfoot').html('');
+        $('#att-stu-tbody').html(stuTbody);
+        $('#att-stf-tbody, #att-stf-tfoot').html('');
+        $('#att-stf-tbody').html(stfTbody);
+
+        // Summary cards
+        var stuPct = tStuTotal > 0 ? ((tStuPresent/tStuTotal)*100).toFixed(1)+'%' : 'No data';
+        var stfPct = tStfTotal > 0 ? ((tStfPresent/tStfTotal)*100).toFixed(1)+'%' : 'No data';
+        $('#att-summary-cards').html(
+            mkStatCard('#d81b60', 'Students Present', stuPct) +
+            mkStatCard('#605ca8', 'Staff Present',    stfPct)
+        );
+
+        $('#att-skeleton').hide();
+        $('#att-content').show();
+
+    }).fail(function(){
+        $('#att-skeleton').html('<p class="mcc-load-err"><i class="fa fa-exclamation-triangle"></i> Failed to load attendance data. <a href="javascript:location.reload()">Reload page</a></p>');
+        loaded.attendance = false;
+    });
+}
+
 // ---- Stat card builder ----
 function mkStatCard(color, label, value) {
     return '<div class="mcc-stat-card" style="border-left-color:'+color+'">'+
@@ -826,7 +985,7 @@ function mkStatCard(color, label, value) {
 
 // ---- Sticky nav active state ----
 function updateNavActive() {
-    var sections = ['fees','hr','assets','academics'], current='fees';
+    var sections = ['fees','hr','assets','academics','attendance'], current='fees';
     sections.forEach(function(s){
         var el=document.getElementById('section-'+s);
         if(el && el.getBoundingClientRect().top <= 120) current=s;
@@ -853,16 +1012,17 @@ $(document).ready(function(){
                 var s = e.target.getAttribute('data-section');
                 if(s==='hr')        loadHR();
                 else if(s==='assets')    loadAssets();
-                else if(s==='academics') loadAcademics();
+                else if(s==='academics')  loadAcademics();
+                else if(s==='attendance') loadAttendance();
             });
         }, { rootMargin:'0px 0px -80px 0px', threshold:0.05 });
 
-        ['hr','assets','academics'].forEach(function(s){
+        ['hr','assets','academics','attendance'].forEach(function(s){
             var el=document.getElementById('section-'+s);
             if(el) obs.observe(el);
         });
     } else {
-        loadHR(); loadAssets(); loadAcademics();
+        loadHR(); loadAssets(); loadAcademics(); loadAttendance();
     }
 
     $(window).on('scroll', updateNavActive);
