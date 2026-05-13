@@ -242,18 +242,20 @@
             <div class="section-card">
                 <h5 class="mb-3">HSC Examination Details</h5>
                 <?php
-                $hsc_details = (isset($ug_details) && $ug_details && !empty($ug_details)) ? $ug_details : array(
-                    'maths_marks' => isset($maths_marks) ? $maths_marks : '',
-                    'total_maths' => isset($total_maths) ? $total_maths : '',
-                    'maths_perc' => isset($maths_perc) ? $maths_perc : '',
-                    'physics_marks' => isset($physics_marks) ? $physics_marks : '',
-                    'total_physics' => isset($total_physics) ? $total_physics : '',
-                    'physics_perc' => isset($physics_perc) ? $physics_perc : '',
+                // Always use the controller-merged mark variables (online_admission_ug_details
+                // table only stores school_name_x/passing_year_x, not HSC marks).
+                $hsc_details = array(
+                    'maths_marks'     => isset($maths_marks)     ? $maths_marks     : '',
+                    'total_maths'     => isset($total_maths)     ? $total_maths     : '',
+                    'maths_perc'      => isset($maths_perc)      ? $maths_perc      : '',
+                    'physics_marks'   => isset($physics_marks)   ? $physics_marks   : '',
+                    'total_physics'   => isset($total_physics)   ? $total_physics   : '',
+                    'physics_perc'    => isset($physics_perc)    ? $physics_perc    : '',
                     'chemistry_marks' => isset($chemistry_marks) ? $chemistry_marks : '',
                     'total_chemistry' => isset($total_chemistry) ? $total_chemistry : '',
-                    'chemistry_perc' => isset($chemistry_perc) ? $chemistry_perc : '',
-                    'average_marks' => isset($average_marks) ? $average_marks : '',
-                    'cutoff_marks' => isset($cutoff_marks) ? $cutoff_marks : '',
+                    'chemistry_perc'  => isset($chemistry_perc)  ? $chemistry_perc  : '',
+                    'average_marks'   => isset($average_marks)   ? $average_marks   : '',
+                    'cutoff_marks'    => isset($cutoff_marks)    ? $cutoff_marks    : '',
                 );
                 ?>
                 <table class="table table-bordered">
