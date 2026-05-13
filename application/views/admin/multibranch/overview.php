@@ -154,27 +154,36 @@ function mcc_abbr($db_name) {
       <table style="width:100%; border-collapse:collapse">
         <tr>
           <td style="border:0; padding:3px 6px 3px 0; width:50%; vertical-align:top">
-            <i class="fa fa-graduation-cap" style="color:<?php echo $color; ?>; width:16px; text-align:center"></i>
-            <strong style="font-size:16px; color:#222; margin-left:3px"><?php echo number_format($students); ?></strong>
+            <i class="fa fa-graduation-cap" title="Students" style="color:<?php echo $color; ?>; width:16px; text-align:center; cursor:default"></i>
+            <strong style="font-size:16px; color:#222; margin-left:3px" title="Total students"><?php echo number_format($students); ?></strong>
             <div style="margin-left:20px; margin-top:2px">
-              <span class="mcc-gender-m">&#9794;<?php echo number_format($male_students); ?></span>
-              <span class="mcc-gender-f" style="margin-left:6px">&#9792;<?php echo number_format($female_students); ?></span>
+              <span class="mcc-gender-m" title="Male students">&#9794;<?php echo number_format($male_students); ?></span>
+              <span class="mcc-gender-f" style="margin-left:6px" title="Female students">&#9792;<?php echo number_format($female_students); ?></span>
             </div>
           </td>
           <td style="border:0; padding:3px 0; width:50%; vertical-align:top">
-            <i class="fa fa-id-badge" style="color:<?php echo $color; ?>; width:16px; text-align:center"></i>
-            <strong style="font-size:16px; color:#222; margin-left:3px"><?php echo number_format($staff); ?></strong>
+            <i class="fa fa-id-badge" title="Staff" style="color:<?php echo $color; ?>; width:16px; text-align:center; cursor:default"></i>
+            <strong style="font-size:16px; color:#222; margin-left:3px" title="Total staff"><?php echo number_format($staff); ?></strong>
             <div style="margin-left:20px; margin-top:2px">
-              <span class="mcc-gender-m">&#9794;<?php echo number_format($male_staff); ?></span>
-              <span class="mcc-gender-f" style="margin-left:6px">&#9792;<?php echo number_format($female_staff); ?></span>
+              <span class="mcc-gender-m" title="Male staff">&#9794;<?php echo number_format($male_staff); ?></span>
+              <span class="mcc-gender-f" style="margin-left:6px" title="Female staff">&#9792;<?php echo number_format($female_staff); ?></span>
             </div>
           </td>
         </tr>
         <tr>
           <td colspan="2" style="border:0; border-top:1px solid #f5f5f5; padding:7px 0 0">
-            <i class="fa fa-money" style="color:<?php echo $color; ?>; width:16px; text-align:center"></i>
-            <span style="font-size:11px; color:#bbb; margin-left:3px; text-transform:uppercase; letter-spacing:.4px">Collected</span>
+            <i class="fa fa-money" title="Fees collected" style="color:<?php echo $color; ?>; width:16px; text-align:center; cursor:default"></i>
+            <span style="font-size:11px; color:#27ae60; font-weight:600; margin-left:3px; text-transform:uppercase; letter-spacing:.4px">Collected</span>
             <span class="mcc-fees-collected" data-db="<?php echo $db_name; ?>" style="float:right">
+              <span class="sk-shimmer sk-inline" style="width:60px"></span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="border:0; padding:3px 0 0">
+            <i class="fa fa-minus-circle" title="Fees balance" style="color:#dd4b39; width:16px; text-align:center; cursor:default"></i>
+            <span style="font-size:11px; color:#dd4b39; font-weight:600; margin-left:3px; text-transform:uppercase; letter-spacing:.4px">Balance</span>
+            <span class="mcc-fees-balance" data-db="<?php echo $db_name; ?>" style="float:right; color:#dd4b39; font-weight:600">
               <span class="sk-shimmer sk-inline" style="width:60px"></span>
             </span>
           </td>
@@ -580,8 +589,9 @@ function loadFees() {
                 totalPaid    += row.total_paid;
                 totalBalance += row.total_balance;
 
-                // Card collected badge
+                // Card collected / balance badges
                 $('.mcc-fees-collected[data-db="'+row.db_name+'"]').html(row.total_paid_formatted);
+                $('.mcc-fees-balance[data-db="'+row.db_name+'"]').html(row.total_balance_formatted);
             });
 
             // KPI
