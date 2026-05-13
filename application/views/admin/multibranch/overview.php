@@ -110,10 +110,8 @@ function mcc_abbr($db_name) {
 /* Carousel */
 .mcc-carousel-outer    { position: relative; margin-bottom: 15px; }
 .mcc-carousel-viewport { overflow: hidden; margin: 0 42px; }
-.mcc-carousel-track    { display: flex; width: 100%; transition: transform .35s cubic-bezier(.4,0,.2,1); will-change: transform; }
-.mcc-card-slide        { flex: 0 0 100%; padding: 0 7px; box-sizing: border-box; }
-@media (min-width:768px)  { .mcc-card-slide { flex: 0 0 50%; } }
-@media (min-width:992px)  { .mcc-card-slide { flex: 0 0 25%; } }
+.mcc-carousel-track    { display: flex; transition: transform .35s cubic-bezier(.4,0,.2,1); will-change: transform; }
+.mcc-card-slide        { flex: none; padding: 0 7px; box-sizing: border-box; } /* width set by JS in px */
 .mcc-carousel-btn {
     position: absolute; top: 50%; transform: translateY(-50%);
     width: 34px; height: 34px; border-radius: 50%;
@@ -1077,6 +1075,8 @@ $(document).ready(function(){
         var total  = track.children.length;
         var offset = 0; // index of leftmost visible card
 
+        var viewport = track.parentElement; // .mcc-carousel-viewport
+
         function getVisible() {
             var w = window.innerWidth;
             if (w >= 992) return 4;
@@ -1085,17 +1085,23 @@ $(document).ready(function(){
         }
 
         function update() {
-            var vis    = getVisible();
-            var maxOff = Math.max(0, total - vis);
-            offset = Math.min(offset, maxOff);
-            var cardPct = 100 / vis;
-            track.style.transform = 'translateX(-' + (offset * cardPct) + '%)';
+            var vis      = getVisible();
+            var maxOff   = Math.max(0, total - vis);
+            offset       = Math.min(offset, maxOff);
+            // Pixel-exact card width derived from the viewport container
+            var cardW    = Math.floor(viewport.offsetWidth / vis);
+            var slides   = track.children;
+            for (var i = 0; i < slides.length; i++) {
+                slides[i].style.width = cardW + 'px';
+            }
+            track.style.width     = (cardW * total) + 'px';
+            track.style.transform = 'translateX(-' + (offset * cardW) + 'px)';
             if (total <= vis) {
                 prevBtn.style.display = 'none';
                 nextBtn.style.display = 'none';
             } else {
-                prevBtn.style.display = offset > 0       ? 'flex' : 'none';
-                nextBtn.style.display = offset < maxOff  ? 'flex' : 'none';
+                prevBtn.style.display = offset > 0      ? 'flex' : 'none';
+                nextBtn.style.display = offset < maxOff ? 'flex' : 'none';
             }
         }
 
