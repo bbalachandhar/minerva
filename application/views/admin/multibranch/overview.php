@@ -110,7 +110,7 @@ function mcc_abbr($db_name) {
 /* Carousel */
 .mcc-carousel-outer    { position: relative; margin-bottom: 15px; }
 .mcc-carousel-viewport { overflow: hidden; margin: 0 42px; }
-.mcc-carousel-track    { display: flex; transition: transform .35s cubic-bezier(.4,0,.2,1); will-change: transform; }
+.mcc-carousel-track    { display: flex; width: 100%; transition: transform .35s cubic-bezier(.4,0,.2,1); will-change: transform; }
 .mcc-card-slide        { flex: 0 0 100%; padding: 0 7px; box-sizing: border-box; }
 @media (min-width:768px)  { .mcc-card-slide { flex: 0 0 50%; } }
 @media (min-width:992px)  { .mcc-card-slide { flex: 0 0 25%; } }
