@@ -386,6 +386,11 @@ class Inventoryimport extends Admin_Controller
             $dateValue = $this->getCsvValue($row, array('date'));
             $symbol = $this->getCsvValue($row, array('symbol'));
             $description = $this->getCsvValue($row, array('description'));
+            $licenseKey = $this->getCsvValue($row, array('license_key'));
+            $licenseFrom = $this->getCsvValue($row, array('license_valid_from'));
+            $licenseTill = $this->getCsvValue($row, array('license_valid_till'));
+            $warrantyUpto = $this->getCsvValue($row, array('warranty_upto'));
+            $batchNo = $this->getCsvValue($row, array('batch_no', 'batch_number', 'reg_no', 'registration_no'));
 
             if ($itemName === '' || $categoryName === '' || $supplierName === '' || $quantityValue === '' || $purchasePrice === '' || $dateValue === '') {
                 $summary['errors'][] = 'Row ' . ($index + 2) . ': item_name, item_category, supplier_name, quantity, purchase_price, and date are required.';
@@ -450,6 +455,31 @@ class Inventoryimport extends Admin_Controller
                 'description' => $description,
                 'attachment' => '',
             );
+
+            if ($batchNo !== '') {
+                $data['batch_no'] = $batchNo;
+            }
+            if ($licenseKey !== '') {
+                $data['license_key'] = $licenseKey;
+            }
+            if ($licenseFrom !== '') {
+                $normalizedLicenseFrom = $this->normalizeDate($licenseFrom);
+                if ($normalizedLicenseFrom !== null) {
+                    $data['license_valid_from'] = $normalizedLicenseFrom;
+                }
+            }
+            if ($licenseTill !== '') {
+                $normalizedLicenseTill = $this->normalizeDate($licenseTill);
+                if ($normalizedLicenseTill !== null) {
+                    $data['license_valid_till'] = $normalizedLicenseTill;
+                }
+            }
+            if ($warrantyUpto !== '') {
+                $normalizedWarranty = $this->normalizeDate($warrantyUpto);
+                if ($normalizedWarranty !== null) {
+                    $data['warranty_upto'] = $normalizedWarranty;
+                }
+            }
 
             $this->itemstock_model->add($data);
             $summary['imported']++;
