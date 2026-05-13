@@ -60,8 +60,22 @@ class Branch extends MY_Addon_MBController
         $this->load->model("multibranch/multi_common_model");
         $branches = $this->multibranch_model->getSchoolCurrentSessions();
 
-        $month = date("F", strtotime('-1 month'));
-        $year  = date("Y", strtotime('-1 month'));
+        // Find the most recently generated payroll month/year (not hardcoded to last month)
+        $last_payroll = $this->db->query(
+            "SELECT month, year FROM staff_payslip
+             ORDER BY CAST(year AS UNSIGNED) DESC,
+                      FIELD(month,'January','February','March','April','May','June',
+                                 'July','August','September','October','November','December') DESC
+             LIMIT 1"
+        )->row();
+
+        if ($last_payroll) {
+            $month = $last_payroll->month;
+            $year  = $last_payroll->year;
+        } else {
+            $month = date("F", strtotime('-1 month'));
+            $year  = date("Y", strtotime('-1 month'));
+        }
 
         $staff_payslip         = $this->multi_common_model->getStaffPayslipCount($month, $year, $branches);
         $staff_list            = $this->multi_common_model->getStaff($branches);
@@ -131,6 +145,7 @@ class Branch extends MY_Addon_MBController
             ->set_output(json_encode([
                 'status' => 'success',
                 'month'  => $month,
+                'year'   => $year,
                 'rows'   => $rows,
                 'chart'  => ['labels' => $chart_labels, 'payroll' => $chart_payroll, 'paid' => $chart_paid],
             ]));

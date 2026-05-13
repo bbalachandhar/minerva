@@ -660,7 +660,7 @@ function loadHR() {
 
     $.getJSON(MCC.urls.hr).done(function(resp) {
         if (!resp || resp.status !== 'success') return;
-        if (resp.month) $('#hr-month-label').text(resp.month + ' payroll · today\'s attendance');
+        if (resp.month) $('#hr-month-label').text(resp.month + (resp.year ? ' ' + resp.year : '') + ' payroll · today\'s attendance');
 
         var tStaff=0, tPayroll=0, tPaid=0, tPresent=0, tAbsent=0;
         var tbody='';
