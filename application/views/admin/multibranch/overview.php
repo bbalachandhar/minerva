@@ -118,11 +118,16 @@ function mcc_abbr($db_name) {
     background: #fff; border: 1px solid #ccc;
     box-shadow: 0 2px 6px rgba(0,0,0,.18);
     cursor: pointer; z-index: 10;
-    display: none; /* shown by JS when needed */
-    align-items: center; justify-content: center;
+    display: none; /* visibility controlled by .mcc-btn-show class */
+    -webkit-align-items: center; align-items: center;
+    -webkit-justify-content: center; justify-content: center;
     color: #555; font-size: 14px; line-height: 1;
     transition: background .15s, box-shadow .15s;
     padding: 0;
+}
+.mcc-carousel-btn.mcc-btn-show {
+    display: -webkit-flex;
+    display: flex;
 }
 .mcc-carousel-btn:hover  { background: #f0f0f0; box-shadow: 0 3px 10px rgba(0,0,0,.22); color: #333; }
 .mcc-carousel-btn:active { background: #e4e4e4; }
@@ -1097,11 +1102,11 @@ $(document).ready(function(){
             track.style.width     = (cardW * total) + 'px';
             track.style.transform = 'translateX(-' + (offset * cardW) + 'px)';
             if (total <= vis) {
-                prevBtn.style.display = 'none';
-                nextBtn.style.display = 'none';
+                prevBtn.classList.remove('mcc-btn-show');
+                nextBtn.classList.remove('mcc-btn-show');
             } else {
-                prevBtn.style.display = offset > 0      ? 'flex' : 'none';
-                nextBtn.style.display = offset < maxOff ? 'flex' : 'none';
+                prevBtn.classList[offset > 0      ? 'add' : 'remove']('mcc-btn-show');
+                nextBtn.classList[offset < maxOff ? 'add' : 'remove']('mcc-btn-show');
             }
         }
 
@@ -1112,7 +1117,8 @@ $(document).ready(function(){
             update();
         };
 
-        update();
+        // rAF ensures offsetWidth is valid in Safari before first paint
+        requestAnimationFrame(function() { offset = 0; update(); });
         $(window).on('resize', function() { update(); });
     })();
 });
