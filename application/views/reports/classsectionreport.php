@@ -63,7 +63,11 @@ if(!empty($class_section_list)){
     <tbody>
         <?php 
     $count=1;
+    $total_students=0; $total_male=0; $total_female=0;
  foreach ($class_section_list as $class_section_key => $class_section_value) {
+    $total_students += $class_section_value->student_count;
+    $total_male     += $class_section_value->male_count;
+    $total_female   += $class_section_value->female_count;
 ?>
 <tr>
         <td><?php echo $count; ?></td>
@@ -81,6 +85,15 @@ if(!empty($class_section_list)){
 
          ?>
     </tbody>
+    <tfoot>
+        <tr style="font-weight:bold; background-color:#f5f5f5;">
+            <td colspan="2" class="text text-right"><?php echo $this->lang->line('total'); ?></td>
+            <td class="text text-center"><?php echo $total_students; ?></td>
+            <td class="text text-center"><?php echo $total_male; ?></td>
+            <td class="text text-center"><?php echo $total_female; ?></td>
+            <td></td>
+        </tr>
+    </tfoot>
 </table>
 <?php   
 }else{
