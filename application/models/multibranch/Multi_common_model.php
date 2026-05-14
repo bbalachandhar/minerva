@@ -26,12 +26,7 @@ class Multi_common_model extends MY_Model
         $school         = [];
         $school['name'] = $current_db->name;
         $this->db_default->join('student_session', 'student_session.student_id = students.id');
-        $this->db_default->join('classes', 'student_session.class_id = classes.id');
-        $this->db_default->join('sections', 'sections.id = student_session.section_id');
-        $this->db_default->join('categories', 'students.category_id = categories.id', 'left');
-        $this->db_default->join('users', 'users.user_id = students.id', 'left');
         $this->db_default->where('student_session.session_id', $current_db->session_id);
-        $this->db_default->where('users.role', 'student');
         $this->db_default->where('students.is_active', 'yes');
         $school['total_student'] = $this->db_default->count_all_results('students');
         $school['db_name']       = $default_db;
@@ -41,8 +36,7 @@ class Multi_common_model extends MY_Model
             "SELECT students.gender, COUNT(DISTINCT students.id) as cnt
              FROM students
              INNER JOIN student_session ON student_session.student_id = students.id
-             INNER JOIN users ON users.user_id = students.id
-             WHERE student_session.session_id = ? AND users.role = 'student' AND students.is_active = 'yes'
+             WHERE student_session.session_id = ? AND students.is_active = 'yes'
              GROUP BY students.gender",
             [$current_db->session_id]
         );
@@ -74,12 +68,7 @@ class Multi_common_model extends MY_Model
                 $school['name'] = $current_db->name;
 
                 $db_dynamic->join('student_session', 'student_session.student_id = students.id');
-                $db_dynamic->join('classes', 'student_session.class_id = classes.id');
-                $db_dynamic->join('sections', 'sections.id = student_session.section_id');
-                $db_dynamic->join('categories', 'students.category_id = categories.id', 'left');
-                $db_dynamic->join('users', 'users.user_id = students.id', 'left');
                 $db_dynamic->where('student_session.session_id', $current_db->session_id);
-                $db_dynamic->where('users.role', 'student');
                 $db_dynamic->where('students.is_active', 'yes');
                 $school['total_student']   = $db_dynamic->count_all_results('students');
                 $school['db_name']         = $db_dynamic_name;
@@ -89,8 +78,7 @@ class Multi_common_model extends MY_Model
                     "SELECT students.gender, COUNT(DISTINCT students.id) as cnt
                      FROM students
                      INNER JOIN student_session ON student_session.student_id = students.id
-                     INNER JOIN users ON users.user_id = students.id
-                     WHERE student_session.session_id = ? AND users.role = 'student' AND students.is_active = 'yes'
+                     WHERE student_session.session_id = ? AND students.is_active = 'yes'
                      GROUP BY students.gender",
                     [$current_db->session_id]
                 );
@@ -177,12 +165,7 @@ class Multi_common_model extends MY_Model
         $school         = [];
         $school['name'] = $current_db->name;
 
-        $this->db_default->join('staff_designation', "staff_designation.id = staff.designation", "left");
-        $this->db_default->join('staff_roles', "staff_roles.staff_id = staff.id", "left");
-        $this->db_default->join('roles', "roles.id = staff_roles.role_id", "left");
-        $this->db_default->join('department', "department.id = staff.department", "left");
-        $this->db_default->where('staff.is_active', 1);
-        $school['total_staff'] = $this->db_default->count_all_results('staff');
+        $school['total_staff'] = (int)$this->db_default->query("SELECT COUNT(DISTINCT id) as cnt FROM staff WHERE is_active=1")->row()->cnt;
         $school['db_name']     = $default_db;
         // gender breakdown
         $gq = $this->db_default->query("SELECT gender, COUNT(*) as cnt FROM staff WHERE is_active = 1 GROUP BY gender");
@@ -214,13 +197,7 @@ class Multi_common_model extends MY_Model
                 $school         = [];
                 $school['name'] = $current_db->name;
 
-                $db_dynamic->join('staff_designation', "staff_designation.id = staff.designation", "left");
-                $db_dynamic->join('staff_roles', "staff_roles.staff_id = staff.id", "left");
-                $db_dynamic->join('roles', "roles.id = staff_roles.role_id", "left");
-                $db_dynamic->join('department', "department.id = staff.department", "left");
-                $db_dynamic->where('staff.is_active', 1);
-
-                $school['total_staff'] = $db_dynamic->count_all_results('staff');
+                $school['total_staff'] = (int)$db_dynamic->query("SELECT COUNT(DISTINCT id) as cnt FROM staff WHERE is_active=1")->row()->cnt;
                 $school['db_name']     = $db_dynamic_name;
                 // gender breakdown
                 $gq = $db_dynamic->query("SELECT gender, COUNT(*) as cnt FROM staff WHERE is_active = 1 GROUP BY gender");
