@@ -55,6 +55,8 @@ if(!empty($class_section_list)){
                 <th><?php echo $this->lang->line('s_no'); ?></th>
                 <th class="text text-center"><?php echo $this->lang->line('class'); ?></th>
                 <th class="text text-center"><?php echo $this->lang->line('students'); ?></th>
+                <th class="text text-center"><?php echo $this->lang->line('male'); ?></th>
+                <th class="text text-center"><?php echo $this->lang->line('female'); ?></th>
                 <th class="text text-right noExport"><?php echo $this->lang->line('action'); ?></th>
             </tr>
         </thead>
@@ -67,6 +69,8 @@ if(!empty($class_section_list)){
         <td><?php echo $count; ?></td>
         <td class="text text-center"><?php echo $class_section_value->class . " (" . $class_section_value->section . ")" ?></td>
         <td class="text text-center"><?php echo $class_section_value->student_count; ?></td>
+        <td class="text text-center"><?php echo $class_section_value->male_count; ?></td>
+        <td class="text text-center"><?php echo $class_section_value->female_count; ?></td>
         <td class="text text-right">    
           
    <button type="button" class="btn btn-default btn-xs studentlist" id="load" data-toggle="tooltip"  data-clssection-id="<?php echo $class_section_value->id; ?>" title="<?php echo $this->lang->line('view_students'); ?>" data-loading-text="<i class='fa fa-spinner fa-spin'></i>"><i class="fa fa-eye"></i></button></td>
