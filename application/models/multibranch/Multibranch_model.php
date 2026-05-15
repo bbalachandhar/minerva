@@ -60,7 +60,10 @@ class Multibranch_model extends MY_Model
                 $query = $db_dynamic->get();
                 $res = $query->row();
 
-                // Override session to match the home branch's active session
+                // Override session to match the home branch's active session.
+                // If the branch has no matching session, use session_id=0 so all
+                // count queries return 0 rather than falling back to the branch's
+                // own session and showing stale data for a different period.
                 $matched = $db_dynamic->select('id, session')
                                       ->from('sessions')
                                       ->where('session', $home_session_name)
@@ -68,6 +71,9 @@ class Multibranch_model extends MY_Model
                 if (!empty($matched)) {
                     $res->session_id = $matched->id;
                     $res->session    = $matched->session;
+                } else {
+                    $res->session_id = 0;             // sentinel: no data for this session
+                    $res->session    = $home_session_name;
                 }
 
                 $db_array[$db_dynamic_name]=$res;
