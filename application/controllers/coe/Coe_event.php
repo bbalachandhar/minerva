@@ -225,14 +225,6 @@ class Coe_event extends MY_Addon_CoeController
             ->order_by('d.department_name, c.class')
             ->get()->result_array();
 
-        // For inline edit: pass back a batch_id being edited (if ?edit_batch=N in URL)
-        $data['edit_batch_id'] = (int) $this->input->get('edit_batch');
-        if ($data['edit_batch_id']) {
-            $data['edit_batch'] = $this->db->where('id', $data['edit_batch_id'])->where('exam_group_id', $group_id)->get('exam_group_class_batch_exams')->row();
-        } else {
-            $data['edit_batch'] = null;
-        }
-
         $data['title'] = 'Manage: ' . $data['event']->name;
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_event/manage', $data);
@@ -338,7 +330,7 @@ class Coe_event extends MY_Addon_CoeController
 
         if ($this->form_validation->run() === false) {
             $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . validation_errors() . '</div>');
-            redirect('coe/coe_event/manage/' . $batch->exam_group_id . '?edit_batch=' . $batch_id);
+            redirect('coe/coe_event/manage/' . $batch->exam_group_id);
         }
 
         $this->db->where('id', $batch_id)->update('exam_group_class_batch_exams', [
