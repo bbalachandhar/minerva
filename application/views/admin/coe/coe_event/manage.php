@@ -34,8 +34,13 @@
                             <small class="text-muted" style="font-size:12px;font-weight:normal;"> &mdash; Class Batch Exams</small>
                         </h3>
                         <div class="box-tools pull-right">
+                            <?php if ($this->rbac->hasPrivilege('coe_event', 'can_add')): ?>
+                            <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#addBatchModal">
+                                <i class="fa fa-plus"></i> Add New
+                            </button>
+                            <?php endif; ?>
                             <?php if ($this->rbac->hasPrivilege('coe_event', 'can_edit')): ?>
-                            <a href="<?php echo site_url('coe/coe_event/edit/' . $event->id); ?>" class="btn btn-default btn-xs">
+                            <a href="<?php echo site_url('coe/coe_event/edit/' . $event->id); ?>" class="btn btn-default btn-sm">
                                 <i class="fa fa-pencil"></i> Edit Event
                             </a>
                             <?php endif; ?>
@@ -217,22 +222,22 @@
             </div>
         </div>
 
-        <!-- ========================== ADD BATCH FORM ========================== -->
+        <!-- ========================== ADD BATCH MODAL ========================== -->
         <?php if ($this->rbac->hasPrivilege('coe_event', 'can_add')): ?>
-        <div class="row">
-            <div class="col-md-12">
-                <div class="box box-success">
-                    <div class="box-header with-border">
-                        <h3 class="box-title"><i class="fa fa-plus-circle"></i> Add Class Batch Exam</h3>
+        <div class="modal fade" id="addBatchModal" tabindex="-1" role="dialog" aria-labelledby="addBatchModalLabel">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header" style="background:#00a65a;color:#fff;border-radius:3px 3px 0 0;">
+                        <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:1;"><span>&times;</span></button>
+                        <h4 class="modal-title" id="addBatchModalLabel"><i class="fa fa-plus-circle"></i> Add Class Batch Exam</h4>
                     </div>
                     <form method="post" action="<?php echo site_url('coe/coe_event/save_batch/' . $event->id); ?>" id="add-batch-form">
-                        <div class="box-body">
+                        <div class="modal-body">
                             <div class="row">
-                                <!-- Class (single searchable select) -->
-                                <div class="col-md-4">
+                                <div class="col-sm-5">
                                     <div class="form-group">
-                                        <label for="class_id">Class <span class="text-danger">*</span></label>
-                                        <select name="class_id" id="class_id" class="form-control select2-class" required>
+                                        <label for="add_class_id">Class <span class="text-danger">*</span></label>
+                                        <select name="class_id" id="add_class_id" class="form-control" required>
                                             <option value="">— Select a class —</option>
                                             <?php
                                             $last_dept = '';
@@ -249,12 +254,10 @@
                                         </select>
                                     </div>
                                 </div>
-
-                                <!-- Session -->
-                                <div class="col-md-2">
+                                <div class="col-sm-3">
                                     <div class="form-group">
-                                        <label for="session_id">Session <span class="text-danger">*</span></label>
-                                        <select name="session_id" id="session_id" class="form-control" required>
+                                        <label for="add_session_id">Session <span class="text-danger">*</span></label>
+                                        <select name="session_id" id="add_session_id" class="form-control" required>
                                             <?php foreach ($session_list as $s): ?>
                                                 <option value="<?php echo $s['id']; ?>"
                                                         <?php echo ($s['id'] == $current_session) ? 'selected' : ''; ?>>
@@ -264,62 +267,47 @@
                                         </select>
                                     </div>
                                 </div>
-
-                                <!-- Batch Label -->
-                                <div class="col-md-3">
+                                <div class="col-sm-4">
                                     <div class="form-group">
-                                        <label for="exam">Batch Label <span class="text-danger">*</span></label>
-                                        <input type="text" name="exam" id="exam" class="form-control"
-                                               placeholder="e.g. Nov/Dec 2026 - CSE" maxlength="250" required>
-                                        <p class="help-block" style="font-size:11px;">Auto-filled from the selected class; editable.</p>
-                                    </div>
-                                </div>
-
-                            </div>
-
-                            <div class="row">
-                                <!-- Date From -->
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="date_from">Date From <span class="text-danger">*</span></label>
-                                        <input type="text" name="date_from" id="date_from" class="form-control date"
-                                               placeholder="Select date" autocomplete="off" required>
-                                    </div>
-                                </div>
-
-                                <!-- Date To -->
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="date_to">Date To <span class="text-danger">*</span></label>
-                                        <input type="text" name="date_to" id="date_to" class="form-control date"
-                                               placeholder="Select date" autocomplete="off" required>
-                                    </div>
-                                </div>
-
-                                <!-- Pass % -->
-                                <div class="col-md-2">
-                                    <div class="form-group">
-                                        <label for="passing_percentage">Pass %</label>
-                                        <input type="number" name="passing_percentage" id="passing_percentage"
-                                               class="form-control" value="50" min="0" max="100" step="0.01">
+                                        <label for="add_passing_percentage">Pass %</label>
+                                        <div class="input-group">
+                                            <input type="number" name="passing_percentage" id="add_passing_percentage"
+                                                   class="form-control" value="50" min="0" max="100" step="0.01">
+                                            <span class="input-group-addon">%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
+                            <div class="form-group">
+                                <label for="add_exam">Batch Label <span class="text-danger">*</span></label>
+                                <input type="text" name="exam" id="add_exam" class="form-control"
+                                       placeholder="e.g. Nov/Dec 2026 - CSE" maxlength="250" required>
+                                <p class="help-block" style="font-size:11px;">Auto-filled from the selected class; editable.</p>
+                            </div>
                             <div class="row">
-                                <div class="col-md-12">
-                                    <div class="callout callout-info" style="padding:8px 12px;font-size:12px;">
-                                        <i class="fa fa-info-circle"></i>
-                                        On save, a batch exam for the selected class is created and all active students in that class &amp; session are automatically enrolled. If a batch already exists for that class/session it will be skipped.
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        <label for="add_date_from">Date From <span class="text-danger">*</span></label>
+                                        <input type="text" name="date_from" id="add_date_from"
+                                               class="form-control date" placeholder="Select date" autocomplete="off" required>
                                     </div>
                                 </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        <label for="add_date_to">Date To <span class="text-danger">*</span></label>
+                                        <input type="text" name="date_to" id="add_date_to"
+                                               class="form-control date" placeholder="Select date" autocomplete="off" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="callout callout-info" style="padding:8px 12px;font-size:12px;margin-bottom:0;">
+                                <i class="fa fa-info-circle"></i>
+                                On save, a batch exam for the selected class is created and all active students in that class &amp; session are automatically enrolled. If a batch already exists for that class/session it will be skipped.
                             </div>
                         </div>
-                        <div class="box-footer">
-                            <button type="submit" class="btn btn-success">
-                                <i class="fa fa-plus"></i> Add Batch &amp; Enroll Students
-                            </button>
-                            <a href="<?php echo site_url('coe/coe_event'); ?>" class="btn btn-default">Back to Events</a>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success"><i class="fa fa-plus"></i> Add Batch &amp; Enroll Students</button>
                         </div>
                     </form>
                 </div>
@@ -349,18 +337,36 @@ $(function () {
         });
     }
 
-    // Select2 for single class selector
-    $('.select2-class').select2({ placeholder: '— Select a class —', allowClear: true, width: '100%' });
+    // Add Batch Modal: init Select2 when modal opens (dropdownParent required for modals)
+    var eventName = <?php echo json_encode($event->name); ?>;
+    $('#addBatchModal').on('shown.bs.modal', function () {
+        if (!$('#add_class_id').data('select2')) {
+            $('#add_class_id').select2({
+                placeholder: '— Select a class —',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#addBatchModal')
+            });
+        }
+    });
 
     // Auto-fill batch label from selected class
-    var eventName = <?php echo json_encode($event->name); ?>;
-    $('#class_id').on('change', function () {
+    $('#add_class_id').on('change', function () {
         var name = $(this).find('option:selected').text().trim();
-        if (name && $(this).val()) {
-            $('#exam').val(eventName + ' - ' + name);
-        } else {
-            $('#exam').val('');
+        $('#add_exam').val((name && $(this).val()) ? eventName + ' - ' + name : '');
+    });
+
+    // Reset add form when modal is closed
+    $('#addBatchModal').on('hidden.bs.modal', function () {
+        $('#add-batch-form')[0].reset();
+        if ($('#add_class_id').data('select2')) {
+            $('#add_class_id').val('').trigger('change');
         }
+        ['#add_date_from', '#add_date_to'].forEach(function (sel) {
+            var $el = $(sel);
+            if ($el.data('datepicker')) { $el.datepicker('destroy'); }
+            $el.val('');
+        });
     });
 
     // Edit Batch Modal — populate from data attributes
