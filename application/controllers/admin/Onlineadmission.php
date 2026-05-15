@@ -15,6 +15,7 @@ class Onlineadmission extends Admin_Controller
         $this->load->library('media_storage');
         $this->load->model("onlinestudent_model");
         $this->load->model("Onlineadmissioncourses_model");
+        $this->load->model("Session_model");
         $this->config->load("app-config");
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->role;
@@ -42,6 +43,10 @@ class Onlineadmission extends Admin_Controller
         $data['sch_setting_detail'] = $this->sch_setting_detail;
         $data['custom_fields']      = $this->onlinestudent_model->getcustomfields();
         $data['course_list']        = $this->Onlineadmissioncourses_model->get();
+        $data['session_list']       = $this->Session_model->get();
+        $data['online_admission_session_id'] = isset($data['result']->online_admission_session_id)
+            ? (int) $data['result']->online_admission_session_id
+            : $this->setting_model->getOnlineAdmissionSessionId();
 
         if (!empty($this->input->post('submitbtn'))) {
 
@@ -57,15 +62,16 @@ class Onlineadmission extends Admin_Controller
 
                 if ($this->form_validation->run() == true) {
                     $data = array(
-                        'online_admission'             => $this->input->post('online_admission'),
-                        'online_admission_payment'     => $this->input->post('online_admission_payment'),
-                        'online_admission_amount'      => convertCurrencyFormatToBaseAmount($this->input->post('online_admission_amount')),
-                        'online_admission_instruction' => $this->input->post('online_admission_instruction'),
-                        'online_admission_conditions'  => $this->input->post('online_admission_conditions'),
+                        'online_admission'                => $this->input->post('online_admission'),
+                        'online_admission_session_id'     => (int) $this->input->post('online_admission_session_id'),
+                        'online_admission_payment'        => $this->input->post('online_admission_payment'),
+                        'online_admission_amount'         => convertCurrencyFormatToBaseAmount($this->input->post('online_admission_amount')),
+                        'online_admission_instruction'    => $this->input->post('online_admission_instruction'),
+                        'online_admission_conditions'     => $this->input->post('online_admission_conditions'),
                         'online_admission_processing_charge_type' => $this->input->post('online_admission_processing_charge_type'),
                         'online_admission_processing_charge' => $this->input->post('online_admission_processing_charge'),
-                        'onlineform_sub_merchant_id'   => $this->input->post('onlineform_sub_merchant_id'),
-                        'id'                           => 1,
+                        'onlineform_sub_merchant_id'      => $this->input->post('onlineform_sub_merchant_id'),
+                        'id'                              => 1,
                     );
 
                     if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
@@ -98,12 +104,13 @@ class Onlineadmission extends Admin_Controller
             } else {
 
                 $data = array(
-                    'online_admission'             => $this->input->post('online_admission'),
-                    'online_admission_payment'     => 'no',
-                    'online_admission_instruction' => $this->input->post('online_admission_instruction'),
-                    'online_admission_conditions'  => $this->input->post('online_admission_conditions'),
-                    'onlineform_sub_merchant_id'   => $this->input->post('onlineform_sub_merchant_id'),
-                    'id'                           => 1,
+                    'online_admission'                => $this->input->post('online_admission'),
+                    'online_admission_session_id'     => (int) $this->input->post('online_admission_session_id'),
+                    'online_admission_payment'        => 'no',
+                    'online_admission_instruction'    => $this->input->post('online_admission_instruction'),
+                    'online_admission_conditions'     => $this->input->post('online_admission_conditions'),
+                    'onlineform_sub_merchant_id'      => $this->input->post('onlineform_sub_merchant_id'),
+                    'id'                              => 1,
                 );
 
                 if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {

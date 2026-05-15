@@ -43,6 +43,19 @@ echo $this->session->flashdata('msg');
                                            </div>
                                         </div>
                                     <div  id="settingclm">
+                                        <label class="col-lg-3 col-md-4 col-sm-5 control-label">Admission Target Session</label>
+                                        <div class="col-lg-3 col-md-4 col-sm-7">
+                                            <div class="form-group">
+                                                <select name="online_admission_session_id" id="online_admission_session_id" class="form-control">
+                                                    <?php foreach ($session_list as $sess): ?>
+                                                        <option value="<?php echo $sess['id']; ?>" <?php echo ($sess['id'] == $online_admission_session_id) ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($sess['session']); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <span class="help-block">Enquiries and admission forms submitted through the public portal will be linked to this session.</span>
+                                            </div>
+                                        </div>
                                        <div id="paymentclm">
                                            <label class="col-lg-3 col-md-4 col-sm-5 col-sm-5"><?php echo $this->lang->line('online_admission_payment_option') ?></label>
                                            <div class="col-lg-9 col-md-8 col-sm-7">

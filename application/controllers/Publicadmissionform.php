@@ -1520,7 +1520,7 @@ class PublicAdmissionForm extends CI_Controller
                 'image' => $photo_name,
                 'form_status' => 0, // 0 for pending, 1 for submitted
                 'paid_status' => 0, // 0 for unpaid, 1 for paid
-                'session_id'  => $this->setting_model->getCurrentSession(),
+                'session_id'  => $this->setting_model->getOnlineAdmissionSessionId(),
             );
 
             if ($courseLevel == 'ug') {
@@ -2102,7 +2102,7 @@ class PublicAdmissionForm extends CI_Controller
                 'image' => $photo_name,
                 'form_status' => 0, // 0 for pending, 1 for submitted
                 'paid_status' => 0, // 0 for unpaid, 1 for paid
-                'session_id'  => $this->setting_model->getCurrentSession(),
+                'session_id'  => $this->setting_model->getOnlineAdmissionSessionId(),
             ); // Correct closing of array
 
             if ($courseLevel == 'ug') {
