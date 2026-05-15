@@ -13,9 +13,9 @@
                     </div><!-- /.box-header -->
                     <!-- Filter Card -->
                     <div class="box-body" style="padding:12px 15px 10px;border-bottom:1px solid #e8e8e8;background:#fafafa;">
-                        <div class="row" style="margin-bottom:8px;">
+                        <div class="row">
                             <!-- Course -->
-                            <div class="col-sm-6 col-md-3" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Course</label>
                                 <select id="filter_course" class="form-control input-sm">
                                     <option value="">All Courses</option>
@@ -25,7 +25,7 @@
                                 </select>
                             </div>
                             <!-- Level -->
-                            <div class="col-sm-3 col-md-2" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Level</label>
                                 <select id="filter_course_level" class="form-control input-sm">
                                     <option value="">All Levels</option>
@@ -34,7 +34,7 @@
                                 </select>
                             </div>
                             <!-- Admission Type -->
-                            <div class="col-sm-3 col-md-2" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Admission Type</label>
                                 <select id="filter_admission_type" class="form-control input-sm">
                                     <option value="">All Types</option>
@@ -43,7 +43,7 @@
                                 </select>
                             </div>
                             <!-- Community -->
-                            <div class="col-sm-3 col-md-2" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Community</label>
                                 <select id="filter_community" class="form-control input-sm">
                                     <option value="">All Communities</option>
@@ -57,7 +57,7 @@
                                 </select>
                             </div>
                             <!-- Quota -->
-                            <div class="col-sm-3 col-md-2" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Quota</label>
                                 <div class="btn-group" id="filter_quota_group" style="width:100%;">
                                     <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width:100%;text-align:left;">
@@ -70,7 +70,7 @@
                                 </div>
                             </div>
                             <!-- Course Fee Status -->
-                            <div class="col-sm-3 col-md-3" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Course Fee Status</label>
                                 <div class="btn-group" id="filter_form_status_group" style="width:100%;">
                                     <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width:100%;text-align:left;">
@@ -84,10 +84,8 @@
                                     </ul>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
                             <!-- Submitted By -->
-                            <div class="col-sm-3 col-md-2" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Submitted By</label>
                                 <select id="filter_submitted_by" class="form-control input-sm">
                                     <option value="">All</option>
@@ -96,7 +94,7 @@
                                 </select>
                             </div>
                             <!-- Application Date Range -->
-                            <div class="col-sm-6 col-md-4" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Application Date</label>
                                 <div class="input-group input-group-sm">
                                     <input type="text" id="filter_submit_from" class="form-control date datepicker-filter" placeholder="From" autocomplete="off" readonly>
@@ -108,7 +106,7 @@
                                 </div>
                             </div>
                             <!-- Last Payment Date -->
-                            <div class="col-sm-3 col-md-3" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Last Payment Date</label>
                                 <div class="input-group input-group-sm">
                                     <input type="text" id="filter_last_payment_date" class="form-control date datepicker-filter" placeholder="Date" autocomplete="off" readonly>
@@ -118,7 +116,7 @@
                                 </div>
                             </div>
                             <!-- Cut-Off Range -->
-                            <div class="col-sm-6 col-md-3" style="margin-bottom:6px;">
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Cut-Off</label>
                                 <div class="input-group input-group-sm">
                                     <input type="number" id="filter_cutoff_from" class="form-control" placeholder="From" min="0" max="300" step="0.01" autocomplete="off">
