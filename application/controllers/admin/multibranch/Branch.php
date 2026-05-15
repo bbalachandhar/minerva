@@ -164,7 +164,9 @@ class Branch extends MY_Addon_MBController
         $this->load->model("multibranch/multi_common_model");
         $branches        = $this->multibranch_model->getSchoolCurrentSessions();
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
-        $inventory       = $this->multi_common_model->getInventorySummary($branches);
+        // Pass pre-loaded branch list to avoid redundant multi_branch query inside model
+        $branch_list     = $this->multibranch_model->get();
+        $inventory       = $this->multi_common_model->getInventorySummary($branches, $branch_list);
 
         $rows         = [];
         $chart_labels = [];
@@ -215,27 +217,23 @@ class Branch extends MY_Addon_MBController
         session_write_close(); // release session lock so parallel AJAX calls don't queue
 
         $this->load->model("multibranch/multi_common_model");
-        $branches = $this->multibranch_model->getSchoolCurrentSessions();
-
-        $books           = $this->multi_common_model->getBooks($branches);
-        $members         = $this->multi_common_model->getLibararyMembers($branches);
-        $issued          = $this->multi_common_model->getLibararyBookIssued($branches);
-        $offline_adm     = $this->multi_common_model->getOfflineStudentAdmissions($branches);
-        $online_adm      = $this->multi_common_model->getOnlineStudentAdmissions($branches);
-        $alumni          = $this->multi_common_model->getAlumniStudents($branches);
+        $branches  = $this->multibranch_model->getSchoolCurrentSessions();
+        // Single consolidated call — opens each branch DB once instead of 6 times
+        $academics = $this->multi_common_model->getAcademicsSummary($branches);
 
         $rows = [];
         foreach ($branches as $db_name => $branch_info) {
+            $ac     = $academics[$db_name];
             $rows[] = [
                 'db_name'          => $db_name,
                 'name'             => $branch_info->name,
                 'session'          => $branch_info->session,
-                'total_books'      => $books[$db_name]['total_books'],
-                'library_members'  => $members[$db_name]['total_members'],
-                'book_issued'      => $issued[$db_name]['total_book_issued'],
-                'offline_admission'=> $offline_adm[$db_name]['offline_admission'],
-                'online_admission' => $online_adm[$db_name]['online_admission'],
-                'total_alumni'     => $alumni[$db_name]['total_alumni_student'],
+                'total_books'      => $ac['total_books'],
+                'library_members'  => $ac['total_members'],
+                'book_issued'      => $ac['total_book_issued'],
+                'offline_admission'=> $ac['offline_admission'],
+                'online_admission' => $ac['online_admission'],
+                'total_alumni'     => $ac['total_alumni_student'],
             ];
         }
 

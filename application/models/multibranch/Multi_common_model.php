@@ -548,6 +548,87 @@ class Multi_common_model extends MY_Model
     }
 
     /*
+     * getAcademicsSummary — consolidated replacement for the six separate calls:
+     *   getBooks + getLibararyMembers + getLibararyBookIssued +
+     *   getOfflineStudentAdmissions + getOnlineStudentAdmissions + getAlumniStudents
+     *
+     * Opens each branch DB connection ONCE instead of six times, reducing
+     * DB connection overhead by ~83% for academics_async.
+     */
+    public function getAcademicsSummary($school_array = [])
+    {
+        $results    = [];
+        $default_db = $this->db_default->database;
+        $current_db = $school_array[$default_db];
+
+        $sa    = sessionYearDetails($current_db->session, $current_db->start_month);
+        $ms    = $sa['month_start'];
+        $me    = $sa['month_end'];
+        $sid   = (int)$current_db->session_id;
+
+        $results[$default_db] = [
+            'name'                 => $current_db->name,
+            'session'              => $current_db->session,
+            'db_name'              => $default_db,
+            'total_books'          => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM books")->row()->c,
+            'total_members'        => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM libarary_members")->row()->c,
+            'total_book_issued'    => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM book_issues WHERE is_returned=0")->row()->c,
+            'total_alumni_student' => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM alumni_students")->row()->c,
+            'offline_admission'    => (int)$this->db_default->query(
+                "SELECT COUNT(DISTINCT students.id) AS c FROM students
+                 INNER JOIN student_session ON student_session.student_id = students.id
+                 INNER JOIN users           ON users.user_id = students.id
+                 WHERE student_session.session_id = ?
+                   AND students.admission_date >= ? AND students.admission_date <= ?
+                   AND users.role = 'student'",
+                [$sid, $ms, $me])->row()->c,
+            'online_admission'     => (int)$this->db_default->query(
+                "SELECT COUNT(*) AS c FROM online_admissions
+                 INNER JOIN class_sections ON online_admissions.class_section_id = class_sections.id
+                 WHERE online_admissions.admission_date >= ? AND online_admissions.admission_date <= ?",
+                [$ms, $me])->row()->c,
+        ];
+
+        $this->load->model("multibranch_model");
+        $branches = $this->multibranch_model->get();
+        if (!empty($branches)) {
+            foreach ($branches as $branch_value) {
+                $db_dynamic      = $this->load->database('branch_' . $branch_value->id, true);
+                $db_dynamic_name = $db_dynamic->database;
+                $cd              = $school_array[$db_dynamic_name];
+                $sa2             = sessionYearDetails($cd->session, $cd->start_month);
+                $ms2             = $sa2['month_start'];
+                $me2             = $sa2['month_end'];
+                $sid2            = (int)$cd->session_id;
+
+                $results[$db_dynamic_name] = [
+                    'name'                 => $cd->name,
+                    'session'              => $cd->session,
+                    'db_name'              => $db_dynamic_name,
+                    'total_books'          => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM books")->row()->c,
+                    'total_members'        => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM libarary_members")->row()->c,
+                    'total_book_issued'    => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM book_issues WHERE is_returned=0")->row()->c,
+                    'total_alumni_student' => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM alumni_students")->row()->c,
+                    'offline_admission'    => (int)$db_dynamic->query(
+                        "SELECT COUNT(DISTINCT students.id) AS c FROM students
+                         INNER JOIN student_session ON student_session.student_id = students.id
+                         INNER JOIN users           ON users.user_id = students.id
+                         WHERE student_session.session_id = ?
+                           AND students.admission_date >= ? AND students.admission_date <= ?
+                           AND users.role = 'student'",
+                        [$sid2, $ms2, $me2])->row()->c,
+                    'online_admission'     => (int)$db_dynamic->query(
+                        "SELECT COUNT(*) AS c FROM online_admissions
+                         INNER JOIN class_sections ON online_admissions.class_section_id = class_sections.id
+                         WHERE online_admissions.admission_date >= ? AND online_admissions.admission_date <= ?",
+                        [$ms2, $me2])->row()->c,
+                ];
+            }
+        }
+        return $results;
+    }
+
+    /*
     This function is used to get alumni student
     */
     public function getAlumniStudents($school_array = [])
@@ -775,7 +856,7 @@ class Multi_common_model extends MY_Model
     /*
     This function returns inventory summary (total value, stock, categories) for all branches
     */
-    public function getInventorySummary($school_array = [])
+    public function getInventorySummary($school_array = [], $branch_list = null)
     {
         $results = [];
 
@@ -813,7 +894,8 @@ class Multi_common_model extends MY_Model
         ];
 
         $this->load->model("multibranch_model");
-        $branches = $this->multibranch_model->get();
+        // Accept pre-loaded branch list to avoid redundant multi_branch query
+        $branches = ($branch_list !== null) ? $branch_list : $this->multibranch_model->get();
 
         if (!empty($branches)) {
             foreach ($branches as $branch_value) {
