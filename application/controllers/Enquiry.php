@@ -81,9 +81,10 @@ class Enquiry extends CI_Controller
             $created_by = $first_staff ? (int)$first_staff->id : null;
 
             $enquiry = array(
+                'session_id'     => $this->setting_model->getCurrentSession(),
                 'name'           => $this->input->post('name'),
                 'contact'        => $this->input->post('contact'),
-                'address'        => $this->input->post('address') ?: '',
+                'address'        => $this->input->post('address') ?: ''
                 'state'          => $this->input->post('state'),
                 'city'           => $city,
                 'reference'      => $this->input->post('reference') ?: '',
