@@ -21,7 +21,7 @@ class Multibranch_model extends MY_Model
     {
         $db_array=[];
         $default_db = $this->db_default->database;
-        $this->db_default->select('sch_settings.start_month,sch_settings.name,sch_settings.id,sch_settings.session_id,sessions.session');
+        $this->db_default->select('sch_settings.start_month,sch_settings.name,sch_settings.id,sch_settings.session_id,sch_settings.online_admission_session_id,sessions.session');
         $this->db_default->from('sch_settings');
         $this->db_default->join('sessions', 'sessions.id = sch_settings.session_id');
         $this->db_default->order_by('sch_settings.id');
@@ -53,7 +53,7 @@ class Multibranch_model extends MY_Model
                
                 //=============================
 
-                $db_dynamic->select('sch_settings.start_month,sch_settings.name,sch_settings.id,sch_settings.session_id,sessions.session');
+                $db_dynamic->select('sch_settings.start_month,sch_settings.name,sch_settings.id,sch_settings.session_id,sch_settings.online_admission_session_id,sessions.session');
                 $db_dynamic->from('sch_settings');
                 $db_dynamic->join('sessions', 'sessions.id = sch_settings.session_id');
                 $db_dynamic->order_by('sch_settings.id');

@@ -235,7 +235,9 @@ class Admin_model extends CI_Model
 
     public function getAllEnquiryCount($start_date = null, $end_date = null)
     {
+        $session_id = $this->setting_model->getOnlineAdmissionSessionId();
         $this->db->select("SUM(CASE WHEN status = 'application_done' THEN 1  ELSE 0 END) AS 'complete',SUM(CASE WHEN status = 'active' THEN 1  ELSE 0 END) AS 'active',SUM(CASE WHEN status = 'passive' THEN 1  ELSE 0 END) AS 'passive',SUM(CASE WHEN status = 'dead' THEN 1  ELSE 0 END) AS 'dead',SUM(CASE WHEN status = 'lost' THEN 1  ELSE 0 END) AS 'lost',count(*) as total")->from('enquiry');
+        $this->db->where('session_id', $session_id);
 
         if (!empty($start_date) && !empty($end_date)) {
             $condition = " date_format(date,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";
@@ -247,14 +249,17 @@ class Admin_model extends CI_Model
 
     public function getOnlineStudentPaymentOverview()
     {
+        $session_id = $this->setting_model->getOnlineAdmissionSessionId();
         $students = $this->db->select('reference_no, course_fee_total, paid_status')
             ->from('online_admissions')
+            ->where('session_id', $session_id)
             ->where("COALESCE(admission_status, 'active') = 'active'", null, false)   // exclude revoked
             ->get()
             ->result_array();
 
         // Count revoked separately
         $revoked_count = (int) $this->db
+            ->where('session_id', $session_id)
             ->where("COALESCE(admission_status, 'active') = 'cancelled'", null, false)
             ->count_all_results('online_admissions');
 

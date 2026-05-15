@@ -362,10 +362,9 @@ class Multi_common_model extends MY_Model
         $school_month_end   = $school_arr['month_end'];
         $school            = [];
         $school['name']    = $current_db->name;
-        $school['session'] = $current_db->session;     
-        $this->db_default->join('class_sections', 'online_admissions.class_section_id = class_sections.id');
-        $this->db_default->where('admission_date >=', $school_month_start);
-        $this->db_default->where('admission_date <=', $school_month_end);
+        $school['session'] = $current_db->session;
+        $adm_session_id = !empty($current_db->online_admission_session_id) ? (int)$current_db->online_admission_session_id : (int)$current_db->session_id;
+        $this->db_default->where('session_id', $adm_session_id);
         $school['online_admission'] = $this->db_default->count_all_results('online_admissions');
         $school['db_name']         = $default_db;
         $results[$default_db] = $school;
@@ -392,8 +391,8 @@ class Multi_common_model extends MY_Model
                 $school_month_end   = $school_arr['month_end'];
                 $school['name']    = $db_dynamic_array->name;
                 $school['session'] = $db_dynamic_array->session;
-                $db_dynamic->join('class_sections', 'online_admissions.class_section_id = class_sections.id');                $db_dynamic->where('admission_date >=', $school_month_start);
-                $db_dynamic->where('admission_date <=', $school_month_end);
+                $adm_session_id2 = !empty($db_dynamic_array->online_admission_session_id) ? (int)$db_dynamic_array->online_admission_session_id : (int)$db_dynamic_array->session_id;
+                $db_dynamic->where('session_id', $adm_session_id2);
                 $school['online_admission'] = $db_dynamic->count_all_results('online_admissions');
                 $school['db_name']         = $db_dynamic_name;
                 $results[$db_dynamic_name] = $school;
@@ -569,6 +568,7 @@ class Multi_common_model extends MY_Model
         $ms    = $sa['month_start'];
         $me    = $sa['month_end'];
         $sid   = (int)$current_db->session_id;
+        $adm_sid = !empty($current_db->online_admission_session_id) ? (int)$current_db->online_admission_session_id : $sid;
 
         $results[$default_db] = [
             'name'                 => $current_db->name,
@@ -588,9 +588,8 @@ class Multi_common_model extends MY_Model
                 [$sid, $ms, $me])->row()->c,
             'online_admission'     => (int)$this->db_default->query(
                 "SELECT COUNT(*) AS c FROM online_admissions
-                 INNER JOIN class_sections ON online_admissions.class_section_id = class_sections.id
-                 WHERE online_admissions.admission_date >= ? AND online_admissions.admission_date <= ?",
-                [$ms, $me])->row()->c,
+                 WHERE session_id = ?",
+                [$adm_sid])->row()->c,
         ];
 
         $this->load->model("multibranch_model");
@@ -604,6 +603,7 @@ class Multi_common_model extends MY_Model
                 $ms2             = $sa2['month_start'];
                 $me2             = $sa2['month_end'];
                 $sid2            = (int)$cd->session_id;
+                $adm_sid2        = !empty($cd->online_admission_session_id) ? (int)$cd->online_admission_session_id : $sid2;
 
                 $results[$db_dynamic_name] = [
                     'name'                 => $cd->name,
@@ -623,9 +623,8 @@ class Multi_common_model extends MY_Model
                         [$sid2, $ms2, $me2])->row()->c,
                     'online_admission'     => (int)$db_dynamic->query(
                         "SELECT COUNT(*) AS c FROM online_admissions
-                         INNER JOIN class_sections ON online_admissions.class_section_id = class_sections.id
-                         WHERE online_admissions.admission_date >= ? AND online_admissions.admission_date <= ?",
-                        [$ms2, $me2])->row()->c,
+                         WHERE session_id = ?",
+                        [$adm_sid2])->row()->c,
                 ];
             }
         }
