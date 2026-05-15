@@ -28,6 +28,7 @@ class Multi_common_model extends MY_Model
         $this->db_default->join('student_session', 'student_session.student_id = students.id');
         $this->db_default->where('student_session.session_id', $current_db->session_id);
         $this->db_default->where('students.is_active', 'yes');
+        $this->db_default->where('student_session.is_alumni', 0);
         $school['total_student'] = $this->db_default->count_all_results('students');
         $school['db_name']       = $default_db;
         $school['session']       = $current_db->session;
@@ -37,6 +38,7 @@ class Multi_common_model extends MY_Model
              FROM students
              INNER JOIN student_session ON student_session.student_id = students.id
              WHERE student_session.session_id = ? AND students.is_active = 'yes'
+             AND student_session.is_alumni = 0
              GROUP BY students.gender",
             [$current_db->session_id]
         );
@@ -70,6 +72,7 @@ class Multi_common_model extends MY_Model
                 $db_dynamic->join('student_session', 'student_session.student_id = students.id');
                 $db_dynamic->where('student_session.session_id', $current_db->session_id);
                 $db_dynamic->where('students.is_active', 'yes');
+                $db_dynamic->where('student_session.is_alumni', 0);
                 $school['total_student']   = $db_dynamic->count_all_results('students');
                 $school['db_name']         = $db_dynamic_name;
                 $school['session']         = $current_db->session;
@@ -79,6 +82,7 @@ class Multi_common_model extends MY_Model
                      FROM students
                      INNER JOIN student_session ON student_session.student_id = students.id
                      WHERE student_session.session_id = ? AND students.is_active = 'yes'
+                     AND student_session.is_alumni = 0
                      GROUP BY students.gender",
                     [$current_db->session_id]
                 );
