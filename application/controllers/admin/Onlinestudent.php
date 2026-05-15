@@ -613,12 +613,8 @@ class Onlinestudent extends Admin_Controller
                 $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no])
                     || (int) ($value->paid_status ?? 0) === 1;
 
-                // Form Status: application fee paid or not (binary)
-                if ($app_fee_is_paid) {
-                    $row[] = '<span class="label label-success">Paid</span>';
-                } else {
-                    $row[] = '<span class="label label-danger">Not Paid</span>';
-                }
+                // Community
+                $row[] = !empty($value->cast) ? htmlspecialchars($value->cast) : '—';
 
                 // Course Fee Status: based on course fee paid amount vs total
                 if ($paid_amount <= 0 && $app_fee_is_paid) {
