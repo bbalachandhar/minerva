@@ -123,8 +123,8 @@
                                                 data-id="<?php echo $b->id; ?>"
                                                 data-exam="<?php echo htmlspecialchars($b->exam, ENT_QUOTES); ?>"
                                                 data-passing-percentage="<?php echo $b->passing_percentage; ?>"
-                                                data-date-from="<?php echo htmlspecialchars($this->customlib->dateyyyymmddTodateformat($b->date_from), ENT_QUOTES); ?>"
-                                                data-date-to="<?php echo htmlspecialchars($this->customlib->dateyyyymmddTodateformat($b->date_to), ENT_QUOTES); ?>"
+                                                data-date-from="<?php echo $b->date_from; ?>"
+                                                data-date-to="<?php echo $b->date_to; ?>"
                                                 data-description="<?php echo htmlspecialchars($b->description ?? '', ENT_QUOTES); ?>"
                                                 title="Edit batch">
                                             <i class="fa fa-pencil"></i>
@@ -377,14 +377,23 @@ $(function () {
         $('#modal_passing_percentage').val(btn.data('passing-percentage'));
         $('#modal_description').val(btn.data('description'));
 
-        // Destroy any existing datepicker instances before setting values
+        // Destroy any existing datepicker instances, then init with site format and set date from ISO value
         var $df = $('#modal_date_from');
         var $dt = $('#modal_date_to');
         if ($df.data('datepicker')) { $df.datepicker('destroy'); }
         if ($dt.data('datepicker')) { $dt.datepicker('destroy'); }
 
-        $df.val(btn.data('date-from'));
-        $dt.val(btn.data('date-to'));
+        function setPickerDate($el, iso) {
+            $el.datepicker({ format: date_format, autoclose: true });
+            if (iso) {
+                var p = String(iso).split('-');
+                if (p.length === 3) {
+                    $el.datepicker('setDate', new Date(+p[0], +p[1] - 1, +p[2]));
+                }
+            }
+        }
+        setPickerDate($df, btn.data('date-from'));
+        setPickerDate($dt, btn.data('date-to'));
 
         $('#editBatchForm').attr('action', editBatchBaseUrl + btn.data('id'));
         $('#editBatchModal').modal('show');
