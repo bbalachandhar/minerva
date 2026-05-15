@@ -308,11 +308,14 @@ class Coe_event extends MY_Addon_CoeController
             ]);
         }
 
-        $msg = 'Batch created, <strong>' . $total_enrolled . '</strong> students auto-enrolled.';
-        if ($skipped > 0) {
-            $msg .= ' Batch already exists for that class/session — skipped.';
+        $msg = '';
+        if ($created > 0) {
+            $msg .= '<div class="alert alert-success">Batch created, <strong>' . $total_enrolled . '</strong> student' . ($total_enrolled == 1 ? '' : 's') . ' auto-enrolled.</div>';
         }
-        $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $msg . '</div>');
+        if ($skipped > 0) {
+            $msg .= '<div class="alert alert-warning">Batch already exists for that class/session — skipped.</div>';
+        }
+        $this->session->set_flashdata('msg', $msg);
         redirect('coe/coe_event/manage/' . $group_id);
     }
 
