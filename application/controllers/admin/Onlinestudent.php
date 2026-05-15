@@ -612,12 +612,7 @@ class Onlinestudent extends Admin_Controller
                 $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no])
                     || (int) ($value->paid_status ?? 0) === 1;
 
-                // Form Status: application fee paid or not (binary)
-                if ($app_fee_is_paid) {
-                    $row[] = '<span class="label label-success">Paid</span>';
-                } else {
-                    $row[] = '<span class="label label-danger">Not Paid</span>';
-                }
+                $row[] = !empty($value->cast) ? htmlspecialchars($value->cast) : '—';
 
                 // Course Fee Status: based on course fee paid amount vs total
                 if ($paid_amount <= 0 && $app_fee_is_paid) {
@@ -711,7 +706,7 @@ class Onlinestudent extends Admin_Controller
         $this->db->select(
             'oa.id, oa.reference_no, oa.firstname, oa.middlename, oa.lastname,
              oa.father_name, oa.gender, oa.mobileno, oa.email,
-             oa.quota_type, oa.paid_status, oa.form_status, oa.created_at,
+             oa.quota_type, oa.paid_status, oa.form_status, oa.cast, oa.created_at,
              oa.referred_by_employee_id,
              CONCAT(submitter_staff.name, " ", submitter_staff.surname) as submitted_by_name,
              COALESCE(oa.course_fee_total,
@@ -847,7 +842,7 @@ class Onlinestudent extends Admin_Controller
         if ($sch_setting->mobile_no) {
             $headers[] = 'Mobile';
         }
-        $headers[] = 'Form Status';
+        $headers[] = 'Community';
         $headers[] = 'Course Fee Status';
         if ($sch_setting->online_admission_payment == 'yes') {
             $headers[] = 'App. Fee';
@@ -920,7 +915,7 @@ class Onlinestudent extends Admin_Controller
             if ($sch_setting->mobile_no) {
                 $cell_data[] = $r['mobileno'];
             }
-            $cell_data[] = $form_status_text;
+            $cell_data[] = !empty($r['cast']) ? $r['cast'] : '';
             $cell_data[] = $fee_status_text;
             if ($sch_setting->online_admission_payment == 'yes') {
                 if ($app_is_paid) {

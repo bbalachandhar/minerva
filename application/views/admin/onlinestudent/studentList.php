@@ -125,7 +125,7 @@
                                           <?php if ($sch_setting->mobile_no) {?>
                                         <th style="width:10%"><?php echo $this->lang->line('student_mobile_number'); ?></th>
                                        <?php }?>
-                                        <th>Form Status</th>
+                                        <th>Community</th>
                                         <th>Course Fee Status</th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
