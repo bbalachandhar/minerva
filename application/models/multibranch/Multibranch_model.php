@@ -38,6 +38,10 @@ class Multibranch_model extends MY_Model
         }
         $db_array[$default_db]=$res;
 
+        // All branches must reflect the home branch's currently active session so that the
+        // Management Command Centre shows a consistent cross-institution view.
+        $home_session_name = $res->session;
+
         // =============================
         $branches = $this->get();
         $is_branch_available=false;
@@ -55,6 +59,16 @@ class Multibranch_model extends MY_Model
                 $db_dynamic->order_by('sch_settings.id');
                 $query = $db_dynamic->get();
                 $res = $query->row();
+
+                // Override session to match the home branch's active session
+                $matched = $db_dynamic->select('id, session')
+                                      ->from('sessions')
+                                      ->where('session', $home_session_name)
+                                      ->limit(1)->get()->row();
+                if (!empty($matched)) {
+                    $res->session_id = $matched->id;
+                    $res->session    = $matched->session;
+                }
 
                 $db_array[$db_dynamic_name]=$res;
                 //=============================
