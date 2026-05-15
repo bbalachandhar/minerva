@@ -77,7 +77,7 @@ class Onlinestudent_model extends MY_Model
         }
     }
 
-    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null, $submitted_by_filter = null, $submit_date_from = null, $submit_date_to = null, $last_payment_date = null, $course_id_filter = null, $course_level_filter = null, $admission_type_filter = null, $cutoff_from = null, $cutoff_to = null)
+    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null, $submitted_by_filter = null, $submit_date_from = null, $submit_date_to = null, $last_payment_date = null, $course_id_filter = null, $course_level_filter = null, $admission_type_filter = null, $cutoff_from = null, $cutoff_to = null, $community_filter = null)
     {
         $class_section_array=$this->customlib->get_myClassSection();        
 
@@ -163,6 +163,9 @@ class Onlinestudent_model extends MY_Model
                 . " AND DATE(_lfc.date_collected) = $lpd))",
                 null, false
             );
+        }
+        if (!empty($community_filter)) {
+            $this->datatables->where('online_admissions.cast', $community_filter);
         }
         $this->datatables
             ->select('online_admissions.vehroute_id,vehicle_routes.route_id,vehicle_routes.vehicle_id,transport_route.route_title,vehicles.vehicle_no,hostel_rooms.room_no,vehicles.driver_name,vehicles.driver_contact,hostel.id as `hostel_id`,hostel.hostel_name,room_types.id as `room_type_id`,room_types.room_type ,online_admissions.hostel_room_id,class_sections.id as class_section_id,classes.id AS `class_id`,classes.class,sections.id AS `section_id`,sections.section,online_admissions.id,online_admissions.admission_no, online_admissions.roll_no,online_admissions.admission_date,online_admissions.firstname, online_admissions.lastname,online_admissions.image,    online_admissions.mobileno,online_admissions.email,online_admissions.state,online_admissions.city , online_admissions.pincode , online_admissions.note, online_admissions.religion,online_admissions.cast, school_houses.house_name,online_admissions.dob ,online_admissions.current_address, online_admissions.previous_school,
