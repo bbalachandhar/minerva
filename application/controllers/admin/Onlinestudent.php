@@ -489,8 +489,9 @@ class Onlinestudent extends Admin_Controller
         $admission_type_filter = $this->input->post('admission_type_filter') ?: null;
         $cutoff_from           = $this->input->post('cutoff_from')           ?: null;
         $cutoff_to             = $this->input->post('cutoff_to')             ?: null;
+        $community_filter      = $this->input->post('community_filter')      ?: null;
 
-        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter, $submit_date_from, $submit_date_to, $last_payment_date, $course_id_filter, $course_level_filter, $admission_type_filter, $cutoff_from, $cutoff_to);
+        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter, $submit_date_from, $submit_date_to, $last_payment_date, $course_id_filter, $course_level_filter, $admission_type_filter, $cutoff_from, $cutoff_to, $community_filter);
 
         $m               = json_decode($student_result);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
@@ -612,7 +613,12 @@ class Onlinestudent extends Admin_Controller
                 $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no])
                     || (int) ($value->paid_status ?? 0) === 1;
 
-                $row[] = !empty($value->cast) ? htmlspecialchars($value->cast) : '—';
+                // Form Status: application fee paid or not (binary)
+                if ($app_fee_is_paid) {
+                    $row[] = '<span class="label label-success">Paid</span>';
+                } else {
+                    $row[] = '<span class="label label-danger">Not Paid</span>';
+                }
 
                 // Course Fee Status: based on course fee paid amount vs total
                 if ($paid_amount <= 0 && $app_fee_is_paid) {
@@ -701,19 +707,20 @@ class Onlinestudent extends Admin_Controller
         $admission_type_filter = $this->input->get('admission_type_filter') ?: null;
         $cutoff_from_export    = $this->input->get('cutoff_from')           ?: null;
         $cutoff_to_export      = $this->input->get('cutoff_to')             ?: null;
+        $community_filter      = $this->input->get('community_filter')      ?: null;
 
         // --- Build the base query (mirrors getstudentlist) ---
         $this->db->select(
             'oa.id, oa.reference_no, oa.firstname, oa.middlename, oa.lastname,
              oa.father_name, oa.gender, oa.mobileno, oa.email,
-             oa.quota_type, oa.paid_status, oa.form_status, oa.cast, oa.created_at,
+             oa.quota_type, oa.paid_status, oa.form_status, oa.created_at,
              oa.referred_by_employee_id,
              CONCAT(submitter_staff.name, " ", submitter_staff.surname) as submitted_by_name,
              COALESCE(oa.course_fee_total,
                  IF(oa.quota_type = "management", oac.mgt_fee, oac.govt_fee)
              ) AS course_fee_total,
              IFNULL(oac.course_name, "N/A") AS course_name,
-             oa.cutoff_marks',
+             oa.cutoff_marks, oa.cast',
             false
         );
         $this->db->from('online_admissions oa');
@@ -806,8 +813,9 @@ class Onlinestudent extends Admin_Controller
         if ($cutoff_to_export !== null && $cutoff_to_export !== '') {
             $this->db->where('oa.cutoff_marks <=', (float) $cutoff_to_export);
         }
-
-        $this->db->order_by('oa.id', 'DESC');
+        if (!empty($community_filter)) {
+            $this->db->where('oa.`cast`', $community_filter);
+        }
         $rows = $this->db->get()->result_array();
 
         // Collect reference numbers for bulk fee lookups
