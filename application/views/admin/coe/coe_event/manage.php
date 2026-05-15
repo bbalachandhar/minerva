@@ -45,7 +45,7 @@
                         <?php if (empty($batches)): ?>
                             <p class="text-muted text-center">No batch exams yet. Add one below.</p>
                         <?php else: ?>
-                        <table class="table table-bordered table-hover table-condensed">
+                        <table id="batches-table" class="table table-bordered table-hover table-condensed">
                             <thead>
                                 <tr>
                                     <th>#</th>
@@ -320,6 +320,23 @@
 
 <script>
 $(function () {
+    // Batches DataTable
+    if ($('#batches-table').length && $('#batches-table tbody tr').length > 0) {
+        $('#batches-table').DataTable({
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+            searching: true,
+            ordering: true,
+            aaSorting: [],
+            aoColumnDefs: [{ bSortable: false, aTargets: [-1] }],
+            language: {
+                search: 'Search batches:',
+                processing: '<i class="fa fa-spinner fa-spin"></i> Loading…',
+                lengthMenu: 'Show _MENU_ batches'
+            }
+        });
+    }
+
     // Select2 for class multi-selector
     $('.select2-class').select2({ placeholder: 'Search and select class(es)…', allowClear: true, width: '100%' });
 
