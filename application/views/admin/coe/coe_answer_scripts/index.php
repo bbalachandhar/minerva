@@ -35,9 +35,9 @@
                                     <td><?php echo $i + 1; ?></td>
                                     <td><?php echo htmlspecialchars($ev->exam_group_name); ?></td>
                                     <td><?php echo htmlspecialchars($ev->exam); ?></td>
-                                    <td><?php echo htmlspecialchars($ev->class ?? '—'); ?></td>
+                                    <td><?php echo htmlspecialchars($ev->class_name ?? '—'); ?></td>
                                     <td>
-                                        <a href="<?php echo site_url('coe/coe_answer_scripts/listing/' . $ev->id); ?>"
+                                        <a href="<?php echo site_url('coe/coe_answer_scripts/listing/' . $ev->batch_exam_id); ?>"
                                            class="btn btn-xs btn-primary">
                                             <i class="fa fa-arrow-right"></i> Manage Scripts
                                         </a>

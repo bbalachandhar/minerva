@@ -82,13 +82,25 @@
                     </select>
                 </div>
                 <div class="form-group" style="margin-right:16px;">
-                    <label>Exam Event&nbsp;</label>
+                    <label>Batch Exam&nbsp;</label>
                     <select name="batch_exam_id" class="form-control input-sm" onchange="document.getElementById('eligibility-filter-form').submit()">
-                        <option value="">— Select Event —</option>
-                        <?php foreach ($events as $ev): ?>
-                            <option value="<?php echo $ev->id; ?>" <?php echo ($ev->id == $selected_event) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars(($ev->exam_group_name ?? '') . ' / ' . ($ev->exam_name ?? $ev->name ?? '')); ?>
-                            </option>
+                        <option value="">— Select Batch —</option>
+                        <?php
+                        $grouped = [];
+                        foreach ($events as $ev) {
+                            $grouped[$ev->exam_group_id]['name']    = $ev->exam_group_name;
+                            $grouped[$ev->exam_group_id]['batches'][] = $ev;
+                        }
+                        foreach ($grouped as $grp):
+                        ?>
+                            <optgroup label="<?php echo htmlspecialchars($grp['name']); ?>">
+                                <?php foreach ($grp['batches'] as $ev): ?>
+                                <option value="<?php echo $ev->batch_exam_id; ?>"
+                                    <?php echo ($ev->batch_exam_id == $selected_event) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($ev->class_name . ' — ' . $ev->exam); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </optgroup>
                         <?php endforeach; ?>
                     </select>
                 </div>

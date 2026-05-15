@@ -42,7 +42,7 @@
                             <?php foreach ($events as $evt): ?>
                             <option value="<?php echo $evt->batch_exam_id; ?>"
                                 <?php echo $filters['batch_exam_id'] == $evt->batch_exam_id ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($evt->name.' — '.$evt->exam); ?>
+                                <?php echo htmlspecialchars($evt->exam_group_name.' — '.$evt->exam); ?>
                             </option>
                             <?php endforeach; ?>
                         </select>

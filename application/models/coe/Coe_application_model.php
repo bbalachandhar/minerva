@@ -27,14 +27,15 @@ class Coe_application_model extends CI_Model
     public function getExamEventsBySession($session_id)
     {
         return $this->db
-            ->select('eg.id, eg.name, eg.exam_category, eg.exam_type, eg.is_active, egcbe.id AS batch_exam_id, egcbe.exam, egcbe.class_id, egcbe.date_from, egcbe.date_to, egcbe.session_id, egcbe.is_publish, egcbe.coe_locked, s.session, (SELECT COUNT(*) FROM coe_exam_applications capp WHERE capp.exam_group_class_batch_exam_id = egcbe.id) AS application_count')
+            ->select('eg.id AS exam_group_id, eg.name AS exam_group_name, eg.exam_category, eg.exam_type, eg.is_active, egcbe.id AS batch_exam_id, egcbe.exam, egcbe.class_id, egcbe.date_from, egcbe.date_to, egcbe.session_id, egcbe.is_publish, egcbe.coe_locked, s.session, c.class AS class_name, (SELECT COUNT(*) FROM coe_exam_applications capp WHERE capp.exam_group_class_batch_exam_id = egcbe.id) AS application_count')
             ->from('exam_groups eg')
             ->join('exam_group_class_batch_exams egcbe', 'egcbe.exam_group_id = eg.id')
             ->join('sessions s', 's.id = egcbe.session_id', 'left')
+            ->join('classes c', 'c.id = egcbe.class_id', 'left')
             ->where('egcbe.session_id', $session_id)
             ->where('eg.is_end_semester', 1)
             ->where('eg.is_active', 1)
-            ->order_by('egcbe.date_from DESC')
+            ->order_by('eg.id DESC, egcbe.date_from DESC')
             ->get()->result();
     }
 

@@ -65,7 +65,7 @@
                                     <?php foreach ($events as $i => $ev): ?>
                                     <tr>
                                         <td><?php echo $i + 1; ?></td>
-                                        <td><?php echo htmlspecialchars($ev->name); ?></td>
+                                        <td><?php echo htmlspecialchars($ev->exam_group_name); ?></td>
                                         <td><?php echo htmlspecialchars($ev->exam); ?></td>
                                         <td><?php echo date('d M Y', strtotime($ev->date_from)); ?> – <?php echo date('d M Y', strtotime($ev->date_to)); ?></td>
                                         <td>
