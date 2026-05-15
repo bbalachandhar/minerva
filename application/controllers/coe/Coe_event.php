@@ -383,6 +383,33 @@ class Coe_event extends MY_Addon_CoeController
         redirect('coe/coe_event/manage/' . $batch->exam_group_id);
     }
 
+    // ------------------------------------------------------------------
+    public function toggle_lock_batch($batch_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_event', 'can_edit')) {
+            access_denied();
+        }
+
+        $batch_id = (int) $batch_id;
+        $batch = $this->db->where('id', $batch_id)->get('exam_group_class_batch_exams')->row();
+        if (!$batch) {
+            show_404();
+        }
+
+        $new_state = $batch->coe_locked ? 0 : 1;
+        $this->db->where('id', $batch_id)->update('exam_group_class_batch_exams', ['coe_locked' => $new_state]);
+
+        $action = $new_state ? 'locked' : 'unlocked';
+        $this->Coe_audit_model->log('coe_batch_' . $action, 'exam_group_class_batch_exams', $batch_id, null, [
+            'coe_locked' => $new_state,
+        ]);
+
+        $color = $new_state ? 'alert-warning' : 'alert-success';
+        $icon  = $new_state ? 'lock' : 'unlock';
+        $this->session->set_flashdata('msg', '<div class="alert ' . $color . '"><i class="fa fa-' . $icon . '"></i> Batch <strong>' . htmlspecialchars($batch->exam) . '</strong> has been <strong>' . $action . '</strong>.</div>');
+        redirect('coe/coe_event/manage/' . $batch->exam_group_id);
+    }
+
     // =========================================================================
     // PRIVATE HELPERS
     // =========================================================================

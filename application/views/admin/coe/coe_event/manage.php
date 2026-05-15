@@ -128,6 +128,24 @@
                                             <i class="fa fa-trash"></i>
                                         </a>
                                         <?php endif; ?>
+                                        <!-- Lock / Unlock batch -->
+                                        <?php if ($this->rbac->hasPrivilege('coe_event', 'can_edit')): ?>
+                                        <?php if ($b->coe_locked): ?>
+                                        <a href="<?php echo site_url('coe/coe_event/toggle_lock_batch/' . $b->id); ?>"
+                                           class="btn btn-default btn-xs"
+                                           onclick="return confirm('Unlock this batch? Editing and application generation will be re-enabled.');"
+                                           title="Unlock batch">
+                                            <i class="fa fa-unlock"></i>
+                                        </a>
+                                        <?php else: ?>
+                                        <a href="<?php echo site_url('coe/coe_event/toggle_lock_batch/' . $b->id); ?>"
+                                           class="btn btn-warning btn-xs"
+                                           onclick="return confirm('Lock this batch? Editing and application generation will be disabled.');"
+                                           title="Lock batch">
+                                            <i class="fa fa-lock"></i>
+                                        </a>
+                                        <?php endif; ?>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
