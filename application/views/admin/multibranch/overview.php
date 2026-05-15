@@ -1046,27 +1046,15 @@ $(document).on('click','#mcc-nav a[data-section]',function(e){
 
 // ---- Boot ----
 $(document).ready(function(){
-    loadFees(); // fees always loads first
+    loadFees(); // fees loads first (most important KPI)
 
-    if ('IntersectionObserver' in window) {
-        var obs = new IntersectionObserver(function(entries){
-            entries.forEach(function(e){
-                if(!e.isIntersecting) return;
-                var s = e.target.getAttribute('data-section');
-                if(s==='hr')        loadHR();
-                else if(s==='assets')    loadAssets();
-                else if(s==='academics')  loadAcademics();
-                else if(s==='attendance') loadAttendance();
-            });
-        }, { rootMargin:'0px 0px -80px 0px', threshold:0.05 });
-
-        ['hr','assets','academics','attendance'].forEach(function(s){
-            var el=document.getElementById('section-'+s);
-            if(el) obs.observe(el);
-        });
-    } else {
-        loadHR(); loadAssets(); loadAcademics(); loadAttendance();
-    }
+    // Fire all remaining loaders eagerly with a small stagger so the server
+    // isn't hit with 5 heavy parallel queries. Each section shows its own
+    // loading spinner while waiting — no scroll required.
+    setTimeout(function(){ loadHR();         }, 200);
+    setTimeout(function(){ loadAssets();     }, 400);
+    setTimeout(function(){ loadAcademics();  }, 600);
+    setTimeout(function(){ loadAttendance(); }, 800);
 
     $(window).on('scroll', updateNavActive);
 
