@@ -832,6 +832,7 @@ class Student extends Admin_Controller
 
 					if ($insert) {
                         $data_insert['created_by'] = $this->session->userdata['admin']['id'];
+                        $data_insert['admission_session_id'] = $session;
 
 						$insert_id = $this->student_model->add($data_insert, $data_setting);
 						if (!empty($custom_value_array)) {
@@ -1425,11 +1426,13 @@ catch (Exception $e) {
                                 if ($admission_no_exists) {
                                     $insert = "";
                                 } else {
+                                    $student_data[$i]['admission_session_id'] = $session;
                                     $insert_id = $this->student_model->add($student_data[$i], $data_setting);
                                 }
                             } else {
 
                                 if ($this->form_validation->is_unique($adm_no, 'students.admission_no')) {
+                                    $student_data[$i]['admission_session_id'] = $session;
                                     $insert_id = $this->student_model->add($student_data[$i], $data_setting);
                                 } else {
                                     $insert_id = "";

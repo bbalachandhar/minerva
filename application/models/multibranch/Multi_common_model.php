@@ -283,22 +283,10 @@ class Multi_common_model extends MY_Model
         $default_db = $this->db_default->database;
         $current_db = $school_array[$default_db];
 
-        $school_arr         = sessionYearDetails($current_db->session, $current_db->start_month);
-        $school_month_start = $school_arr['month_start'];
-        $school_month_end   = $school_arr['month_end'];
-
         $school            = [];
         $school['name']    = $current_db->name;
         $school['session'] = $current_db->session;
-        $this->db_default->join('student_session', 'student_session.student_id = students.id');
-        $this->db_default->join('classes', 'student_session.class_id = classes.id');
-        $this->db_default->join('sections', 'sections.id = student_session.section_id');
-        $this->db_default->join('categories', 'students.category_id = categories.id', 'left');
-        $this->db_default->join('users', 'users.user_id = students.id', 'left');
-        $this->db_default->where('student_session.session_id', $current_db->session_id);
-        $this->db_default->where('admission_date >=', $school_month_start);
-        $this->db_default->where('admission_date <=', $school_month_end);
-        $this->db_default->where('users.role', 'student');
+        $this->db_default->where('admission_session_id', (int)$current_db->session_id);
         $school['offline_admission'] = $this->db_default->count_all_results('students');
         $school['db_name']         = $default_db;
         $results[$default_db] = $school;
@@ -320,20 +308,9 @@ class Multi_common_model extends MY_Model
                 //===================
                 $db_dynamic_name = $db_dynamic->database;
                 $db_dynamic_array = $school_array[$db_dynamic_name];
-                $school_arr         = sessionYearDetails($db_dynamic_array->session, $db_dynamic_array->start_month);
-                $school_month_start = $school_arr['month_start'];
-                $school_month_end   = $school_arr['month_end'];
                 $school['name']    = $db_dynamic_array->name;
                 $school['session'] = $db_dynamic_array->session;
-                $db_dynamic->join('student_session', 'student_session.student_id = students.id');
-                $db_dynamic->join('classes', 'student_session.class_id = classes.id');
-                $db_dynamic->join('sections', 'sections.id = student_session.section_id');
-                $db_dynamic->join('categories', 'students.category_id = categories.id', 'left');
-                $db_dynamic->join('users', 'users.user_id = students.id', 'left');
-                $db_dynamic->where('student_session.session_id', $db_dynamic_array->session_id);
-                $db_dynamic->where('admission_date >=', $school_month_start);
-                $db_dynamic->where('admission_date <=', $school_month_end);
-                $db_dynamic->where('users.role', 'student');
+                $db_dynamic->where('admission_session_id', (int)$db_dynamic_array->session_id);
                 $school['offline_admission'] = $db_dynamic->count_all_results('students');
                 $school['db_name']         = $db_dynamic_name;
 
@@ -564,9 +541,6 @@ class Multi_common_model extends MY_Model
         $default_db = $this->db_default->database;
         $current_db = $school_array[$default_db];
 
-        $sa    = sessionYearDetails($current_db->session, $current_db->start_month);
-        $ms    = $sa['month_start'];
-        $me    = $sa['month_end'];
         $sid   = (int)$current_db->session_id;
         $adm_sid = !empty($current_db->online_admission_session_id) ? (int)$current_db->online_admission_session_id : $sid;
 
@@ -579,13 +553,8 @@ class Multi_common_model extends MY_Model
             'total_book_issued'    => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM book_issues WHERE is_returned=0")->row()->c,
             'total_alumni_student' => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM alumni_students")->row()->c,
             'offline_admission'    => (int)$this->db_default->query(
-                "SELECT COUNT(DISTINCT students.id) AS c FROM students
-                 INNER JOIN student_session ON student_session.student_id = students.id
-                 INNER JOIN users           ON users.user_id = students.id
-                 WHERE student_session.session_id = ?
-                   AND students.admission_date >= ? AND students.admission_date <= ?
-                   AND users.role = 'student'",
-                [$sid, $ms, $me])->row()->c,
+                "SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?",
+                [$sid])->row()->c,
             'online_admission'     => (int)$this->db_default->query(
                 "SELECT COUNT(*) AS c FROM online_admissions
                  WHERE session_id = ?",
@@ -599,9 +568,6 @@ class Multi_common_model extends MY_Model
                 $db_dynamic      = $this->load->database('branch_' . $branch_value->id, true);
                 $db_dynamic_name = $db_dynamic->database;
                 $cd              = $school_array[$db_dynamic_name];
-                $sa2             = sessionYearDetails($cd->session, $cd->start_month);
-                $ms2             = $sa2['month_start'];
-                $me2             = $sa2['month_end'];
                 $sid2            = (int)$cd->session_id;
                 $adm_sid2        = !empty($cd->online_admission_session_id) ? (int)$cd->online_admission_session_id : $sid2;
 
@@ -614,13 +580,8 @@ class Multi_common_model extends MY_Model
                     'total_book_issued'    => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM book_issues WHERE is_returned=0")->row()->c,
                     'total_alumni_student' => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM alumni_students")->row()->c,
                     'offline_admission'    => (int)$db_dynamic->query(
-                        "SELECT COUNT(DISTINCT students.id) AS c FROM students
-                         INNER JOIN student_session ON student_session.student_id = students.id
-                         INNER JOIN users           ON users.user_id = students.id
-                         WHERE student_session.session_id = ?
-                           AND students.admission_date >= ? AND students.admission_date <= ?
-                           AND users.role = 'student'",
-                        [$sid2, $ms2, $me2])->row()->c,
+                        "SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?",
+                        [$sid2])->row()->c,
                     'online_admission'     => (int)$db_dynamic->query(
                         "SELECT COUNT(*) AS c FROM online_admissions
                          WHERE session_id = ?",
