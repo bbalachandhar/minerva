@@ -262,15 +262,10 @@ class Coe_event extends MY_Addon_CoeController
             redirect('coe/coe_event/manage/' . $group_id);
         }
 
-        // Validate class_id[] array (multi-select)
-        $raw_class_ids = $this->input->post('class_id');
-        if (empty($raw_class_ids) || !is_array($raw_class_ids)) {
-            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Please select at least one class.</div>');
-            redirect('coe/coe_event/manage/' . $group_id);
-        }
-        $class_ids = array_values(array_unique(array_filter(array_map('intval', $raw_class_ids))));
-        if (empty($class_ids)) {
-            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Please select at least one class.</div>');
+        // Validate class_id (single select)
+        $class_id = (int) $this->input->post('class_id');
+        if ($class_id <= 0) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Please select a class.</div>');
             redirect('coe/coe_event/manage/' . $group_id);
         }
 
@@ -279,7 +274,7 @@ class Coe_event extends MY_Addon_CoeController
         $created        = 0;
         $skipped        = 0;
 
-        foreach ($class_ids as $class_id) {
+        foreach ([$class_id] as $class_id) {
             // Skip duplicates: same group + class + session
             $dup = $this->db->where('exam_group_id', $group_id)->where('class_id', $class_id)->where('session_id', $session_id)->count_all_results('exam_group_class_batch_exams');
             if ($dup > 0) {
@@ -313,9 +308,9 @@ class Coe_event extends MY_Addon_CoeController
             ]);
         }
 
-        $msg = '<strong>' . $created . '</strong> batch(es) created, <strong>' . $total_enrolled . '</strong> students auto-enrolled.';
+        $msg = 'Batch created, <strong>' . $total_enrolled . '</strong> students auto-enrolled.';
         if ($skipped > 0) {
-            $msg .= ' <strong>' . $skipped . '</strong> skipped (batch already exists for that class/session).';
+            $msg .= ' Batch already exists for that class/session — skipped.';
         }
         $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $msg . '</div>');
         redirect('coe/coe_event/manage/' . $group_id);

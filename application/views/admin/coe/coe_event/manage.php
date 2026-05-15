@@ -210,17 +210,12 @@
                     <form method="post" action="<?php echo site_url('coe/coe_event/save_batch/' . $event->id); ?>" id="add-batch-form">
                         <div class="box-body">
                             <div class="row">
-                                <!-- Class (multi-select) -->
+                                <!-- Class (single searchable select) -->
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="class_id">
-                                            Class <span class="text-danger">*</span> <small class="text-muted">(select one or more)</small>
-                                            <span class="pull-right" style="font-weight:normal;font-size:11px;">
-                                                <a href="#" id="class-select-all">Select All</a> &nbsp;|&nbsp;
-                                                <a href="#" id="class-clear-all">Clear</a>
-                                            </span>
-                                        </label>
-                                        <select name="class_id[]" id="class_id" class="form-control select2-class" multiple>
+                                        <label for="class_id">Class <span class="text-danger">*</span></label>
+                                        <select name="class_id" id="class_id" class="form-control select2-class" required>
+                                            <option value="">— Select a class —</option>
                                             <?php
                                             $last_dept = '';
                                             foreach ($class_list as $cls):
@@ -258,7 +253,7 @@
                                         <label for="exam">Batch Label <span class="text-danger">*</span></label>
                                         <input type="text" name="exam" id="exam" class="form-control"
                                                placeholder="e.g. Nov/Dec 2026 - CSE" maxlength="250" required>
-                                        <p class="help-block" style="font-size:11px;">Auto-filled when one class selected; editable. One batch is created per class.</p>
+                                        <p class="help-block" style="font-size:11px;">Auto-filled from the selected class; editable.</p>
                                     </div>
                                 </div>
 
@@ -297,8 +292,7 @@
                                 <div class="col-md-12">
                                     <div class="callout callout-info" style="padding:8px 12px;font-size:12px;">
                                         <i class="fa fa-info-circle"></i>
-                                        On save, <strong>one batch exam per selected class</strong> is created, and all active students
-                                        in each class &amp; session are automatically enrolled. Existing class/session combinations are skipped.
+                                        On save, a batch exam for the selected class is created and all active students in that class &amp; session are automatically enrolled. If a batch already exists for that class/session it will be skipped.
                                     </div>
                                 </div>
                             </div>
@@ -337,35 +331,18 @@ $(function () {
         });
     }
 
-    // Select2 for class multi-selector
-    $('.select2-class').select2({ placeholder: 'Search and select class(es)…', allowClear: true, width: '100%' });
+    // Select2 for single class selector
+    $('.select2-class').select2({ placeholder: '— Select a class —', allowClear: true, width: '100%' });
 
-    // Select All / Clear All
-    $('#class-select-all').on('click', function (e) {
-        e.preventDefault();
-        $('#class_id option').prop('selected', true);
-        $('#class_id').trigger('change');
-    });
-    $('#class-clear-all').on('click', function (e) {
-        e.preventDefault();
-        $('#class_id').val(null).trigger('change');
-        $('#exam').val('');
-    });
-
-    // Auto-suggest batch label from selected class names
+    // Auto-fill batch label from selected class
     var eventName = <?php echo json_encode($event->name); ?>;
     $('#class_id').on('change', function () {
-        var selected = $(this).find('option:selected');
-        if (selected.length === 0) { return; }
-
-        var names = selected.map(function () { return $(this).text().trim(); }).get();
-        var suffix;
-        if (names.length <= 2) {
-            suffix = names.join(', ');
+        var name = $(this).find('option:selected').text().trim();
+        if (name && $(this).val()) {
+            $('#exam').val(eventName + ' - ' + name);
         } else {
-            suffix = names[0] + ', ' + names[1] + ' (+' + (names.length - 2) + ' more)';
+            $('#exam').val('');
         }
-        $('#exam').val(eventName + ' - ' + suffix);
     });
 });
 </script>
