@@ -333,10 +333,16 @@ class Coe_event extends MY_Addon_CoeController
             redirect('coe/coe_event/manage/' . $batch->exam_group_id);
         }
 
+        // Pre-compute dates BEFORE ->where()->update() chain.
+        // datetostrtotime() calls getSchoolDateFormat() → setting_model->get() → reset_query(),
+        // which would wipe any QB WHERE set before the update() call if evaluated lazily inside the array.
+        $date_from = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date_from')));
+        $date_to   = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date_to')));
+
         $this->db->where('id', $batch_id)->update('exam_group_class_batch_exams', [
             'exam'               => $this->input->post('exam'),
-            'date_from'          => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date_from'))),
-            'date_to'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date_to'))),
+            'date_from'          => $date_from,
+            'date_to'            => $date_to,
             'passing_percentage' => (float)($this->input->post('passing_percentage') ?: 50),
             'description'        => $this->input->post('description'),
         ]);
