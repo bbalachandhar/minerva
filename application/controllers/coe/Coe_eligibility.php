@@ -125,6 +125,195 @@ class Coe_eligibility extends MY_Addon_CoeController
     }
 
     // ------------------------------------------------------------------
+    // RUN AJAX — same logic as run() but returns JSON for in-page toastr
+    // ------------------------------------------------------------------
+    public function run_ajax()
+    {
+        if (!$this->rbac->hasPrivilege('coe_eligibility', 'can_add')) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'msg' => 'Access denied.']));
+        }
+
+        if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'msg' => 'POST required.']));
+        }
+
+        $batch_exam_id = (int) $this->input->post('batch_exam_id');
+        if (!$batch_exam_id) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'msg' => 'No batch exam selected.']));
+        }
+
+        $event = $this->Coe_application_model->getExamEventByIdRow($batch_exam_id);
+        if (empty($event)) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'msg' => 'Batch exam not found.']));
+        }
+
+        if ($event->coe_locked) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'warning', 'msg' => 'This batch is locked. Unlock it before re-running eligibility.']));
+        }
+
+        $egcbe        = $this->db->where('id', $batch_exam_id)->get('exam_group_class_batch_exams')->row();
+        $class_id_val = !empty($egcbe->class_id) ? (int) $egcbe->class_id : null;
+
+        if (!$class_id_val) {
+            $class_row    = $this->db->query(
+                "SELECT DISTINCT ss.class_id FROM exam_group_class_batch_exam_students egcbes
+                 JOIN student_session ss ON ss.id = egcbes.student_session_id
+                 WHERE egcbes.exam_group_class_batch_exam_id = ? LIMIT 1",
+                [$batch_exam_id]
+            )->row();
+            $class_id_val = $class_row ? (int) $class_row->class_id : null;
+        }
+
+        $regulation = $class_id_val
+            ? $this->Coe_setup_model->getByClassSession($class_id_val, $egcbe->session_id)
+            : null;
+
+        if (empty($regulation)) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => 'error',
+                    'msg'    => 'No Exam Regulation found for this class/session. Go to Exam Regulations and create one first.',
+                ]));
+        }
+
+        $regulation->session_id = $egcbe->session_id;
+        $result = $this->Coe_eligibility_model->runEligibility($batch_exam_id, $regulation);
+
+        if (isset($result['error'])) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => 'warning',
+                    'msg'    => 'No applications found for this batch. Generate applications first, then run eligibility.',
+                ]));
+        }
+
+        $this->db->where('id', $batch_exam_id)->update('exam_group_class_batch_exams', [
+            'eligibility_run_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->Coe_audit_model->log('eligibility_run', 'exam_group_class_batch_exams', $batch_exam_id, null, $result);
+
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status'    => 'success',
+                'msg'       => 'Eligibility processed. Processed: ' . $result['processed'] . ' | Eligible: ' . $result['eligible'] . ' | Ineligible: ' . $result['ineligible'],
+                'processed' => $result['processed'],
+                'eligible'  => $result['eligible'],
+                'ineligible'=> $result['ineligible'],
+                'run_at'    => date('d M Y, H:i'),
+            ]));
+    }
+
+    // ------------------------------------------------------------------
+    // RUN ALL AJAX — same logic as run_all() but returns JSON
+    // ------------------------------------------------------------------
+    public function run_all_ajax()
+    {
+        if (!$this->rbac->hasPrivilege('coe_eligibility', 'can_add')) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'msg' => 'Access denied.']));
+        }
+
+        if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'msg' => 'POST required.']));
+        }
+
+        $exam_group_id = (int) $this->input->post('exam_group_id');
+        $session_id    = (int) $this->input->post('session_id');
+
+        if (!$exam_group_id || !$session_id) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'msg' => 'Missing exam group or session.']));
+        }
+
+        $batches = $this->db
+            ->where('exam_group_id', $exam_group_id)
+            ->where('session_id', $session_id)
+            ->get('exam_group_class_batch_exams')->result();
+
+        if (empty($batches)) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'warning', 'msg' => 'No batches found for this event/session.']));
+        }
+
+        $total_processed = 0;
+        $total_eligible  = 0;
+        $total_inelig    = 0;
+        $skipped_locked  = 0;
+        $skipped_noreg   = 0;
+        $skipped_noapps  = 0;
+
+        foreach ($batches as $egcbe) {
+            if ($egcbe->coe_locked) {
+                $skipped_locked++;
+                continue;
+            }
+
+            $class_id_val = !empty($egcbe->class_id) ? (int) $egcbe->class_id : null;
+            if (!$class_id_val) {
+                $class_row    = $this->db->query(
+                    "SELECT DISTINCT ss.class_id FROM exam_group_class_batch_exam_students egcbes
+                     JOIN student_session ss ON ss.id = egcbes.student_session_id
+                     WHERE egcbes.exam_group_class_batch_exam_id = ? LIMIT 1",
+                    [$egcbe->id]
+                )->row();
+                $class_id_val = $class_row ? (int) $class_row->class_id : null;
+            }
+
+            $regulation = $class_id_val
+                ? $this->Coe_setup_model->getByClassSession($class_id_val, $egcbe->session_id)
+                : null;
+
+            if (empty($regulation)) {
+                $skipped_noreg++;
+                continue;
+            }
+
+            $regulation->session_id = $egcbe->session_id;
+            $result = $this->Coe_eligibility_model->runEligibility($egcbe->id, $regulation);
+
+            if (isset($result['error'])) {
+                $skipped_noapps++;
+                continue;
+            }
+
+            $this->db->where('id', $egcbe->id)->update('exam_group_class_batch_exams', [
+                'eligibility_run_at' => date('Y-m-d H:i:s'),
+            ]);
+            $total_processed += $result['processed'];
+            $total_eligible  += $result['eligible'];
+            $total_inelig    += $result['ineligible'];
+            $this->Coe_audit_model->log('eligibility_run_all', 'exam_group_class_batch_exams', $egcbe->id, null, $result);
+        }
+
+        $parts = [
+            'Processed: ' . $total_processed,
+            'Eligible: '  . $total_eligible,
+            'Ineligible: '. $total_inelig,
+        ];
+        if ($skipped_locked) $parts[] = $skipped_locked . ' batch(es) skipped — locked';
+        if ($skipped_noreg)  $parts[] = $skipped_noreg  . ' batch(es) skipped — no regulation';
+        if ($skipped_noapps) $parts[] = $skipped_noapps . ' batch(es) skipped — no applications';
+
+        $status = ($total_processed > 0) ? 'success' : 'warning';
+
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status'    => $status,
+                'msg'       => implode(' | ', $parts),
+                'processed' => $total_processed,
+                'eligible'  => $total_eligible,
+                'ineligible'=> $total_inelig,
+                'run_at'    => date('d M Y, H:i'),
+            ]));
+    }
+
+    // ------------------------------------------------------------------
     // RUN ALL — run eligibility for every batch exam in an exam group/event
     // POST only. Accepts exam_group_id + session_id.
     // ------------------------------------------------------------------

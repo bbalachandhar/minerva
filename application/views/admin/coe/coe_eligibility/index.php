@@ -105,27 +105,33 @@
                     </select>
                 </div>
                 <?php if ($selected_event && $this->rbac->hasPrivilege('coe_eligibility', 'can_add')): ?>
-                <button type="button" class="btn btn-warning btn-sm" id="btn-run-engine" style="border-radius:6px;">
-                    <i class="fa fa-cog"></i>&nbsp; Run Engine
-                </button>
-                <form id="run-engine-form" method="POST" action="<?php echo site_url('coe/coe_eligibility/run'); ?>" style="display:none;">
-                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-                    <input type="hidden" name="batch_exam_id" value="<?php echo (int)$selected_event; ?>">
-                </form>
-                <?php if (isset($event_detail) && $event_detail): ?>
-                <button type="button" class="btn btn-default btn-sm" id="btn-run-all" style="border-radius:6px;margin-left:4px;" title="Run eligibility for ALL batches in this event">
-                    <i class="fa fa-cogs"></i>&nbsp; Run All in Event
-                </button>
-                <form id="run-all-form" method="POST" action="<?php echo site_url('coe/coe_eligibility/run_all'); ?>" style="display:none;">
-                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-                    <input type="hidden" name="exam_group_id" value="<?php echo (int)$event_detail->exam_group_id; ?>">
-                    <input type="hidden" name="session_id" value="<?php echo (int)$selected_session; ?>">
-                </form>
-                <?php endif; ?>
+                <div class="btn-group" style="vertical-align:middle;">
+                    <button type="button" class="btn btn-warning btn-sm" id="btn-run-engine" style="border-radius:6px 0 0 6px;"
+                        data-batch-exam-id="<?php echo (int)$selected_event; ?>"
+                        data-csrf-name="<?php echo $this->security->get_csrf_token_name(); ?>"
+                        data-csrf-hash="<?php echo $this->security->get_csrf_hash(); ?>"
+                        data-url="<?php echo site_url('coe/coe_eligibility/run_ajax'); ?>">
+                        <i class="fa fa-cog" id="run-engine-icon"></i>&nbsp; Run Engine
+                    </button>
+                    <?php if (isset($event_detail) && $event_detail): ?>
+                    <button type="button" class="btn btn-default btn-sm" id="btn-run-all" style="border-radius:0 6px 6px 0;border-left:1px solid #ccc;" title="Run eligibility for ALL batches in this event"
+                        data-exam-group-id="<?php echo (int)$event_detail->exam_group_id; ?>"
+                        data-session-id="<?php echo (int)$selected_session; ?>"
+                        data-csrf-name="<?php echo $this->security->get_csrf_token_name(); ?>"
+                        data-csrf-hash="<?php echo $this->security->get_csrf_hash(); ?>"
+                        data-url="<?php echo site_url('coe/coe_eligibility/run_all_ajax'); ?>">
+                        <i class="fa fa-cogs" id="run-all-icon"></i>&nbsp; Run All in Event
+                    </button>
+                    <?php endif; ?>
+                </div>
                 <?php endif; ?>
                 <?php if ($selected_event && !empty($eligibility_run_at)): ?>
-                <span class="text-muted" style="font-size:11px;margin-left:10px;">
+                <span class="text-muted" id="last-run-label" style="font-size:11px;margin-left:10px;">
                     <i class="fa fa-clock-o"></i> Last run: <?php echo date('d M Y, H:i', strtotime($eligibility_run_at)); ?>
+                </span>
+                <?php else: ?>
+                <span class="text-muted" id="last-run-label" style="font-size:11px;margin-left:10px;display:none;">
+                    <i class="fa fa-clock-o"></i> Last run: <span id="last-run-time"></span>
                 </span>
                 <?php endif; ?>
             </form>
@@ -472,8 +478,57 @@
 
 <script>
 $(function () {
-    // Run Engine button — POST with swal confirm
+
+    // ── Toastr defaults ──────────────────────────────────────────────
+    toastr.options = {
+        positionClass: 'toast-top-right',
+        timeOut: 6000,
+        extendedTimeOut: 2000,
+        closeButton: true,
+        progressBar: true
+    };
+
+    // ── Helper: run AJAX engine call ─────────────────────────────────
+    function runEngine(btn, postData, iconId) {
+        var $btn  = $(btn);
+        var $icon = $('#' + iconId);
+        $btn.prop('disabled', true);
+        $icon.removeClass('fa-cog fa-cogs').addClass('fa-spinner fa-spin');
+
+        $.ajax({
+            url:  $btn.data('url'),
+            type: 'POST',
+            data: postData,
+            dataType: 'json'
+        })
+        .done(function (res) {
+            if (res.status === 'success') {
+                toastr.success(res.msg, 'Eligibility Done');
+                // Update last-run label without full reload
+                $('#last-run-label').show().find('#last-run-time').text(res.run_at);
+                $('#last-run-label').show();
+                // Reload page after brief delay so stat cards refresh
+                setTimeout(function () { location.reload(); }, 1800);
+            } else if (res.status === 'warning') {
+                toastr.warning(res.msg, 'Skipped');
+                $btn.prop('disabled', false);
+                $icon.removeClass('fa-spinner fa-spin').addClass(iconId === 'run-engine-icon' ? 'fa-cog' : 'fa-cogs');
+            } else {
+                toastr.error(res.msg, 'Error');
+                $btn.prop('disabled', false);
+                $icon.removeClass('fa-spinner fa-spin').addClass(iconId === 'run-engine-icon' ? 'fa-cog' : 'fa-cogs');
+            }
+        })
+        .fail(function () {
+            toastr.error('Server error — please try again.', 'Request Failed');
+            $btn.prop('disabled', false);
+            $icon.removeClass('fa-spinner fa-spin').addClass(iconId === 'run-engine-icon' ? 'fa-cog' : 'fa-cogs');
+        });
+    }
+
+    // ── Run Engine button ────────────────────────────────────────────
     $('#btn-run-engine').on('click', function () {
+        var $btn = $(this);
         swal({
             title: 'Run Eligibility Engine?',
             text: 'This processes all pending applications — calculates attendance %, checks fee dues, and updates status. Overrides are preserved.',
@@ -482,25 +537,37 @@ $(function () {
             confirmButtonColor: '#f39c12',
             confirmButtonText: 'Yes, Run Now',
             cancelButtonText: 'Cancel'
-        }, function (ok) { if (ok) $('#run-engine-form').submit(); });
+        }, function (ok) {
+            if (!ok) return;
+            var postData = {};
+            postData[$btn.data('csrf-name')] = $btn.data('csrf-hash');
+            postData['batch_exam_id']        = $btn.data('batch-exam-id');
+            runEngine($btn[0], postData, 'run-engine-icon');
+        });
     });
 
-    // Run All button — POST with swal confirm
+    // ── Run All in Event button ──────────────────────────────────────
     $('#btn-run-all').on('click', function () {
+        var $btn = $(this);
         swal({
             title: 'Run All Batches?',
-            text: 'This runs eligibility for every batch in this exam event. Locked batches and batches with no regulation are skipped.',
+            text: 'This runs eligibility for every batch in this exam event. Locked batches and batches with no regulation are skipped — you will see a summary.',
             type: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#3c8dbc',
             confirmButtonText: 'Yes, Run All',
             cancelButtonText: 'Cancel'
-        }, function (ok) { if (ok) $('#run-all-form').submit(); });
+        }, function (ok) {
+            if (!ok) return;
+            var postData = {};
+            postData[$btn.data('csrf-name')] = $btn.data('csrf-hash');
+            postData['exam_group_id']        = $btn.data('exam-group-id');
+            postData['session_id']           = $btn.data('session-id');
+            runEngine($btn[0], postData, 'run-all-icon');
+        });
     });
 
-    // Legacy confirm-run (kept as fallback, no longer rendered)
-
-    // Override modal
+    // ── Override modal ───────────────────────────────────────────────
     $(document).on('click', '.override-btn', function () {
         $('#modal-app-id').val($(this).data('app-id'));
         $('#modal-student-name').text($(this).data('student'));
@@ -508,7 +575,7 @@ $(function () {
         $('#overrideModal').modal('show');
     });
 
-    // DataTable
+    // ── DataTable ────────────────────────────────────────────────────
     if ($.fn.DataTable && $('#ineligTable').length) {
         $('#ineligTable').DataTable({
             order: [[4, 'asc']],
