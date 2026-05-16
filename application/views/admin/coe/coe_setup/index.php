@@ -45,7 +45,7 @@
                         <h3 class="box-title"><?php echo $this->lang->line('coe_exam_regulations'); ?></h3>
                     </div>
                     <div class="box-body">
-                        <table class="table table-bordered table-striped">
+                        <table id="regulationsTable" class="table table-bordered table-striped">
                             <thead>
                                 <tr>
                                     <th>#</th>
@@ -104,6 +104,16 @@
 </div>
 
 <script>
+$(document).ready(function() {
+    $('#regulationsTable').DataTable({
+        "paging":   true,
+        "ordering": true,
+        "info":     true,
+        "searching": true,
+        "columnDefs": [{ "orderable": false, "targets": -1 }]
+    });
+});
+
 $(document).on('click', '.confirm_delete', function(e) {
     e.preventDefault();
     var url = $(this).attr('href');

@@ -266,9 +266,12 @@
                                     <div class="form-group">
                                         <label for="add_session_id">Session <span class="text-danger">*</span></label>
                                         <select name="session_id" id="add_session_id" class="form-control" required>
-                                            <?php foreach ($session_list as $s): ?>
+                                            <?php
+                                            // Pre-select the event's own session (fall back to current_session)
+                                            $default_sess = !empty($event->session_id) ? $event->session_id : $current_session;
+                                            foreach ($session_list as $s): ?>
                                                 <option value="<?php echo $s['id']; ?>"
-                                                        <?php echo ($s['id'] == $current_session) ? 'selected' : ''; ?>>
+                                                        <?php echo ($s['id'] == $default_sess) ? 'selected' : ''; ?>>
                                                     <?php echo $s['session']; ?>
                                                 </option>
                                             <?php endforeach; ?>

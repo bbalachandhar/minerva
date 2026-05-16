@@ -33,18 +33,54 @@ class Coe_event extends MY_Addon_CoeController
         $this->session->set_userdata('top_menu', 'coe');
         $this->session->set_userdata('sub_menu', 'coe/coe_event');
 
-        $data['title'] = 'CoE Exam Events';
-        $data['events'] = $this->db
-            ->select('eg.id, eg.name, eg.exam_type, eg.exam_category, eg.description, eg.is_active,
-                      COUNT(DISTINCT egcbe.id) AS batch_count,
-                      MIN(egcbe.date_from)     AS earliest_date,
-                      MAX(egcbe.date_to)       AS latest_date')
-            ->from('exam_groups eg')
-            ->join('exam_group_class_batch_exams egcbe', 'egcbe.exam_group_id = eg.id', 'left')
-            ->where('eg.is_end_semester', 1)
-            ->group_by('eg.id')
-            ->order_by('eg.id', 'DESC')
-            ->get()->result();
+        $selected_session = (int)($this->input->get('session_id') ?: $this->current_session);
+
+        $data['title']            = 'CoE Exam Events';
+        $data['session_list']     = $this->session_model->getAllSession();
+        $data['selected_session'] = $selected_session;
+
+        // Events for selected session, with per-event progress counters
+        $data['events'] = $this->db->query("
+            SELECT eg.id, eg.name, eg.exam_type, eg.exam_category, eg.description, eg.is_active,
+                   COUNT(DISTINCT egcbe.id)                                                   AS batch_count,
+                   MIN(egcbe.date_from)                                                       AS earliest_date,
+                   MAX(egcbe.date_to)                                                         AS latest_date,
+                   -- Subjects: batches with at least 1 active subject
+                   SUM(CASE WHEN (
+                     SELECT COUNT(*) FROM exam_group_class_batch_exam_subjects
+                     WHERE exam_group_class_batch_exams_id = egcbe.id AND is_active = 1
+                   ) > 0 THEN 1 ELSE 0 END)                                                  AS batches_with_subjects,
+                   -- Applications: batches with at least 1 application
+                   SUM(CASE WHEN (
+                     SELECT COUNT(*) FROM coe_exam_applications
+                     WHERE exam_group_class_batch_exam_id = egcbe.id
+                   ) > 0 THEN 1 ELSE 0 END)                                                  AS batches_with_apps,
+                   -- Eligibility: batches where eligibility has been run (any non-pending status)
+                   SUM(CASE WHEN (
+                     SELECT COUNT(*) FROM coe_exam_applications
+                     WHERE exam_group_class_batch_exam_id = egcbe.id
+                       AND application_status != 'pending'
+                   ) > 0 THEN 1 ELSE 0 END)                                                  AS batches_with_eligibility,
+                   -- Hall tickets: batches with at least 1 hall ticket
+                   SUM(CASE WHEN (
+                     SELECT COUNT(*) FROM coe_hall_tickets
+                     WHERE exam_group_class_batch_exam_id = egcbe.id
+                   ) > 0 THEN 1 ELSE 0 END)                                                  AS batches_with_halltickets
+            FROM exam_groups eg
+            LEFT JOIN exam_group_class_batch_exams egcbe ON egcbe.exam_group_id = eg.id
+            WHERE eg.is_end_semester = 1
+              AND eg.session_id = ?
+            GROUP BY eg.id
+            ORDER BY eg.exam_category ASC, eg.id DESC
+        ", [$selected_session])->result();
+
+        // Stats for header cards
+        $data['stats'] = [
+            'total'         => count($data['events']),
+            'main'          => count(array_filter($data['events'], fn($e) => $e->exam_category === 'main')),
+            'arrear'        => count(array_filter($data['events'], fn($e) => $e->exam_category === 'arrear')),
+            'supplementary' => count(array_filter($data['events'], fn($e) => $e->exam_category === 'supplementary')),
+        ];
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_event/index', $data);
@@ -60,7 +96,9 @@ class Coe_event extends MY_Addon_CoeController
         $this->session->set_userdata('top_menu', 'coe');
         $this->session->set_userdata('sub_menu', 'coe/coe_event');
 
-        $data['title'] = 'Create Exam Event';
+        $data['title']            = 'Create Exam Event';
+        $data['session_list']     = $this->session_model->getAllSession();
+        $data['current_session']  = $this->current_session;
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_event/add', $data);
         $this->load->view('layout/footer', $data);
@@ -74,6 +112,7 @@ class Coe_event extends MY_Addon_CoeController
         }
 
         $this->form_validation->set_rules('name',          'Event Name', 'trim|required|max_length[250]');
+        $this->form_validation->set_rules('session_id',    'Session',    'trim|required|integer');
         $this->form_validation->set_rules('exam_category', 'Category',   'trim|required|in_list[main,arrear,supplementary]');
         $this->form_validation->set_rules('exam_type',     'Mode',       'trim|required|in_list[theory,practical,project,viva,online]');
 
@@ -84,6 +123,7 @@ class Coe_event extends MY_Addon_CoeController
 
         $this->db->insert('exam_groups', [
             'name'            => $this->input->post('name'),
+            'session_id'      => (int)$this->input->post('session_id'),
             'exam_category'   => $this->input->post('exam_category'),
             'exam_type'       => $this->input->post('exam_type'),
             'description'     => $this->input->post('description'),

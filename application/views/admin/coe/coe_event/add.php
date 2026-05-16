@@ -21,6 +21,21 @@
                     <form method="post" action="<?php echo site_url('coe/coe_event/save'); ?>" id="event-form">
                         <div class="box-body">
 
+                            <!-- Session -->
+                            <div class="form-group">
+                                <label for="session_id">Academic Session <span class="text-danger">*</span></label>
+                                <select name="session_id" id="session_id" class="form-control" required>
+                                    <option value="">— Select Session —</option>
+                                    <?php foreach ($session_list as $s): ?>
+                                        <option value="<?php echo $s['id']; ?>"
+                                            <?php echo ($s['id'] == ($this->input->get('session_id') ?: $current_session)) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($s['session']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="help-block">All batches in this event will default to this session.</p>
+                            </div>
+
                             <!-- Event Name -->
                             <div class="form-group">
                                 <label for="name">Event Name <span class="text-danger">*</span></label>
