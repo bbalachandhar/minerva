@@ -472,9 +472,9 @@
 
 <script>
 $(function () {
-    // Run Engine button — POST with Swal confirm
+    // Run Engine button — POST with swal confirm
     $('#btn-run-engine').on('click', function () {
-        Swal.fire({
+        swal({
             title: 'Run Eligibility Engine?',
             text: 'This processes all pending applications — calculates attendance %, checks fee dues, and updates status. Overrides are preserved.',
             type: 'warning',
@@ -485,9 +485,9 @@ $(function () {
         }, function (ok) { if (ok) $('#run-engine-form').submit(); });
     });
 
-    // Run All button — POST with Swal confirm
+    // Run All button — POST with swal confirm
     $('#btn-run-all').on('click', function () {
-        Swal.fire({
+        swal({
             title: 'Run All Batches?',
             text: 'This runs eligibility for every batch in this exam event. Locked batches and batches with no regulation are skipped.',
             type: 'warning',
