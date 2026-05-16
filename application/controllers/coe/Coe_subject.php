@@ -94,7 +94,7 @@ class Coe_subject extends MY_Addon_CoeController
         $resolved_class_id = !empty($batch->class_id) ? (int)$batch->class_id : null;
 
         // If class_id is NULL on the batch (legacy examination-module batches),
-        // try to derive it from the majority class of enrolled students.
+        // fallback 1: derive from the majority class of enrolled students.
         if (!$resolved_class_id && !empty($batch->session_id)) {
             $inferred = $this->db->query(
                 "SELECT ss.class_id, COUNT(*) AS cnt
@@ -108,6 +108,25 @@ class Coe_subject extends MY_Addon_CoeController
             )->row();
             if ($inferred) {
                 $resolved_class_id = (int)$inferred->class_id;
+            }
+        }
+
+        // Fallback 2: if still no class_id, infer from already-configured subjects —
+        // find whichever subject_group has the most overlap with configured subjects.
+        if (!$resolved_class_id && !empty($batch->session_id) && !empty($configured_ids)) {
+            $in_list = implode(',', array_map('intval', $configured_ids));
+            $best = $this->db->query(
+                "SELECT sg.class_id, COUNT(*) AS match_count
+                 FROM subject_group_subjects sgs
+                 JOIN subject_groups sg ON sg.id = sgs.subject_group_id
+                 WHERE sgs.subject_id IN ($in_list)
+                   AND sgs.session_id = " . (int)$batch->session_id . "
+                 GROUP BY sg.class_id
+                 ORDER BY match_count DESC
+                 LIMIT 1"
+            )->row();
+            if ($best && $best->class_id) {
+                $resolved_class_id = (int)$best->class_id;
             }
         }
 
