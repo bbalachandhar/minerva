@@ -11860,3 +11860,116 @@ VALUES
   ('netbanking_cat1',  'Net Banking – Cat I (HDFC / SBI)',        'flat',       16.0000,    0.00,    0.0000, 1, 7),
   ('netbanking_cat2',  'Net Banking – Cat II (AXIS / ICICI)',     'flat',       11.0000,    0.00,    0.0000, 1, 8),
   ('netbanking_other', 'Net Banking – Other Banks',               'flat',        7.0000,    0.00,    0.0000, 1, 9);
+
+-- =============================================================================
+-- CoE Module Sprint 14 — 6 new tables
+-- Added: 2026-05-16
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS `coe_qpd_download_log` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `paper_id` int NOT NULL,
+  `staff_id` int NOT NULL,
+  `downloaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_paper` (`paper_id`),
+  KEY `idx_staff` (`staff_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_exam_schedule` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `exam_date` date NOT NULL,
+  `start_time` time NOT NULL,
+  `end_time` time NOT NULL,
+  `session_slot` enum('FN','AN') NOT NULL DEFAULT 'FN',
+  `hall_id` int DEFAULT NULL,
+  `notes` varchar(500) DEFAULT NULL,
+  `created_by` int DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_sch_sub` (`exam_group_class_batch_exam_id`,`subject_id`),
+  KEY `idx_bid` (`exam_group_class_batch_exam_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_override_approval_requests` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `application_id` int NOT NULL,
+  `batch_exam_id` int NOT NULL,
+  `student_id` int NOT NULL,
+  `requested_by` int NOT NULL,
+  `requested_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `reason` text DEFAULT NULL,
+  `approved_by` int DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `approver_remarks` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_app` (`application_id`),
+  KEY `idx_batch` (`batch_exam_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_revaluation_marks_log` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `assignment_id` int NOT NULL,
+  `request_id` int NOT NULL,
+  `student_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `original_external` float(10,2) NOT NULL DEFAULT '0.00',
+  `revised_external` float(10,2) NOT NULL DEFAULT '0.00',
+  `delta` float(10,2) NOT NULL DEFAULT '0.00',
+  `updated_by` int DEFAULT NULL,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `applied_to_results` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `idx_req` (`request_id`),
+  KEY `idx_student` (`student_id`),
+  KEY `idx_batch` (`exam_group_class_batch_exam_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_flying_squad_visits` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `visit_date` date NOT NULL,
+  `visit_time` time DEFAULT NULL,
+  `observer_staff_id` int NOT NULL,
+  `hall_id` int DEFAULT NULL,
+  `hall_name` varchar(200) DEFAULT NULL,
+  `observations` text DEFAULT NULL,
+  `irregularities_found` tinyint(1) NOT NULL DEFAULT '0',
+  `irregularity_details` text DEFAULT NULL,
+  `action_taken` text DEFAULT NULL,
+  `severity` enum('none','minor','major') NOT NULL DEFAULT 'none',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_batch` (`exam_group_class_batch_exam_id`),
+  KEY `idx_date` (`visit_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_arrear_applications` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `application_type` enum('arrear','supplementary') NOT NULL DEFAULT 'arrear',
+  `remarks` text DEFAULT NULL,
+  `fee_amount` decimal(10,2) DEFAULT NULL,
+  `fee_paid` tinyint(1) NOT NULL DEFAULT '0',
+  `fee_ref` varchar(100) DEFAULT NULL,
+  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `reviewed_by` int DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `reviewer_remarks` text DEFAULT NULL,
+  `applied_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_arrear_sub` (`student_id`,`exam_group_class_batch_exam_id`,`subject_id`),
+  KEY `idx_student` (`student_id`),
+  KEY `idx_batch` (`exam_group_class_batch_exam_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
