@@ -220,6 +220,12 @@ class Coe_application extends MY_Addon_CoeController
             $data['candidates']    = null;
         }
 
+        // Subject count for main exam (shows "Assign Subjects" prompt if zero)
+        $data['main_subject_count'] = $is_arrear ? null : (int) $this->db
+            ->where('exam_group_class_batch_exams_id', $batch_exam_id)
+            ->where('is_active', 1)
+            ->count_all_results('exam_group_class_batch_exam_subjects');
+
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_application/view', $data);
         $this->load->view('layout/footer', $data);

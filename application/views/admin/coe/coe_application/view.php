@@ -77,6 +77,27 @@
     <section class="content">
         <?php echo $this->session->flashdata('msg'); ?>
 
+        <?php /* ── MAIN EXAM: subjects not yet assigned warning ── */
+        if (!$is_arrear && isset($main_subject_count) && $main_subject_count === 0): ?>
+        <div class="alert alert-warning alert-dismissible" style="border-radius:8px;border-left:5px solid #f39c12;">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <strong><i class="fa fa-exclamation-triangle"></i> Subjects not assigned!</strong>
+            &nbsp;No exam subjects are configured for this batch yet.
+            <strong>Generate Applications</strong> and <strong>Run Eligibility</strong> will fail until subjects are assigned.
+            &nbsp;&nbsp;
+            <a href="<?php echo site_url('coe/coe_subject/assign/' . $event->id); ?>" class="btn btn-warning btn-xs" style="border-radius:4px;margin-top:-2px;">
+                <i class="fa fa-book"></i> Assign Subjects Now
+            </a>
+        </div>
+        <?php elseif (!$is_arrear && isset($main_subject_count) && $main_subject_count > 0): ?>
+        <div style="margin-bottom:10px;">
+            <a href="<?php echo site_url('coe/coe_subject/assign/' . $event->id); ?>" class="btn btn-default btn-xs" style="border-radius:4px;">
+                <i class="fa fa-book text-info"></i> Subjects: <strong><?php echo $main_subject_count; ?></strong> assigned
+                &nbsp;<i class="fa fa-pencil"></i>
+            </a>
+        </div>
+        <?php endif; ?>
+
         <?php
         $total          = (int)($stats->total ?? 0);
         $eligible_count = (int)($stats->eligible_count ?? 0);

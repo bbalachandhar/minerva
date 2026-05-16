@@ -206,7 +206,8 @@ class Coe_event extends MY_Addon_CoeController
         $data['batches'] = $this->db
             ->select('egcbe.*, s.session, c.class, d.department_name,
                       (SELECT COUNT(*) FROM coe_exam_applications WHERE exam_group_class_batch_exam_id = egcbe.id) AS app_count,
-                      (SELECT COUNT(*) FROM exam_group_class_batch_exam_students WHERE exam_group_class_batch_exam_id = egcbe.id AND is_active = 1) AS student_count')
+                      (SELECT COUNT(*) FROM exam_group_class_batch_exam_students WHERE exam_group_class_batch_exam_id = egcbe.id AND is_active = 1) AS student_count,
+                      (SELECT COUNT(*) FROM exam_group_class_batch_exam_subjects WHERE exam_group_class_batch_exams_id = egcbe.id AND is_active = 1) AS subject_count')
             ->from('exam_group_class_batch_exams egcbe')
             ->join('sessions s',    's.id = egcbe.session_id', 'left')
             ->join('classes c',     'c.id = egcbe.class_id',   'left')

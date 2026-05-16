@@ -108,6 +108,14 @@
                                         <a href="<?php echo site_url('coe/coe_application/view/' . $b->id); ?>" class="btn btn-info btn-xs" title="View Applications">
                                             <i class="fa fa-users"></i>
                                         </a>
+                                        <!-- Assign Subjects -->
+                                        <?php if ($this->rbac->hasPrivilege('coe_application', 'can_add')): ?>
+                                        <a href="<?php echo site_url('coe/coe_subject/assign/' . $b->id); ?>"
+                                           class="btn btn-<?php echo ($b->subject_count ?? 0) > 0 ? 'default' : 'warning'; ?> btn-xs"
+                                           title="<?php echo ($b->subject_count ?? 0) > 0 ? 'Subjects: ' . (int)($b->subject_count ?? 0) . ' assigned' : 'No subjects assigned — click to assign'; ?>">
+                                            <i class="fa fa-book"></i><?php if (($b->subject_count ?? 0) == 0): ?> <i class="fa fa-exclamation-circle" style="font-size:9px;"></i><?php endif; ?>
+                                        </a>
+                                        <?php endif; ?>
                                         <!-- Generate Applications -->
                                         <?php if (!$b->coe_locked && $this->rbac->hasPrivilege('coe_application', 'can_add')): ?>
                                         <a href="<?php echo site_url('coe/coe_application/generate/' . $b->id); ?>"
