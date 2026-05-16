@@ -99,4 +99,43 @@ class Coe_qpd_model extends CI_Model
             ->order_by('sub.name ASC')
             ->get()->result();
     }
+
+    // ------------------------------------------------------------------
+    // QPD download log — record every access with IP / user agent
+    // ------------------------------------------------------------------
+    public function logDownload($paper_id, $staff_id, $ip = null, $ua = null)
+    {
+        $this->db->insert('coe_qpd_download_log', [
+            'paper_id'      => (int) $paper_id,
+            'staff_id'      => (int) $staff_id,
+            'downloaded_at' => date('Y-m-d H:i:s'),
+            'ip_address'    => $ip ? substr($ip, 0, 45) : null,
+            'user_agent'    => $ua ? substr($ua, 0, 500) : null,
+        ]);
+        return $this->db->insert_id();
+    }
+
+    public function getDownloadLog($paper_id)
+    {
+        return $this->db
+            ->select('dl.*, CONCAT(st.name, " ", st.surname) AS staff_name, st.designation')
+            ->from('coe_qpd_download_log dl')
+            ->join('staff st', 'st.id = dl.staff_id', 'left')
+            ->where('dl.paper_id', (int) $paper_id)
+            ->order_by('dl.downloaded_at', 'DESC')
+            ->get()->result();
+    }
+
+    public function getDownloadLogByBatchExam($batch_exam_id)
+    {
+        return $this->db
+            ->select('dl.*, CONCAT(st.name, " ", st.surname) AS staff_name, sub.name AS subject_name, sub.code AS subject_code, p.original_filename')
+            ->from('coe_qpd_download_log dl')
+            ->join('coe_qpd_papers p', 'p.id = dl.paper_id')
+            ->join('subjects sub', 'sub.id = p.subject_id', 'left')
+            ->join('staff st', 'st.id = dl.staff_id', 'left')
+            ->where('p.exam_group_class_batch_exam_id', (int) $batch_exam_id)
+            ->order_by('dl.downloaded_at', 'DESC')
+            ->get()->result();
+    }
 }

@@ -194,4 +194,83 @@ class Coe_results_model extends CI_Model {
             ->order_by('student_name', 'ASC')
             ->get()->result();
     }
+
+    /**
+     * Fetch all semester results for a student across all published events.
+     * Returns: array of semester objects with subject-level results + SGPA row.
+     * Also computes cumulative CGPA weighted by total credits.
+     */
+    public function getTranscript($student_id)
+    {
+        $student_id = (int) $student_id;
+
+        // Get student info
+        $student = $this->db
+            ->select("id, admission_no, CONCAT(firstname,' ',lastname) AS full_name, email, dob, gender, class_id")
+            ->where('id', $student_id)
+            ->get('students')->row();
+
+        if (!$student) {
+            return null;
+        }
+
+        // All published SGPA summary rows for this student
+        $semesters = $this->db
+            ->select([
+                'sg.*',
+                'egcbe.exam_group_id',
+                'eg.exam_group_name AS semester_name',
+                'eg.exam_group_short AS semester_short',
+                'egcbe.date_from',
+                'egcbe.date_to',
+                'sess.session AS academic_year',
+            ])
+            ->from('coe_sgpa_summary sg')
+            ->join('exam_group_class_batch_exams egcbe', 'egcbe.id = sg.exam_group_class_batch_exam_id')
+            ->join('exam_groups eg', 'eg.id = egcbe.exam_group_id')
+            ->join('sessions sess', 'sess.id = egcbe.session_id', 'left')
+            ->where('sg.student_id', $student_id)
+            ->where('sg.is_published', 1)
+            ->order_by('egcbe.date_from ASC')
+            ->get()->result();
+
+        $total_weighted_sgpa = 0;
+        $total_credits       = 0;
+
+        foreach ($semesters as &$sem) {
+            // Subject results for this semester
+            $sem->subjects = $this->db
+                ->select([
+                    'sr.*',
+                    'subj.subject_code',
+                    'subj.subject_name',
+                    'cfg.credits',
+                ])
+                ->from('coe_student_results sr')
+                ->join('subjects subj', 'subj.id = sr.subject_id', 'left')
+                ->join('coe_subject_configs cfg',
+                    'cfg.subject_id = sr.subject_id AND cfg.exam_group_class_batch_exam_id = sr.exam_group_class_batch_exam_id',
+                    'left')
+                ->where('sr.exam_group_class_batch_exam_id', (int) $sem->exam_group_class_batch_exam_id)
+                ->where('sr.student_id', $student_id)
+                ->order_by('subj.subject_code ASC')
+                ->get()->result();
+
+            $credits = (float) ($sem->total_credits ?: 0);
+            if ($credits > 0 && $sem->sgpa !== null) {
+                $total_weighted_sgpa += (float) $sem->sgpa * $credits;
+                $total_credits       += $credits;
+            }
+        }
+        unset($sem);
+
+        $cgpa = $total_credits > 0 ? round($total_weighted_sgpa / $total_credits, 2) : null;
+
+        return [
+            'student'       => $student,
+            'semesters'     => $semesters,
+            'cgpa'          => $cgpa,
+            'total_credits' => $total_credits,
+        ];
+    }
 }

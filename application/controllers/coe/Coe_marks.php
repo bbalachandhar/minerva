@@ -251,4 +251,155 @@ class Coe_marks extends MY_Addon_CoeController
         $this->load->view('admin/coe/coe_marks/student_card', $data);
         $this->load->view('layout/footer');
     }
+
+    // ------------------------------------------------------------------
+    // import($batch_exam_id) — CSV import of marks
+    // GET:  show import form + download sample template
+    // POST: process uploaded CSV
+    // CSV format: admission_no,subject_code,internal_marks,external_marks
+    // ------------------------------------------------------------------
+    public function import($batch_exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_marks', 'can_add')) {
+            access_denied();
+        }
+
+        $batch_exam_id = (int) $batch_exam_id;
+        $event = $this->Coe_application_model->getExamEventByIdRow($batch_exam_id);
+        if (empty($event)) {
+            show_404();
+        }
+
+        if ($this->input->server('REQUEST_METHOD') === 'POST') {
+            // Handle file upload
+            $config = [
+                'upload_path'   => sys_get_temp_dir(),
+                'allowed_types' => 'csv',
+                'max_size'      => 2048,
+            ];
+            $this->load->library('upload', $config);
+
+            if (!$this->upload->do_upload('marks_csv')) {
+                $data['error'] = $this->upload->display_errors('', '');
+            } else {
+                $file_path = $this->upload->data('full_path');
+                $result    = $this->_processMarksCSV($batch_exam_id, $file_path);
+                @unlink($file_path);
+
+                $this->Coe_audit_model->log('import_marks_csv', 'coe_student_results', $batch_exam_id, null,
+                    ['imported' => $result['imported'], 'errors' => count($result['errors'])]);
+
+                $data['import_result'] = $result;
+            }
+        }
+
+        $data['title']         = 'Import Marks from CSV';
+        $data['event']         = $event;
+        $data['batch_exam_id'] = $batch_exam_id;
+        $data['subjects']      = $this->Coe_marks_model->getSubjectsByBatchExam($batch_exam_id);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/coe/coe_marks/import', $data);
+        $this->load->view('layout/footer');
+    }
+
+    // ------------------------------------------------------------------
+    // import_template($batch_exam_id) — Download sample CSV for this event
+    // ------------------------------------------------------------------
+    public function import_template($batch_exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_marks', 'can_add')) {
+            access_denied();
+        }
+
+        $batch_exam_id = (int) $batch_exam_id;
+        $subjects = $this->Coe_marks_model->getSubjectsByBatchExam($batch_exam_id);
+        $students = $this->Coe_marks_model->getStudentsByBatchExam($batch_exam_id);
+
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="marks_import_template_' . $batch_exam_id . '.csv"');
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['admission_no', 'subject_code', 'internal_marks', 'external_marks']);
+
+        foreach ($students as $st) {
+            foreach ($subjects as $sub) {
+                fputcsv($out, [$st->admission_no, $sub->subject_code, '', '']);
+            }
+        }
+
+        fclose($out);
+        exit;
+    }
+
+    /**
+     * Internal CSV processor — returns ['imported' => N, 'errors' => [...]]
+     */
+    private function _processMarksCSV($batch_exam_id, $file_path)
+    {
+        $imported = 0;
+        $errors   = [];
+
+        // Build lookup: admission_no → student_id
+        $students = $this->Coe_marks_model->getStudentsByBatchExam($batch_exam_id);
+        $student_map = [];
+        foreach ($students as $st) {
+            $student_map[strtolower(trim($st->admission_no))] = $st->id;
+        }
+
+        // Build lookup: subject_code → subject_id
+        $subjects = $this->Coe_marks_model->getSubjectsByBatchExam($batch_exam_id);
+        $subject_map = [];
+        foreach ($subjects as $sub) {
+            $subject_map[strtolower(trim($sub->subject_code))] = $sub->subject_id;
+        }
+
+        $handle = fopen($file_path, 'r');
+        if (!$handle) {
+            return ['imported' => 0, 'errors' => ['Could not read uploaded file.']];
+        }
+
+        $row_num = 0;
+        while (($row = fgetcsv($handle)) !== false) {
+            $row_num++;
+            if ($row_num === 1) {
+                // Skip header row
+                continue;
+            }
+            if (count($row) < 4) {
+                $errors[] = "Row $row_num: insufficient columns (expected 4).";
+                continue;
+            }
+
+            [$adm_no, $sub_code, $internal_raw, $external_raw] = $row;
+            $adm_no   = strtolower(trim($adm_no));
+            $sub_code = strtolower(trim($sub_code));
+
+            if (!isset($student_map[$adm_no])) {
+                $errors[] = "Row $row_num: Admission No '" . htmlspecialchars($adm_no) . "' not found in this exam event.";
+                continue;
+            }
+
+            if (!isset($subject_map[$sub_code])) {
+                $errors[] = "Row $row_num: Subject code '" . htmlspecialchars($sub_code) . "' not found in this exam event.";
+                continue;
+            }
+
+            if (!is_numeric($internal_raw) || !is_numeric($external_raw)) {
+                $errors[] = "Row $row_num: Marks must be numeric (got '$internal_raw', '$external_raw').";
+                continue;
+            }
+
+            $internal  = (float) $internal_raw;
+            $external  = (float) $external_raw;
+            $student_id = $student_map[$adm_no];
+            $subject_id = $subject_map[$sub_code];
+
+            $this->Coe_marks_model->saveResult($batch_exam_id, $student_id, $subject_id, $internal, $external);
+            $imported++;
+        }
+
+        fclose($handle);
+        return ['imported' => $imported, 'errors' => $errors];
+    }
 }

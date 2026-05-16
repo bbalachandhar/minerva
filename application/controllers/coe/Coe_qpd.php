@@ -221,8 +221,17 @@ class Coe_qpd extends MY_Addon_CoeController
         }
 
         $this->Coe_qpd_model->incrementDownloadCount($paper_id);
+
+        // Per-download audit log with IP address
+        $this->Coe_qpd_model->logDownload(
+            $paper_id,
+            (int) $this->customlib->getStaffID(),
+            $this->input->ip_address(),
+            $this->input->user_agent()
+        );
         $this->Coe_audit_model->log('qpd_downloaded', 'coe_qpd_papers', $paper_id, null, [
             'downloaded_by' => $this->customlib->getStaffID(),
+            'ip'            => $this->input->ip_address(),
         ]);
 
         $ext = strtolower(pathinfo($paper->original_filename, PATHINFO_EXTENSION));
@@ -270,5 +279,31 @@ class Coe_qpd extends MY_Addon_CoeController
 
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Paper deleted.</div>');
         redirect('coe/coe_qpd/manage/' . $paper->exam_group_class_batch_exam_id);
+    }
+
+    // ------------------------------------------------------------------
+    // DOWNLOAD_LOG — show per-download audit log for a batch exam
+    // ------------------------------------------------------------------
+    public function download_log($batch_exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_qpd', 'can_view')) {
+            access_denied();
+        }
+
+        $batch_exam_id = (int) $batch_exam_id;
+        $event = $this->Coe_application_model->getExamEventByIdRow($batch_exam_id);
+        if (empty($event)) {
+            show_404();
+        }
+
+        $data['title']         = 'QPD Download Log';
+        $data['event']         = $event;
+        $data['batch_exam_id'] = $batch_exam_id;
+        $data['log']           = $this->Coe_qpd_model->getDownloadLogByBatchExam($batch_exam_id);
+        $data['papers']        = $this->Coe_qpd_model->getPapersByBatchExam($batch_exam_id);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/coe/coe_qpd/download_log', $data);
+        $this->load->view('layout/footer', $data);
     }
 }

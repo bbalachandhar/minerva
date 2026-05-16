@@ -240,4 +240,116 @@ class Coe_arrear_model extends CI_Model
         return $this->db->select('id, department_name')->from('department')
             ->where('is_active', 1)->order_by('department_name')->get()->result();
     }
+
+    // -----------------------------------------------------------------------
+    // Arrear self-service application methods
+    // -----------------------------------------------------------------------
+
+    /**
+     * Fetch student's failed subjects available to apply for arrear.
+     */
+    public function getFailedSubjects($student_id, $batch_exam_id = null)
+    {
+        $q = $this->db
+            ->select([
+                'csr.id AS result_id',
+                'csr.exam_group_class_batch_exam_id AS batch_exam_id',
+                'sub.id AS subject_id',
+                'sub.subject_name',
+                'sub.subject_code',
+                'csr.external_marks',
+                'csr.total_marks',
+                'csr.grade',
+                'csr.result_status',
+            ])
+            ->from('coe_student_results csr')
+            ->join('subjects sub', 'sub.id = csr.subject_id', 'left')
+            ->join('students st', 'st.id = csr.student_id', 'left')
+            ->where('csr.student_id', (int) $student_id)
+            ->where('csr.result_status', 'fail');
+
+        if ($batch_exam_id) {
+            $q->where('csr.exam_group_class_batch_exam_id', (int) $batch_exam_id);
+        }
+
+        return $q->order_by('csr.exam_group_class_batch_exam_id DESC')->get()->result();
+    }
+
+    /**
+     * Submit arrear application from student portal.
+     */
+    public function submitApplication($student_id, $batch_exam_id, $subject_id, $type, $remarks = '')
+    {
+        // Prevent duplicate pending application for same subject/exam
+        $existing = $this->db
+            ->where('student_id', (int) $student_id)
+            ->where('exam_group_class_batch_exam_id', (int) $batch_exam_id)
+            ->where('subject_id', (int) $subject_id)
+            ->where('status', 'pending')
+            ->get('coe_arrear_applications')->row();
+
+        if ($existing) {
+            return $existing->id;
+        }
+
+        $this->db->insert('coe_arrear_applications', [
+            'student_id'                     => (int) $student_id,
+            'exam_group_class_batch_exam_id' => (int) $batch_exam_id,
+            'subject_id'                     => (int) $subject_id,
+            'application_type'               => in_array($type, ['arrear', 'supplementary']) ? $type : 'arrear',
+            'remarks'                        => $remarks,
+            'status'                         => 'pending',
+            'applied_at'                     => date('Y-m-d H:i:s'),
+        ]);
+        return $this->db->insert_id();
+    }
+
+    /**
+     * List applications for admin review.
+     */
+    public function getArrearApplications($batch_exam_id = null, $status = null)
+    {
+        $this->db
+            ->select([
+                'caa.*',
+                "CONCAT(st.firstname,' ',st.lastname) AS student_name",
+                'st.admission_no',
+                'sub.subject_name',
+                'sub.subject_code',
+                "CONCAT(sf.name) AS reviewed_by_name",
+            ])
+            ->from('coe_arrear_applications caa')
+            ->join('students st', 'st.id = caa.student_id', 'left')
+            ->join('subjects sub', 'sub.id = caa.subject_id', 'left')
+            ->join('staff sf', 'sf.id = caa.reviewed_by', 'left');
+
+        if ($batch_exam_id) {
+            $this->db->where('caa.exam_group_class_batch_exam_id', (int) $batch_exam_id);
+        }
+        if ($status) {
+            $this->db->where('caa.status', $status);
+        }
+
+        return $this->db->order_by('caa.applied_at', 'DESC')->get()->result();
+    }
+
+    /**
+     * Fetch student's own applications for portal view.
+     */
+    public function getStudentApplications($student_id)
+    {
+        return $this->db
+            ->select([
+                'caa.*',
+                'sub.subject_name',
+                'sub.subject_code',
+                "CONCAT(sf.name) AS reviewed_by_name",
+            ])
+            ->from('coe_arrear_applications caa')
+            ->join('subjects sub', 'sub.id = caa.subject_id', 'left')
+            ->join('staff sf', 'sf.id = caa.reviewed_by', 'left')
+            ->where('caa.student_id', (int) $student_id)
+            ->order_by('caa.applied_at', 'DESC')
+            ->get()->result();
+    }
 }

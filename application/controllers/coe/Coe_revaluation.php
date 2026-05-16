@@ -245,6 +245,8 @@ class Coe_revaluation extends MY_Addon_CoeController
 
     // ------------------------------------------------------------------
     // save_evaluation($asgn_id) — Save revised marks (AJAX POST)
+    // Computes delta, logs to coe_revaluation_marks_log, and updates
+    // coe_student_results with the revised external marks + recomputed grade.
     // ------------------------------------------------------------------
     public function save_evaluation($asgn_id)
     {
@@ -265,8 +267,12 @@ class Coe_revaluation extends MY_Addon_CoeController
             return;
         }
 
-        $revised = (float) $this->input->post('revised_marks');
-        $now     = date('Y-m-d H:i:s');
+        $request  = $this->Coe_revaluation_model->getById($asgn->revaluation_request_id);
+        $revised  = (float) $this->input->post('revised_marks');
+        $original = (float) $asgn->original_marks;
+        $delta    = round($revised - $original, 2);
+        $now      = date('Y-m-d H:i:s');
+        $staff_id = (int) $this->session->userdata('staff_id');
 
         $this->Coe_revaluation_model->updateAssignment($asgn_id, [
             'revised_marks' => $revised,
@@ -280,10 +286,56 @@ class Coe_revaluation extends MY_Addon_CoeController
             'status' => 'completed',
         ]);
 
-        $this->Coe_audit_model->log('save_evaluation', 'coe_revaluation_assignments', $asgn_id,
-            ['revised_marks' => null], ['revised_marks' => $revised]);
+        // Delta-audit log
+        $this->db->insert('coe_revaluation_marks_log', [
+            'assignment_id'                  => (int) $asgn_id,
+            'request_id'                     => (int) $asgn->revaluation_request_id,
+            'student_id'                     => (int) $request->student_id,
+            'subject_id'                     => (int) $request->subject_id,
+            'exam_group_class_batch_exam_id' => (int) $request->exam_group_class_batch_exam_id,
+            'original_external'              => $original,
+            'revised_external'               => $revised,
+            'delta'                          => $delta,
+            'updated_by'                     => $staff_id,
+            'updated_at'                     => $now,
+            'applied_to_results'             => 0,
+        ]);
+        $log_id = $this->db->insert_id();
 
-        echo json_encode(['status' => 'success', 'msg' => 'Revised marks saved: ' . $revised]);
+        // If delta != 0, update coe_student_results and recompute grade
+        if ($delta != 0) {
+            $this->load->model('coe/Coe_marks_model');
+            $result_row = $this->db
+                ->where('exam_group_class_batch_exam_id', (int) $request->exam_group_class_batch_exam_id)
+                ->where('student_id',  (int) $request->student_id)
+                ->where('subject_id',  (int) $request->subject_id)
+                ->get('coe_student_results')->row();
+
+            if ($result_row) {
+                $new_external = $revised;
+                $new_total    = (float) $result_row->internal_marks + $new_external;
+                $grade        = $this->Coe_marks_model->computeGrade($new_total, $new_external);
+
+                $this->db->where('id', $result_row->id)->update('coe_student_results', [
+                    'external_marks' => $new_external,
+                    'total_marks'    => $new_total,
+                    'grade'          => $grade['grade'],
+                    'grade_points'   => $grade['points'],
+                    'result_status'  => $grade['fail'] ? 'fail' : 'pass',
+                ]);
+
+                // Mark the log row as applied
+                $this->db->where('id', $log_id)->update('coe_revaluation_marks_log', ['applied_to_results' => 1]);
+            }
+        }
+
+        $this->Coe_audit_model->log('save_evaluation', 'coe_revaluation_assignments', $asgn_id,
+            ['revised_marks' => null, 'delta' => null], ['revised_marks' => $revised, 'delta' => $delta]);
+
+        echo json_encode([
+            'status' => 'success',
+            'msg'    => 'Revised marks saved: ' . $revised . ($delta != 0 ? ' (Δ' . ($delta > 0 ? '+' : '') . $delta . ' — student results updated)' : ' (no change)'),
+        ]);
     }
 
     // ------------------------------------------------------------------

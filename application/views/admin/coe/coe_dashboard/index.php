@@ -173,47 +173,22 @@
             </div>
         </div><!-- /.row KPI row 2 -->
 
-        <!-- Pending Tasks Alert -->
-        <?php
-        $pending_items = [];
-        if ($pending_tasks['no_hall_tickets'] > 0)
-            $pending_items[] = ['fa-id-card-o',         $pending_tasks['no_hall_tickets'].' event(s) missing hall tickets', 'coe/coe_hallticket',  'Generate'];
-        if ($pending_tasks['no_marks'] > 0)
-            $pending_items[] = ['fa-edit',               $pending_tasks['no_marks'].' event(s) have no marks entered',       'coe/coe_marks',       'Enter Marks'];
-        if ($pending_tasks['no_results'] > 0)
-            $pending_items[] = ['fa-calculator',         $pending_tasks['no_results'].' event(s) have no SGPA computed',     'coe/coe_marks',       'Compute SGPA'];
-        if ($kpis['rev_pending'] > 0)
-            $pending_items[] = ['fa-refresh',            $kpis['rev_pending'].' revaluation request(s) awaiting action',     'coe/coe_revaluation', 'Review'];
-        ?>
-        <?php if (!empty($pending_items)): ?>
-        <style>
-            .pending-action-btn {
-                background: #fff;
-                color: #a67c00;
-                border: 1px solid #a67c00;
-                border-radius: 3px;
-                padding: 1px 7px;
-                font-size: 11px;
-                text-decoration: none;
-                display: inline-block;
-                line-height: 1.6;
-            }
-            .pending-action-btn:hover, .pending-action-btn:focus {
-                background: #6d4c00;
-                color: #fff;
-                border-color: #6d4c00;
-                text-decoration: none;
-            }
-        </style>
+        <!-- Pending Tasks Alert — date-aware smart alerts -->
+        <?php if (!empty($pending_tasks['alerts'])): ?>
         <div class="row" style="margin-bottom:5px">
             <div class="col-md-12">
-                <div class="alert alert-warning" style="padding:8px 14px;margin-bottom:0">
-                    <strong><i class="fa fa-clock-o"></i> Pending Actions</strong>
-                    <div class="row" style="margin-top:6px">
-                        <?php foreach ($pending_items as $pi): ?>
-                        <div class="col-md-3 col-sm-6" style="margin-bottom:4px">
-                            <span><i class="fa <?php echo $pi[0]; ?> fa-fw"></i> <?php echo $pi[1]; ?></span>
-                            &nbsp;<a href="<?php echo site_url($pi[2]); ?>" class="pending-action-btn"><?php echo $pi[3]; ?> &rarr;</a>
+                <div class="box box-solid box-warning" style="margin-bottom:0">
+                    <div class="box-header" style="padding:6px 14px">
+                        <h4 style="margin:0"><i class="fa fa-clock-o"></i> Action Required
+                            <span class="badge bg-red"><?= count($pending_tasks['alerts']) ?></span>
+                        </h4>
+                    </div>
+                    <div class="box-body" style="padding:8px 14px">
+                        <?php foreach ($pending_tasks['alerts'] as $alert): ?>
+                        <div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" style="padding:6px 12px;margin-bottom:5px">
+                            <i class="fa <?= htmlspecialchars($alert['icon']) ?> fa-fw"></i>
+                            <?= htmlspecialchars($alert['message']) ?>
+                            <a href="<?= htmlspecialchars($alert['link']) ?>" class="btn btn-xs btn-<?= htmlspecialchars($alert['type']) ?> pull-right" style="margin-top:-1px">Act Now &rarr;</a>
                         </div>
                         <?php endforeach; ?>
                     </div>

@@ -235,4 +235,131 @@ class Coe_eligibility extends MY_Addon_CoeController
         $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('coe_eligibility_processed') . '</div>');
         redirect('coe/coe_eligibility?batch_exam_id=' . $batch_exam_id);
     }
+
+    // ------------------------------------------------------------------
+    // REQUEST_OVERRIDE — staff requests HOD/Principal override (AJAX POST)
+    // ------------------------------------------------------------------
+    public function request_override()
+    {
+        if (!$this->rbac->hasPrivilege('coe_eligibility', 'can_add')) {
+            echo json_encode(['status' => 'error', 'msg' => 'Access denied']);
+            return;
+        }
+
+        if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+            echo json_encode(['status' => 'error', 'msg' => 'POST required']);
+            return;
+        }
+
+        $application_id = (int) $this->input->post('application_id');
+        $batch_exam_id  = (int) $this->input->post('batch_exam_id');
+        $student_id     = (int) $this->input->post('student_id');
+        $reason         = trim($this->input->post('reason'));
+
+        if (!$application_id || !$batch_exam_id || !$student_id || !$reason) {
+            echo json_encode(['status' => 'error', 'msg' => 'All fields required.']);
+            return;
+        }
+
+        $request_id = $this->Coe_eligibility_model->requestOverride(
+            $application_id, $batch_exam_id, $student_id,
+            (int) $this->customlib->getStaffID(), $reason
+        );
+
+        $this->Coe_audit_model->log('override_requested', 'coe_override_approval_requests', $request_id,
+            null, ['application_id' => $application_id, 'reason' => $reason]);
+
+        echo json_encode(['status' => 'success', 'msg' => 'Override request submitted for approval. Request ID: ' . $request_id]);
+    }
+
+    // ------------------------------------------------------------------
+    // PENDING_OVERRIDES — list pending approval requests for a batch exam
+    // ------------------------------------------------------------------
+    public function pending_overrides($batch_exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_eligibility', 'can_view')) {
+            access_denied();
+        }
+
+        $batch_exam_id = (int) $batch_exam_id;
+        $event = $this->Coe_application_model->getExamEventByIdRow($batch_exam_id);
+        if (empty($event)) {
+            show_404();
+        }
+
+        $data['title']         = 'Override Approval Requests';
+        $data['event']         = $event;
+        $data['batch_exam_id'] = $batch_exam_id;
+        $data['requests']      = $this->Coe_eligibility_model->getOverrideRequests($batch_exam_id);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/coe/coe_eligibility/pending_overrides', $data);
+        $this->load->view('layout/footer');
+    }
+
+    // ------------------------------------------------------------------
+    // APPROVE_OVERRIDE — HOD/Principal approves a pending request (AJAX POST)
+    // ------------------------------------------------------------------
+    public function approve_override($request_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_override', 'can_add')) {
+            echo json_encode(['status' => 'error', 'msg' => 'Access denied — requires override privilege']);
+            return;
+        }
+
+        if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+            echo json_encode(['status' => 'error', 'msg' => 'POST required']);
+            return;
+        }
+
+        $remarks = trim($this->input->post('remarks'));
+        $done    = $this->Coe_eligibility_model->approveOverrideRequest(
+            (int) $request_id,
+            (int) $this->customlib->getStaffID(),
+            $remarks
+        );
+
+        if (!$done) {
+            echo json_encode(['status' => 'error', 'msg' => 'Request not found or already processed.']);
+            return;
+        }
+
+        $this->Coe_audit_model->log('override_approved', 'coe_override_approval_requests', $request_id,
+            ['status' => 'pending'], ['status' => 'approved', 'remarks' => $remarks]);
+
+        echo json_encode(['status' => 'success', 'msg' => 'Override approved and applied.']);
+    }
+
+    // ------------------------------------------------------------------
+    // REJECT_OVERRIDE — HOD/Principal rejects a pending request (AJAX POST)
+    // ------------------------------------------------------------------
+    public function reject_override($request_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_override', 'can_add')) {
+            echo json_encode(['status' => 'error', 'msg' => 'Access denied — requires override privilege']);
+            return;
+        }
+
+        if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+            echo json_encode(['status' => 'error', 'msg' => 'POST required']);
+            return;
+        }
+
+        $remarks = trim($this->input->post('remarks'));
+        $done    = $this->Coe_eligibility_model->rejectOverrideRequest(
+            (int) $request_id,
+            (int) $this->customlib->getStaffID(),
+            $remarks
+        );
+
+        if (!$done) {
+            echo json_encode(['status' => 'error', 'msg' => 'Request not found or already processed.']);
+            return;
+        }
+
+        $this->Coe_audit_model->log('override_rejected', 'coe_override_approval_requests', $request_id,
+            ['status' => 'pending'], ['status' => 'rejected', 'remarks' => $remarks]);
+
+        echo json_encode(['status' => 'success', 'msg' => 'Override request rejected.']);
+    }
 }

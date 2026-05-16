@@ -216,13 +216,165 @@ class Coe_dashboard_model extends CI_Model
 
     // ---------------------------------------------------------------
     // Pending task count per stage across all events in session
+    // Real date-aware alerts — shows genuine blockers per stage
     // ---------------------------------------------------------------
     public function getPendingTasks($session_id)
     {
-        $sid = (int) $session_id;
-        // Events with no hall tickets yet
-        $no_ht = 0;
-        $no_marks = 0;
+        $sid  = (int) $session_id;
+        $now  = date('Y-m-d');
+
+        $alerts = [];
+
+        // 1. Eligibility not run AND exam starts within 7 days
+        $eligibility_due = (int) $this->db->query(
+            "SELECT COUNT(*) AS cnt
+             FROM exam_group_class_batch_exams egcbe
+             JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+             WHERE egcbe.session_id = ?
+               AND eg.is_end_semester = 1
+               AND eg.is_active = 1
+               AND egcbe.eligibility_run_at IS NULL
+               AND egcbe.date_from IS NOT NULL
+               AND DATEDIFF(egcbe.date_from, CURDATE()) <= 7
+               AND DATEDIFF(egcbe.date_from, CURDATE()) >= 0",
+            [$sid]
+        )->row()->cnt;
+
+        if ($eligibility_due > 0) {
+            $alerts[] = [
+                'type'    => 'warning',
+                'icon'    => 'fa-check-square-o',
+                'message' => $eligibility_due . ' exam event(s) have not had eligibility checked — exam is within 7 days.',
+                'link'    => site_url('coe/coe_eligibility?session_id=' . $sid),
+            ];
+        }
+
+        // 2. Hall tickets not generated AND exam starts within 5 days
+        $ht_due = (int) $this->db->query(
+            "SELECT COUNT(*) AS cnt
+             FROM exam_group_class_batch_exams egcbe
+             JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+             WHERE egcbe.session_id = ?
+               AND eg.is_end_semester = 1
+               AND eg.is_active = 1
+               AND egcbe.date_from IS NOT NULL
+               AND DATEDIFF(egcbe.date_from, CURDATE()) <= 5
+               AND DATEDIFF(egcbe.date_from, CURDATE()) >= 0
+               AND NOT EXISTS (
+                 SELECT 1 FROM coe_hall_tickets ht
+                 WHERE ht.exam_group_class_batch_exam_id = egcbe.id
+                 LIMIT 1
+               )",
+            [$sid]
+        )->row()->cnt;
+
+        if ($ht_due > 0) {
+            $alerts[] = [
+                'type'    => 'danger',
+                'icon'    => 'fa-id-card',
+                'message' => $ht_due . ' exam event(s) have no hall tickets — exam starts in ≤ 5 days!',
+                'link'    => site_url('coe/coe_hallticket?session_id=' . $sid),
+            ];
+        }
+
+        // 3. Marks not entered AND exam ended > 5 days ago
+        $marks_due = (int) $this->db->query(
+            "SELECT COUNT(*) AS cnt
+             FROM exam_group_class_batch_exams egcbe
+             JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+             WHERE egcbe.session_id = ?
+               AND eg.is_end_semester = 1
+               AND eg.is_active = 1
+               AND egcbe.date_to IS NOT NULL
+               AND DATEDIFF(CURDATE(), egcbe.date_to) > 5
+               AND NOT EXISTS (
+                 SELECT 1 FROM coe_student_results sr
+                 WHERE sr.exam_group_class_batch_exam_id = egcbe.id
+                 LIMIT 1
+               )",
+            [$sid]
+        )->row()->cnt;
+
+        if ($marks_due > 0) {
+            $alerts[] = [
+                'type'    => 'warning',
+                'icon'    => 'fa-pencil',
+                'message' => $marks_due . ' event(s) have no marks entered — exam ended over 5 days ago.',
+                'link'    => site_url('coe/coe_marks?session_id=' . $sid),
+            ];
+        }
+
+        // 4. Results not published AND marks entry complete AND it's been > 3 days
+        $unpublished = (int) $this->db->query(
+            "SELECT COUNT(*) AS cnt
+             FROM exam_group_class_batch_exams egcbe
+             JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+             WHERE egcbe.session_id = ?
+               AND eg.is_end_semester = 1
+               AND eg.is_active = 1
+               AND egcbe.is_publish = 0
+               AND egcbe.date_to IS NOT NULL
+               AND DATEDIFF(CURDATE(), egcbe.date_to) > 3
+               AND EXISTS (
+                 SELECT 1 FROM coe_sgpa_summary sg
+                 WHERE sg.exam_group_class_batch_exam_id = egcbe.id
+                   AND sg.is_published = 0
+                 LIMIT 1
+               )",
+            [$sid]
+        )->row()->cnt;
+
+        if ($unpublished > 0) {
+            $alerts[] = [
+                'type'    => 'info',
+                'icon'    => 'fa-bullhorn',
+                'message' => $unpublished . ' event(s) have computed results awaiting publication.',
+                'link'    => site_url('coe/coe_results?session_id=' . $sid),
+            ];
+        }
+
+        // 5. Pending revaluation requests (payment received but evaluator not assigned)
+        $rev_unassigned = (int) $this->db->query(
+            "SELECT COUNT(*) AS cnt
+             FROM coe_revaluation_requests rr
+             JOIN exam_group_class_batch_exams egcbe ON egcbe.id = rr.exam_group_class_batch_exam_id
+             WHERE egcbe.session_id = ?
+               AND rr.payment_status = 'paid'
+               AND rr.status = 'pending'",
+            [$sid]
+        )->row()->cnt;
+
+        if ($rev_unassigned > 0) {
+            $alerts[] = [
+                'type'    => 'warning',
+                'icon'    => 'fa-refresh',
+                'message' => $rev_unassigned . ' revaluation request(s) are paid but evaluator not assigned.',
+                'link'    => site_url('coe/coe_revaluation?session_id=' . $sid),
+            ];
+        }
+
+        // 6. Override approval requests pending
+        $override_pending = (int) $this->db->query(
+            "SELECT COUNT(*) AS cnt
+             FROM coe_override_approval_requests oar
+             JOIN exam_group_class_batch_exams egcbe ON egcbe.id = oar.batch_exam_id
+             WHERE egcbe.session_id = ?
+               AND oar.status = 'pending'",
+            [$sid]
+        )->row()->cnt;
+
+        if ($override_pending > 0) {
+            $alerts[] = [
+                'type'    => 'warning',
+                'icon'    => 'fa-user-plus',
+                'message' => $override_pending . ' eligibility override request(s) are awaiting HOD/Principal approval.',
+                'link'    => site_url('coe/coe_eligibility?session_id=' . $sid),
+            ];
+        }
+
+        // Legacy counts for backward compat with dashboard widgets
+        $no_ht        = 0;
+        $no_marks     = 0;
         $no_published = 0;
 
         $events = $this->db
@@ -251,6 +403,8 @@ class Coe_dashboard_model extends CI_Model
             'no_hall_tickets' => $no_ht,
             'no_marks'        => $no_marks,
             'no_results'      => $no_published,
+            'alerts'          => $alerts,
+            'total_alerts'    => count($alerts),
         ];
     }
 

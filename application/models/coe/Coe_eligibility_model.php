@@ -237,4 +237,110 @@ class Coe_eligibility_model extends CI_Model
 
         return ($row && $row->due_count > 0);
     }
+
+    // -----------------------------------------------------------------------
+    // 2-step override approval
+    // -----------------------------------------------------------------------
+
+    /**
+     * Submit an override approval request (staff / teacher).
+     */
+    public function requestOverride($application_id, $batch_exam_id, $student_id, $requested_by, $reason)
+    {
+        // Prevent duplicate pending requests
+        $existing = $this->db
+            ->where('application_id', (int) $application_id)
+            ->where('status', 'pending')
+            ->get('coe_override_approval_requests')->row();
+
+        if ($existing) {
+            return $existing->id;
+        }
+
+        $this->db->insert('coe_override_approval_requests', [
+            'application_id' => (int) $application_id,
+            'batch_exam_id'  => (int) $batch_exam_id,
+            'student_id'     => (int) $student_id,
+            'requested_by'   => (int) $requested_by,
+            'requested_at'   => date('Y-m-d H:i:s'),
+            'reason'         => $reason,
+            'status'         => 'pending',
+        ]);
+        return $this->db->insert_id();
+    }
+
+    /**
+     * Fetch pending requests for a batch exam.
+     */
+    public function getOverrideRequests($batch_exam_id, $status = null)
+    {
+        $this->db
+            ->select([
+                'oar.*',
+                "CONCAT(st.firstname,' ',st.lastname) AS student_name",
+                'st.admission_no',
+                "CONCAT(sf.name) AS requested_by_name",
+            ])
+            ->from('coe_override_approval_requests oar')
+            ->join('students st', 'st.id = oar.student_id', 'left')
+            ->join('staff sf', 'sf.id = oar.requested_by', 'left')
+            ->where('oar.batch_exam_id', (int) $batch_exam_id);
+
+        if ($status) {
+            $this->db->where('oar.status', $status);
+        }
+
+        return $this->db->order_by('oar.requested_at', 'DESC')->get()->result();
+    }
+
+    /**
+     * Fetch a single request by id.
+     */
+    public function getOverrideRequestById($id)
+    {
+        return $this->db->where('id', (int) $id)->get('coe_override_approval_requests')->row();
+    }
+
+    /**
+     * Approve a request — marks approved and calls overrideEligibility().
+     */
+    public function approveOverrideRequest($request_id, $approved_by, $remarks = '')
+    {
+        $req = $this->getOverrideRequestById($request_id);
+        if (!$req || $req->status !== 'pending') {
+            return false;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $this->db->where('id', (int) $request_id)->update('coe_override_approval_requests', [
+            'status'           => 'approved',
+            'approved_by'      => (int) $approved_by,
+            'approved_at'      => $now,
+            'approver_remarks' => $remarks,
+        ]);
+
+        // Apply the actual override
+        $this->overrideEligibility($req->application_id, $req->reason, $approved_by);
+        return true;
+    }
+
+    /**
+     * Reject a request.
+     */
+    public function rejectOverrideRequest($request_id, $approved_by, $remarks = '')
+    {
+        $req = $this->getOverrideRequestById($request_id);
+        if (!$req || $req->status !== 'pending') {
+            return false;
+        }
+
+        $this->db->where('id', (int) $request_id)->update('coe_override_approval_requests', [
+            'status'           => 'rejected',
+            'approved_by'      => (int) $approved_by,
+            'approved_at'      => date('Y-m-d H:i:s'),
+            'approver_remarks' => $remarks,
+        ]);
+
+        return true;
+    }
 }
