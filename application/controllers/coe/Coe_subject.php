@@ -71,9 +71,10 @@ class Coe_subject extends MY_Addon_CoeController
         $this->session->set_userdata('top_menu', 'coe');
         $this->session->set_userdata('sub_menu', 'coe/coe_application');
 
-        // All active subjects, ordered by type then name
+        // All subjects, ordered by type then name
+        // (subjects.is_active uses varchar 'yes'/'no', not filtered here —
+        //  subject visibility is controlled by the exam subject group config)
         $all_subjects = $this->db
-            ->where('is_active', 1)
             ->order_by('type', 'ASC')
             ->order_by('name', 'ASC')
             ->get('subjects')
@@ -90,17 +91,39 @@ class Coe_subject extends MY_Addon_CoeController
 
         // Subject groups for this batch's class+session (for smart pre-filter hint)
         $class_subject_ids = [];
-        if (!empty($batch->class_id) && !empty($batch->session_id)) {
+        $resolved_class_id = !empty($batch->class_id) ? (int)$batch->class_id : null;
+
+        // If class_id is NULL on the batch (legacy examination-module batches),
+        // try to derive it from the majority class of enrolled students.
+        if (!$resolved_class_id && !empty($batch->session_id)) {
+            $inferred = $this->db->query(
+                "SELECT ss.class_id, COUNT(*) AS cnt
+                 FROM exam_group_class_batch_exam_students egbs
+                 JOIN student_session ss ON ss.student_id = egbs.student_id AND ss.session_id = ?
+                 WHERE egbs.exam_group_class_batch_exam_id = ?
+                 GROUP BY ss.class_id
+                 ORDER BY cnt DESC
+                 LIMIT 1",
+                [(int)$batch->session_id, $batch_exam_id]
+            )->row();
+            if ($inferred) {
+                $resolved_class_id = (int)$inferred->class_id;
+            }
+        }
+
+        if ($resolved_class_id && !empty($batch->session_id)) {
             $sg_rows = $this->db
                 ->select('sgs.subject_id')
                 ->from('subject_groups sg')
                 ->join('subject_group_subjects sgs', 'sgs.subject_group_id = sg.id', 'inner')
-                ->where('sg.class_id', (int) $batch->class_id)
+                ->where('sg.class_id', $resolved_class_id)
                 ->where('sg.session_id', (int) $batch->session_id)
                 ->get()
                 ->result();
             $class_subject_ids = array_map('intval', array_column((array) $sg_rows, 'subject_id'));
         }
+
+        $data['resolved_class_id'] = $resolved_class_id;
 
         $data['title']             = 'Assign Subjects — ' . htmlspecialchars($batch->exam);
         $data['batch']             = $batch;

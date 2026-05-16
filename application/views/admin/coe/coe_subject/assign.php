@@ -212,7 +212,13 @@
                         <p><strong>Step 3:</strong> Go back and run <strong>Generate Applications</strong> — students will be enrolled per subject.</p>
                         <p><strong>Step 4:</strong> Run <strong>Eligibility</strong> to check attendance and arrear rules per subject.</p>
                         <hr style="margin:10px 0;">
+                        <?php if (!empty($class_subject_ids)): ?>
                         <p class="text-muted"><i class="fa fa-star" style="color:#f39c12;"></i> Subjects marked <strong>Class</strong> are already linked to this batch's class via Subject Groups.</p>
+                        <?php elseif (empty($resolved_class_id)): ?>
+                        <p class="text-muted"><i class="fa fa-info-circle"></i> <strong>Class</strong> badges are not available — this batch has no class assigned. Edit the batch to assign a class.</p>
+                        <?php else: ?>
+                        <p class="text-muted"><i class="fa fa-info-circle"></i> No Subject Group found for this class in the current session. Add subjects to a Subject Group to see <strong>Class</strong> hints.</p>
+                        <?php endif; ?>
                         <?php if (!empty($configured_ids)): ?>
                         <div class="alert alert-success" style="padding:8px 12px;margin-top:8px;border-radius:6px;">
                             <strong><i class="fa fa-check-circle"></i> <?php echo count($configured_ids); ?> subject(s)</strong> currently assigned.
