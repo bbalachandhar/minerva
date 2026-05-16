@@ -1,3 +1,7 @@
+<!-- SweetAlert — required for swal() confirm dialogs on admin pages -->
+<link rel="stylesheet" href="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.css">
+<script src="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.min.js"></script>
+
 <!-- Chart.js 3.x for modern charts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
