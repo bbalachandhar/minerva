@@ -1927,6 +1927,7 @@ CREATE TABLE `exam_group_class_batch_exams` (
   `is_active` int DEFAULT '0',
   `is_end_semester` tinyint(1) NOT NULL DEFAULT '0',
   `coe_locked` tinyint(1) NOT NULL DEFAULT '0',
+  `eligibility_run_at` datetime DEFAULT NULL,
   `class_id` int DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
