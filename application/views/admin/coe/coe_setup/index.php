@@ -30,6 +30,9 @@
                                     <a href="<?php echo site_url('coe/coe_setup/add'); ?>" class="btn btn-primary btn-sm">
                                         <i class="fa fa-plus-circle"></i> <?php echo $this->lang->line('coe_add_regulation'); ?>
                                     </a>
+                                    <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#cloneModal" style="margin-left:6px;">
+                                        <i class="fa fa-copy"></i> Clone from Session
+                                    </button>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -129,3 +132,42 @@ $(document).on('click', '.confirm_delete', function(e) {
 </script>
 
 <?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'exam_regulations']); ?>
+
+<!-- Clone from Session Modal -->
+<div class="modal fade" id="cloneModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" style="border-radius:10px;overflow:hidden;">
+            <form method="POST" action="<?php echo site_url('coe/coe_setup/clone_session'); ?>">
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                <div class="modal-header" style="background:linear-gradient(135deg,#3c8dbc,#1a6091);color:#fff;border:none;">
+                    <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:.9;">&times;</button>
+                    <h4 class="modal-title"><i class="fa fa-copy"></i> Clone Regulations from Another Session</h4>
+                </div>
+                <div class="modal-body" style="padding:24px;">
+                    <p class="text-muted" style="font-size:13px;">All regulations from the source session will be copied to the target session. Classes that already have a regulation in the target session are skipped.</p>
+                    <div class="form-group">
+                        <label style="font-weight:600;">Copy FROM session <span class="text-danger">*</span></label>
+                        <select name="from_session_id" class="form-control" required>
+                            <option value="">— Select source session —</option>
+                            <?php foreach ($session_list as $s): ?>
+                                <option value="<?php echo $s["id"]; ?>"><?php echo htmlspecialchars($s["session"]); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:600;">Copy TO session <span class="text-danger">*</span></label>
+                        <select name="to_session_id" class="form-control" required>
+                            <?php foreach ($session_list as $s): ?>
+                                <option value="<?php echo $s["id"]; ?>" <?php echo ($s["id"] == $selected_session) ? 'selected' : ''; ?>><?php echo htmlspecialchars($s["session"]); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f0f0f0;">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-copy"></i> Clone Now</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

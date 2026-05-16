@@ -223,4 +223,86 @@ class Coe_setup extends MY_Addon_CoeController
         $reg = $this->Coe_setup_model->getByClassSession($class_id, $session_id);
         echo json_encode(['status' => 'success', 'data' => $reg]);
     }
+
+    // ------------------------------------------------------------------
+    // CLONE SESSION — copy all regulations from one session to another
+    // POST only. Skips classes that already have a regulation in the
+    // target session. Preserves all settings, updates session_id only.
+    // ------------------------------------------------------------------
+    public function clone_session()
+    {
+        if (!$this->rbac->hasPrivilege('coe_setup', 'can_add')) {
+            access_denied();
+        }
+
+        if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+            show_404();
+        }
+
+        $from_session_id = (int) $this->input->post('from_session_id');
+        $to_session_id   = (int) $this->input->post('to_session_id');
+
+        if (!$from_session_id || !$to_session_id) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">Please select both source and target sessions.</div>');
+            redirect('coe/coe_setup');
+        }
+
+        if ($from_session_id === $to_session_id) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning text-left">Source and target sessions cannot be the same.</div>');
+            redirect('coe/coe_setup');
+        }
+
+        $source_regs = $this->Coe_setup_model->getBySession($from_session_id);
+
+        if (empty($source_regs)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning text-left">No regulations found in the source session to clone.</div>');
+            redirect('coe/coe_setup');
+        }
+
+        $cloned  = 0;
+        $skipped = 0;
+
+        foreach ($source_regs as $reg) {
+            // Skip if regulation already exists for this class in target session
+            $existing = $this->Coe_setup_model->getByClassSession($reg->class_id, $to_session_id);
+            if ($existing) {
+                $skipped++;
+                continue;
+            }
+
+            $new_reg = [
+                'session_id'            => $to_session_id,
+                'class_id'              => $reg->class_id,
+                'department_id'         => $reg->department_id,
+                'regulation_type'       => $reg->regulation_type,
+                'affiliated_university' => $reg->affiliated_university,
+                'min_attendance_pct'    => $reg->min_attendance_pct,
+                'internal_marks_pct'    => $reg->internal_marks_pct,
+                'external_marks_pct'    => $reg->external_marks_pct,
+                'pass_marks_pct'        => $reg->pass_marks_pct,
+                'has_credit_system'     => $reg->has_credit_system,
+                'grading_scheme'        => $reg->grading_scheme,
+                'arrear_allowed'        => $reg->arrear_allowed,
+                'supplementary_allowed' => $reg->supplementary_allowed,
+                'check_fee_dues'        => $reg->check_fee_dues,
+                'is_active'             => 1,
+                'created_by'            => $this->customlib->getStaffID(),
+            ];
+
+            $inserted_id = $this->Coe_setup_model->insert($new_reg);
+            $this->Coe_audit_model->log('regulation_cloned', 'coe_exam_regulations', $inserted_id, null, [
+                'from_session' => $from_session_id,
+                'to_session'   => $to_session_id,
+            ]);
+            $cloned++;
+        }
+
+        $msg = '<div class="alert alert-success text-left">Clone complete. ' . $cloned . ' regulation(s) copied to target session.';
+        if ($skipped > 0) {
+            $msg .= ' ' . $skipped . ' skipped (already exist in target session).';
+        }
+        $msg .= '</div>';
+        $this->session->set_flashdata('msg', $msg);
+        redirect('coe/coe_setup?session_id=' . $to_session_id);
+    }
 }

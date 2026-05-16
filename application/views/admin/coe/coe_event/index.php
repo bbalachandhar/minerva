@@ -152,10 +152,10 @@
                                                 <small class="text-muted"><i class="fa fa-info-circle"></i> Add batches first</small>
                                             <?php else:
                                                 $steps = [
-                                                    ['icon' => 'book',         'label' => 'Subjects',     'done' => $subj_done],
-                                                    ['icon' => 'users',        'label' => 'Applications', 'done' => $apps_done],
-                                                    ['icon' => 'check-circle', 'label' => 'Eligibility',  'done' => $elig_done],
-                                                    ['icon' => 'ticket',       'label' => 'Hall Tickets', 'done' => $ht_done],
+                                                    ['icon' => 'book',         'label' => 'Subjects',     'done' => $subj_done, 'url' => site_url('coe/coe_event/manage/' . $ev->id)],
+                                                    ['icon' => 'users',        'label' => 'Applications', 'done' => $apps_done, 'url' => site_url('coe/coe_application?session_id=' . ($selected_session ?? ''))],
+                                                    ['icon' => 'check-circle', 'label' => 'Eligibility',  'done' => $elig_done, 'url' => site_url('coe/coe_eligibility?session_id=' . ($selected_session ?? ''))],
+                                                    ['icon' => 'ticket',       'label' => 'Hall Tickets', 'done' => $ht_done,   'url' => site_url('coe/coe_hallticket?session_id=' . ($selected_session ?? ''))],
                                                 ];
                                                 foreach ($steps as $step):
                                                     $all  = ($step['done'] === $total_bc);
@@ -163,11 +163,12 @@
                                                     $cls  = $all ? 'text-success' : ($none ? 'text-danger' : 'text-warning');
                                                     $ico  = $all ? 'check' : ($none ? 'times' : 'exclamation');
                                             ?>
-                                                <span class="<?php echo $cls; ?>" style="margin-right:8px;white-space:nowrap;"
-                                                      title="<?php echo $step['label']; ?>: <?php echo $step['done']; ?>/<?php echo $total_bc; ?> batches">
+                                                <a href="<?php echo $step['url']; ?>" class="<?php echo $cls; ?>"
+                                                   style="margin-right:8px;white-space:nowrap;text-decoration:none;"
+                                                   title="<?php echo $step['label']; ?>: <?php echo $step['done']; ?>/<?php echo $total_bc; ?> batches">
                                                     <i class="fa fa-<?php echo $ico; ?>-circle"></i>
                                                     <small><?php echo $step['label']; ?><?php if (!$all && !$none): ?>&nbsp;(<?php echo $step['done']; ?>/<?php echo $total_bc; ?>)<?php endif; ?></small>
-                                                </span>
+                                                </a>
                                             <?php endforeach; endif; ?>
                                         </td>
                                         <td style="white-space:nowrap;">

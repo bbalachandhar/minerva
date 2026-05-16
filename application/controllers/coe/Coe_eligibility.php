@@ -37,11 +37,14 @@ class Coe_eligibility extends MY_Addon_CoeController
         $data['selected_event']   = $batch_exam_id;
         $data['summary']          = null;
         $data['ineligible_list']  = [];
+        $data['eligibility_run_at'] = null;
 
         if ($batch_exam_id) {
             $data['summary']         = $this->Coe_eligibility_model->getSummary($batch_exam_id);
             $data['ineligible_list'] = $this->Coe_eligibility_model->getIneligibleStudents($batch_exam_id);
             $data['event_detail']    = $this->Coe_application_model->getExamEventByIdRow($batch_exam_id);
+            $egcbe_row               = $this->db->where('id', $batch_exam_id)->get('exam_group_class_batch_exams')->row();
+            $data['eligibility_run_at'] = $egcbe_row->eligibility_run_at ?? null;
         }
 
         $this->load->view('layout/header', $data);
@@ -50,12 +53,22 @@ class Coe_eligibility extends MY_Addon_CoeController
     }
 
     // ------------------------------------------------------------------
-    // RUN eligibility engine for a batch exam
+    // RUN eligibility engine for a batch exam — POST only
     // ------------------------------------------------------------------
-    public function run($batch_exam_id)
+    public function run()
     {
         if (!$this->rbac->hasPrivilege('coe_eligibility', 'can_add')) {
             access_denied();
+        }
+
+        // Reject non-POST requests to prevent CSRF via GET
+        if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+            show_404();
+        }
+
+        $batch_exam_id = (int) $this->input->post('batch_exam_id');
+        if (!$batch_exam_id) {
+            show_404();
         }
 
         $event = $this->Coe_application_model->getExamEventByIdRow($batch_exam_id);
@@ -100,11 +113,99 @@ class Coe_eligibility extends MY_Addon_CoeController
         if (isset($result['error'])) {
             $this->session->set_flashdata('msg', '<div class="alert alert-warning text-left">No applications to process. Please generate applications first.</div>');
         } else {
+            // Stamp last-run time
+            $this->db->where('id', $batch_exam_id)->update('exam_group_class_batch_exams', [
+                'eligibility_run_at' => date('Y-m-d H:i:s'),
+            ]);
             $this->Coe_audit_model->log('eligibility_run', 'exam_group_class_batch_exams', $batch_exam_id, null, $result);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('coe_eligibility_processed') . ' Processed: ' . $result['processed'] . ' | Eligible: ' . $result['eligible'] . ' | Ineligible: ' . $result['ineligible'] . '</div>');
         }
 
         redirect('coe/coe_eligibility?batch_exam_id=' . $batch_exam_id);
+    }
+
+    // ------------------------------------------------------------------
+    // RUN ALL — run eligibility for every batch exam in an exam group/event
+    // POST only. Accepts exam_group_id + session_id.
+    // ------------------------------------------------------------------
+    public function run_all()
+    {
+        if (!$this->rbac->hasPrivilege('coe_eligibility', 'can_add')) {
+            access_denied();
+        }
+
+        if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+            show_404();
+        }
+
+        $exam_group_id = (int) $this->input->post('exam_group_id');
+        $session_id    = (int) $this->input->post('session_id');
+
+        if (!$exam_group_id || !$session_id) {
+            show_404();
+        }
+
+        $batches = $this->db
+            ->where('exam_group_id', $exam_group_id)
+            ->where('session_id', $session_id)
+            ->get('exam_group_class_batch_exams')->result();
+
+        if (empty($batches)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning text-left">No batches found for this event/session.</div>');
+            redirect('coe/coe_eligibility?session_id=' . $session_id);
+        }
+
+        $total_processed = 0;
+        $total_eligible  = 0;
+        $total_inelig    = 0;
+        $skipped         = 0;
+
+        foreach ($batches as $egcbe) {
+            if ($egcbe->coe_locked) {
+                $skipped++;
+                continue;
+            }
+
+            $class_id_val = !empty($egcbe->class_id) ? (int) $egcbe->class_id : null;
+            if (!$class_id_val) {
+                $class_row    = $this->db->query(
+                    "SELECT DISTINCT ss.class_id FROM exam_group_class_batch_exam_students egcbes
+                     JOIN student_session ss ON ss.id = egcbes.student_session_id
+                     WHERE egcbes.exam_group_class_batch_exam_id = ? LIMIT 1",
+                    [$egcbe->id]
+                )->row();
+                $class_id_val = $class_row ? (int) $class_row->class_id : null;
+            }
+
+            $regulation = $class_id_val
+                ? $this->Coe_setup_model->getByClassSession($class_id_val, $egcbe->session_id)
+                : null;
+
+            if (empty($regulation)) {
+                $skipped++;
+                continue;
+            }
+
+            $regulation->session_id = $egcbe->session_id;
+            $result = $this->Coe_eligibility_model->runEligibility($egcbe->id, $regulation);
+
+            if (!isset($result['error'])) {
+                $this->db->where('id', $egcbe->id)->update('exam_group_class_batch_exams', [
+                    'eligibility_run_at' => date('Y-m-d H:i:s'),
+                ]);
+                $total_processed += $result['processed'];
+                $total_eligible  += $result['eligible'];
+                $total_inelig    += $result['ineligible'];
+                $this->Coe_audit_model->log('eligibility_run_all', 'exam_group_class_batch_exams', $egcbe->id, null, $result);
+            }
+        }
+
+        $msg = 'Run All complete. Processed: ' . $total_processed . ' | Eligible: ' . $total_eligible . ' | Ineligible: ' . $total_inelig;
+        if ($skipped) {
+            $msg .= ' | Skipped (locked or no regulation): ' . $skipped;
+        }
+        $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $msg . '</div>');
+        redirect('coe/coe_eligibility?session_id=' . $session_id);
     }
 
     // ------------------------------------------------------------------

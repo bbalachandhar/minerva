@@ -54,9 +54,9 @@
 <!-- Content Wrapper -->
 <div class="content-wrapper">
     <section class="content-header">
-        <h1><i class="fa fa-check-square-o"></i> <?php echo $data['title']; ?>
-            <?php if ($selected_event && isset($data['event_detail'])): ?>
-            <small class="text-muted" style="font-size:14px;">&mdash; <?php echo htmlspecialchars($data['event_detail']->exam_group_name ?? ''); ?></small>
+        <h1><i class="fa fa-check-square-o"></i> <?php echo $title; ?>
+            <?php if ($selected_event && isset($event_detail)): ?>
+            <small class="text-muted" style="font-size:14px;">&mdash; <?php echo htmlspecialchars($event_detail->exam_group_name ?? ''); ?></small>
             <?php endif; ?>
         <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
@@ -105,10 +105,28 @@
                     </select>
                 </div>
                 <?php if ($selected_event && $this->rbac->hasPrivilege('coe_eligibility', 'can_add')): ?>
-                <a href="<?php echo site_url('coe/coe_eligibility/run/' . $selected_event); ?>"
-                   class="btn btn-warning btn-sm confirm-run" style="border-radius:6px;">
-                    <i class="fa fa-cog fa-spin-on-hover"></i>&nbsp; Run Engine
-                </a>
+                <button type="button" class="btn btn-warning btn-sm" id="btn-run-engine" style="border-radius:6px;">
+                    <i class="fa fa-cog"></i>&nbsp; Run Engine
+                </button>
+                <form id="run-engine-form" method="POST" action="<?php echo site_url('coe/coe_eligibility/run'); ?>" style="display:none;">
+                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                    <input type="hidden" name="batch_exam_id" value="<?php echo (int)$selected_event; ?>">
+                </form>
+                <?php if (isset($event_detail) && $event_detail): ?>
+                <button type="button" class="btn btn-default btn-sm" id="btn-run-all" style="border-radius:6px;margin-left:4px;" title="Run eligibility for ALL batches in this event">
+                    <i class="fa fa-cogs"></i>&nbsp; Run All in Event
+                </button>
+                <form id="run-all-form" method="POST" action="<?php echo site_url('coe/coe_eligibility/run_all'); ?>" style="display:none;">
+                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                    <input type="hidden" name="exam_group_id" value="<?php echo (int)$event_detail->exam_group_id; ?>">
+                    <input type="hidden" name="session_id" value="<?php echo (int)$selected_session; ?>">
+                </form>
+                <?php endif; ?>
+                <?php endif; ?>
+                <?php if ($selected_event && !empty($eligibility_run_at)): ?>
+                <span class="text-muted" style="font-size:11px;margin-left:10px;">
+                    <i class="fa fa-clock-o"></i> Last run: <?php echo date('d M Y, H:i', strtotime($eligibility_run_at)); ?>
+                </span>
                 <?php endif; ?>
             </form>
         </div>
@@ -454,11 +472,9 @@
 
 <script>
 $(function () {
-    // Confirm run eligibility
-    $(document).on('click', '.confirm-run', function (e) {
-        e.preventDefault();
-        var href = $(this).attr('href');
-        swal({
+    // Run Engine button — POST with Swal confirm
+    $('#btn-run-engine').on('click', function () {
+        Swal.fire({
             title: 'Run Eligibility Engine?',
             text: 'This processes all pending applications — calculates attendance %, checks fee dues, and updates status. Overrides are preserved.',
             type: 'warning',
@@ -466,8 +482,23 @@ $(function () {
             confirmButtonColor: '#f39c12',
             confirmButtonText: 'Yes, Run Now',
             cancelButtonText: 'Cancel'
-        }, function (ok) { if (ok) window.location.href = href; });
+        }, function (ok) { if (ok) $('#run-engine-form').submit(); });
     });
+
+    // Run All button — POST with Swal confirm
+    $('#btn-run-all').on('click', function () {
+        Swal.fire({
+            title: 'Run All Batches?',
+            text: 'This runs eligibility for every batch in this exam event. Locked batches and batches with no regulation are skipped.',
+            type: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3c8dbc',
+            confirmButtonText: 'Yes, Run All',
+            cancelButtonText: 'Cancel'
+        }, function (ok) { if (ok) $('#run-all-form').submit(); });
+    });
+
+    // Legacy confirm-run (kept as fallback, no longer rendered)
 
     // Override modal
     $(document).on('click', '.override-btn', function () {

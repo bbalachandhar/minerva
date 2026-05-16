@@ -386,8 +386,8 @@ if ($is_arrear):
                     <a href="<?php echo site_url('coe/coe_application/view/' . $event->id); ?>" class="btn btn-default btn-sm"><i class="fa fa-times"></i> Clear</a>
                 </form>
                 <div>
-                    <a href="<?php echo site_url('coe/coe_eligibility?batch_exam_id=' . $event->id); ?>" class="btn btn-warning btn-sm" style="border-radius:6px;">
-                        <i class="fa fa-check-square-o"></i> Run Eligibility
+                    <a href="<?php echo site_url('coe/coe_eligibility?batch_exam_id=' . $event->id); ?>" class="btn btn-info btn-sm" style="border-radius:6px;">
+                        <i class="fa fa-check-square-o"></i> Check Eligibility &rarr;
                     </a>
                     <?php if (!($event->coe_locked ?? false) && $this->rbac->hasPrivilege('coe_application', 'can_add')): ?>
                     <a href="<?php echo site_url('coe/coe_application/generate/' . $event->id); ?>"
