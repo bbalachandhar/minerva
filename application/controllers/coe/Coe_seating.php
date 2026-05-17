@@ -200,10 +200,11 @@ class Coe_seating extends MY_Addon_CoeController
         }
 
         $assignments = $this->Coe_seating_model->getAssignments($room_id);
-        $sch_setting = $this->sch_setting_detail;
-        $logo_path   = FCPATH . 'uploads/logos/' . ($sch_setting->admission_logo_left ?? '');
-        if (!($sch_setting->admission_logo_left ?? '') || !is_file($logo_path)) {
-            $logo_path = null;
+        $sch_setting     = $this->sch_setting_detail;
+        $logo_filename   = $sch_setting->admission_logo_left ?? '';
+        $logo_path       = null;
+        if ($logo_filename && is_file(FCPATH . 'uploads/logos/' . $logo_filename)) {
+            $logo_path = base_url('uploads/logos/' . $logo_filename);
         }
 
         $html = $this->load->view('admin/coe/coe_seating/print_seating', [

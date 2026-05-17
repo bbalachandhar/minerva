@@ -75,7 +75,7 @@ $is_valid     = (bool)($ht->is_valid ?? true);
     <tr>
       <!-- Logo -->
       <td style="width:75px;vertical-align:middle;text-align:center;">
-        <?php if ($logo_path && is_file($logo_path)): ?>
+        <?php if ($logo_path): ?>
           <img src="<?php echo $logo_path; ?>" style="width:65px;height:65px;object-fit:contain;" alt="Logo">
         <?php else: ?>
           <div style="width:65px;height:65px;background:#e8eaf6;border:1px solid #c5cae9;border-radius:4px;text-align:center;font-size:8pt;font-weight:bold;color:#1a237e;padding-top:22px;">LOGO</div>

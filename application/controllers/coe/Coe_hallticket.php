@@ -149,10 +149,11 @@ class Coe_hallticket extends MY_Addon_CoeController
             $student_photo = FCPATH . 'uploads/no_image/no_image.jpg';
         }
 
-        // School logo path (absolute for mPDF)
-        $logo_path = FCPATH . 'uploads/logos/' . ($this->sch_setting_detail->admission_logo_left ?? '');
-        if (!($this->sch_setting_detail->admission_logo_left ?? '') || !is_file($logo_path)) {
-            $logo_path = null;
+        // School logo URL (mPDF loads images via HTTP in this project)
+        $logo_filename = $this->sch_setting_detail->admission_logo_left ?? '';
+        $logo_path     = null;
+        if ($logo_filename && is_file(FCPATH . 'uploads/logos/' . $logo_filename)) {
+            $logo_path = base_url('uploads/logos/' . $logo_filename);
         }
 
         // Increment download counter
@@ -207,9 +208,10 @@ class Coe_hallticket extends MY_Addon_CoeController
         ]);
         $qrEngine = new \chillerlan\QRCode\QRCode($qr_options);
 
-        $logo_path = FCPATH . 'uploads/logos/' . ($this->sch_setting_detail->admission_logo_left ?? '');
-        if (!($this->sch_setting_detail->admission_logo_left ?? '') || !is_file($logo_path)) {
-            $logo_path = null;
+        $logo_filename = $this->sch_setting_detail->admission_logo_left ?? '';
+        $logo_path     = null;
+        if ($logo_filename && is_file(FCPATH . 'uploads/logos/' . $logo_filename)) {
+            $logo_path = base_url('uploads/logos/' . $logo_filename);
         }
 
         $this->load->library('m_pdf');

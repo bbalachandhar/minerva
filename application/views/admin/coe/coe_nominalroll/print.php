@@ -36,7 +36,7 @@ body { font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#1a1a2e;margi
   <!-- HEADER -->
   <div class="header">
     <div class="header-logo">
-      <?php if ($logo_path && is_file($logo_path)): ?>
+      <?php if ($logo_path): ?>
         <img src="<?php echo $logo_path; ?>" style="width:65px;height:65px;object-fit:contain;">
       <?php endif; ?>
     </div>
