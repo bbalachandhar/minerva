@@ -115,8 +115,21 @@
         $both_count         = (int)($stats->both_fail_count ?? 0);
         $both_students      = (int)($stats->both_fail_students ?? 0);
         $pct = fn($n) => $total_students > 0 ? round(($n / $total_students) * 100, 1) : 0;
-        $cbcs_counts = ['core' => 0, 'elective' => 0, 'open_elective' => 0, 'audit' => 0];
-        foreach ($applications as $app) { $cbcs_counts[$app->cbcs_category] = ($cbcs_counts[$app->cbcs_category] ?? 0) + 1; }
+        $cbcs_counts   = ['core' => 0, 'elective' => 0, 'open_elective' => 0, 'audit' => 0];
+        $cbcs_students = ['core' => [], 'elective' => [], 'open_elective' => [], 'audit' => []];
+        foreach ($applications as $app) {
+            $cat = $app->cbcs_category;
+            $cbcs_counts[$cat] = ($cbcs_counts[$cat] ?? 0) + 1;
+            if (!empty($app->student_session_id)) {
+                $cbcs_students[$cat][$app->student_session_id] = true;
+            }
+        }
+        $cbcs_student_counts = [
+            'core'         => count($cbcs_students['core']),
+            'elective'     => count($cbcs_students['elective']),
+            'open_elective'=> count($cbcs_students['open_elective']),
+            'audit'        => count($cbcs_students['audit']),
+        ];
         ?>
 
 <?php /* ═══════════════════════════════════════════════════════════════════
@@ -524,8 +537,28 @@ if ($is_arrear):
     });
     new Chart(document.getElementById('cbcsBar').getContext('2d'),{
         type:'bar',
-        data:{labels:['Core','Elective','Open Elective','Audit'],datasets:[{label:'Applications',data:[<?php echo implode(',',[$cbcs_counts['core'],$cbcs_counts['elective'],$cbcs_counts['open_elective'],$cbcs_counts['audit']]); ?>],backgroundColor:['rgba(0,64,133,.75)','rgba(21,87,36,.75)','rgba(67,40,116,.75)','rgba(114,28,36,.75)'],borderColor:['#004085','#155724','#432874','#721c24'],borderWidth:2,borderRadius:7}]},
-        options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}}}
+        data:{
+            labels:['Core','Elective','Open Elective','Audit'],
+            datasets:[
+                {
+                    label:'Applications',
+                    data:[<?php echo implode(',',[$cbcs_counts['core'],$cbcs_counts['elective'],$cbcs_counts['open_elective'],$cbcs_counts['audit']]); ?>],
+                    backgroundColor:'rgba(0,64,133,.75)',
+                    borderColor:'#004085',
+                    borderWidth:2,
+                    borderRadius:5
+                },
+                {
+                    label:'Students',
+                    data:[<?php echo implode(',',[$cbcs_student_counts['core'],$cbcs_student_counts['elective'],$cbcs_student_counts['open_elective'],$cbcs_student_counts['audit']]); ?>],
+                    backgroundColor:'rgba(0,166,90,.75)',
+                    borderColor:'#00a65a',
+                    borderWidth:2,
+                    borderRadius:5
+                }
+            ]
+        },
+        options:{responsive:true,plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:12}}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}}}
     });
     <?php endif; ?>
     $(function(){
