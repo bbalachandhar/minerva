@@ -123,8 +123,8 @@ class Coe_nominalroll extends MY_Addon_CoeController
         $students = json_decode($roll->roll_snapshot ?: '[]', true);
 
         $sch_setting = $this->sch_setting_detail;
-        $logo_path   = FCPATH . 'uploads/logos/' . ($sch_setting->admin_logo ?? '');
-        if (!($sch_setting->admin_logo ?? '') || !is_file($logo_path)) {
+        $logo_path   = FCPATH . 'uploads/logos/' . ($sch_setting->admission_logo_left ?? '');
+        if (!($sch_setting->admission_logo_left ?? '') || !is_file($logo_path)) {
             $logo_path = null;
         }
 

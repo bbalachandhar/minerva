@@ -278,8 +278,8 @@ class Coe_invigilation extends MY_Addon_CoeController
 
         $duties      = $this->Coe_invigilation_model->getDutiesByBatchExam($batch_exam_id);
         $sch_setting = $this->sch_setting_detail;
-        $logo_path   = FCPATH . 'uploads/logos/' . ($sch_setting->admin_logo ?? '');
-        if (!($sch_setting->admin_logo ?? '') || !is_file($logo_path)) {
+        $logo_path   = FCPATH . 'uploads/logos/' . ($sch_setting->admission_logo_left ?? '');
+        if (!($sch_setting->admission_logo_left ?? '') || !is_file($logo_path)) {
             $logo_path = null;
         }
 
