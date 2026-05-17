@@ -2024,6 +2024,7 @@ DROP TABLE IF EXISTS `exam_groups`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `exam_groups` (
   `id` int NOT NULL AUTO_INCREMENT,
+  `session_id` int(11) DEFAULT NULL,
   `name` varchar(250) DEFAULT NULL,
   `exam_type` varchar(250) DEFAULT NULL,
   `description` text,
@@ -2032,7 +2033,8 @@ CREATE TABLE `exam_groups` (
   `exam_category` enum('main','arrear','supplementary') NOT NULL DEFAULT 'main',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `session_id` (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
