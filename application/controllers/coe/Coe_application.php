@@ -202,12 +202,29 @@ class Coe_application extends MY_Addon_CoeController
 
         $is_arrear = in_array($event->exam_category, ['arrear', 'supplementary'], true);
 
-        $data['title']          = $this->lang->line('coe_exam_events') . ' — ' . $event->exam;
-        $data['event']          = $event;
-        $data['applications']   = $this->Coe_application_model->getApplicationsByBatchExam($batch_exam_id, $filters);
-        $data['stats']          = $this->Coe_application_model->getApplicationStats($batch_exam_id);
-        $data['filters']        = $filters;
-        $data['is_arrear']      = $is_arrear;
+        // For main exams: get configured CoE subject IDs to filter applications
+        $main_subject_ids = [];
+        if (!$is_arrear) {
+            $sub_rows = $this->db
+                ->select('subject_id')
+                ->where('exam_group_class_batch_exams_id', $batch_exam_id)
+                ->where('is_active', 1)
+                ->get('exam_group_class_batch_exam_subjects')->result_array();
+            $main_subject_ids = array_column($sub_rows, 'subject_id');
+        }
+
+        // Apply subject filter only when subjects are configured in CoE
+        if (!empty($main_subject_ids)) {
+            $filters['subject_ids'] = $main_subject_ids;
+        }
+
+        $data['title']            = $this->lang->line('coe_exam_events') . ' — ' . $event->exam;
+        $data['event']            = $event;
+        $data['applications']     = $this->Coe_application_model->getApplicationsByBatchExam($batch_exam_id, $filters);
+        $data['stats']            = $this->Coe_application_model->getApplicationStats($batch_exam_id, $main_subject_ids);
+        $data['filters']          = $filters;
+        $data['is_arrear']        = $is_arrear;
+        $data['main_subject_ids'] = $main_subject_ids;
 
         // For arrear/supplementary: pass subject setup data and candidate preview
         if ($is_arrear) {
@@ -221,10 +238,7 @@ class Coe_application extends MY_Addon_CoeController
         }
 
         // Subject count for main exam (shows "Assign Subjects" prompt if zero)
-        $data['main_subject_count'] = $is_arrear ? null : (int) $this->db
-            ->where('exam_group_class_batch_exams_id', $batch_exam_id)
-            ->where('is_active', 1)
-            ->count_all_results('exam_group_class_batch_exam_subjects');
+        $data['main_subject_count'] = $is_arrear ? null : count($main_subject_ids);
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_application/view', $data);

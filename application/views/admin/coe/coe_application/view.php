@@ -13,6 +13,7 @@
 .coe-card-inelig{background:linear-gradient(135deg,#dd4b39,#a01f10);}
 .coe-card-override{background:linear-gradient(135deg,#f39c12,#b06f00);}
 .coe-card-pending{background:linear-gradient(135deg,#7a8b99,#4a5c69);}
+.coe-card-both{background:linear-gradient(135deg,#9b59b6,#6c3483);}
 /* ── chart / table boxes ── */
 .chart-box{background:#fff;border-radius:10px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:20px;}
 .chart-box h4{margin-top:0;font-size:14px;font-weight:600;color:#444;border-bottom:1px solid #f0f0f0;padding-bottom:9px;margin-bottom:14px;}
@@ -101,12 +102,19 @@
         <?php endif; ?>
 
         <?php
-        $total          = (int)($stats->total ?? 0);
-        $eligible_count = (int)($stats->eligible_count ?? 0);
-        $inelig_count   = (int)($stats->ineligible_count ?? 0);
-        $override_count = (int)($stats->override_count ?? 0);
-        $pending_count  = (int)($stats->pending_count ?? 0);
-        $pct = fn($n) => $total > 0 ? round(($n / $total) * 100, 1) : 0;
+        $total              = (int)($stats->total ?? 0);
+        $total_students     = (int)($stats->total_students ?? 0);
+        $eligible_count     = (int)($stats->eligible_count ?? 0);
+        $eligible_students  = (int)($stats->eligible_students ?? 0);
+        $inelig_count       = (int)($stats->ineligible_count ?? 0);
+        $inelig_students    = (int)($stats->ineligible_students ?? 0);
+        $override_count     = (int)($stats->override_count ?? 0);
+        $override_students  = (int)($stats->override_students ?? 0);
+        $pending_count      = (int)($stats->pending_count ?? 0);
+        $pending_students   = (int)($stats->pending_students ?? 0);
+        $both_count         = (int)($stats->both_fail_count ?? 0);
+        $both_students      = (int)($stats->both_fail_students ?? 0);
+        $pct = fn($n) => $total_students > 0 ? round(($n / $total_students) * 100, 1) : 0;
         $cbcs_counts = ['core' => 0, 'elective' => 0, 'open_elective' => 0, 'audit' => 0];
         foreach ($applications as $app) { $cbcs_counts[$app->cbcs_category] = ($cbcs_counts[$app->cbcs_category] ?? 0) + 1; }
         ?>
@@ -342,37 +350,61 @@ if ($is_arrear):
             <div class="col-md-2 col-sm-6">
                 <div class="coe-stat-card coe-card-total">
                     <div class="stat-icon"><i class="fa fa-users"></i></div>
-                    <div><div class="stat-num"><?php echo $total; ?></div><div class="stat-lbl">Total</div></div>
+                    <div>
+                        <div class="stat-num"><?php echo $total_students; ?></div>
+                        <div class="stat-lbl">Total Students</div>
+                        <div class="stat-pct"><?php echo $total; ?> apps</div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-2 col-sm-6">
                 <div class="coe-stat-card coe-card-eligible">
                     <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
-                    <div><div class="stat-num"><?php echo $eligible_count; ?></div><div class="stat-lbl">Eligible</div><div class="stat-pct"><?php echo $pct($eligible_count); ?>%</div></div>
+                    <div>
+                        <div class="stat-num"><?php echo $eligible_students; ?></div>
+                        <div class="stat-lbl">Eligible</div>
+                        <div class="stat-pct"><?php echo $pct($eligible_students); ?>% &middot; <?php echo $eligible_count; ?> apps</div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-2 col-sm-6">
                 <div class="coe-stat-card coe-card-inelig">
                     <div class="stat-icon"><i class="fa fa-times-circle"></i></div>
-                    <div><div class="stat-num"><?php echo $inelig_count; ?></div><div class="stat-lbl">Ineligible</div><div class="stat-pct"><?php echo $pct($inelig_count); ?>%</div></div>
+                    <div>
+                        <div class="stat-num"><?php echo $inelig_students; ?></div>
+                        <div class="stat-lbl">Ineligible</div>
+                        <div class="stat-pct"><?php echo $pct($inelig_students); ?>% &middot; <?php echo $inelig_count; ?> apps</div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-2 col-sm-6">
                 <div class="coe-stat-card coe-card-override">
                     <div class="stat-icon"><i class="fa fa-unlock-alt"></i></div>
-                    <div><div class="stat-num"><?php echo $override_count; ?></div><div class="stat-lbl">Override</div><div class="stat-pct"><?php echo $pct($override_count); ?>%</div></div>
+                    <div>
+                        <div class="stat-num"><?php echo $override_students; ?></div>
+                        <div class="stat-lbl">Override</div>
+                        <div class="stat-pct"><?php echo $pct($override_students); ?>% &middot; <?php echo $override_count; ?> apps</div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-2 col-sm-6">
                 <div class="coe-stat-card coe-card-pending">
                     <div class="stat-icon"><i class="fa fa-clock-o"></i></div>
-                    <div><div class="stat-num"><?php echo $pending_count; ?></div><div class="stat-lbl">Pending</div><div class="stat-pct"><?php echo $pct($pending_count); ?>%</div></div>
+                    <div>
+                        <div class="stat-num"><?php echo $pending_students; ?></div>
+                        <div class="stat-lbl">Pending</div>
+                        <div class="stat-pct"><?php echo $pct($pending_students); ?>% &middot; <?php echo $pending_count; ?> apps</div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-2 col-sm-6">
-                <div class="coe-stat-card" style="background:linear-gradient(135deg,#e67e22,#ca6f1e);">
-                    <div class="stat-icon"><i class="fa fa-graduation-cap"></i></div>
-                    <div><div class="stat-num"><?php echo $cbcs_counts['core']; ?></div><div class="stat-lbl">Core Courses</div><div class="stat-pct"><?php echo $cbcs_counts['elective']; ?> elective</div></div>
+                <div class="coe-stat-card coe-card-both">
+                    <div class="stat-icon"><i class="fa fa-ban"></i></div>
+                    <div>
+                        <div class="stat-num"><?php echo $both_students; ?></div>
+                        <div class="stat-lbl">Att + Fee Fail</div>
+                        <div class="stat-pct"><?php echo $pct($both_students); ?>% &middot; <?php echo $both_count; ?> apps</div>
+                    </div>
                 </div>
             </div>
         </div>

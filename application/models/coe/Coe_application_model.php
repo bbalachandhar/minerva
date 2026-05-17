@@ -294,24 +294,38 @@ class Coe_application_model extends CI_Model
         if (!empty($filters['cbcs_category'])) {
             $this->db->where('ca.cbcs_category', $filters['cbcs_category']);
         }
+        // Restrict to configured CoE subjects when provided
+        if (!empty($filters['subject_ids']) && is_array($filters['subject_ids'])) {
+            $this->db->where_in('ca.subject_id', array_map('intval', $filters['subject_ids']));
+        }
 
         return $this->db->order_by('st.firstname ASC, sub.name ASC')->get()->result();
     }
 
-    public function getApplicationStats($batch_exam_id)
+    public function getApplicationStats($batch_exam_id, $subject_ids = [])
     {
-        $row = $this->db->query(
+        $where = 'exam_group_class_batch_exam_id = ' . (int)$batch_exam_id;
+        if (!empty($subject_ids)) {
+            $ids   = implode(',', array_map('intval', $subject_ids));
+            $where .= ' AND subject_id IN (' . $ids . ')';
+        }
+        return $this->db->query(
             "SELECT
                 COUNT(*) AS total,
+                COUNT(DISTINCT student_session_id) AS total_students,
                 SUM(application_status='eligible') AS eligible_count,
+                COUNT(DISTINCT CASE WHEN application_status='eligible' THEN student_session_id END) AS eligible_students,
                 SUM(application_status='ineligible') AS ineligible_count,
+                COUNT(DISTINCT CASE WHEN application_status='ineligible' THEN student_session_id END) AS ineligible_students,
                 SUM(application_status='override_eligible') AS override_count,
-                SUM(application_status='pending') AS pending_count
+                COUNT(DISTINCT CASE WHEN application_status='override_eligible' THEN student_session_id END) AS override_students,
+                SUM(application_status='pending') AS pending_count,
+                COUNT(DISTINCT CASE WHEN application_status='pending' THEN student_session_id END) AS pending_students,
+                COUNT(DISTINCT CASE WHEN ineligible_reason='both' THEN student_session_id END) AS both_fail_students,
+                SUM(ineligible_reason='both') AS both_fail_count
              FROM coe_exam_applications
-             WHERE exam_group_class_batch_exam_id = ?",
-            [$batch_exam_id]
+             WHERE {$where}"
         )->row();
-        return $row;
     }
 
     // ------------------------------------------------------------------
