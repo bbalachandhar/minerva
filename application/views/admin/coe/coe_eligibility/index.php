@@ -7,6 +7,11 @@
 
 <style>
 /* ─── CoE Eligibility Page Styles ───────────────────────────────── */
+/* Equal-height stat cards row */
+.stat-cards-row { display: flex; flex-wrap: wrap; }
+.stat-cards-row > [class*="col-"] { display: flex; flex-direction: column; }
+.stat-cards-row > [class*="col-"] .coe-stat-card { flex: 1; }
+
 .coe-stat-card {
     border-radius: 10px;
     padding: 18px 20px 14px;
@@ -87,7 +92,7 @@
                 </div>
                 <div class="form-group" style="margin-right:16px;">
                     <label>Batch Exam&nbsp;</label>
-                    <select name="batch_exam_id" class="form-control input-sm" onchange="document.getElementById('eligibility-filter-form').submit()">
+                    <select name="batch_exam_id" id="batch-exam-select" class="form-control input-sm" style="width:280px;">
                         <option value="">— Select Batch —</option>
                         <?php
                         $grouped = [];
@@ -141,27 +146,36 @@
             </form>
         </div>
 
-        <?php if ($selected_event && $summary): ?>
+        <?php if ($selected_event && $summary && (int)($summary->total ?? 0) > 0): ?>
         <?php
-            $total          = (int)($summary->total ?? 0);
-            $eligible_count = (int)($summary->eligible_count ?? 0);
-            $inelig_count   = (int)($summary->ineligible_count ?? 0);
-            $override_count = (int)($summary->override_count ?? 0);
-            $pending_count  = (int)($summary->pending_count ?? 0);
-            $att_fail       = (int)($summary->att_fail_count ?? 0);
-            $fee_fail       = (int)($summary->fee_fail_count ?? 0);
-            $both_fail      = (int)($summary->both_fail_count ?? 0);
-            $pct = fn($n) => $total > 0 ? round(($n / $total) * 100, 1) : 0;
+            $total              = (int)($summary->total ?? 0);
+            $total_students     = (int)($summary->total_students ?? 0);
+            $eligible_count     = (int)($summary->eligible_count ?? 0);
+            $eligible_students  = (int)($summary->eligible_students ?? 0);
+            $inelig_count       = (int)($summary->ineligible_count ?? 0);
+            $inelig_students    = (int)($summary->ineligible_students ?? 0);
+            $override_count     = (int)($summary->override_count ?? 0);
+            $override_students  = (int)($summary->override_students ?? 0);
+            $pending_count      = (int)($summary->pending_count ?? 0);
+            $pending_students   = (int)($summary->pending_students ?? 0);
+            $att_fail           = (int)($summary->att_fail_count ?? 0);
+            $att_fail_students  = (int)($summary->att_fail_students ?? 0);
+            $fee_fail           = (int)($summary->fee_fail_count ?? 0);
+            $fee_fail_students  = (int)($summary->fee_fail_students ?? 0);
+            $both_fail          = (int)($summary->both_fail_count ?? 0);
+            $both_fail_students = (int)($summary->both_fail_students ?? 0);
+            $pct = fn($n) => $total_students > 0 ? round(($n / $total_students) * 100, 1) : 0;
         ?>
 
         <!-- ── Stat Cards ─────────────────────────────────────────── -->
-        <div class="row">
+        <div class="row stat-cards-row">
             <div class="col-md-2 col-sm-4">
                 <div class="coe-stat-card coe-card-total">
                     <div class="stat-icon"><i class="fa fa-users"></i></div>
                     <div class="stat-body">
-                        <div class="stat-num"><?php echo $total; ?></div>
-                        <div class="stat-lbl">Total Applications</div>
+                        <div class="stat-num"><?php echo $total_students; ?></div>
+                        <div class="stat-lbl">Total Students</div>
+                        <div class="stat-pct"><?php echo $total; ?> applications</div>
                     </div>
                 </div>
             </div>
@@ -169,9 +183,9 @@
                 <div class="coe-stat-card coe-card-eligible">
                     <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
                     <div class="stat-body">
-                        <div class="stat-num"><?php echo $eligible_count; ?></div>
+                        <div class="stat-num"><?php echo $eligible_students; ?></div>
                         <div class="stat-lbl">Eligible</div>
-                        <div class="stat-pct"><?php echo $pct($eligible_count); ?>% of total</div>
+                        <div class="stat-pct"><?php echo $pct($eligible_students); ?>% &middot; <?php echo $eligible_count; ?> apps</div>
                     </div>
                 </div>
             </div>
@@ -179,9 +193,9 @@
                 <div class="coe-stat-card coe-card-inelig">
                     <div class="stat-icon"><i class="fa fa-times-circle"></i></div>
                     <div class="stat-body">
-                        <div class="stat-num"><?php echo $inelig_count; ?></div>
+                        <div class="stat-num"><?php echo $inelig_students; ?></div>
                         <div class="stat-lbl">Ineligible</div>
-                        <div class="stat-pct"><?php echo $pct($inelig_count); ?>% of total</div>
+                        <div class="stat-pct"><?php echo $pct($inelig_students); ?>% &middot; <?php echo $inelig_count; ?> apps</div>
                     </div>
                 </div>
             </div>
@@ -189,9 +203,9 @@
                 <div class="coe-stat-card coe-card-override">
                     <div class="stat-icon"><i class="fa fa-unlock-alt"></i></div>
                     <div class="stat-body">
-                        <div class="stat-num"><?php echo $override_count; ?></div>
+                        <div class="stat-num"><?php echo $override_students; ?></div>
                         <div class="stat-lbl">Override</div>
-                        <div class="stat-pct"><?php echo $pct($override_count); ?>% of total</div>
+                        <div class="stat-pct"><?php echo $pct($override_students); ?>% &middot; <?php echo $override_count; ?> apps</div>
                     </div>
                 </div>
             </div>
@@ -199,9 +213,9 @@
                 <div class="coe-stat-card coe-card-pending">
                     <div class="stat-icon"><i class="fa fa-clock-o"></i></div>
                     <div class="stat-body">
-                        <div class="stat-num"><?php echo $pending_count; ?></div>
+                        <div class="stat-num"><?php echo $pending_students; ?></div>
                         <div class="stat-lbl">Pending</div>
-                        <div class="stat-pct"><?php echo $pct($pending_count); ?>% of total</div>
+                        <div class="stat-pct"><?php echo $pct($pending_students); ?>% &middot; <?php echo $pending_count; ?> apps</div>
                     </div>
                 </div>
             </div>
@@ -209,9 +223,9 @@
                 <div class="coe-stat-card coe-card-both">
                     <div class="stat-icon"><i class="fa fa-exclamation-triangle"></i></div>
                     <div class="stat-body">
-                        <div class="stat-num"><?php echo $both_fail; ?></div>
+                        <div class="stat-num"><?php echo $both_fail_students; ?></div>
                         <div class="stat-lbl">Att + Fee Fail</div>
-                        <div class="stat-pct"><?php echo $pct($both_fail); ?>% of total</div>
+                        <div class="stat-pct"><?php echo $pct($both_fail_students); ?>% &middot; <?php echo $both_fail; ?> apps</div>
                     </div>
                 </div>
             </div>
@@ -238,25 +252,31 @@
             <div class="col-md-4">
                 <div class="chart-box">
                     <h4><i class="fa fa-tachometer" style="color:#00a65a;"></i>&nbsp; Eligibility Rate</h4>
-                    <?php $elig_rate = $total > 0 ? round((($eligible_count + $override_count) / $total) * 100, 1) : 0; ?>
+                    <?php $elig_rate = $total_students > 0 ? round((($eligible_students + $override_students) / $total_students) * 100, 1) : 0; ?>
                     <div style="text-align:center;padding:10px 0 6px;">
                         <canvas id="gaugeDonut" height="180"></canvas>
                         <div style="margin-top:-10px;font-size:28px;font-weight:700;color:#333;"><?php echo $elig_rate; ?>%</div>
-                        <div style="color:#888;font-size:12px;">students cleared for exam</div>
+                        <div style="color:#888;font-size:12px;">
+                            <?php echo ($eligible_students + $override_students); ?> of <?php echo $total_students; ?> students cleared
+                            &middot; <?php echo ($eligible_count + $override_count); ?> of <?php echo $total; ?> subject applications
+                        </div>
                     </div>
                     <div style="margin-top:14px;">
                         <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;">
-                            <span>Att. Only</span><strong><?php echo $att_fail; ?></strong>
+                            <span style="color:#00a65a;font-weight:600;"><i class="fa fa-check-circle"></i> Eligible</span>
+                            <span><strong><?php echo $eligible_students; ?></strong> students &middot; <strong><?php echo $eligible_count; ?></strong> subj apps</span>
                         </div>
-                        <div class="att-bar"><div class="att-bar-fill att-low" style="width:<?php echo $total>0?round($att_fail/$total*100):0; ?>%"></div></div>
+                        <div class="att-bar"><div class="att-bar-fill att-high" style="width:<?php echo $total_students>0?round($eligible_students/$total_students*100):0; ?>%"></div></div>
                         <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin:8px 0 4px;">
-                            <span>Fee Only</span><strong><?php echo $fee_fail; ?></strong>
+                            <span style="color:#f39c12;font-weight:600;"><i class="fa fa-unlock-alt"></i> Override</span>
+                            <span><strong><?php echo $override_students; ?></strong> students &middot; <strong><?php echo $override_count; ?></strong> subj apps</span>
                         </div>
-                        <div class="att-bar"><div class="att-bar-fill att-med" style="width:<?php echo $total>0?round($fee_fail/$total*100):0; ?>%"></div></div>
+                        <div class="att-bar"><div class="att-bar-fill att-med" style="width:<?php echo $total_students>0?round($override_students/$total_students*100):0; ?>%"></div></div>
                         <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin:8px 0 4px;">
-                            <span>Both</span><strong><?php echo $both_fail; ?></strong>
+                            <span style="color:#dd4b39;font-weight:600;"><i class="fa fa-times-circle"></i> Ineligible</span>
+                            <span><strong><?php echo $inelig_students; ?></strong> students &middot; <strong><?php echo $inelig_count; ?></strong> subj apps</span>
                         </div>
-                        <div class="att-bar"><div class="att-bar-fill" style="background:#9b59b6;width:<?php echo $total>0?round($both_fail/$total*100):0; ?>%"></div></div>
+                        <div class="att-bar"><div class="att-bar-fill att-low" style="width:<?php echo $total_students>0?round($inelig_students/$total_students*100):0; ?>%"></div></div>
                     </div>
                 </div>
             </div>
@@ -268,7 +288,7 @@
             <div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;">
                 <h4 style="margin:0;border:none;padding:0;">
                     <i class="fa fa-times-circle" style="color:#dd4b39;"></i>&nbsp; Ineligible Students
-                    <span style="background:#dd4b39;color:#fff;border-radius:12px;padding:2px 10px;font-size:13px;margin-left:6px;"><?php echo count($ineligible_list); ?></span>
+                    <span style="background:#dd4b39;color:#fff;border-radius:12px;padding:2px 10px;font-size:13px;margin-left:6px;"><?php echo $inelig_students; ?></span>
                 </h4>
                 <small class="text-muted">Override-eligible students are excluded</small>
             </div>
@@ -338,6 +358,13 @@
         <div style="text-align:center;padding:60px 20px;color:#888;">
             <i class="fa fa-info-circle" style="font-size:48px;color:#3c8dbc;opacity:.5;"></i>
             <p style="margin-top:16px;font-size:15px;">No eligibility data yet. Click <strong>Run Engine</strong> above to process applications.</p>
+            <?php if ($this->rbac->hasPrivilege('coe_application', 'can_add')): ?>
+            <p style="font-size:13px;color:#aaa;">No applications found for this batch?&nbsp;
+                <a href="<?php echo site_url('coe/coe_application/generate/' . (int)$selected_event); ?>" class="btn btn-sm btn-primary" style="border-radius:6px;">
+                    <i class="fa fa-plus-circle"></i> Generate Applications
+                </a>
+            </p>
+            <?php endif; ?>
         </div>
         <?php else: ?>
         <div style="text-align:center;padding:60px 20px;color:#888;">
@@ -382,17 +409,20 @@
     </div>
 </div>
 
-<?php if ($selected_event && $summary): ?>
+<?php if ($selected_event && $summary && (int)($summary->total ?? 0) > 0): ?>
 <script>
 (function () {
     // Data from PHP
-    var eligible  = <?php echo $eligible_count ?? 0; ?>;
-    var ineligible= <?php echo $inelig_count ?? 0; ?>;
-    var override  = <?php echo $override_count ?? 0; ?>;
-    var pending   = <?php echo $pending_count ?? 0; ?>;
-    var attFail   = <?php echo $att_fail ?? 0; ?>;
-    var feeFail   = <?php echo $fee_fail ?? 0; ?>;
-    var bothFail  = <?php echo $both_fail ?? 0; ?>;
+    var eligible  = <?php echo $eligible_students ?? 0; ?>;
+    var ineligible= <?php echo $inelig_students ?? 0; ?>;
+    var override  = <?php echo $override_students ?? 0; ?>;
+    var pending   = <?php echo $pending_students ?? 0; ?>;
+    var attFail   = <?php echo $att_fail_students ?? 0; ?>;
+    var feeFail   = <?php echo $fee_fail_students ?? 0; ?>;
+    var bothFail  = <?php echo $both_fail_students ?? 0; ?>;
+    var attFailApps  = <?php echo $att_fail ?? 0; ?>;
+    var feeFailApps  = <?php echo $fee_fail ?? 0; ?>;
+    var bothFailApps = <?php echo $both_fail ?? 0; ?>;
     var eligRate  = <?php echo $elig_rate ?? 0; ?>;
 
     // ── Eligibility Donut ─────────────────────────────────────────
@@ -434,7 +464,7 @@
         data: {
             labels: ['Attendance Only', 'Fee Dues Only', 'Att + Fee Both'],
             datasets: [{
-                label: 'Students',
+                label: 'Subject Applications',
                 data: [attFail, feeFail, bothFail],
                 backgroundColor: ['rgba(243,156,18,.8)', 'rgba(221,75,57,.8)', 'rgba(155,89,182,.8)'],
                 borderColor:     ['#f39c12', '#dd4b39', '#9b59b6'],
@@ -447,7 +477,10 @@
             responsive: true,
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: function(c){ return ' ' + c.parsed.x + ' students'; } } }
+                tooltip: { callbacks: { label: function(c){
+                    var apps = [attFailApps, feeFailApps, bothFailApps][c.dataIndex];
+                    return ' ' + c.parsed.x + ' student(s) · ' + apps + ' application(s)';
+                }}}
             },
             scales: {
                 x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,.05)' } },
@@ -493,6 +526,22 @@ $(function () {
     };
 
     // ── Helper: run AJAX engine call ─────────────────────────────────
+    // ── Searchable Batch Exam dropdown ────────────────────────────
+    if ($.fn.select2) {
+        $('#batch-exam-select').select2({
+            placeholder: '— Select Batch —',
+            allowClear: true,
+            width: '280px'
+        }).on('change', function () {
+            document.getElementById('eligibility-filter-form').submit();
+        });
+    } else {
+        // Fallback: plain onchange submit
+        $('#batch-exam-select').on('change', function () {
+            document.getElementById('eligibility-filter-form').submit();
+        });
+    }
+
     function runEngine(btn, postData, iconId) {
         var $btn  = $(btn);
         var $icon = $('#' + iconId);
