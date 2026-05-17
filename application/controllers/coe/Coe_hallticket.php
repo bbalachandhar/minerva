@@ -149,11 +149,15 @@ class Coe_hallticket extends MY_Addon_CoeController
             $student_photo = FCPATH . 'uploads/no_image/no_image.jpg';
         }
 
-        // School logo URL (mPDF loads images via HTTP in this project)
+        // School logo: embed as base64 data URI for reliable mPDF rendering
         $logo_filename = $this->sch_setting_detail->admission_logo_left ?? '';
         $logo_path     = null;
-        if ($logo_filename && is_file(FCPATH . 'uploads/logos/' . $logo_filename)) {
-            $logo_path = base_url('uploads/logos/' . $logo_filename);
+        if ($logo_filename) {
+            $full = FCPATH . 'uploads/logos/' . $logo_filename;
+            if (is_file($full)) {
+                $mime      = mime_content_type($full) ?: 'image/png';
+                $logo_path = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($full));
+            }
         }
 
         // Increment download counter
@@ -210,8 +214,12 @@ class Coe_hallticket extends MY_Addon_CoeController
 
         $logo_filename = $this->sch_setting_detail->admission_logo_left ?? '';
         $logo_path     = null;
-        if ($logo_filename && is_file(FCPATH . 'uploads/logos/' . $logo_filename)) {
-            $logo_path = base_url('uploads/logos/' . $logo_filename);
+        if ($logo_filename) {
+            $full = FCPATH . 'uploads/logos/' . $logo_filename;
+            if (is_file($full)) {
+                $mime      = mime_content_type($full) ?: 'image/png';
+                $logo_path = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($full));
+            }
         }
 
         $this->load->library('m_pdf');

@@ -203,8 +203,12 @@ class Coe_seating extends MY_Addon_CoeController
         $sch_setting     = $this->sch_setting_detail;
         $logo_filename   = $sch_setting->admission_logo_left ?? '';
         $logo_path       = null;
-        if ($logo_filename && is_file(FCPATH . 'uploads/logos/' . $logo_filename)) {
-            $logo_path = base_url('uploads/logos/' . $logo_filename);
+        if ($logo_filename) {
+            $full = FCPATH . 'uploads/logos/' . $logo_filename;
+            if (is_file($full)) {
+                $mime      = mime_content_type($full) ?: 'image/png';
+                $logo_path = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($full));
+            }
         }
 
         $html = $this->load->view('admin/coe/coe_seating/print_seating', [

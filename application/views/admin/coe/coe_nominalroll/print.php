@@ -34,26 +34,28 @@ body { font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#1a1a2e;margi
 <body>
 <div class="page-border">
   <!-- HEADER -->
-  <div class="header">
-    <div class="header-logo">
-      <?php if ($logo_path): ?>
-        <img src="<?php echo $logo_path; ?>" style="width:65px;height:65px;object-fit:contain;">
-      <?php endif; ?>
-    </div>
-    <div class="header-center">
-      <div class="school-name"><?php echo htmlspecialchars($school_name); ?></div>
-      <?php if ($school_addr): ?><div class="school-addr"><?php echo htmlspecialchars($school_addr); ?></div><?php endif; ?>
-      <div class="doc-title">&#9632; Nominal Roll &#9632;</div>
-    </div>
-    <div class="header-right">
-      <?php if ($roll->is_final): ?>
-        <div style="color:#2e7d32;font-weight:bold;">&#9745; FINALIZED</div>
-      <?php else: ?>
-        <div style="color:#e65100;font-weight:bold;">&#9744; DRAFT</div>
-      <?php endif; ?>
-      <div style="margin-top:4px;">Date: <?php echo date('d M Y'); ?></div>
-    </div>
-  </div>
+  <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #1a237e;padding-bottom:8px;margin-bottom:10px;">
+    <tr>
+      <td style="width:75px;vertical-align:middle;text-align:center;">
+        <?php if ($logo_path): ?>
+          <img src="<?php echo $logo_path; ?>" style="width:65px;height:65px;object-fit:contain;">
+        <?php endif; ?>
+      </td>
+      <td style="text-align:center;vertical-align:middle;padding:0 8px;">
+        <div class="school-name"><?php echo htmlspecialchars($school_name); ?></div>
+        <?php if ($school_addr): ?><div class="school-addr"><?php echo htmlspecialchars($school_addr); ?></div><?php endif; ?>
+        <div class="doc-title">&#9632; Nominal Roll &#9632;</div>
+      </td>
+      <td style="width:110px;vertical-align:middle;text-align:right;font-size:8pt;color:#555;">
+        <?php if ($roll->is_final): ?>
+          <div style="color:#2e7d32;font-weight:bold;">&#9745; FINALIZED</div>
+        <?php else: ?>
+          <div style="color:#e65100;font-weight:bold;">&#9744; DRAFT</div>
+        <?php endif; ?>
+        <div style="margin-top:4px;">Date: <?php echo date('d M Y'); ?></div>
+      </td>
+    </tr>
+  </table>
 
   <?php if (!$roll->is_final): ?>
     <div class="watermark">DRAFT &mdash; NOT FOR OFFICIAL USE UNTIL FINALIZED</div>
