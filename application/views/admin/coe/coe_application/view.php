@@ -77,8 +77,10 @@
     <section class="content">
         <?php echo $this->session->flashdata('msg'); ?>
 
-        <?php /* ── MAIN EXAM: subjects not yet assigned warning ── */
-        if (!$is_arrear && isset($main_subject_count) && $main_subject_count === 0): ?>
+        <?php /* ── MAIN EXAM: subjects not yet assigned warning ──
+               Only show if no applications exist yet — if apps already exist,
+               subjects were configured at exam-group level (not CoE subject table) */
+        if (!$is_arrear && isset($main_subject_count) && $main_subject_count === 0 && (int)($stats->total ?? 0) === 0): ?>
         <div class="alert alert-warning alert-dismissible" style="border-radius:8px;border-left:5px solid #f39c12;">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
             <strong><i class="fa fa-exclamation-triangle"></i> Subjects not assigned!</strong>
