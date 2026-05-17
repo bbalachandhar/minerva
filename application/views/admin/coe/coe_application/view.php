@@ -153,6 +153,14 @@ if ($is_arrear):
                                     <i class="fa fa-search"></i>
                                     No subjects with active arrears found for this class.<br>
                                     <small>Arrears are detected from published end-semester results.</small>
+                                    <?php if (!$is_locked && $this->rbac->hasPrivilege('coe_application', 'can_add')): ?>
+                                    <div style="margin-top:10px;">
+                                        <a href="<?php echo site_url('coe/coe_subject/assign/' . $event->id); ?>" class="btn btn-sm btn-warning">
+                                            <i class="fa fa-list-alt"></i> Assign Subjects Manually
+                                        </a>
+                                        <p style="margin-top:6px;font-size:11px;color:#888;">You can manually assign subjects for this exam batch if end-semester results are not yet published.</p>
+                                    </div>
+                                    <?php endif; ?>
                                 </div>
                             <?php else: ?>
                                 <p class="text-muted" style="font-size:12px;margin-bottom:12px;">
@@ -297,11 +305,33 @@ if ($is_arrear):
                STEP 3 (arrear) / MAIN: APPLICATIONS
                ═══════════════════════════════════════════════════════ */
         if ($is_arrear && $total === 0): ?>
-        <div class="setup-box" style="padding:24px;text-align:center;color:#aaa;">
+        <div class="setup-box" style="padding:28px 24px;text-align:center;color:#aaa;">
             <span class="step-badge step3-color" style="display:inline-flex;margin-bottom:10px;">3</span>
             <br>
-            <i class="fa fa-bolt" style="font-size:32px;color:#ddd;display:block;margin-bottom:8px;"></i>
-            Applications will appear here after you click <strong>Generate Applications</strong> above.
+            <i class="fa fa-bolt" style="font-size:36px;color:#ddd;display:block;margin-bottom:10px;"></i>
+            <p style="margin-bottom:16px;font-size:14px;">
+                <?php if ($cand_count > 0): ?>
+                    <strong style="color:#555;"><?php echo $cand_total_pairs; ?> application slot<?php echo $cand_total_pairs !== 1 ? 's' : ''; ?> ready for <?php echo $cand_count; ?> student<?php echo $cand_count !== 1 ? 's' : ''; ?>.</strong><br>
+                    <span style="font-size:12px;">Click the button below to generate application records.</span>
+                <?php elseif ($subjects_saved): ?>
+                    <strong style="color:#555;">Subjects are configured.</strong><br>
+                    <span style="font-size:12px;">No arrear candidates were auto-detected, but you can still run generation — the system will enroll any eligible students found.</span>
+                <?php else: ?>
+                    Applications will appear here after subjects are configured above.
+                <?php endif; ?>
+            </p>
+            <?php if ($is_locked): ?>
+            <span class="text-muted" style="font-size:12px;"><i class="fa fa-lock"></i> Exam is locked — cannot generate applications.</span>
+            <?php elseif ($subjects_saved && !$is_locked && $this->rbac->hasPrivilege('coe_application', 'can_add')): ?>
+            <a href="<?php echo site_url('coe/coe_application/generate/' . $event->id); ?>"
+               class="btn btn-success btn-lg"
+               style="border-radius:8px;padding:10px 28px;"
+               onclick="return confirm('<?php echo $cand_count > 0
+                   ? 'Generate ' . $cand_total_pairs . ' application records for ' . $cand_count . ' students? This action auto-enrolls and creates pending applications.'
+                   : 'Run application generation? The system will check for eligible students and create application records.'; ?>');">
+                <i class="fa fa-bolt"></i> &nbsp;Generate Applications
+            </a>
+            <?php endif; ?>
         </div>
         <?php else: ?>
 
