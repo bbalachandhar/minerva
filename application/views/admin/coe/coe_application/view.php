@@ -85,7 +85,7 @@
             &nbsp;No exam subjects are configured for this batch yet.
             <strong>Generate Applications</strong> and <strong>Run Eligibility</strong> will fail until subjects are assigned.
             &nbsp;&nbsp;
-            <a href="<?php echo site_url('coe/coe_subject/assign/' . $event->id); ?>" class="btn btn-warning btn-xs" style="border-radius:4px;margin-top:-2px;">
+            <a href="<?php echo site_url('coe/coe_subject/assign/' . $event->id); ?>" class="btn btn-warning btn-xs" style="border-radius:4px;margin-top:-2px;color:#fff;">
                 <i class="fa fa-book"></i> Assign Subjects Now
             </a>
         </div>
@@ -155,7 +155,7 @@ if ($is_arrear):
                                     <small>Arrears are detected from published end-semester results.</small>
                                     <?php if (!$is_locked && $this->rbac->hasPrivilege('coe_application', 'can_add')): ?>
                                     <div style="margin-top:10px;">
-                                        <a href="<?php echo site_url('coe/coe_subject/assign/' . $event->id); ?>" class="btn btn-sm btn-warning">
+                                        <a href="<?php echo site_url('coe/coe_subject/assign/' . $event->id); ?>" class="btn btn-sm btn-warning" style="color:#fff;">
                                             <i class="fa fa-list-alt"></i> Assign Subjects Manually
                                         </a>
                                         <p style="margin-top:6px;font-size:11px;color:#888;">You can manually assign subjects for this exam batch if end-semester results are not yet published.</p>
