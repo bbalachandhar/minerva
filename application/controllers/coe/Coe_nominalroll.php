@@ -128,8 +128,17 @@ class Coe_nominalroll extends MY_Addon_CoeController
         if ($logo_filename) {
             $full = FCPATH . 'uploads/logos/' . $logo_filename;
             if (is_file($full)) {
-                $mime      = mime_content_type($full) ?: 'image/png';
-                $logo_path = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($full));
+                $mime = mime_content_type($full) ?: 'image/png';
+                if ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {
+                    $img      = imagecreatefromwebp($full);
+                    ob_start();
+                    imagepng($img);
+                    $raw      = ob_get_clean();
+                    imagedestroy($img);
+                    $logo_path = 'data:image/png;base64,' . base64_encode($raw);
+                } else {
+                    $logo_path = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($full));
+                }
             }
         }
 
