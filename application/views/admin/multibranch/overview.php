@@ -86,7 +86,7 @@ function mcc_abbr($db_name) {
 .mcc-table thead th { background: #f5f5f5; font-size: 12px; white-space: nowrap; }
 .mcc-table td  { font-size: 13px; vertical-align: middle !important; }
 .mcc-table-sm td, .mcc-table-sm th { padding: 5px 8px !important; font-size: 12px; }
-.mcc-stat-card { border-left: 4px solid; border-radius: 3px; background: #fafafa; padding: 10px 14px; margin-bottom: 10px; }
+.mcc-stat-card { border-left: 4px solid; border-radius: 3px; background: #fafafa; padding: 10px 14px; margin-bottom: 10px; flex: 1; min-width: 150px; }
 .mcc-stat-card .lbl { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
 .mcc-stat-card .val { font-size: 18px; font-weight: 700; color: #222; margin-top: 2px; }
 .mcc-load-err { text-align: center; color: #cc0000; padding: 20px; font-size: 13px; }
@@ -735,10 +735,12 @@ function loadAdmissions() {
         $('#admc-adm-tbody').html(admTbody);
         $('#admc-cmp-tbody').html(cmpTbody);
         $('#admc-summary-cards').html(
+            '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:4px">' +
             mkStatCard('#00c0ef', 'Offline Admitted', numFmt(tOffline)) +
             mkStatCard('#f39c12', 'Online Pending',   numFmt(tOnPend))  +
             mkStatCard('#00a65a', 'Online Processed', numFmt(tOnProc))  +
-            mkStatCard('#dd4b39', 'Open Complaints',  numFmt(tOpen))
+            mkStatCard('#dd4b39', 'Open Complaints',  numFmt(tOpen))    +
+            '</div>'
         );
         $('#admc-skeleton').hide();
         $('#admc-content').show();
