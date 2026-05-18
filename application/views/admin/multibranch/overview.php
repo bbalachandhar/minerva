@@ -671,7 +671,12 @@ function loadAdmissions() {
     loaded.admissions = true;
 
     $.getJSON(MCC.urls.admissions).done(function(resp) {
-        if (!resp || resp.status !== 'success') return;
+        if (!resp || resp.status !== 'success') {
+            var msg = (resp && resp.message) ? resp.message : 'Server returned an unexpected response.';
+            $('#admc-skeleton').html('<p class="mcc-load-err"><i class="fa fa-exclamation-triangle"></i> ' + msg + ' <a href="javascript:location.reload()">Reload</a></p>');
+            loaded.admissions = false;
+            return;
+        }
 
         var admTbody='', cmpTbody='';
         var tOffline=0, tOnPend=0, tOnProc=0, tOnTotal=0;
