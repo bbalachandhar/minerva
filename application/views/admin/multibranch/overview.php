@@ -802,17 +802,17 @@ function fmtCr(v) {
 // Student payment-status badge cell (3 lines: fully paid / partial / not paid)
 // dbName + classId are optional — when provided, an eye icon lets the user
 // view the actual list of not-paid students in a modal.
-function stuStatus(fp, fpAmt, pr, prAmt, np, npBilled, dbName, classId) {
+function stuStatus(fp, fpAmt, pr, prAmt, np, npBilled, dbName, classIds) {
     var html = '<div style="line-height:1.55; font-size:12px">';
     html += '<div><span style="color:#27ae60"><i class="fa fa-check-circle"></i> <strong>'+fp+'</strong></span>'+(fpAmt > 0 ? ' <span style="color:#888">'+fmtCr(fpAmt)+'</span>' : '')+'</div>';
     html += '<div><span style="color:#e67e22"><i class="fa fa-adjust"></i> <strong>'+pr+'</strong></span>'+(prAmt > 0 ? ' <span style="color:#888">'+fmtCr(prAmt)+'</span>' : '')+'</div>';
     var eyeBtn = '';
     if (np > 0 && dbName) {
-        eyeBtn = '<a href="#" class="mcc-np-eye" data-db="'+escHtml(dbName)+'" data-classid="'+(classId||0)+'" title="View not-paid students" style="color:#c0392b; margin-left:4px"><i class="fa fa-eye"></i></a>';
+        eyeBtn = '<a href="#" class="mcc-np-eye" data-db="'+escHtml(dbName)+'" data-classids="'+(classIds||'0')+'" title="View not-paid students" style="color:#c0392b; margin-left:4px"><i class="fa fa-eye"></i></a>';
     }
-    html += '<div><span style="color:#c0392b"><i class="fa fa-times-circle"></i> <strong>'+np+'</strong></span>'+
+    html += '<div style="white-space:nowrap"><span style="color:#c0392b"><i class="fa fa-times-circle"></i> <strong>'+np+'</strong></span>'+
         (npBilled > 0
-            ? ' <span style="color:#888; white-space:nowrap">'+fmtCr(npBilled)+(eyeBtn ? ' '+eyeBtn : '')+'</span>'
+            ? ' <span style="color:#888">'+fmtCr(npBilled)+(eyeBtn ? ' '+eyeBtn : '')+'</span>'
             : (eyeBtn ? ' '+eyeBtn : ''))+'</div>';
     html += '</div>';
     return html;
@@ -832,7 +832,7 @@ function buildYearRows(dbName, years) {
             '<td class="text-right">'+fmtAmt(yr.billed)+'</td>'+
             '<td class="text-right"><strong class="text-success">'+fmtAmt(yr.collected)+'</strong></td>'+
             '<td class="text-right text-danger">'+fmtAmt(yr.balance)+'</td>'+
-            '<td>'+stuStatus(yr.fully_paid||0, yr.fully_paid_amt||0, yr.partial||0, yr.partial_amt||0, yr.not_paid||0, yr.not_paid_billed||0, dbName, 0)+'</td>'+
+            '<td>'+stuStatus(yr.fully_paid||0, yr.fully_paid_amt||0, yr.partial||0, yr.partial_amt||0, yr.not_paid||0, yr.not_paid_billed||0, dbName, yr.classes.map(function(c){return c.class_id||0;}).filter(Boolean).join(','))+'</td>'+
             '<td class="text-center">'+feesBar(yPct)+'</td>'+
             '</tr>';
 
@@ -848,7 +848,7 @@ function buildYearRows(dbName, years) {
                 '<td class="text-right">'+fmtAmt(cls.billed)+'</td>'+
                 '<td class="text-right text-success">'+fmtAmt(cls.collected)+'</td>'+
                 '<td class="text-right text-danger">'+fmtAmt(cls.balance)+'</td>'+
-                '<td>'+stuStatus(cls.fully_paid||0, cls.fully_paid_amt||0, cls.partial||0, cls.partial_amt||0, cls.not_paid||0, cls.not_paid_billed||0, dbName, cls.class_id||0)+'</td>'+
+                '<td>'+stuStatus(cls.fully_paid||0, cls.fully_paid_amt||0, cls.partial||0, cls.partial_amt||0, cls.not_paid||0, cls.not_paid_billed||0, dbName, String(cls.class_id||0))+'</td>'+
                 '<td class="text-center">'+feesBar(cPct)+'</td>'+
                 '</tr>';
         });
@@ -1476,14 +1476,15 @@ $(document).ready(function(){
 $(document).on('click', '.mcc-np-eye', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    var db      = $(this).data('db');
-    var classId = $(this).data('classid') || 0;
-    var title   = (MCC.names[db] || db) + ' — Not Paid Students';
-    if (classId > 0) { title += ' (this class)'; }
+    var db       = $(this).data('db');
+    var classIds = String($(this).data('classids') || '0');
+    var filtered = classIds !== '0' && classIds !== '';
+    var title    = (MCC.names[db] || db) + ' — Not Paid Students';
+    if (filtered) { title += ' (filtered)'; }
     $('#mcc-np-modal-title').text(title);
     $('#mcc-np-modal-body').html('<div style="text-align:center;padding:30px"><i class="fa fa-spinner fa-spin fa-2x"></i></div>');
     $('#mcc-np-modal').modal('show');
-    $.getJSON(MCC.urls.feesNotPaid, { db: db, class_id: classId })
+    $.getJSON(MCC.urls.feesNotPaid, { db: db, class_ids: classIds })
         .done(function(resp) {
             if (!resp || resp.status !== 'success') {
                 $('#mcc-np-modal-body').html('<p class="text-danger">Failed to load data.</p>');

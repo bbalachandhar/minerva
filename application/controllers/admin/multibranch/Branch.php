@@ -810,8 +810,14 @@ class Branch extends MY_Addon_MBController
         }
         session_write_close();
 
-        $req_db    = $this->input->get('db');
-        $req_class = (int)$this->input->get('class_id'); // 0 = all
+        $req_db = $this->input->get('db');
+
+        // Accept comma-separated class IDs (e.g. "3,5,7"); "0" or empty = all classes
+        $raw_ids    = $this->input->get('class_ids') ?: '0';
+        $class_ids  = array_values(array_filter(array_map('intval', explode(',', $raw_ids))));
+        $class_filter = !empty($class_ids)
+            ? 'AND ss.class_id IN (' . implode(',', $class_ids) . ')'
+            : '';
 
         $branches      = $this->multibranch_model->getSchoolCurrentSessions();
         $branches_list = $this->multibranch_model->get();
@@ -838,7 +844,6 @@ class Branch extends MY_Addon_MBController
 
         try {
             // ── Billed per student_session ─────────────────────────────────────
-            $class_filter = $req_class > 0 ? 'AND ss.class_id = ' . $req_class : '';
             $billed_rows  = $db->query(
                 "SELECT sfm.student_session_id AS ss_id,
                         ss.class_id,
