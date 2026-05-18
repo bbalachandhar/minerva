@@ -900,9 +900,10 @@ class Branch extends MY_Addon_MBController
 
             $not_paid = [];
             foreach ($billed_rows as $row) {
-                $ssid = (int)$row->ss_id;
-                $paid = isset($paid_by_ss[$ssid]) ? $paid_by_ss[$ssid] : 0.0;
-                if ($paid == 0) {
+                $ssid   = (int)$row->ss_id;
+                $billed = (float)$row->billed;
+                $paid   = isset($paid_by_ss[$ssid]) ? $paid_by_ss[$ssid] : 0.0;
+                if ($paid == 0 && $billed > 0) {
                     // Strip the "ROMAN YEAR " prefix from class name for display
                     $class_parts = explode(' ', $row->class_name, 2);
                     $class_display = count($class_parts) > 1 ? trim($class_parts[1]) : $row->class_name;
