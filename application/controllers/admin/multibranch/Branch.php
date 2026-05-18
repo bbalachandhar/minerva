@@ -206,6 +206,105 @@ class Branch extends MY_Addon_MBController
             ]));
     }
 
+    // ================================================================
+    // ASSETS DRILLDOWN  (institution → item → store/location breakdown)
+    // ================================================================
+    public function assets_drilldown_async()
+    {
+        if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
+            access_denied();
+        }
+        session_write_close();
+
+        $branches      = $this->multibranch_model->getSchoolCurrentSessions();
+        $branches_list = $this->multibranch_model->get();
+
+        $branch_id_map = [];
+        foreach ($branches_list as $b) {
+            $branch_id_map[$b->database_name] = $b->id;
+        }
+
+        $result = [];
+        foreach ($branches as $db_name => $branch_info) {
+            if ($db_name === $this->db->database) {
+                $db = $this->db;
+            } elseif (isset($branch_id_map[$db_name])) {
+                $db = $this->load->database('branch_' . $branch_id_map[$db_name], true);
+            } else {
+                continue;
+            }
+
+            try {
+                $result[$db_name] = $this->_mcc_assets_drilldown($db);
+            } catch (Throwable $e) {
+                log_message('error', '[MCC] assets_drilldown_async ' . $db_name . ': ' . $e->getMessage());
+                $result[$db_name] = [];
+            }
+        }
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(['status' => 'success', 'drilldown' => $result]));
+    }
+
+    /**
+     * Returns item-level breakdown with store/location split.
+     * Shape: [ ['item_id'=>N,'name'=>'...','category'=>'...','total_stock'=>N,'total_value'=>N,'stores'=>[...]], ... ]
+     */
+    private function _mcc_assets_drilldown($db)
+    {
+        // ── 1. Items with total stock and value ────────────────────────────
+        $item_rows = $db->query(
+            "SELECT i.id AS item_id,
+                    i.name AS item_name,
+                    ic.item_category AS category_name,
+                    SUM(ist.quantity) AS total_stock,
+                    ROUND(SUM(ist.quantity * ist.purchase_price)) AS total_value
+             FROM item i
+             JOIN item_category ic ON ic.id = i.item_category_id AND ic.is_active = 'yes'
+             JOIN item_stock ist ON ist.item_id = i.id AND ist.is_active = 'yes'
+             GROUP BY i.id, i.name, ic.item_category
+             ORDER BY ic.item_category, SUM(ist.quantity) DESC"
+        )->result();
+
+        if (empty($item_rows)) return [];
+
+        // ── 2. Store/location breakdown per item ───────────────────────────
+        $store_rows = $db->query(
+            "SELECT ist.item_id,
+                    COALESCE(s.item_store, 'Default Store') AS store_name,
+                    SUM(ist.quantity) AS quantity
+             FROM item_stock ist
+             LEFT JOIN item_store s ON s.id = ist.store_id
+             WHERE ist.is_active = 'yes'
+             GROUP BY ist.item_id, ist.store_id
+             ORDER BY ist.item_id, SUM(ist.quantity) DESC"
+        )->result();
+
+        $stores_by_item = [];
+        foreach ($store_rows as $sr) {
+            $stores_by_item[(int)$sr->item_id][] = [
+                'store_name' => $sr->store_name,
+                'quantity'   => (int)$sr->quantity,
+            ];
+        }
+
+        $items = [];
+        foreach ($item_rows as $row) {
+            $iid     = (int)$row->item_id;
+            $items[] = [
+                'item_id'     => $iid,
+                'name'        => $row->item_name,
+                'category'    => $row->category_name,
+                'total_stock' => (int)$row->total_stock,
+                'total_value' => (float)$row->total_value,
+                'stores'      => isset($stores_by_item[$iid]) ? $stores_by_item[$iid] : [],
+            ];
+        }
+
+        return $items;
+    }
+
     /*
     AJAX — Academics section data (library, admissions, alumni)
     */

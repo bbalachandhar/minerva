@@ -482,7 +482,20 @@ function mcc_abbr($db_name) {
           <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
         </div>
         <div id="assets-table-box" style="display:none">
-          <div id="assets-institution-panels"></div>
+          <div class="table-responsive">
+            <table class="table table-condensed table-bordered mcc-table mcc-table-sm">
+              <thead>
+                <tr>
+                  <th style="min-width:220px">Institution / Item</th>
+                  <th style="min-width:110px">Category</th>
+                  <th class="text-center" style="width:100px">Units</th>
+                  <th class="text-right"  style="width:130px">Value</th>
+                </tr>
+              </thead>
+              <tbody id="assets-tbody"></tbody>
+              <tfoot id="assets-tfoot"></tfoot>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -615,7 +628,8 @@ var MCC = {
         fees:          '<?php echo site_url("admin/multibranch/branch/fees_overview_async"); ?>',
         feesDrilldown: '<?php echo site_url("admin/multibranch/branch/fees_drilldown_async"); ?>',
         hr:            '<?php echo site_url("admin/multibranch/branch/hr_async"); ?>',
-        assets:    '<?php echo site_url("admin/multibranch/branch/assets_async"); ?>',
+        assets:         '<?php echo site_url("admin/multibranch/branch/assets_async"); ?>',
+        assetsDrilldown:'<?php echo site_url("admin/multibranch/branch/assets_drilldown_async"); ?>',
         academics:  '<?php echo site_url("admin/multibranch/branch/academics_async"); ?>',
         attendance: '<?php echo site_url("admin/multibranch/branch/attendance_async"); ?>'
     },
@@ -765,7 +779,8 @@ function loadAdmissions() {
 // ================================================================
 // FEES
 // ================================================================
-var feesDrilldownData = {};  // keyed by db_name, stores year[] from API
+var feesDrilldownData  = {};  // keyed by db_name, stores year[] from API
+var assetsDrilldownData = {}; // keyed by db_name, stores item[] from API
 
 function feesPct(b, c) {
     return b > 0 ? ((c / b) * 100).toFixed(1) : 0;
@@ -1021,54 +1036,101 @@ function loadHR() {
 // ================================================================
 // ASSETS
 // ================================================================
+function buildAssetItemRows(dbName, items) {
+    var html = '';
+    items.forEach(function(item) {
+        var iid       = item.item_id;
+        var hasStores = item.stores && item.stores.length > 1;
+        var cursor    = hasStores ? 'pointer' : 'default';
+        var chevron   = hasStores
+            ? '<i class="fa fa-chevron-right mcc-item-chevron" style="font-size:10px;margin-right:5px;color:#888;transition:transform .2s"></i>'
+            : '<i class="fa fa-minus" style="font-size:10px;margin-right:5px;color:#ccc"></i>';
+        // Level 2: item row
+        html += '<tr class="mcc-asset-item-row" data-db="'+escHtml(dbName)+'" data-item-id="'+iid+'"'+
+                ' style="display:none; background:#f7fafc; cursor:'+cursor+'">';
+        html += '<td style="padding-left:28px">'+chevron+escHtml(item.name)+'</td>';
+        html += '<td><small class="text-muted">'+escHtml(item.category)+'</small></td>';
+        html += '<td class="text-center">'+numFmt(item.total_stock)+'</td>';
+        html += '<td class="text-right">'+MCC.currency+numFmt(item.total_value)+'</td>';
+        html += '</tr>';
+        // Level 3: store/location rows
+        if (item.stores && item.stores.length) {
+            item.stores.forEach(function(store) {
+                html += '<tr class="mcc-asset-store-row" data-db="'+escHtml(dbName)+'" data-item-id="'+iid+'"'+
+                        ' style="display:none; background:#fafcff">';
+                html += '<td style="padding-left:48px"><i class="fa fa-map-marker" style="font-size:10px;margin-right:5px;color:#bbb"></i>'+escHtml(store.store_name)+'</td>';
+                html += '<td></td>';
+                html += '<td class="text-center text-muted">'+numFmt(store.quantity)+'</td>';
+                html += '<td></td>';
+                html += '</tr>';
+            });
+        }
+    });
+    return html;
+}
+
+function wireAssetsToggle() {
+    // Level 1 → toggle item rows for this institution
+    $(document).off('click.assetsL1').on('click.assetsL1', '#assets-tbody .mcc-asset-inst-row', function() {
+        var db    = $(this).data('db');
+        var $items = $('#assets-tbody .mcc-asset-item-row[data-db="'+db+'"]');
+        var opening = $items.first().is(':hidden');
+        // Collapse all store rows first
+        $('#assets-tbody .mcc-asset-store-row[data-db="'+db+'"]').hide();
+        $('#assets-tbody .mcc-asset-item-row[data-db="'+db+'"] .mcc-item-chevron').css('transform','');
+        $items.toggle(opening);
+        $(this).find('.mcc-inst-chevron').css('transform', opening ? 'rotate(90deg)' : '');
+    });
+
+    // Level 2 → toggle store rows for this item (stop propagation to L1)
+    $(document).off('click.assetsL2').on('click.assetsL2', '#assets-tbody .mcc-asset-item-row', function(e) {
+        e.stopPropagation();
+        var db   = $(this).data('db');
+        var iid  = $(this).data('item-id');
+        var $stores = $('#assets-tbody .mcc-asset-store-row[data-db="'+db+'"][data-item-id="'+iid+'"]');
+        if (!$stores.length) return;
+        var opening = $stores.first().is(':hidden');
+        $stores.toggle(opening);
+        $(this).find('.mcc-item-chevron').css('transform', opening ? 'rotate(90deg)' : '');
+    });
+}
+
 function loadAssets() {
     if (loaded.assets) return;
     loaded.assets = true;
 
-    $.getJSON(MCC.urls.assets).done(function(resp) {
+    var reqSummary   = $.getJSON(MCC.urls.assets);
+    var reqDrilldown = $.getJSON(MCC.urls.assetsDrilldown);
+
+    reqSummary.done(function(resp) {
         if (!resp || resp.status !== 'success') return;
 
-        var tValue=0, tStock=0, tItems=0, panelsHtml='';
+        var tValue=0, tStock=0, tItems=0;
+        var tbody = '';
 
-        resp.rows.forEach(function(row,i) {
+        resp.rows.forEach(function(row, i) {
             tValue += row.total_value;
             tStock += row.total_stock;
             tItems += row.total_items;
             var color = MCC.colors[i]||'#3c8dbc';
-
-            var catRows='';
-            if (row.categories && row.categories.length) {
-                row.categories.forEach(function(cat) {
-                    catRows += '<tr>'+
-                        '<td>'+escHtml(cat.name)+'</td>'+
-                        '<td class="text-center">'+cat.item_types+'</td>'+
-                        '<td class="text-center">'+numFmt(cat.total_stock)+'</td>'+
-                        '<td class="text-right"><strong>'+cat.total_value_fmt+'</strong></td>'+
-                        '</tr>';
-                });
-            } else {
-                catRows = '<tr><td colspan="4" class="text-center text-muted" style="padding:10px">No inventory data</td></tr>';
-            }
-
-            panelsHtml +=
-                '<div class="box" style="border-radius:4px; border-top:3px solid '+color+'; margin-bottom:12px">'+
-                    '<div class="box-header" style="padding:10px 15px; background:#fafafa; border-bottom:1px solid #eee">'+
-                        '<span class="mcc-dot-lg" style="background:'+color+'"></span>'+
-                        '<strong style="font-size:14px">'+escHtml(row.name)+'</strong>'+
-                        '<span class="pull-right" style="font-size:12px; color:#666">'+
-                            '<i class="fa fa-tag"></i> '+row.total_items+' types &nbsp;'+
-                            '<i class="fa fa-archive"></i> '+numFmt(row.total_stock)+' units &nbsp;'+
-                            '<strong style="color:#e67e22"><i class="fa fa-inr"></i> '+row.total_value_fmt+'</strong>'+
-                        '</span>'+
-                    '</div>'+
-                    '<div class="table-responsive">'+
-                        '<table class="table table-condensed table-bordered mcc-table mcc-table-sm">'+
-                            '<thead><tr><th>Category</th><th class="text-center">Items</th><th class="text-center">Units</th><th class="text-right">Value</th></tr></thead>'+
-                            '<tbody>'+catRows+'</tbody>'+
-                        '</table>'+
-                    '</div>'+
-                '</div>';
+            tbody +=
+                '<tr class="mcc-asset-inst-row" data-db="'+escHtml(row.db_name)+'" style="cursor:pointer" title="Click to expand item breakdown">'+
+                '<td>'+
+                    '<i class="fa fa-chevron-right mcc-inst-chevron" style="font-size:11px;margin-right:6px;color:#666;transition:transform .2s"></i>'+
+                    '<span class="mcc-dot" style="background:'+color+'"></span>'+
+                    escHtml(MCC.names[row.db_name]||row.db_name)+
+                '</td>'+
+                '<td><small class="text-muted">'+row.total_items+' types</small></td>'+
+                '<td class="text-center">'+numFmt(row.total_stock)+'</td>'+
+                '<td class="text-right"><strong>'+row.total_value_fmt+'</strong></td>'+
+                '</tr>';
         });
+        $('#assets-tbody').html(tbody);
+        $('#assets-tfoot').html(
+            '<tr class="mcc-tfoot-row"><td colspan="2"><strong>Grand Total</strong></td>'+
+            '<td class="text-center"><strong>'+numFmt(tStock)+'</strong></td>'+
+            '<td class="text-right"><strong>'+MCC.currency+numFmt(tValue)+'</strong></td></tr>'
+        );
 
         $('#kpi-asset-value').text(MCC.currency + numFmt(tValue));
         $('#assets-summary-cards').html(
@@ -1076,7 +1138,19 @@ function loadAssets() {
             mkStatCard('#3c8dbc','Total Stock Units',  numFmt(tStock)) +
             mkStatCard('#605ca8','Distinct Item Types',tItems)
         );
-        $('#assets-institution-panels').html(panelsHtml);
+
+        // Once drilldown data arrives, inject sub-rows after each institution row
+        reqDrilldown.done(function(dr) {
+            if (!dr || dr.status !== 'success') return;
+            assetsDrilldownData = dr.drilldown || {};
+            resp.rows.forEach(function(row) {
+                var items = assetsDrilldownData[row.db_name];
+                if (!items || !items.length) return;
+                var subHtml = buildAssetItemRows(row.db_name, items);
+                $('#assets-tbody tr.mcc-asset-inst-row[data-db="'+row.db_name+'"]').after(subHtml);
+            });
+            wireAssetsToggle();
+        });
 
         $('#assets-chart-skeleton').hide(); $('#assets-table-skeleton').hide();
         $('#assets-chart-box').show();      $('#assets-table-box').show();
