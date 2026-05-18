@@ -400,7 +400,8 @@ function mcc_abbr($db_name) {
               <th class="text-right">Billed</th>
               <th class="text-right">Collected</th>
               <th class="text-right">Balance</th>
-              <th class="text-center">Collection %</th>
+              <th style="min-width:170px">Students</th>
+              <th class="text-center" style="min-width:110px">Collection %</th>
             </tr></thead>
             <tbody id="fees-tbody"></tbody>
             <tfoot id="fees-tfoot"></tfoot>
@@ -790,6 +791,22 @@ function feesBar(pct) {
     return '<div class="mcc-pct-wrap"><div class="mcc-pct-bar" style="width:'+pct+'%;background:'+col+'"></div></div><small>'+pct+'%</small>';
 }
 function fmtAmt(v) { return MCC.currency + numFmt(v); }
+// Compact amount: 1.88Cr / 12.5L / 95K / raw
+function fmtCr(v) {
+    if (v >= 10000000) return MCC.currency + (v/10000000).toFixed(2)+'Cr';
+    if (v >= 100000)   return MCC.currency + (v/100000).toFixed(1)+'L';
+    if (v >= 1000)     return MCC.currency + (v/1000).toFixed(0)+'K';
+    return MCC.currency + numFmt(v);
+}
+// Student payment-status badge cell (3 lines: fully paid / partial / not paid)
+function stuStatus(fp, fpAmt, pr, prAmt, np) {
+    var html = '<div style="line-height:1.55; font-size:12px">';
+    html += '<div><span style="color:#27ae60"><i class="fa fa-check-circle"></i> <strong>'+fp+'</strong></span>'+(fpAmt > 0 ? ' <span style="color:#888">'+fmtCr(fpAmt)+'</span>' : '')+'</div>';
+    html += '<div><span style="color:#e67e22"><i class="fa fa-adjust"></i> <strong>'+pr+'</strong></span>'+(prAmt > 0 ? ' <span style="color:#888">'+fmtCr(prAmt)+'</span>' : '')+'</div>';
+    html += '<div><span style="color:#c0392b"><i class="fa fa-times-circle"></i> <strong>'+np+'</strong></span></div>';
+    html += '</div>';
+    return html;
+}
 
 function buildYearRows(dbName, years) {
     var html = '';
@@ -805,6 +822,7 @@ function buildYearRows(dbName, years) {
             '<td class="text-right">'+fmtAmt(yr.billed)+'</td>'+
             '<td class="text-right"><strong class="text-success">'+fmtAmt(yr.collected)+'</strong></td>'+
             '<td class="text-right text-danger">'+fmtAmt(yr.balance)+'</td>'+
+            '<td>'+stuStatus(yr.fully_paid||0, yr.fully_paid_amt||0, yr.partial||0, yr.partial_amt||0, yr.not_paid||0)+'</td>'+
             '<td class="text-center">'+feesBar(yPct)+'</td>'+
             '</tr>';
 
@@ -820,6 +838,7 @@ function buildYearRows(dbName, years) {
                 '<td class="text-right">'+fmtAmt(cls.billed)+'</td>'+
                 '<td class="text-right text-success">'+fmtAmt(cls.collected)+'</td>'+
                 '<td class="text-right text-danger">'+fmtAmt(cls.balance)+'</td>'+
+                '<td>'+stuStatus(cls.fully_paid||0, cls.fully_paid_amt||0, cls.partial||0, cls.partial_amt||0, cls.not_paid||0)+'</td>'+
                 '<td class="text-center">'+feesBar(cPct)+'</td>'+
                 '</tr>';
         });
@@ -839,12 +858,18 @@ function loadFees() {
         if (!resp || resp.status !== 'success') return;
 
         var totalFees=0, totalPaid=0, totalBalance=0;
+        var tFP=0, tFPAmt=0, tPR=0, tPRAmt=0, tNP=0;
 
         if (resp.rows) {
             resp.rows.forEach(function(row) {
                 totalFees    += row.total_fees;
                 totalPaid    += row.total_paid;
                 totalBalance += row.total_balance;
+                tFP    += (row.fully_paid_count || 0);
+                tFPAmt += (row.fully_paid_amt   || 0);
+                tPR    += (row.partial_count    || 0);
+                tPRAmt += (row.partial_amt      || 0);
+                tNP    += (row.not_paid_count   || 0);
                 $('.mcc-fees-collected[data-db="'+row.db_name+'"]').html(row.total_paid_formatted);
                 $('.mcc-fees-balance[data-db="'+row.db_name+'"]').html(row.total_balance_formatted);
             });
@@ -856,7 +881,10 @@ function loadFees() {
                 mkStatCard('#3c8dbc','Total Billed',    MCC.currency+numFmt(totalFees))    +
                 mkStatCard('#00a65a','Collected',       MCC.currency+numFmt(totalPaid))    +
                 mkStatCard('#dd4b39','Balance',         MCC.currency+numFmt(totalBalance)) +
-                mkStatCard('#f39c12','Collection Rate', pct+'%')
+                mkStatCard('#f39c12','Collection Rate', pct+'%')                           +
+                mkStatCard('#27ae60','Fully Paid',      fmtCr(tFPAmt)+'<br><small style="color:#777">'+numFmt(tFP)+' students</small>') +
+                mkStatCard('#e67e22','Partially Paid',  fmtCr(tPRAmt)+'<br><small style="color:#777">'+numFmt(tPR)+' students</small>') +
+                mkStatCard('#c0392b','Not Paid',        numFmt(tNP)+' students')
             );
 
             // Build main institution rows
@@ -876,6 +904,7 @@ function loadFees() {
                     '<td class="text-right">'+row.total_fees_formatted+'</td>'+
                     '<td class="text-right"><strong class="text-success">'+row.total_paid_formatted+'</strong></td>'+
                     '<td class="text-right text-danger">'+row.total_balance_formatted+'</td>'+
+                    '<td>'+stuStatus(row.fully_paid_count||0, row.fully_paid_amt||0, row.partial_count||0, row.partial_amt||0, row.not_paid_count||0)+'</td>'+
                     '<td class="text-center">'+feesBar(rowPct)+'</td>'+
                     '</tr>';
             });
@@ -886,6 +915,7 @@ function loadFees() {
                 '<td class="text-right"><strong>'+MCC.currency+numFmt(tfees)+'</strong></td>'+
                 '<td class="text-right"><strong class="text-success">'+MCC.currency+numFmt(tpaid)+'</strong></td>'+
                 '<td class="text-right text-danger"><strong>'+MCC.currency+numFmt(tbal)+'</strong></td>'+
+                '<td>'+stuStatus(tFP, tFPAmt, tPR, tPRAmt, tNP)+'</td>'+
                 '<td class="text-center"><strong>'+fpct+'%</strong></td></tr>'
             );
 

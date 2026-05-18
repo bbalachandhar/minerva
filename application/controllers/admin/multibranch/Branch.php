@@ -517,10 +517,12 @@ class Branch extends MY_Addon_MBController
 
             try {
                 list($total_fees, $total_paid) = $this->_mcc_fees_summary($db, $session_id);
+                $counts = $this->_mcc_student_counts($db, $session_id);
             } catch (Throwable $e) {
                 log_message('error', '[MCC] fees_overview_async ' . $db_name . ': ' . $e->getMessage());
                 $total_fees = 0;
                 $total_paid = 0;
+                $counts     = ['fully_paid' => 0, 'fully_paid_amt' => 0.0, 'partial' => 0, 'partial_amt' => 0.0, 'not_paid' => 0, 'by_class' => []];
             }
             $total_balance = $total_fees - $total_paid;
 
@@ -535,6 +537,11 @@ class Branch extends MY_Addon_MBController
                 'total_paid_formatted'    => $currency_symbol . amountFormat($total_paid),
                 'total_balance_formatted' => $currency_symbol . amountFormat($total_balance),
                 'collection_pct'          => $total_fees > 0 ? round(($total_paid / $total_fees) * 100, 1) : 0,
+                'fully_paid_count'        => $counts['fully_paid'],
+                'fully_paid_amt'          => $counts['fully_paid_amt'],
+                'partial_count'           => $counts['partial'],
+                'partial_amt'             => $counts['partial_amt'],
+                'not_paid_count'          => $counts['not_paid'],
             ];
 
             $chart_labels[]        = $branch_info->name;
@@ -648,6 +655,101 @@ class Branch extends MY_Addon_MBController
         return [$total_billed, $total_collected];
     }
 
+    /**
+     * Categorises every enrolled student for a session into:
+     *   fully_paid  — paid >= billed
+     *   partial     — 0 < paid < billed
+     *   not_paid    — paid = 0
+     * Returns totals + a by_class[] array keyed by class_id for drilldown use.
+     */
+    private function _mcc_student_counts($db, $session_id)
+    {
+        // ── Billed per student_session (with class_id) ────────────────────────
+        $billed_rows = $db->query(
+            "SELECT sfm.student_session_id AS ss_id, ss.class_id,
+                    SUM(COALESCE(sfo.override_amount, fgf.amount)) AS billed
+             FROM student_fees_master sfm
+             JOIN student_session ss  ON ss.id  = sfm.student_session_id
+             JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
+             JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+             JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+             JOIN feetype ft           ON ft.id  = fgf.feetype_id
+                                      AND LOWER(ft.type) NOT IN ('advance payments')
+             LEFT JOIN student_fee_overrides sfo
+                    ON sfo.student_session_id   = sfm.student_session_id
+                   AND sfo.fee_groups_feetype_id = fgf.id
+             WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+             GROUP BY sfm.student_session_id, ss.class_id",
+            [$session_id]
+        )->result();
+
+        // ── Deposits per student_session (parse JSON in PHP) ──────────────────
+        $deposit_rows = $db->query(
+            "SELECT sfm.student_session_id AS ss_id, sfd.amount_detail
+             FROM student_fees_deposite sfd
+             JOIN student_fees_master sfm ON sfm.id = sfd.student_fees_master_id
+                                         AND sfm.is_active = 'yes'
+             JOIN student_session ss ON ss.id = sfm.student_session_id
+             JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
+             WHERE ss.session_id = ?
+               AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
+            [$session_id]
+        )->result();
+
+        $paid_by_ss = [];
+        foreach ($deposit_rows as $dep) {
+            $detail = json_decode($dep->amount_detail);
+            if (!is_object($detail)) continue;
+            $ssid = (int)$dep->ss_id;
+            if (!isset($paid_by_ss[$ssid])) $paid_by_ss[$ssid] = 0.0;
+            foreach ($detail as $payment) {
+                $paid_by_ss[$ssid] += (float)$payment->amount;
+                if (isset($payment->amount_discount)) {
+                    $paid_by_ss[$ssid] += (float)$payment->amount_discount;
+                }
+            }
+        }
+
+        $totals = [
+            'fully_paid'     => 0, 'fully_paid_amt' => 0.0,
+            'partial'        => 0, 'partial_amt'    => 0.0,
+            'not_paid'       => 0,
+            'by_class'       => [],
+        ];
+
+        foreach ($billed_rows as $row) {
+            $ssid   = (int)$row->ss_id;
+            $cid    = (int)$row->class_id;
+            $billed = (float)$row->billed;
+            $paid   = isset($paid_by_ss[$ssid]) ? $paid_by_ss[$ssid] : 0.0;
+
+            if (!isset($totals['by_class'][$cid])) {
+                $totals['by_class'][$cid] = [
+                    'fully_paid' => 0, 'fully_paid_amt' => 0.0,
+                    'partial'    => 0, 'partial_amt'    => 0.0,
+                    'not_paid'   => 0,
+                ];
+            }
+
+            if ($billed > 0 && $paid >= $billed) {
+                $totals['fully_paid']++;
+                $totals['fully_paid_amt'] += $paid;
+                $totals['by_class'][$cid]['fully_paid']++;
+                $totals['by_class'][$cid]['fully_paid_amt'] += $paid;
+            } elseif ($paid > 0) {
+                $totals['partial']++;
+                $totals['partial_amt'] += $paid;
+                $totals['by_class'][$cid]['partial']++;
+                $totals['by_class'][$cid]['partial_amt'] += $paid;
+            } else {
+                $totals['not_paid']++;
+                $totals['by_class'][$cid]['not_paid']++;
+            }
+        }
+
+        return $totals;
+    }
+
     // ================================================================
     // FEES DRILLDOWN  (year → class breakdown per institution)
     // ================================================================
@@ -751,7 +853,11 @@ class Branch extends MY_Addon_MBController
             }
         }
 
-        // ── 3. Assemble year → classes tree ───────────────────────────────────
+        // ── 3. Student payment status per student_session ─────────────────────
+        $counts          = $this->_mcc_student_counts($db, $session_id);
+        $counts_by_class = $counts['by_class'];
+
+        // ── 4. Assemble year → classes tree ───────────────────────────────────
         $year_order = ['I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4, 'V' => 5];
         $years      = [];   // keyed by year_ord string
 
@@ -760,17 +866,34 @@ class Branch extends MY_Addon_MBController
             $cid = (int)$row->class_id;
             $b   = (float)$row->billed;
             $col = isset($collected_by_class[$cid]) ? $collected_by_class[$cid] : 0;
+            $cc  = isset($counts_by_class[$cid]) ? $counts_by_class[$cid]
+                 : ['fully_paid' => 0, 'fully_paid_amt' => 0.0, 'partial' => 0, 'partial_amt' => 0.0, 'not_paid' => 0];
 
             if (!isset($years[$yr])) {
-                $years[$yr] = ['year' => $yr, 'billed' => 0, 'collected' => 0, 'classes' => []];
+                $years[$yr] = [
+                    'year' => $yr, 'billed' => 0, 'collected' => 0, 'classes' => [],
+                    'fully_paid' => 0, 'fully_paid_amt' => 0.0,
+                    'partial'    => 0, 'partial_amt'    => 0.0,
+                    'not_paid'   => 0,
+                ];
             }
-            $years[$yr]['billed']    += $b;
-            $years[$yr]['collected'] += $col;
+            $years[$yr]['billed']        += $b;
+            $years[$yr]['collected']     += $col;
+            $years[$yr]['fully_paid']     += $cc['fully_paid'];
+            $years[$yr]['fully_paid_amt'] += $cc['fully_paid_amt'];
+            $years[$yr]['partial']        += $cc['partial'];
+            $years[$yr]['partial_amt']    += $cc['partial_amt'];
+            $years[$yr]['not_paid']       += $cc['not_paid'];
             $years[$yr]['classes'][]  = [
-                'name'      => $row->class_display,
-                'billed'    => $b,
-                'collected' => $col,
-                'balance'   => $b - $col,
+                'name'           => $row->class_display,
+                'billed'         => $b,
+                'collected'      => $col,
+                'balance'        => $b - $col,
+                'fully_paid'     => $cc['fully_paid'],
+                'fully_paid_amt' => $cc['fully_paid_amt'],
+                'partial'        => $cc['partial'],
+                'partial_amt'    => $cc['partial_amt'],
+                'not_paid'       => $cc['not_paid'],
             ];
         }
 
