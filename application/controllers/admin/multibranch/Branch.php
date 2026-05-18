@@ -277,14 +277,23 @@ class Branch extends MY_Addon_MBController
                     continue;
                 }
 
-                $r_off  = $db->query("SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?", [$session_id]);
-                $r_pend = $db->query("SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND form_status = 0", [$adm_sid]);
-                $r_proc = $db->query("SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND form_status = 1", [$adm_sid]);
-                $r_cmp  = $db->query("SELECT status, COUNT(*) AS c FROM complaint GROUP BY status");
+                $r_off    = $db->query("SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?", [$session_id]);
+                $r_online = $db->query("SELECT paid_status, COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND COALESCE(admission_status,'active') = 'active' GROUP BY paid_status", [$adm_sid]);
+                $r_revok  = $db->query("SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND COALESCE(admission_status,'active') = 'cancelled'", [$adm_sid]);
+                $r_cmp    = $db->query("SELECT status, COUNT(*) AS c FROM complaint GROUP BY status");
 
-                $offline          = ($r_off  && $r_off->num_rows()  > 0) ? (int)$r_off->row()->c  : 0;
-                $online_pending   = ($r_pend && $r_pend->num_rows() > 0) ? (int)$r_pend->row()->c : 0;
-                $online_processed = ($r_proc && $r_proc->num_rows() > 0) ? (int)$r_proc->row()->c : 0;
+                $offline     = ($r_off && $r_off->num_rows() > 0) ? (int)$r_off->row()->c : 0;
+                $online_pmap = [];
+                if ($r_online) {
+                    foreach ($r_online->result_array() as $r) {
+                        $online_pmap[(int)$r['paid_status']] = (int)$r['c'];
+                    }
+                }
+                $online_fee_paid = $online_pmap[2] ?? 0;
+                $online_app_fee  = $online_pmap[1] ?? 0;
+                $online_not_paid = $online_pmap[0] ?? 0;
+                $online_total    = $online_fee_paid + $online_app_fee + $online_not_paid;
+                $online_revoked  = ($r_revok && $r_revok->num_rows() > 0) ? (int)$r_revok->row()->c : 0;
 
                 $complaints = ['open' => 0, 'in_progress' => 0, 'resolved' => 0, 'closed' => 0];
                 if ($r_cmp) {
@@ -300,9 +309,11 @@ class Branch extends MY_Addon_MBController
                     'name'                 => $branch_info->name,
                     'session'              => $branch_info->session,
                     'offline_admission'    => $offline,
-                    'online_pending'       => $online_pending,
-                    'online_processed'     => $online_processed,
-                    'online_total'         => $online_pending + $online_processed,
+                    'online_total'         => $online_total,
+                    'online_fee_paid'      => $online_fee_paid,
+                    'online_app_fee'       => $online_app_fee,
+                    'online_not_paid'      => $online_not_paid,
+                    'online_revoked'       => $online_revoked,
                     'complaints_open'      => $complaints['open'],
                     'complaints_inprogress'=> $complaints['in_progress'],
                     'complaints_resolved'  => $complaints['resolved'],
