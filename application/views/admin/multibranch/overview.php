@@ -287,7 +287,10 @@ function mcc_abbr($db_name) {
 
 <!-- SECTION NAV -->
 <ul class="nav nav-tabs" id="mcc-nav" style="margin-bottom:20px; border-bottom:2px solid #ddd">
-  <li class="active" id="nav-fees">
+  <li class="active" id="nav-admissions">
+    <a href="#section-admissions" data-section="admissions"><i class="fa fa-pencil-square-o"></i> Admissions &amp; Complaints</a>
+  </li>
+  <li id="nav-fees">
     <a href="#section-fees" data-section="fees"><i class="fa fa-money"></i> Fees</a>
   </li>
   <li id="nav-hr">
@@ -306,6 +309,61 @@ function mcc_abbr($db_name) {
     <a href="javascript:window.print()" title="Print"><i class="fa fa-print"></i></a>
   </li>
 </ul>
+
+<!-- ADMISSIONS & COMPLAINTS -->
+<div class="box" id="section-admissions" data-section="admissions" style="border-radius:4px; border-top:3px solid #00c0ef">
+  <div class="box-header with-border" style="background:#00c0ef; padding:12px 18px">
+    <h3 class="box-title" style="color:#fff; font-size:15px; font-weight:600"><i class="fa fa-pencil-square-o"></i> Admissions &amp; Complaints</h3>
+    <span class="pull-right" style="color:rgba(255,255,255,.75); font-size:12px">Current session admissions &middot; all-time complaint status</span>
+  </div>
+  <div class="box-body">
+    <div id="admc-skeleton">
+      <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
+      <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
+    </div>
+    <div id="admc-content" style="display:none">
+      <div id="admc-summary-cards" style="margin-bottom:16px"></div>
+      <div class="row">
+        <div class="col-md-7">
+          <p style="font-size:13px; font-weight:700; color:#444; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px">
+            <i class="fa fa-pencil-square-o" style="color:#00c0ef"></i> Admissions (Current Session)
+          </p>
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered mcc-table">
+              <thead><tr>
+                <th>Institution</th>
+                <th>Session</th>
+                <th class="text-right">Offline</th>
+                <th class="text-right">Online Pending</th>
+                <th class="text-right">Online Processed</th>
+                <th class="text-right">Online Total</th>
+              </tr></thead>
+              <tbody id="admc-adm-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-5">
+          <p style="font-size:13px; font-weight:700; color:#444; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px">
+            <i class="fa fa-ticket" style="color:#dd4b39"></i> Complaints Received
+          </p>
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered mcc-table">
+              <thead><tr>
+                <th>Institution</th>
+                <th class="text-center">Open</th>
+                <th class="text-center">In Progress</th>
+                <th class="text-center">Resolved</th>
+                <th class="text-center">Closed</th>
+                <th class="text-right">Total</th>
+              </tr></thead>
+              <tbody id="admc-cmp-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- FEES -->
 <div class="box" id="section-fees" data-section="fees" style="border-radius:4px; border-top:3px solid #3c8dbc">
@@ -549,6 +607,7 @@ function mcc_abbr($db_name) {
 var ChartV2 = Chart;
 var MCC = {
     urls: {
+        admissions: '<?php echo site_url("admin/multibranch/branch/admission_complaint_async"); ?>',
         fees:      '<?php echo site_url("admin/multibranch/branch/fees_overview_async"); ?>',
         hr:        '<?php echo site_url("admin/multibranch/branch/hr_async"); ?>',
         assets:    '<?php echo site_url("admin/multibranch/branch/assets_async"); ?>',
@@ -566,7 +625,7 @@ var branchSessions = <?php
     echo json_encode($bs);
 ?>;
 
-var loaded = { fees: false, hr: false, assets: false, academics: false, attendance: false };
+var loaded = { admissions: false, fees: false, hr: false, assets: false, academics: false, attendance: false };
 
 // ---- Helpers ----
 function escHtml(str) {
@@ -601,6 +660,87 @@ function buildGroupedBar(ctx, labels, datasets, opts) {
                 return label + ': ' + MCC.currency + Number(val).toLocaleString('en-IN');
             } } }
         }
+    });
+}
+
+// ================================================================
+// ADMISSIONS & COMPLAINTS
+// ================================================================
+function loadAdmissions() {
+    if (loaded.admissions) return;
+    loaded.admissions = true;
+
+    $.getJSON(MCC.urls.admissions).done(function(resp) {
+        if (!resp || resp.status !== 'success') return;
+
+        var admTbody='', cmpTbody='';
+        var tOffline=0, tOnPend=0, tOnProc=0, tOnTotal=0;
+        var tOpen=0, tInProg=0, tResolved=0, tClosed=0, tCmpTotal=0;
+
+        resp.rows.forEach(function(row, i) {
+            tOffline  += row.offline_admission;
+            tOnPend   += row.online_pending;
+            tOnProc   += row.online_processed;
+            tOnTotal  += row.online_total;
+            tOpen     += row.complaints_open;
+            tInProg   += row.complaints_inprogress;
+            tResolved += row.complaints_resolved;
+            tClosed   += row.complaints_closed;
+            tCmpTotal += row.complaints_total;
+            var color = MCC.colors[i] || '#00c0ef';
+            var dot   = '<span class="mcc-dot" style="background:'+color+'"></span>';
+
+            admTbody +=
+                '<tr>'+
+                '<td>'+dot+escHtml(MCC.names[row.db_name]||row.db_name)+'</td>'+
+                '<td>'+escHtml(row.session||'—')+'</td>'+
+                '<td class="text-right"><strong>'+numFmt(row.offline_admission)+'</strong></td>'+
+                '<td class="text-right" style="color:#f39c12; font-weight:600">'+numFmt(row.online_pending)+'</td>'+
+                '<td class="text-right" style="color:#00a65a; font-weight:600">'+numFmt(row.online_processed)+'</td>'+
+                '<td class="text-right">'+numFmt(row.online_total)+'</td>'+
+                '</tr>';
+
+            cmpTbody +=
+                '<tr>'+
+                '<td>'+dot+escHtml(MCC.names[row.db_name]||row.db_name)+'</td>'+
+                '<td class="text-center" style="color:#dd4b39; font-weight:600">'+numFmt(row.complaints_open)+'</td>'+
+                '<td class="text-center" style="color:#f39c12; font-weight:600">'+numFmt(row.complaints_inprogress)+'</td>'+
+                '<td class="text-center" style="color:#00a65a; font-weight:600">'+numFmt(row.complaints_resolved)+'</td>'+
+                '<td class="text-center" style="color:#3c8dbc; font-weight:600">'+numFmt(row.complaints_closed)+'</td>'+
+                '<td class="text-right"><strong>'+numFmt(row.complaints_total)+'</strong></td>'+
+                '</tr>';
+        });
+
+        admTbody += '<tr class="mcc-tfoot-row">'+
+            '<td colspan="2"><strong>Total</strong></td>'+
+            '<td class="text-right"><strong>'+numFmt(tOffline)+'</strong></td>'+
+            '<td class="text-right" style="color:#f39c12; font-weight:600">'+numFmt(tOnPend)+'</td>'+
+            '<td class="text-right" style="color:#00a65a; font-weight:600">'+numFmt(tOnProc)+'</td>'+
+            '<td class="text-right"><strong>'+numFmt(tOnTotal)+'</strong></td>'+
+            '</tr>';
+        cmpTbody += '<tr class="mcc-tfoot-row">'+
+            '<td><strong>Total</strong></td>'+
+            '<td class="text-center" style="color:#dd4b39; font-weight:600">'+numFmt(tOpen)+'</td>'+
+            '<td class="text-center" style="color:#f39c12; font-weight:600">'+numFmt(tInProg)+'</td>'+
+            '<td class="text-center" style="color:#00a65a; font-weight:600">'+numFmt(tResolved)+'</td>'+
+            '<td class="text-center" style="color:#3c8dbc; font-weight:600">'+numFmt(tClosed)+'</td>'+
+            '<td class="text-right"><strong>'+numFmt(tCmpTotal)+'</strong></td>'+
+            '</tr>';
+
+        $('#admc-adm-tbody').html(admTbody);
+        $('#admc-cmp-tbody').html(cmpTbody);
+        $('#admc-summary-cards').html(
+            mkStatCard('#00c0ef', 'Offline Admitted', numFmt(tOffline)) +
+            mkStatCard('#f39c12', 'Online Pending',   numFmt(tOnPend))  +
+            mkStatCard('#00a65a', 'Online Processed', numFmt(tOnProc))  +
+            mkStatCard('#dd4b39', 'Open Complaints',  numFmt(tOpen))
+        );
+        $('#admc-skeleton').hide();
+        $('#admc-content').show();
+
+    }).fail(function(){
+        $('#admc-skeleton').html('<p class="mcc-load-err"><i class="fa fa-exclamation-triangle"></i> Failed to load admissions data. <a href="javascript:location.reload()">Reload page</a></p>');
+        loaded.admissions = false;
     });
 }
 
@@ -1028,7 +1168,7 @@ function mkStatCard(color, label, value) {
 
 // ---- Sticky nav active state ----
 function updateNavActive() {
-    var sections = ['fees','hr','assets','academics','attendance'], current='fees';
+    var sections = ['admissions','fees','hr','assets','academics','attendance'], current='admissions';
     sections.forEach(function(s){
         var el=document.getElementById('section-'+s);
         if(el && el.getBoundingClientRect().top <= 120) current=s;
@@ -1046,15 +1186,16 @@ $(document).on('click','#mcc-nav a[data-section]',function(e){
 
 // ---- Boot ----
 $(document).ready(function(){
-    loadFees(); // fees loads first (most important KPI)
+    loadAdmissions(); // admissions loads first (top section)
+    setTimeout(function(){ loadFees();       }, 200);
 
     // Fire all remaining loaders eagerly with a small stagger so the server
-    // isn't hit with 5 heavy parallel queries. Each section shows its own
+    // isn't hit with heavy parallel queries. Each section shows its own
     // loading spinner while waiting — no scroll required.
-    setTimeout(function(){ loadHR();         }, 200);
-    setTimeout(function(){ loadAssets();     }, 400);
-    setTimeout(function(){ loadAcademics();  }, 600);
-    setTimeout(function(){ loadAttendance(); }, 800);
+    setTimeout(function(){ loadHR();         }, 400);
+    setTimeout(function(){ loadAssets();     }, 600);
+    setTimeout(function(){ loadAcademics();  }, 800);
+    setTimeout(function(){ loadAttendance(); }, 1000);
 
     $(window).on('scroll', updateNavActive);
 

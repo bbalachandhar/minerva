@@ -242,6 +242,77 @@ class Branch extends MY_Addon_MBController
             ->set_output(json_encode(['status' => 'success', 'rows' => $rows]));
     }
 
+    /*
+    AJAX — Admissions & Complaints section data
+    */
+    public function admission_complaint_async()
+    {
+        if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
+            access_denied();
+        }
+        session_write_close();
+
+        $branches        = $this->multibranch_model->getSchoolCurrentSessions();
+        $branches_list   = $this->multibranch_model->get();
+        $default_db_name = $this->db->database;
+
+        $branch_id_map = [];
+        foreach ($branches_list as $b) {
+            $branch_id_map[$b->database_name] = $b->id;
+        }
+
+        $rows = [];
+        foreach ($branches as $db_name => $branch_info) {
+            $session_id = (int)$branch_info->session_id;
+            $adm_sid    = !empty($branch_info->online_admission_session_id)
+                ? (int)$branch_info->online_admission_session_id
+                : $session_id;
+
+            if ($db_name === $default_db_name) {
+                $db = $this->db;
+            } elseif (isset($branch_id_map[$db_name])) {
+                $db = $this->load->database('branch_' . $branch_id_map[$db_name], true);
+            } else {
+                continue;
+            }
+
+            $offline          = (int)$db->query(
+                "SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?", [$session_id])->row()->c;
+            $online_pending   = (int)$db->query(
+                "SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND form_status = 0", [$adm_sid])->row()->c;
+            $online_processed = (int)$db->query(
+                "SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND form_status = 1", [$adm_sid])->row()->c;
+
+            $cmp_result = $db->query(
+                "SELECT status, COUNT(*) AS c FROM complaint GROUP BY status")->result_array();
+            $complaints = ['open' => 0, 'in_progress' => 0, 'resolved' => 0, 'closed' => 0];
+            foreach ($cmp_result as $r) {
+                if (isset($complaints[$r['status']])) {
+                    $complaints[$r['status']] = (int)$r['c'];
+                }
+            }
+
+            $rows[] = [
+                'db_name'              => $db_name,
+                'name'                 => $branch_info->name,
+                'session'              => $branch_info->session,
+                'offline_admission'    => $offline,
+                'online_pending'       => $online_pending,
+                'online_processed'     => $online_processed,
+                'online_total'         => $online_pending + $online_processed,
+                'complaints_open'      => $complaints['open'],
+                'complaints_inprogress'=> $complaints['in_progress'],
+                'complaints_resolved'  => $complaints['resolved'],
+                'complaints_closed'    => $complaints['closed'],
+                'complaints_total'     => array_sum($complaints),
+            ];
+        }
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(['status' => 'success', 'rows' => $rows]));
+    }
+
     public function fees_overview_async()
     {
         if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
