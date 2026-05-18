@@ -277,7 +277,7 @@ class Branch extends MY_Addon_MBController
                     continue;
                 }
 
-                $r_off  = $db->query("SELECT COUNT(*) AS c FROM student_session WHERE session_id = ? AND is_active = 1", [$session_id]);
+                $r_off  = $db->query("SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?", [$session_id]);
                 $r_pend = $db->query("SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND form_status = 0", [$adm_sid]);
                 $r_proc = $db->query("SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND form_status = 1", [$adm_sid]);
                 $r_cmp  = $db->query("SELECT status, COUNT(*) AS c FROM complaint GROUP BY status");
