@@ -541,24 +541,20 @@ class Multi_common_model extends MY_Model
         $default_db = $this->db_default->database;
         $current_db = $school_array[$default_db];
 
-        $sid   = (int)$current_db->session_id;
+        $sid     = (int)$current_db->session_id;
         $adm_sid = !empty($current_db->online_admission_session_id) ? (int)$current_db->online_admission_session_id : $sid;
 
         $results[$default_db] = [
             'name'                 => $current_db->name,
             'session'              => $current_db->session,
             'db_name'              => $default_db,
-            'total_books'          => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM books")->row()->c,
-            'total_members'        => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM libarary_members")->row()->c,
-            'total_book_issued'    => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM book_issues WHERE is_returned=0")->row()->c,
-            'total_alumni_student' => (int)$this->db_default->query("SELECT COUNT(*) AS c FROM alumni_students")->row()->c,
-            'offline_admission'    => (int)$this->db_default->query(
-                "SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?",
-                [$sid])->row()->c,
-            'online_admission'     => (int)$this->db_default->query(
-                "SELECT COUNT(*) AS c FROM online_admissions
-                 WHERE session_id = ?",
-                [$adm_sid])->row()->c,
+            'total_books'          => $this->_acs_count($this->db_default, "SELECT COUNT(*) AS c FROM books"),
+            'total_members'        => $this->_acs_count($this->db_default, "SELECT COUNT(*) AS c FROM libarary_members"),
+            'total_book_issued'    => $this->_acs_count($this->db_default, "SELECT COUNT(*) AS c FROM book_issues WHERE is_returned=0"),
+            'total_alumni_student' => $this->_acs_count($this->db_default, "SELECT COUNT(*) AS c FROM alumni_students"),
+            'offline_admission'    => $this->_acs_offline($this->db_default, $sid),
+            'online_admission'     => $this->_acs_count($this->db_default,
+                "SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ?", [$adm_sid]),
         ];
 
         $this->load->model("multibranch_model");
@@ -575,21 +571,53 @@ class Multi_common_model extends MY_Model
                     'name'                 => $cd->name,
                     'session'              => $cd->session,
                     'db_name'              => $db_dynamic_name,
-                    'total_books'          => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM books")->row()->c,
-                    'total_members'        => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM libarary_members")->row()->c,
-                    'total_book_issued'    => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM book_issues WHERE is_returned=0")->row()->c,
-                    'total_alumni_student' => (int)$db_dynamic->query("SELECT COUNT(*) AS c FROM alumni_students")->row()->c,
-                    'offline_admission'    => (int)$db_dynamic->query(
-                        "SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?",
-                        [$sid2])->row()->c,
-                    'online_admission'     => (int)$db_dynamic->query(
-                        "SELECT COUNT(*) AS c FROM online_admissions
-                         WHERE session_id = ?",
-                        [$adm_sid2])->row()->c,
+                    'total_books'          => $this->_acs_count($db_dynamic, "SELECT COUNT(*) AS c FROM books"),
+                    'total_members'        => $this->_acs_count($db_dynamic, "SELECT COUNT(*) AS c FROM libarary_members"),
+                    'total_book_issued'    => $this->_acs_count($db_dynamic, "SELECT COUNT(*) AS c FROM book_issues WHERE is_returned=0"),
+                    'total_alumni_student' => $this->_acs_count($db_dynamic, "SELECT COUNT(*) AS c FROM alumni_students"),
+                    'offline_admission'    => $this->_acs_offline($db_dynamic, $sid2),
+                    'online_admission'     => $this->_acs_count($db_dynamic,
+                        "SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ?", [$adm_sid2]),
                 ];
             }
         }
         return $results;
+    }
+
+    /** Safe COUNT query — returns 0 instead of crashing if query fails or table/column missing. */
+    private function _acs_count($db, $sql, $params = [])
+    {
+        $r = $db->query($sql, $params);
+        return ($r && $r->num_rows() > 0) ? (int)$r->row()->c : 0;
+    }
+
+    /**
+     * Count offline admissions for a session.
+     * Prefers admission_session_id column (MCE schema).
+     * Falls back to student_session join for older-schema branch DBs.
+     */
+    private function _acs_offline($db, $session_id)
+    {
+        // Check if admission_session_id column exists in this DB's students table
+        $col_check = $db->query(
+            "SELECT 1 FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = 'students'
+               AND column_name = 'admission_session_id'
+             LIMIT 1"
+        );
+        if ($col_check && $col_check->num_rows() > 0) {
+            return $this->_acs_count($db,
+                "SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?",
+                [$session_id]);
+        }
+        // Fallback: count distinct students enrolled in this session
+        return $this->_acs_count($db,
+            "SELECT COUNT(DISTINCT ss.student_id) AS c
+             FROM student_session ss
+             JOIN students s ON s.id = ss.student_id AND s.is_active = 'yes'
+             WHERE ss.session_id = ?",
+            [$session_id]);
     }
 
     /*

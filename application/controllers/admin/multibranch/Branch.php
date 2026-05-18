@@ -216,30 +216,38 @@ class Branch extends MY_Addon_MBController
         }
         session_write_close(); // release session lock so parallel AJAX calls don't queue
 
-        $this->load->model("multibranch/multi_common_model");
-        $branches  = $this->multibranch_model->getSchoolCurrentSessions();
-        // Single consolidated call — opens each branch DB once instead of 6 times
-        $academics = $this->multi_common_model->getAcademicsSummary($branches);
+        try {
+            $this->load->model("multibranch/multi_common_model");
+            $branches  = $this->multibranch_model->getSchoolCurrentSessions();
+            // Single consolidated call — opens each branch DB once instead of 6 times
+            $academics = $this->multi_common_model->getAcademicsSummary($branches);
 
-        $rows = [];
-        foreach ($branches as $db_name => $branch_info) {
-            $ac     = $academics[$db_name];
-            $rows[] = [
-                'db_name'          => $db_name,
-                'name'             => $branch_info->name,
-                'session'          => $branch_info->session,
-                'total_books'      => $ac['total_books'],
-                'library_members'  => $ac['total_members'],
-                'book_issued'      => $ac['total_book_issued'],
-                'offline_admission'=> $ac['offline_admission'],
-                'online_admission' => $ac['online_admission'],
-                'total_alumni'     => $ac['total_alumni_student'],
-            ];
+            $rows = [];
+            foreach ($branches as $db_name => $branch_info) {
+                $ac     = $academics[$db_name];
+                $rows[] = [
+                    'db_name'          => $db_name,
+                    'name'             => $branch_info->name,
+                    'session'          => $branch_info->session,
+                    'total_books'      => $ac['total_books'],
+                    'library_members'  => $ac['total_members'],
+                    'book_issued'      => $ac['total_book_issued'],
+                    'offline_admission'=> $ac['offline_admission'],
+                    'online_admission' => $ac['online_admission'],
+                    'total_alumni'     => $ac['total_alumni_student'],
+                ];
+            }
+
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'success', 'rows' => $rows]));
+
+        } catch (Throwable $e) {
+            log_message('error', 'academics_async: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'message' => $e->getMessage()]));
         }
-
-        return $this->output
-            ->set_content_type('application/json')
-            ->set_output(json_encode(['status' => 'success', 'rows' => $rows]));
     }
 
     /*
@@ -408,7 +416,13 @@ class Branch extends MY_Addon_MBController
                 continue;
             }
 
-            list($total_fees, $total_paid) = $this->_mcc_fees_summary($db, $session_id);
+            try {
+                list($total_fees, $total_paid) = $this->_mcc_fees_summary($db, $session_id);
+            } catch (Throwable $e) {
+                log_message('error', '[MCC] fees_overview_async ' . $db_name . ': ' . $e->getMessage());
+                $total_fees = 0;
+                $total_paid = 0;
+            }
             $total_balance = $total_fees - $total_paid;
 
             $rows[] = [
@@ -533,6 +547,148 @@ class Branch extends MY_Addon_MBController
         }
 
         return [$total_billed, $total_collected];
+    }
+
+    // ================================================================
+    // FEES DRILLDOWN  (year → class breakdown per institution)
+    // ================================================================
+    public function fees_drilldown_async()
+    {
+        if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
+            access_denied();
+        }
+        session_write_close();
+
+        $branches      = $this->multibranch_model->getSchoolCurrentSessions();
+        $branches_list = $this->multibranch_model->get();
+
+        $branch_id_map = [];
+        foreach ($branches_list as $b) {
+            $branch_id_map[$b->database_name] = $b->id;
+        }
+
+        $result = [];
+        foreach ($branches as $db_name => $branch_info) {
+            $session_id = $branch_info->session_id;
+
+            if ($db_name === $this->db->database) {
+                $db = $this->db;
+            } elseif (isset($branch_id_map[$db_name])) {
+                $db = $this->load->database('branch_' . $branch_id_map[$db_name], true);
+            } else {
+                continue;
+            }
+
+            try {
+                $result[$db_name] = $this->_mcc_fees_drilldown($db, $session_id);
+            } catch (Throwable $e) {
+                log_message('error', '[MCC] fees_drilldown_async ' . $db_name . ': ' . $e->getMessage());
+                $result[$db_name] = [];
+            }
+        }
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(['status' => 'success', 'drilldown' => $result]));
+    }
+
+    /**
+     * Returns year → class breakdown of billed & collected amounts.
+     * Shape: [ ['year'=>'I','billed'=>N,'collected'=>N,'classes'=>[...]], ... ]
+     * "classes" entries use the class name with the "ROMAN YEAR " prefix stripped.
+     */
+    private function _mcc_fees_drilldown($db, $session_id)
+    {
+        // ── 1. Billed per class_id ─────────────────────────────────────────────
+        $billed_rows = $db->query(
+            "SELECT
+                ss.class_id,
+                c.class                                                          AS class_full,
+                SUBSTRING_INDEX(c.class, ' ', 1)                                AS year_ord,
+                TRIM(SUBSTRING(c.class,
+                    LENGTH(SUBSTRING_INDEX(c.class, ' ', 2)) + 2))              AS class_display,
+                SUM(COALESCE(sfo.override_amount, fgf.amount))                  AS billed
+             FROM student_fees_master sfm
+             JOIN student_session ss  ON ss.id  = sfm.student_session_id
+             JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
+             JOIN classes c           ON c.id   = ss.class_id
+             JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+             JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+             JOIN feetype ft           ON ft.id  = fgf.feetype_id
+                                      AND LOWER(ft.type) NOT IN ('advance payments')
+             LEFT JOIN student_fee_overrides sfo
+                    ON sfo.student_session_id    = sfm.student_session_id
+                   AND sfo.fee_groups_feetype_id = fgf.id
+             WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+             GROUP BY ss.class_id, c.class
+             ORDER BY FIELD(SUBSTRING_INDEX(c.class,' ',1),'I','II','III','IV','V'), c.class",
+            [$session_id]
+        )->result();
+
+        // ── 2. Collected per class_id (JSON parse) ─────────────────────────────
+        $deposit_rows = $db->query(
+            "SELECT ss.class_id, sfd.amount_detail
+             FROM student_fees_deposite sfd
+             JOIN student_fees_master sfm ON sfm.id = sfd.student_fees_master_id
+                                         AND sfm.is_active = 'yes'
+             JOIN student_session ss ON ss.id = sfm.student_session_id
+             JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
+             WHERE ss.session_id = ?
+               AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
+            [$session_id]
+        )->result();
+
+        $collected_by_class = [];
+        foreach ($deposit_rows as $dep) {
+            $detail = json_decode($dep->amount_detail);
+            if (!is_object($detail)) continue;
+            $cid = (int)$dep->class_id;
+            if (!isset($collected_by_class[$cid])) $collected_by_class[$cid] = 0;
+            foreach ($detail as $payment) {
+                $collected_by_class[$cid] += (float)$payment->amount;
+                if (isset($payment->amount_discount)) {
+                    $collected_by_class[$cid] += (float)$payment->amount_discount;
+                }
+            }
+        }
+
+        // ── 3. Assemble year → classes tree ───────────────────────────────────
+        $year_order = ['I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4, 'V' => 5];
+        $years      = [];   // keyed by year_ord string
+
+        foreach ($billed_rows as $row) {
+            $yr  = $row->year_ord;
+            $cid = (int)$row->class_id;
+            $b   = (float)$row->billed;
+            $col = isset($collected_by_class[$cid]) ? $collected_by_class[$cid] : 0;
+
+            if (!isset($years[$yr])) {
+                $years[$yr] = ['year' => $yr, 'billed' => 0, 'collected' => 0, 'classes' => []];
+            }
+            $years[$yr]['billed']    += $b;
+            $years[$yr]['collected'] += $col;
+            $years[$yr]['classes'][]  = [
+                'name'      => $row->class_display,
+                'billed'    => $b,
+                'collected' => $col,
+                'balance'   => $b - $col,
+            ];
+        }
+
+        // Sort years in I→V order
+        uasort($years, function($a, $b) use ($year_order) {
+            $ao = isset($year_order[$a['year']]) ? $year_order[$a['year']] : 99;
+            $bo = isset($year_order[$b['year']]) ? $year_order[$b['year']] : 99;
+            return $ao - $bo;
+        });
+
+        // Add balance to each year
+        foreach ($years as &$y) {
+            $y['balance'] = $y['billed'] - $y['collected'];
+        }
+        unset($y);
+
+        return array_values($years);
     }
 
     public function upload()

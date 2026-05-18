@@ -96,6 +96,8 @@ function mcc_abbr($db_name) {
 .mcc-inst-name-link  { font-size: 13px; font-weight: 600; color: #333; text-decoration: none !important; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
 .mcc-inst-name-link:hover { color: #3c8dbc !important; }
 .mcc-fees-collected   { font-size: 13px; font-weight: 600; color: #00a65a; }
+.mcc-inst-row:hover   { background: #eef4fb !important; }
+.mcc-yr-row:hover     { background: #edf6ee !important; }
 #mcc-nav > li > a     { font-weight: 600; font-size: 13px; }
 #mcc-nav > li.active > a { color: #3c8dbc; }
 /* Card badge+name — flexbox so badge never overlaps text */
@@ -609,9 +611,10 @@ function mcc_abbr($db_name) {
 var ChartV2 = Chart;
 var MCC = {
     urls: {
-        admissions: '<?php echo site_url("admin/multibranch/branch/admission_complaint_async"); ?>',
-        fees:      '<?php echo site_url("admin/multibranch/branch/fees_overview_async"); ?>',
-        hr:        '<?php echo site_url("admin/multibranch/branch/hr_async"); ?>',
+        admissions:    '<?php echo site_url("admin/multibranch/branch/admission_complaint_async"); ?>',
+        fees:          '<?php echo site_url("admin/multibranch/branch/fees_overview_async"); ?>',
+        feesDrilldown: '<?php echo site_url("admin/multibranch/branch/fees_drilldown_async"); ?>',
+        hr:            '<?php echo site_url("admin/multibranch/branch/hr_async"); ?>',
         assets:    '<?php echo site_url("admin/multibranch/branch/assets_async"); ?>',
         academics:  '<?php echo site_url("admin/multibranch/branch/academics_async"); ?>',
         attendance: '<?php echo site_url("admin/multibranch/branch/attendance_async"); ?>'
@@ -762,11 +765,62 @@ function loadAdmissions() {
 // ================================================================
 // FEES
 // ================================================================
+var feesDrilldownData = {};  // keyed by db_name, stores year[] from API
+
+function feesPct(b, c) {
+    return b > 0 ? ((c / b) * 100).toFixed(1) : 0;
+}
+function feesBar(pct) {
+    var col = pct >= 75 ? '#00a65a' : pct >= 50 ? '#f39c12' : '#dd4b39';
+    return '<div class="mcc-pct-wrap"><div class="mcc-pct-bar" style="width:'+pct+'%;background:'+col+'"></div></div><small>'+pct+'%</small>';
+}
+function fmtAmt(v) { return MCC.currency + numFmt(v); }
+
+function buildYearRows(dbName, years) {
+    var html = '';
+    years.forEach(function(yr) {
+        var yPct = feesPct(yr.billed, yr.collected);
+        // Year row (level 2)
+        html += '<tr class="mcc-yr-row" data-db="'+escHtml(dbName)+'" data-year="'+escHtml(yr.year)+'" style="display:none; background:#f7fafc; cursor:pointer">'+
+            '<td style="padding-left:32px">'+
+                '<i class="fa fa-chevron-right mcc-yr-chevron" style="font-size:10px;margin-right:6px;transition:transform .2s"></i>'+
+                '<strong>'+escHtml(yr.year)+' Year</strong>'+
+            '</td>'+
+            '<td></td>'+
+            '<td class="text-right">'+fmtAmt(yr.billed)+'</td>'+
+            '<td class="text-right"><strong class="text-success">'+fmtAmt(yr.collected)+'</strong></td>'+
+            '<td class="text-right text-danger">'+fmtAmt(yr.balance)+'</td>'+
+            '<td class="text-center">'+feesBar(yPct)+'</td>'+
+            '</tr>';
+
+        // Class rows (level 3)
+        yr.classes.forEach(function(cls) {
+            var cPct = feesPct(cls.billed, cls.collected);
+            html += '<tr class="mcc-cls-row" data-db="'+escHtml(dbName)+'" data-year="'+escHtml(yr.year)+'" style="display:none; background:#fafcff">'+
+                '<td style="padding-left:56px; color:#555">'+
+                    '<i class="fa fa-minus" style="font-size:9px;margin-right:6px;color:#aaa"></i>'+
+                    escHtml(cls.name)+
+                '</td>'+
+                '<td></td>'+
+                '<td class="text-right">'+fmtAmt(cls.billed)+'</td>'+
+                '<td class="text-right text-success">'+fmtAmt(cls.collected)+'</td>'+
+                '<td class="text-right text-danger">'+fmtAmt(cls.balance)+'</td>'+
+                '<td class="text-center">'+feesBar(cPct)+'</td>'+
+                '</tr>';
+        });
+    });
+    return html;
+}
+
 function loadFees() {
     if (loaded.fees) return;
     loaded.fees = true;
 
-    $.getJSON(MCC.urls.fees).done(function(resp) {
+    // Fire both requests in parallel
+    var reqSummary   = $.getJSON(MCC.urls.fees);
+    var reqDrilldown = $.getJSON(MCC.urls.feesDrilldown);
+
+    reqSummary.done(function(resp) {
         if (!resp || resp.status !== 'success') return;
 
         var totalFees=0, totalPaid=0, totalBalance=0;
@@ -776,16 +830,12 @@ function loadFees() {
                 totalFees    += row.total_fees;
                 totalPaid    += row.total_paid;
                 totalBalance += row.total_balance;
-
-                // Card collected / balance badges
                 $('.mcc-fees-collected[data-db="'+row.db_name+'"]').html(row.total_paid_formatted);
                 $('.mcc-fees-balance[data-db="'+row.db_name+'"]').html(row.total_balance_formatted);
             });
 
-            // KPI
             $('#kpi-fees-collected').text(MCC.currency + Number(totalPaid).toLocaleString('en-IN'));
 
-            // Summary cards
             var pct = totalFees > 0 ? ((totalPaid/totalFees)*100).toFixed(1) : 0;
             $('#fees-summary-cards').html(
                 mkStatCard('#3c8dbc','Total Billed',    MCC.currency+numFmt(totalFees))    +
@@ -794,27 +844,27 @@ function loadFees() {
                 mkStatCard('#f39c12','Collection Rate', pct+'%')
             );
 
-            // Table
+            // Build main institution rows
             var tbody='', tfees=0, tpaid=0, tbal=0;
-            resp.rows.forEach(function(row,i) {
-                var rowPct   = row.total_fees>0 ? ((row.total_paid/row.total_fees)*100).toFixed(1) : 0;
-                var barColor = rowPct>=75?'#00a65a': rowPct>=50?'#f39c12':'#dd4b39';
+            resp.rows.forEach(function(row, i) {
+                var rowPct   = feesPct(row.total_fees, row.total_paid);
                 var color    = MCC.colors[i]||'#3c8dbc';
                 tfees+=row.total_fees; tpaid+=row.total_paid; tbal+=row.total_balance;
                 tbody +=
-                    '<tr>'+
-                    '<td><span class="mcc-dot" style="background:'+color+'"></span>'+escHtml(MCC.names[row.db_name]||row.db_name)+'</td>'+
+                    '<tr class="mcc-inst-row" data-db="'+escHtml(row.db_name)+'" style="cursor:pointer" title="Click to expand year-wise breakdown">'+
+                    '<td>'+
+                        '<i class="fa fa-chevron-right mcc-inst-chevron" style="font-size:11px;margin-right:6px;color:#666;transition:transform .2s"></i>'+
+                        '<span class="mcc-dot" style="background:'+color+'"></span>'+
+                        escHtml(MCC.names[row.db_name]||row.db_name)+
+                    '</td>'+
                     '<td>'+(branchSessions[row.db_name]||'—')+'</td>'+
                     '<td class="text-right">'+row.total_fees_formatted+'</td>'+
                     '<td class="text-right"><strong class="text-success">'+row.total_paid_formatted+'</strong></td>'+
                     '<td class="text-right text-danger">'+row.total_balance_formatted+'</td>'+
-                    '<td class="text-center">'+
-                        '<div class="mcc-pct-wrap"><div class="mcc-pct-bar" style="width:'+rowPct+'%;background:'+barColor+'"></div></div>'+
-                        '<small>'+rowPct+'%</small>'+
-                    '</td>'+
+                    '<td class="text-center">'+feesBar(rowPct)+'</td>'+
                     '</tr>';
             });
-            var fpct=tfees>0?((tpaid/tfees)*100).toFixed(1):0;
+            var fpct = tfees>0 ? ((tpaid/tfees)*100).toFixed(1) : 0;
             $('#fees-tbody').html(tbody);
             $('#fees-tfoot').html(
                 '<tr class="mcc-tfoot-row"><td colspan="2"><strong>Grand Total</strong></td>'+
@@ -823,14 +873,27 @@ function loadFees() {
                 '<td class="text-right text-danger"><strong>'+MCC.currency+numFmt(tbal)+'</strong></td>'+
                 '<td class="text-center"><strong>'+fpct+'%</strong></td></tr>'
             );
+
+            // Once drilldown data arrives, inject sub-rows after each institution row
+            reqDrilldown.done(function(dr) {
+                if (!dr || dr.status !== 'success') return;
+                feesDrilldownData = dr.drilldown || {};
+                resp.rows.forEach(function(row) {
+                    var years = feesDrilldownData[row.db_name];
+                    if (!years || !years.length) return;
+                    var subHtml = buildYearRows(row.db_name, years);
+                    // Insert sub-rows immediately after the institution <tr>
+                    $('#fees-tbody tr.mcc-inst-row[data-db="'+row.db_name+'"]').after(subHtml);
+                });
+                wireFeesToggle();
+            });
         }
 
         $('#fees-chart-skeleton').hide(); $('#fees-table-skeleton').hide();
         $('#fees-chart-box').show();      $('#fees-table-box').show();
 
-        // Chart — must build AFTER box is visible so canvas has dimensions
         if (resp.chart) {
-            var c=resp.chart;
+            var c = resp.chart;
             buildGroupedBar(
                 document.getElementById('fees_chart').getContext('2d'),
                 c.labels,
@@ -846,6 +909,33 @@ function loadFees() {
         var errMsg = '<p class="mcc-load-err"><i class="fa fa-exclamation-triangle"></i> Failed to load fee data. <a href="javascript:location.reload()">Reload page</a></p>';
         $('#fees-chart-skeleton').html(errMsg);
         $('#fees-table-skeleton').html(errMsg);
+    });
+}
+
+function wireFeesToggle() {
+    // Level 1 → toggle year rows
+    $(document).off('click.feesL1').on('click.feesL1', '#fees-tbody .mcc-inst-row', function() {
+        var db  = $(this).data('db');
+        var $yr = $('#fees-tbody .mcc-yr-row[data-db="'+db+'"]');
+        var opening = $yr.first().is(':hidden');
+        // Collapse all class rows for this institution first
+        $('#fees-tbody .mcc-cls-row[data-db="'+db+'"]').hide();
+        $('#fees-tbody .mcc-yr-row[data-db="'+db+'"] .mcc-yr-chevron').css('transform','');
+        // Toggle year rows
+        $yr.toggle(opening);
+        var $chev = $(this).find('.mcc-inst-chevron');
+        $chev.css('transform', opening ? 'rotate(90deg)' : '');
+    });
+
+    // Level 2 → toggle class rows (stop event bubbling to level 1)
+    $(document).off('click.feesL2').on('click.feesL2', '#fees-tbody .mcc-yr-row', function(e) {
+        e.stopPropagation();
+        var db   = $(this).data('db');
+        var year = $(this).data('year');
+        var $cls = $('#fees-tbody .mcc-cls-row[data-db="'+db+'"][data-year="'+year+'"]');
+        var opening = $cls.first().is(':hidden');
+        $cls.toggle(opening);
+        $(this).find('.mcc-yr-chevron').css('transform', opening ? 'rotate(90deg)' : '');
     });
 }
 
