@@ -522,7 +522,7 @@ class Branch extends MY_Addon_MBController
                 log_message('error', '[MCC] fees_overview_async ' . $db_name . ': ' . $e->getMessage());
                 $total_fees = 0;
                 $total_paid = 0;
-                $counts     = ['fully_paid' => 0, 'fully_paid_amt' => 0.0, 'partial' => 0, 'partial_amt' => 0.0, 'not_paid' => 0, 'by_class' => []];
+                $counts     = ['fully_paid' => 0, 'fully_paid_amt' => 0.0, 'partial' => 0, 'partial_amt' => 0.0, 'not_paid' => 0, 'not_paid_billed' => 0.0, 'by_class' => []];
             }
             $total_balance = $total_fees - $total_paid;
 
@@ -542,6 +542,7 @@ class Branch extends MY_Addon_MBController
                 'partial_count'           => $counts['partial'],
                 'partial_amt'             => $counts['partial_amt'],
                 'not_paid_count'          => $counts['not_paid'],
+                'not_paid_billed'         => $counts['not_paid_billed'],
             ];
 
             $chart_labels[]        = $branch_info->name;
@@ -711,9 +712,9 @@ class Branch extends MY_Addon_MBController
         }
 
         $totals = [
-            'fully_paid'     => 0, 'fully_paid_amt' => 0.0,
-            'partial'        => 0, 'partial_amt'    => 0.0,
-            'not_paid'       => 0,
+            'fully_paid'     => 0, 'fully_paid_amt'    => 0.0,
+            'partial'        => 0, 'partial_amt'       => 0.0,
+            'not_paid'       => 0, 'not_paid_billed'   => 0.0,
             'by_class'       => [],
         ];
 
@@ -725,9 +726,9 @@ class Branch extends MY_Addon_MBController
 
             if (!isset($totals['by_class'][$cid])) {
                 $totals['by_class'][$cid] = [
-                    'fully_paid' => 0, 'fully_paid_amt' => 0.0,
-                    'partial'    => 0, 'partial_amt'    => 0.0,
-                    'not_paid'   => 0,
+                    'fully_paid' => 0, 'fully_paid_amt'  => 0.0,
+                    'partial'    => 0, 'partial_amt'     => 0.0,
+                    'not_paid'   => 0, 'not_paid_billed' => 0.0,
                 ];
             }
 
@@ -743,7 +744,9 @@ class Branch extends MY_Addon_MBController
                 $totals['by_class'][$cid]['partial_amt'] += $paid;
             } else {
                 $totals['not_paid']++;
+                $totals['not_paid_billed'] += $billed;
                 $totals['by_class'][$cid]['not_paid']++;
+                $totals['by_class'][$cid]['not_paid_billed'] += $billed;
             }
         }
 
@@ -867,33 +870,35 @@ class Branch extends MY_Addon_MBController
             $b   = (float)$row->billed;
             $col = isset($collected_by_class[$cid]) ? $collected_by_class[$cid] : 0;
             $cc  = isset($counts_by_class[$cid]) ? $counts_by_class[$cid]
-                 : ['fully_paid' => 0, 'fully_paid_amt' => 0.0, 'partial' => 0, 'partial_amt' => 0.0, 'not_paid' => 0];
+                 : ['fully_paid' => 0, 'fully_paid_amt' => 0.0, 'partial' => 0, 'partial_amt' => 0.0, 'not_paid' => 0, 'not_paid_billed' => 0.0];
 
             if (!isset($years[$yr])) {
                 $years[$yr] = [
                     'year' => $yr, 'billed' => 0, 'collected' => 0, 'classes' => [],
                     'fully_paid' => 0, 'fully_paid_amt' => 0.0,
                     'partial'    => 0, 'partial_amt'    => 0.0,
-                    'not_paid'   => 0,
+                    'not_paid'   => 0, 'not_paid_billed' => 0.0,
                 ];
             }
-            $years[$yr]['billed']        += $b;
-            $years[$yr]['collected']     += $col;
-            $years[$yr]['fully_paid']     += $cc['fully_paid'];
-            $years[$yr]['fully_paid_amt'] += $cc['fully_paid_amt'];
-            $years[$yr]['partial']        += $cc['partial'];
-            $years[$yr]['partial_amt']    += $cc['partial_amt'];
-            $years[$yr]['not_paid']       += $cc['not_paid'];
+            $years[$yr]['billed']           += $b;
+            $years[$yr]['collected']        += $col;
+            $years[$yr]['fully_paid']        += $cc['fully_paid'];
+            $years[$yr]['fully_paid_amt']    += $cc['fully_paid_amt'];
+            $years[$yr]['partial']           += $cc['partial'];
+            $years[$yr]['partial_amt']       += $cc['partial_amt'];
+            $years[$yr]['not_paid']          += $cc['not_paid'];
+            $years[$yr]['not_paid_billed']   += $cc['not_paid_billed'];
             $years[$yr]['classes'][]  = [
-                'name'           => $row->class_display,
-                'billed'         => $b,
-                'collected'      => $col,
-                'balance'        => $b - $col,
-                'fully_paid'     => $cc['fully_paid'],
-                'fully_paid_amt' => $cc['fully_paid_amt'],
-                'partial'        => $cc['partial'],
-                'partial_amt'    => $cc['partial_amt'],
-                'not_paid'       => $cc['not_paid'],
+                'name'            => $row->class_display,
+                'billed'          => $b,
+                'collected'       => $col,
+                'balance'         => $b - $col,
+                'fully_paid'      => $cc['fully_paid'],
+                'fully_paid_amt'  => $cc['fully_paid_amt'],
+                'partial'         => $cc['partial'],
+                'partial_amt'     => $cc['partial_amt'],
+                'not_paid'        => $cc['not_paid'],
+                'not_paid_billed' => $cc['not_paid_billed'],
             ];
         }
 
