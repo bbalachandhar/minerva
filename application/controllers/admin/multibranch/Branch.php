@@ -278,22 +278,61 @@ class Branch extends MY_Addon_MBController
                 }
 
                 $r_off    = $db->query("SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?", [$session_id]);
-                $r_online = $db->query("SELECT paid_status, COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND COALESCE(admission_status,'active') = 'active' GROUP BY paid_status", [$adm_sid]);
+                // Mirror dashboard getOnlineStudentPaymentOverview(): join incidental_fee_collections
+                // to bucket by actual payment, not the stale paid_status column.
+                $r_online = $db->query("
+                    SELECT
+                        SUM(CASE
+                            WHEN t.tuition_paid IS NOT NULL AND t.tuition_paid > 0
+                                 AND oa.course_fee_total > 0
+                                 AND t.tuition_paid >= oa.course_fee_total THEN 1
+                            ELSE 0 END) AS fully_paid,
+                        SUM(CASE
+                            WHEN t.tuition_paid IS NOT NULL AND t.tuition_paid > 0
+                                 AND (oa.course_fee_total IS NULL OR oa.course_fee_total = 0
+                                      OR t.tuition_paid < oa.course_fee_total) THEN 1
+                            ELSE 0 END) AS partially_paid,
+                        SUM(CASE
+                            WHEN (t.tuition_paid IS NULL OR t.tuition_paid = 0)
+                                 AND (af.app_ref IS NOT NULL OR oa.paid_status = 1) THEN 1
+                            ELSE 0 END) AS app_fee_only,
+                        COUNT(*) AS total_active
+                    FROM online_admissions oa
+                    LEFT JOIN (
+                        SELECT REPLACE(ifc.application_ref_no,' ','') AS ref,
+                               SUM(ifc.amount_collected) AS tuition_paid
+                        FROM incidental_fee_collections ifc
+                        JOIN incidental_fee_types ift ON ift.id = ifc.incidental_fee_type_id
+                        WHERE ifc.application_ref_no IS NOT NULL
+                          AND ifc.application_ref_no != ''
+                          AND (LOWER(ift.title) LIKE '%tuition%'
+                               OR LOWER(ift.title) LIKE '%tution%'
+                               OR LOWER(ift.title) LIKE '%other fee%')
+                          AND ifc.amount_collected > 0
+                        GROUP BY REPLACE(ifc.application_ref_no,' ','')
+                    ) t ON REPLACE(oa.reference_no,' ','') = t.ref
+                    LEFT JOIN (
+                        SELECT DISTINCT REPLACE(ifc.application_ref_no,' ','') AS app_ref
+                        FROM incidental_fee_collections ifc
+                        JOIN incidental_fee_types ift ON ift.id = ifc.incidental_fee_type_id
+                        WHERE ifc.application_ref_no IS NOT NULL
+                          AND ifc.application_ref_no != ''
+                          AND LOWER(ift.title) LIKE '%application fee%'
+                          AND ifc.amount_collected > 0
+                    ) af ON REPLACE(oa.reference_no,' ','') = af.app_ref
+                    WHERE oa.session_id = ?
+                      AND COALESCE(oa.admission_status,'active') = 'active'
+                ", [$adm_sid]);
                 $r_revok  = $db->query("SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND COALESCE(admission_status,'active') = 'cancelled'", [$adm_sid]);
                 $r_cmp    = $db->query("SELECT status, COUNT(*) AS c FROM complaint GROUP BY status");
 
-                $offline     = ($r_off && $r_off->num_rows() > 0) ? (int)$r_off->row()->c : 0;
-                $online_pmap = [];
-                if ($r_online) {
-                    foreach ($r_online->result_array() as $r) {
-                        $online_pmap[(int)$r['paid_status']] = (int)$r['c'];
-                    }
-                }
-                $online_fee_paid = $online_pmap[2] ?? 0;
-                $online_app_fee  = $online_pmap[1] ?? 0;
-                $online_not_paid = $online_pmap[0] ?? 0;
-                $online_total    = $online_fee_paid + $online_app_fee + $online_not_paid;
-                $online_revoked  = ($r_revok && $r_revok->num_rows() > 0) ? (int)$r_revok->row()->c : 0;
+                $offline           = ($r_off && $r_off->num_rows() > 0) ? (int)$r_off->row()->c : 0;
+                $online_row        = ($r_online && $r_online->num_rows() > 0) ? $r_online->row_array() : [];
+                $online_fully_paid = (int)($online_row['fully_paid']    ?? 0);
+                $online_partially  = (int)($online_row['partially_paid'] ?? 0);
+                $online_app_fee    = (int)($online_row['app_fee_only']   ?? 0);
+                $online_received   = $online_fully_paid + $online_partially + $online_app_fee;
+                $online_revoked    = ($r_revok && $r_revok->num_rows() > 0) ? (int)$r_revok->row()->c : 0;
 
                 $complaints = ['open' => 0, 'in_progress' => 0, 'resolved' => 0, 'closed' => 0];
                 if ($r_cmp) {
@@ -309,10 +348,10 @@ class Branch extends MY_Addon_MBController
                     'name'                 => $branch_info->name,
                     'session'              => $branch_info->session,
                     'offline_admission'    => $offline,
-                    'online_total'         => $online_total,
-                    'online_fee_paid'      => $online_fee_paid,
+                    'online_received'      => $online_received,
+                    'online_fully_paid'    => $online_fully_paid,
+                    'online_partially'     => $online_partially,
                     'online_app_fee'       => $online_app_fee,
-                    'online_not_paid'      => $online_not_paid,
                     'online_revoked'       => $online_revoked,
                     'complaints_open'      => $complaints['open'],
                     'complaints_inprogress'=> $complaints['in_progress'],

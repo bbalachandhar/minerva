@@ -335,7 +335,8 @@ function mcc_abbr($db_name) {
                 <th>Session</th>
                 <th class="text-right">Offline</th>
                 <th class="text-right">App Received</th>
-                <th class="text-right">Fee Paid</th>
+                <th class="text-right">Fully Paid</th>
+                <th class="text-right">Partially Paid</th>
                 <th class="text-right">App Fee Only</th>
                 <th class="text-right">Revoked</th>
               </tr></thead>
@@ -680,15 +681,16 @@ function loadAdmissions() {
         }
 
         var admTbody='', cmpTbody='';
-        var tOffline=0, tOnTotal=0, tOnFeePaid=0, tOnAppFee=0, tOnRevoked=0;
+        var tOffline=0, tOnReceived=0, tOnFullyPaid=0, tOnPartially=0, tOnAppFee=0, tOnRevoked=0;
         var tOpen=0, tInProg=0, tResolved=0, tClosed=0, tCmpTotal=0;
 
         resp.rows.forEach(function(row, i) {
-            tOffline    += row.offline_admission;
-            tOnTotal    += row.online_total;
-            tOnFeePaid  += row.online_fee_paid;
-            tOnAppFee   += row.online_app_fee;
-            tOnRevoked  += row.online_revoked;
+            tOffline      += row.offline_admission;
+            tOnReceived   += row.online_received;
+            tOnFullyPaid  += row.online_fully_paid;
+            tOnPartially  += row.online_partially;
+            tOnAppFee     += row.online_app_fee;
+            tOnRevoked    += row.online_revoked;
             tOpen     += row.complaints_open;
             tInProg   += row.complaints_inprogress;
             tResolved += row.complaints_resolved;
@@ -702,8 +704,9 @@ function loadAdmissions() {
                 '<td>'+dot+escHtml(MCC.names[row.db_name]||row.db_name)+'</td>'+
                 '<td>'+escHtml(row.session||'—')+'</td>'+
                 '<td class="text-right"><strong>'+numFmt(row.offline_admission)+'</strong></td>'+
-                '<td class="text-right"><strong>'+numFmt(row.online_total)+'</strong></td>'+
-                '<td class="text-right" style="color:#00a65a; font-weight:600">'+numFmt(row.online_fee_paid)+'</td>'+
+                '<td class="text-right"><strong>'+numFmt(row.online_received)+'</strong></td>'+
+                '<td class="text-right" style="color:#00a65a; font-weight:600">'+numFmt(row.online_fully_paid)+'</td>'+
+                '<td class="text-right" style="color:#3c8dbc; font-weight:600">'+numFmt(row.online_partially)+'</td>'+
                 '<td class="text-right" style="color:#f39c12; font-weight:600">'+numFmt(row.online_app_fee)+'</td>'+
                 '<td class="text-right" style="color:#dd4b39; font-weight:600">'+numFmt(row.online_revoked)+'</td>'+
                 '</tr>';
@@ -722,8 +725,9 @@ function loadAdmissions() {
         admTbody += '<tr class="mcc-tfoot-row">'+
             '<td colspan="2"><strong>Total</strong></td>'+
             '<td class="text-right"><strong>'+numFmt(tOffline)+'</strong></td>'+
-            '<td class="text-right"><strong>'+numFmt(tOnTotal)+'</strong></td>'+
-            '<td class="text-right" style="color:#00a65a; font-weight:600">'+numFmt(tOnFeePaid)+'</td>'+
+            '<td class="text-right"><strong>'+numFmt(tOnReceived)+'</strong></td>'+
+            '<td class="text-right" style="color:#00a65a; font-weight:600">'+numFmt(tOnFullyPaid)+'</td>'+
+            '<td class="text-right" style="color:#3c8dbc; font-weight:600">'+numFmt(tOnPartially)+'</td>'+
             '<td class="text-right" style="color:#f39c12; font-weight:600">'+numFmt(tOnAppFee)+'</td>'+
             '<td class="text-right" style="color:#dd4b39; font-weight:600">'+numFmt(tOnRevoked)+'</td>'+
             '</tr>';
@@ -740,10 +744,10 @@ function loadAdmissions() {
         $('#admc-cmp-tbody').html(cmpTbody);
         $('#admc-summary-cards').html(
             '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:4px">' +
-            mkStatCard('#00c0ef', 'Offline Admitted',  numFmt(tOffline))   +
-            mkStatCard('#3c8dbc', 'App Received',      numFmt(tOnTotal))   +
-            mkStatCard('#00a65a', 'Fee Paid',          numFmt(tOnFeePaid)) +
-            mkStatCard('#dd4b39', 'Open Complaints',   numFmt(tOpen))      +
+            mkStatCard('#00c0ef', 'Offline Admitted', numFmt(tOffline))     +
+            mkStatCard('#3c8dbc', 'App Received',     numFmt(tOnReceived))  +
+            mkStatCard('#00a65a', 'Fully Paid',       numFmt(tOnFullyPaid)) +
+            mkStatCard('#dd4b39', 'Open Complaints',  numFmt(tOpen))        +
             '</div>'
         );
         $('#admc-skeleton').hide();
