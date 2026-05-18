@@ -903,7 +903,7 @@ class Branch extends MY_Addon_MBController
                 $ssid   = (int)$row->ss_id;
                 $billed = (float)$row->billed;
                 $paid   = isset($paid_by_ss[$ssid]) ? $paid_by_ss[$ssid] : 0.0;
-                if ($paid == 0 && $billed > 0) {
+                if ($paid == 0) {
                     // Strip the "ROMAN YEAR " prefix from class name for display
                     $class_parts = explode(' ', $row->class_name, 2);
                     $class_display = count($class_parts) > 1 ? trim($class_parts[1]) : $row->class_name;
@@ -912,7 +912,8 @@ class Branch extends MY_Addon_MBController
                         'name'         => $row->student_name,
                         'class'        => $class_display,
                         'section'      => $row->section_name,
-                        'billed'       => (float)$row->billed,
+                        'billed'       => $billed,
+                        'waived'       => ($billed == 0),
                     ];
                 }
             }

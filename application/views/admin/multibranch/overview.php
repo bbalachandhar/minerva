@@ -1498,12 +1498,23 @@ $(document).on('click', '.mcc-np-eye', function(e) {
             var html = '<table class="table table-bordered table-condensed" style="font-size:13px;margin:0">'+
                 '<thead><tr><th>#</th><th>Adm No</th><th>Name</th><th>Class</th><th>Section</th><th class="text-right">Billed</th></tr></thead><tbody>';
             rows.forEach(function(s, i) {
-                html += '<tr><td>'+(i+1)+'</td>'+
-                    '<td>'+escHtml(s.admission_no)+'</td>'+
-                    '<td>'+escHtml(s.name)+'</td>'+
-                    '<td>'+escHtml(s.class)+'</td>'+
-                    '<td>'+escHtml(s.section)+'</td>'+
-                    '<td class="text-right">'+MCC.currency+numFmt(s.billed)+'</td></tr>';
+                if (s.waived) {
+                    html += '<tr style="color:#aaa; font-style:italic">'+
+                        '<td>'+(i+1)+'</td>'+
+                        '<td>'+escHtml(s.admission_no)+'</td>'+
+                        '<td>'+escHtml(s.name)+'</td>'+
+                        '<td>'+escHtml(s.class)+'</td>'+
+                        '<td>'+escHtml(s.section)+'</td>'+
+                        '<td class="text-right"><span style="color:#27ae60; font-style:normal; font-size:11px">'+
+                            '<i class="fa fa-check-circle"></i> Fee waived</span></td></tr>';
+                } else {
+                    html += '<tr><td>'+(i+1)+'</td>'+
+                        '<td>'+escHtml(s.admission_no)+'</td>'+
+                        '<td>'+escHtml(s.name)+'</td>'+
+                        '<td>'+escHtml(s.class)+'</td>'+
+                        '<td>'+escHtml(s.section)+'</td>'+
+                        '<td class="text-right">'+MCC.currency+numFmt(s.billed)+'</td></tr>';
+                }
             });
             html += '</tbody></table>';
             $('#mcc-np-modal-body').html(html);
