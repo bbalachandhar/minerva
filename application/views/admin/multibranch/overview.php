@@ -626,8 +626,9 @@ var ChartV2 = Chart;
 var MCC = {
     urls: {
         admissions:    '<?php echo site_url("admin/multibranch/branch/admission_complaint_async"); ?>',
-        fees:          '<?php echo site_url("admin/multibranch/branch/fees_overview_async"); ?>',
-        feesDrilldown: '<?php echo site_url("admin/multibranch/branch/fees_drilldown_async"); ?>',
+        fees:            '<?php echo site_url("admin/multibranch/branch/fees_overview_async"); ?>',
+        feesDrilldown:   '<?php echo site_url("admin/multibranch/branch/fees_drilldown_async"); ?>',
+        feesNotPaid:     '<?php echo site_url("admin/multibranch/branch/fees_not_paid_students_async"); ?>',
         hr:            '<?php echo site_url("admin/multibranch/branch/hr_async"); ?>',
         assets:         '<?php echo site_url("admin/multibranch/branch/assets_async"); ?>',
         assetsDrilldown:'<?php echo site_url("admin/multibranch/branch/assets_drilldown_async"); ?>',
@@ -799,11 +800,17 @@ function fmtCr(v) {
     return MCC.currency + numFmt(v);
 }
 // Student payment-status badge cell (3 lines: fully paid / partial / not paid)
-function stuStatus(fp, fpAmt, pr, prAmt, np, npBilled) {
+// dbName + classId are optional — when provided, an eye icon lets the user
+// view the actual list of not-paid students in a modal.
+function stuStatus(fp, fpAmt, pr, prAmt, np, npBilled, dbName, classId) {
     var html = '<div style="line-height:1.55; font-size:12px">';
     html += '<div><span style="color:#27ae60"><i class="fa fa-check-circle"></i> <strong>'+fp+'</strong></span>'+(fpAmt > 0 ? ' <span style="color:#888">'+fmtCr(fpAmt)+'</span>' : '')+'</div>';
     html += '<div><span style="color:#e67e22"><i class="fa fa-adjust"></i> <strong>'+pr+'</strong></span>'+(prAmt > 0 ? ' <span style="color:#888">'+fmtCr(prAmt)+'</span>' : '')+'</div>';
-    html += '<div><span style="color:#c0392b"><i class="fa fa-times-circle"></i> <strong>'+np+'</strong></span>'+(npBilled > 0 ? ' <span style="color:#888">'+fmtCr(npBilled)+'</span>' : '')+'</div>';
+    var eyeBtn = '';
+    if (np > 0 && dbName) {
+        eyeBtn = ' <a href="#" class="mcc-np-eye" data-db="'+escHtml(dbName)+'" data-class="'+(classId||0)+'" title="View not-paid students" style="color:#c0392b"><i class="fa fa-eye"></i></a>';
+    }
+    html += '<div><span style="color:#c0392b"><i class="fa fa-times-circle"></i> <strong>'+np+'</strong></span>'+(npBilled > 0 ? ' <span style="color:#888">'+fmtCr(npBilled)+'</span>' : '')+eyeBtn+'</div>';
     html += '</div>';
     return html;
 }
@@ -822,7 +829,7 @@ function buildYearRows(dbName, years) {
             '<td class="text-right">'+fmtAmt(yr.billed)+'</td>'+
             '<td class="text-right"><strong class="text-success">'+fmtAmt(yr.collected)+'</strong></td>'+
             '<td class="text-right text-danger">'+fmtAmt(yr.balance)+'</td>'+
-            '<td>'+stuStatus(yr.fully_paid||0, yr.fully_paid_amt||0, yr.partial||0, yr.partial_amt||0, yr.not_paid||0, yr.not_paid_billed||0)+'</td>'+
+            '<td>'+stuStatus(yr.fully_paid||0, yr.fully_paid_amt||0, yr.partial||0, yr.partial_amt||0, yr.not_paid||0, yr.not_paid_billed||0, dbName, 0)+'</td>'+
             '<td class="text-center">'+feesBar(yPct)+'</td>'+
             '</tr>';
 
@@ -838,7 +845,7 @@ function buildYearRows(dbName, years) {
                 '<td class="text-right">'+fmtAmt(cls.billed)+'</td>'+
                 '<td class="text-right text-success">'+fmtAmt(cls.collected)+'</td>'+
                 '<td class="text-right text-danger">'+fmtAmt(cls.balance)+'</td>'+
-                '<td>'+stuStatus(cls.fully_paid||0, cls.fully_paid_amt||0, cls.partial||0, cls.partial_amt||0, cls.not_paid||0, cls.not_paid_billed||0)+'</td>'+
+                '<td>'+stuStatus(cls.fully_paid||0, cls.fully_paid_amt||0, cls.partial||0, cls.partial_amt||0, cls.not_paid||0, cls.not_paid_billed||0, dbName, cls.class_id||0)+'</td>'+
                 '<td class="text-center">'+feesBar(cPct)+'</td>'+
                 '</tr>';
         });
@@ -905,7 +912,7 @@ function loadFees() {
                     '<td class="text-right">'+row.total_fees_formatted+'</td>'+
                     '<td class="text-right"><strong class="text-success">'+row.total_paid_formatted+'</strong></td>'+
                     '<td class="text-right text-danger">'+row.total_balance_formatted+'</td>'+
-                    '<td>'+stuStatus(row.fully_paid_count||0, row.fully_paid_amt||0, row.partial_count||0, row.partial_amt||0, row.not_paid_count||0, row.not_paid_billed||0)+'</td>'+
+                    '<td>'+stuStatus(row.fully_paid_count||0, row.fully_paid_amt||0, row.partial_count||0, row.partial_amt||0, row.not_paid_count||0, row.not_paid_billed||0, row.db_name, 0)+'</td>'+
                     '<td class="text-center">'+feesBar(rowPct)+'</td>'+
                     '</tr>';
             });
@@ -1461,4 +1468,66 @@ $(document).ready(function(){
         $(window).on('resize', function() { update(); });
     })();
 });
+
+// ---- Not-Paid Students Eye-icon handler ----
+$(document).on('click', '.mcc-np-eye', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var db      = $(this).data('db');
+    var classId = $(this).data('class') || 0;
+    var title   = (MCC.names[db] || db) + ' — Not Paid Students';
+    if (classId > 0) { title += ' (this class)'; }
+    $('#mcc-np-modal-title').text(title);
+    $('#mcc-np-modal-body').html('<div style="text-align:center;padding:30px"><i class="fa fa-spinner fa-spin fa-2x"></i></div>');
+    $('#mcc-np-modal').modal('show');
+    $.getJSON(MCC.urls.feesNotPaid, { db: db, class_id: classId })
+        .done(function(resp) {
+            if (!resp || resp.status !== 'success') {
+                $('#mcc-np-modal-body').html('<p class="text-danger">Failed to load data.</p>');
+                return;
+            }
+            var rows = resp.students || [];
+            if (!rows.length) {
+                $('#mcc-np-modal-body').html('<p class="text-muted" style="padding:12px">No not-paid students found.</p>');
+                return;
+            }
+            var html = '<table class="table table-bordered table-condensed" style="font-size:13px;margin:0">'+
+                '<thead><tr><th>#</th><th>Adm No</th><th>Name</th><th>Class</th><th>Section</th><th class="text-right">Billed</th></tr></thead><tbody>';
+            rows.forEach(function(s, i) {
+                html += '<tr><td>'+(i+1)+'</td>'+
+                    '<td>'+escHtml(s.admission_no)+'</td>'+
+                    '<td>'+escHtml(s.name)+'</td>'+
+                    '<td>'+escHtml(s.class)+'</td>'+
+                    '<td>'+escHtml(s.section)+'</td>'+
+                    '<td class="text-right">'+MCC.currency+numFmt(s.billed)+'</td></tr>';
+            });
+            html += '</tbody></table>';
+            $('#mcc-np-modal-body').html(html);
+        })
+        .fail(function() {
+            $('#mcc-np-modal-body').html('<p class="text-danger">Request failed.</p>');
+        });
+});
 </script>
+
+<!-- Not-Paid Students Modal -->
+<div class="modal fade" id="mcc-np-modal" tabindex="-1" role="dialog" aria-labelledby="mcc-np-modal-label">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#c0392b; color:#fff; border-radius:4px 4px 0 0">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:#fff; opacity:.8">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="mcc-np-modal-title" style="color:#fff">
+                    <i class="fa fa-times-circle"></i> Not Paid Students
+                </h4>
+            </div>
+            <div class="modal-body" id="mcc-np-modal-body" style="max-height:65vh; overflow-y:auto; padding:12px">
+                <div style="text-align:center;padding:30px"><i class="fa fa-spinner fa-spin fa-2x"></i></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

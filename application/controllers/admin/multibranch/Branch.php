@@ -796,6 +796,131 @@ class Branch extends MY_Addon_MBController
             ->set_output(json_encode(['status' => 'success', 'drilldown' => $result]));
     }
 
+    // ================================================================
+    // NOT-PAID STUDENTS LIST  (for eye-icon modal)
+    // ================================================================
+    /**
+     * GET params: db (database name), class_id (optional — 0 = all classes)
+     * Returns the list of not-paid students for the given branch + current session.
+     */
+    public function fees_not_paid_students_async()
+    {
+        if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
+            access_denied();
+        }
+        session_write_close();
+
+        $req_db    = $this->input->get('db');
+        $req_class = (int)$this->input->get('class_id'); // 0 = all
+
+        $branches      = $this->multibranch_model->getSchoolCurrentSessions();
+        $branches_list = $this->multibranch_model->get();
+
+        $branch_id_map = [];
+        foreach ($branches_list as $b) {
+            $branch_id_map[$b->database_name] = $b->id;
+        }
+
+        if (!isset($branches[$req_db])) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'message' => 'Unknown branch']));
+        }
+
+        $session_id = $branches[$req_db]->session_id;
+        if ($req_db === $this->db->database) {
+            $db = $this->db;
+        } elseif (isset($branch_id_map[$req_db])) {
+            $db = $this->load->database('branch_' . $branch_id_map[$req_db], true);
+        } else {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'message' => 'Branch not accessible']));
+        }
+
+        try {
+            // ── Billed per student_session ─────────────────────────────────────
+            $class_filter = $req_class > 0 ? 'AND ss.class_id = ' . $req_class : '';
+            $billed_rows  = $db->query(
+                "SELECT sfm.student_session_id AS ss_id,
+                        ss.class_id,
+                        s.admission_no,
+                        CONCAT(s.firstname, ' ', s.lastname) AS student_name,
+                        c.class AS class_name,
+                        COALESCE(sec.section, '—') AS section_name,
+                        SUM(COALESCE(sfo.override_amount, fgf.amount)) AS billed
+                 FROM student_fees_master sfm
+                 JOIN student_session ss  ON ss.id  = sfm.student_session_id $class_filter
+                 JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
+                 JOIN classes c           ON c.id   = ss.class_id
+                 LEFT JOIN sections sec   ON sec.id = ss.section_id
+                 JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+                 JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+                 JOIN feetype ft           ON ft.id  = fgf.feetype_id
+                                          AND LOWER(ft.type) NOT IN ('advance payments')
+                 LEFT JOIN student_fee_overrides sfo
+                        ON sfo.student_session_id    = sfm.student_session_id
+                       AND sfo.fee_groups_feetype_id = fgf.id
+                 WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+                 GROUP BY sfm.student_session_id, ss.class_id, s.admission_no,
+                          s.firstname, s.lastname, c.class, sec.section
+                 ORDER BY c.class, s.admission_no",
+                [$session_id]
+            )->result();
+
+            // ── Deposits per student_session ───────────────────────────────────
+            $deposit_rows = $db->query(
+                "SELECT sfm.student_session_id AS ss_id, sfd.amount_detail
+                 FROM student_fees_deposite sfd
+                 JOIN student_fees_master sfm ON sfm.id = sfd.student_fees_master_id
+                                             AND sfm.is_active = 'yes'
+                 JOIN student_session ss ON ss.id = sfm.student_session_id
+                 JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
+                 WHERE ss.session_id = ?
+                   AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
+                [$session_id]
+            )->result();
+
+            $paid_by_ss = [];
+            foreach ($deposit_rows as $dep) {
+                $detail = json_decode($dep->amount_detail);
+                if (!is_object($detail)) continue;
+                $ssid = (int)$dep->ss_id;
+                if (!isset($paid_by_ss[$ssid])) $paid_by_ss[$ssid] = 0.0;
+                foreach ($detail as $payment) {
+                    $paid_by_ss[$ssid] += (float)$payment->amount;
+                    if (isset($payment->amount_discount)) {
+                        $paid_by_ss[$ssid] += (float)$payment->amount_discount;
+                    }
+                }
+            }
+
+            $not_paid = [];
+            foreach ($billed_rows as $row) {
+                $ssid = (int)$row->ss_id;
+                $paid = isset($paid_by_ss[$ssid]) ? $paid_by_ss[$ssid] : 0.0;
+                if ($paid == 0) {
+                    // Strip the "ROMAN YEAR " prefix from class name for display
+                    $class_parts = explode(' ', $row->class_name, 2);
+                    $class_display = count($class_parts) > 1 ? trim($class_parts[1]) : $row->class_name;
+                    $not_paid[] = [
+                        'admission_no' => $row->admission_no,
+                        'name'         => $row->student_name,
+                        'class'        => $class_display,
+                        'section'      => $row->section_name,
+                        'billed'       => (float)$row->billed,
+                    ];
+                }
+            }
+
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'success', 'students' => $not_paid]));
+
+        } catch (Throwable $e) {
+            log_message('error', '[MCC] fees_not_paid_students_async: ' . $e->getMessage());
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['status' => 'error', 'message' => 'Failed to load data']));
+        }
+    }
+
     /**
      * Returns year → class breakdown of billed & collected amounts.
      * Shape: [ ['year'=>'I','billed'=>N,'collected'=>N,'classes'=>[...]], ... ]
@@ -889,6 +1014,7 @@ class Branch extends MY_Addon_MBController
             $years[$yr]['not_paid']          += $cc['not_paid'];
             $years[$yr]['not_paid_billed']   += $cc['not_paid_billed'];
             $years[$yr]['classes'][]  = [
+                'class_id'        => $cid,
                 'name'            => $row->class_display,
                 'billed'          => $b,
                 'collected'       => $col,
