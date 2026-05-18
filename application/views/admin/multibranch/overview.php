@@ -808,9 +808,12 @@ function stuStatus(fp, fpAmt, pr, prAmt, np, npBilled, dbName, classId) {
     html += '<div><span style="color:#e67e22"><i class="fa fa-adjust"></i> <strong>'+pr+'</strong></span>'+(prAmt > 0 ? ' <span style="color:#888">'+fmtCr(prAmt)+'</span>' : '')+'</div>';
     var eyeBtn = '';
     if (np > 0 && dbName) {
-        eyeBtn = ' <a href="#" class="mcc-np-eye" data-db="'+escHtml(dbName)+'" data-class="'+(classId||0)+'" title="View not-paid students" style="color:#c0392b"><i class="fa fa-eye"></i></a>';
+        eyeBtn = '<a href="#" class="mcc-np-eye" data-db="'+escHtml(dbName)+'" data-classid="'+(classId||0)+'" title="View not-paid students" style="color:#c0392b; margin-left:4px"><i class="fa fa-eye"></i></a>';
     }
-    html += '<div><span style="color:#c0392b"><i class="fa fa-times-circle"></i> <strong>'+np+'</strong></span>'+(npBilled > 0 ? ' <span style="color:#888">'+fmtCr(npBilled)+'</span>' : '')+eyeBtn+'</div>';
+    html += '<div><span style="color:#c0392b"><i class="fa fa-times-circle"></i> <strong>'+np+'</strong></span>'+
+        (npBilled > 0
+            ? ' <span style="color:#888; white-space:nowrap">'+fmtCr(npBilled)+(eyeBtn ? ' '+eyeBtn : '')+'</span>'
+            : (eyeBtn ? ' '+eyeBtn : ''))+'</div>';
     html += '</div>';
     return html;
 }
@@ -1474,7 +1477,7 @@ $(document).on('click', '.mcc-np-eye', function(e) {
     e.preventDefault();
     e.stopPropagation();
     var db      = $(this).data('db');
-    var classId = $(this).data('class') || 0;
+    var classId = $(this).data('classid') || 0;
     var title   = (MCC.names[db] || db) + ' — Not Paid Students';
     if (classId > 0) { title += ' (this class)'; }
     $('#mcc-np-modal-title').text(title);
