@@ -2080,5 +2080,164 @@ class Public_admission extends Front_Controller
         $this->session->set_flashdata('success_msg', 'Logged out successfully');
         redirect('site/userlogin');
     }
+
+    // ------------------------------------------------------------------
+    // SCHOLARSHIP APPLICATION (applicant portal)
+    // ------------------------------------------------------------------
+
+    /**
+     * Show scholarship application form + existing applications for this applicant.
+     */
+    public function scholarship()
+    {
+        $reference_no = $this->session->userdata('validlogin');
+        if (empty($reference_no)) {
+            $this->session->set_flashdata('login_error', 'Please login first');
+            redirect('site/userlogin');
+            return;
+        }
+
+        $ref_clean    = preg_replace('/\s+/', '', $reference_no);
+        $applicant    = $this->db->select('id, reference_no, firstname, lastname')
+                                 ->from('online_admissions')
+                                 ->where("REPLACE(reference_no, ' ', '') = " . $this->db->escape($ref_clean), null, false)
+                                 ->get()->row();
+        if (!$applicant) {
+            $this->session->unset_userdata('validlogin');
+            redirect('site/userlogin');
+            return;
+        }
+
+        $this->load->model('Scholarship_type_model');
+        $this->load->model('Scholarship_application_model');
+
+        $scholarship_types = $this->Scholarship_type_model->getAll(true);
+        $my_applications   = $this->Scholarship_application_model->getByApplicant($applicant->id);
+
+        $this->data['applicant']           = $applicant;
+        $this->data['scholarship_types']   = $scholarship_types;
+        $this->data['my_applications']     = $my_applications;
+        $this->data['title']               = 'Apply for Scholarship';
+        $this->data['sch_name']            = $this->sch_setting_detail->name ?? 'Applicant Portal';
+
+        $this->load->view('layout/applicant/header', $this->data);
+        $this->load->view('public_admission/scholarship_apply', $this->data);
+        $this->load->view('layout/applicant/footer', $this->data);
+    }
+
+    /**
+     * Handle POST: save scholarship application from applicant portal.
+     */
+    public function save_scholarship()
+    {
+        $reference_no = $this->session->userdata('validlogin');
+        if (empty($reference_no)) {
+            redirect('site/userlogin');
+            return;
+        }
+
+        $ref_clean = preg_replace('/\s+/', '', $reference_no);
+        $applicant = $this->db->select('id, reference_no')
+                              ->from('online_admissions')
+                              ->where("REPLACE(reference_no, ' ', '') = " . $this->db->escape($ref_clean), null, false)
+                              ->get()->row();
+        if (!$applicant) {
+            redirect('site/userlogin');
+            return;
+        }
+
+        $this->load->model('Scholarship_type_model');
+        $this->load->model('Scholarship_application_model');
+        $this->load->library('form_validation');
+
+        $this->form_validation->set_rules('scholarship_type_id', 'Scholarship Type', 'required|is_natural_no_zero');
+
+        if (!$this->form_validation->run()) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Please select a valid scholarship type.</div>');
+            redirect('public_admission/scholarship');
+            return;
+        }
+
+        $scholarship_type_id = (int)$this->input->post('scholarship_type_id');
+        $applicant_remarks   = $this->security->xss_clean($this->input->post('applicant_remarks'));
+
+        // Duplicate check
+        if ($this->Scholarship_application_model->alreadyApplied($applicant->id, $scholarship_type_id)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning">You have already applied for this scholarship type.</div>');
+            redirect('public_admission/scholarship');
+            return;
+        }
+
+        // Document upload (optional but validated if provided)
+        $document = '';
+        if (!empty($_FILES['document']['name'])) {
+            $allowed_mime = ['image/jpeg', 'image/png', 'application/pdf'];
+            $max_size     = 307200; // 300 KB
+            if (!in_array($_FILES['document']['type'], $allowed_mime)) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Only JPG, PNG, or PDF files are allowed for documents.</div>');
+                redirect('public_admission/scholarship');
+                return;
+            }
+            if ($_FILES['document']['size'] > $max_size) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Document must be 300 KB or smaller.</div>');
+                redirect('public_admission/scholarship');
+                return;
+            }
+            $upload = $this->media_storage->fileupload('document', './uploads/scholarship_docs/');
+            if (!$upload['status']) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Document upload failed. Please try again.</div>');
+                redirect('public_admission/scholarship');
+                return;
+            }
+            $document = $upload['message'];
+        }
+
+        $this->Scholarship_application_model->insert([
+            'online_admission_id'  => $applicant->id,
+            'scholarship_type_id'  => $scholarship_type_id,
+            'applicant_remarks'    => $applicant_remarks,
+            'document'             => $document,
+            'status'               => 'pending',
+        ]);
+
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">Your scholarship application has been submitted successfully.</div>');
+        redirect('public_admission/scholarship');
+    }
+
+    /**
+     * Applicant view-only status page for all their scholarship applications.
+     */
+    public function scholarship_status()
+    {
+        $reference_no = $this->session->userdata('validlogin');
+        if (empty($reference_no)) {
+            $this->session->set_flashdata('login_error', 'Please login first');
+            redirect('site/userlogin');
+            return;
+        }
+
+        $ref_clean = preg_replace('/\s+/', '', $reference_no);
+        $applicant = $this->db->select('id, reference_no, firstname, lastname')
+                              ->from('online_admissions')
+                              ->where("REPLACE(reference_no, ' ', '') = " . $this->db->escape($ref_clean), null, false)
+                              ->get()->row();
+        if (!$applicant) {
+            $this->session->unset_userdata('validlogin');
+            redirect('site/userlogin');
+            return;
+        }
+
+        $this->load->model('Scholarship_application_model');
+        $my_applications = $this->Scholarship_application_model->getByApplicant($applicant->id);
+
+        $this->data['applicant']         = $applicant;
+        $this->data['my_applications']   = $my_applications;
+        $this->data['title']             = 'Scholarship Status';
+        $this->data['sch_name']          = $this->sch_setting_detail->name ?? 'Applicant Portal';
+
+        $this->load->view('layout/applicant/header', $this->data);
+        $this->load->view('public_admission/scholarship_status', $this->data);
+        $this->load->view('layout/applicant/footer', $this->data);
+    }
 }
 ?>

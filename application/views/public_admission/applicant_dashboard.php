@@ -281,6 +281,24 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Scholarship Card -->
+            <div class="box box-primary">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-graduation-cap"></i> Scholarship</h3>
+                </div>
+                <div class="box-body">
+                    <p>Apply for available scholarships or check the status of your applications.</p>
+                </div>
+                <div class="box-footer clearfix">
+                    <a href="<?php echo base_url('public_admission/scholarship_status'); ?>" class="btn btn-sm btn-default btn-flat">
+                        <i class="fa fa-info-circle"></i> Check Status
+                    </a>
+                    <a href="<?php echo base_url('public_admission/scholarship'); ?>" class="btn btn-sm btn-primary btn-flat pull-right">
+                        <i class="fa fa-arrow-right"></i> Apply Now
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </section>
