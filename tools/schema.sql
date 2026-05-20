@@ -11992,6 +11992,7 @@ CREATE TABLE IF NOT EXISTS `scholarship_types` (
   `amount`      decimal(10,2) DEFAULT NULL,
   `is_active`   tinyint(1)    NOT NULL DEFAULT 1,
   `sort_order`  int(11)       NOT NULL DEFAULT 0,
+  `verifier_id` int(11)       DEFAULT NULL COMMENT 'Designated verifier staff.id for this scholarship type',
   `created_at`  timestamp     NOT NULL DEFAULT current_timestamp(),
   `updated_at`  timestamp     NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`)

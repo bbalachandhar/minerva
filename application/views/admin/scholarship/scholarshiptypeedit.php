@@ -40,6 +40,19 @@
                                        value="<?php echo set_value('sort_order', $scholarship_type['sort_order']); ?>"/>
                             </div>
                             <div class="form-group">
+                                <label>Verifier <small class="text-muted">(who verifies applications of this type)</small></label>
+                                <select name="verifier_id" class="form-control select2">
+                                    <option value="">-- None assigned --</option>
+                                    <?php foreach ($staff_list as $s): ?>
+                                    <option value="<?php echo $s['id']; ?>"
+                                        <?php echo (isset($scholarship_type['verifier_id']) && $scholarship_type['verifier_id'] !== null && (int)$scholarship_type['verifier_id'] === (int)$s['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($s['name'] . ' ' . $s['surname']); ?>
+                                        <?php if (!empty($s['designation'])): ?>(<?php echo htmlspecialchars($s['designation']); ?>)<?php endif; ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>Status</label>
                                 <select name="is_active" class="form-control">
                                     <option value="1" <?php echo (int)$scholarship_type['is_active'] === 1 ? 'selected' : ''; ?>>Active</option>

@@ -54,11 +54,12 @@ class Scholarshipapplication extends Admin_Controller
         $userdata         = $this->customlib->getUserData();
         $current_staff_id = (is_array($userdata) && isset($userdata['id'])) ? (int) $userdata['id'] : 0;
 
-        $data['application']     = $application;
-        $data['settings']        = $settings;
+        $data['application']      = $application;
+        $data['settings']         = $settings;
         $data['current_staff_id'] = $current_staff_id;
-        $data['can_verify']      = ($settings && (int)$settings['verifier_id'] === $current_staff_id);
-        $data['can_approve']     = ($settings && (int)$settings['approver_id'] === $current_staff_id);
+        // Verifier is per scholarship type; approver is global
+        $data['can_verify']  = (!empty($application['type_verifier_id']) && (int)$application['type_verifier_id'] === $current_staff_id);
+        $data['can_approve'] = ($settings && !empty($settings['approver_id']) && (int)$settings['approver_id'] === $current_staff_id);
 
         $this->session->set_userdata('top_menu', 'Admissions');
         $this->session->set_userdata('sub_menu', 'admin/scholarshipapplication');
@@ -76,12 +77,13 @@ class Scholarshipapplication extends Admin_Controller
             access_denied();
         }
 
-        $settings         = $this->Scholarship_application_model->getSettings();
+        $application      = $this->Scholarship_application_model->get($id);
+        if (!$application) { show_404(); }
         $userdata         = $this->customlib->getUserData();
         $current_staff_id = (is_array($userdata) && isset($userdata['id'])) ? (int) $userdata['id'] : 0;
 
-        if (!$settings || (int)$settings['verifier_id'] !== $current_staff_id) {
-            $this->session->set_flashdata('msg', '<div class="alert alert-danger">You are not authorised to verify scholarship applications.</div>');
+        if (empty($application['type_verifier_id']) || (int)$application['type_verifier_id'] !== $current_staff_id) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">You are not authorised to verify this scholarship application.</div>');
             redirect('admin/scholarshipapplication/view/' . $id);
             return;
         }
@@ -187,7 +189,6 @@ class Scholarshipapplication extends Admin_Controller
             return;
         }
 
-        $this->form_validation->set_rules('verifier_id', 'Verifier', 'trim|required|integer');
         $this->form_validation->set_rules('approver_id', 'Approver', 'trim|required|integer');
 
         if ($this->form_validation->run() === false) {
@@ -195,18 +196,9 @@ class Scholarshipapplication extends Admin_Controller
             return;
         }
 
-        $verifier_id = (int) $this->input->post('verifier_id');
         $approver_id = (int) $this->input->post('approver_id');
 
-        if ($verifier_id === $approver_id) {
-            echo json_encode(['success' => false, 'msg' => 'Verifier and Approver must be different staff members.']);
-            return;
-        }
-
-        $this->Scholarship_application_model->saveSettings([
-            'verifier_id' => $verifier_id,
-            'approver_id' => $approver_id,
-        ]);
+        $this->Scholarship_application_model->saveSettings(['approver_id' => $approver_id]);
         echo json_encode(['success' => true, 'msg' => 'Scholarship workflow settings saved.']);
     }
 
@@ -221,30 +213,18 @@ class Scholarshipapplication extends Admin_Controller
         $this->session->set_userdata('top_menu', 'Admissions');
         $this->session->set_userdata('sub_menu', 'admin/scholarshipapplication');
 
-        $this->form_validation->set_rules('verifier_id', 'Verifier', 'trim|required|integer');
         $this->form_validation->set_rules('approver_id', 'Approver', 'trim|required|integer');
 
         if ($this->form_validation->run() === false) {
-            $data['settings']    = $this->Scholarship_application_model->getSettings();
-            $data['staff_list']  = $this->Staff_model->getAll(null, 1);  // active staff only
+            $data['settings']   = $this->Scholarship_application_model->getSettings();
+            $data['staff_list'] = $this->Staff_model->getAll(null, 1);
 
             $this->load->view('layout/header');
             $this->load->view('admin/scholarship/scholarship_settings', $data);
             $this->load->view('layout/footer');
         } else {
-            $verifier_id = (int) $this->input->post('verifier_id');
             $approver_id = (int) $this->input->post('approver_id');
-
-            if ($verifier_id === $approver_id) {
-                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Verifier and Approver must be different staff members.</div>');
-                redirect('admin/scholarshipapplication/settings');
-                return;
-            }
-
-            $this->Scholarship_application_model->saveSettings([
-                'verifier_id' => $verifier_id,
-                'approver_id' => $approver_id,
-            ]);
+            $this->Scholarship_application_model->saveSettings(['approver_id' => $approver_id]);
             $this->session->set_flashdata('msg', '<div class="alert alert-success">Scholarship workflow settings saved.</div>');
             redirect('admin/scholarshipapplication/settings');
         }

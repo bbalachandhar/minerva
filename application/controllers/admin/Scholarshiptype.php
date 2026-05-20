@@ -28,6 +28,8 @@ class Scholarshiptype extends Admin_Controller
 
         if ($this->form_validation->run() === false) {
             $data['scholarship_types'] = $this->Scholarship_type_model->getAll();
+            $data['staff_list']        = $this->Staff_model->getAll(null, 1);
+            $data['settings']          = $this->Scholarship_application_model->getSettings();
             $this->load->view('layout/header');
             $this->load->view('admin/scholarship/scholarshiptype', $data);
             $this->load->view('layout/footer');
@@ -35,12 +37,14 @@ class Scholarshiptype extends Admin_Controller
             if (!$this->rbac->hasPrivilege('scholarship_type', 'can_add')) {
                 access_denied();
             }
-            $amount = $this->input->post('amount');
+            $amount      = $this->input->post('amount');
+            $verifier_id = $this->input->post('verifier_id');
             $insert = array(
                 'name'        => $this->input->post('name'),
                 'description' => $this->input->post('description'),
                 'amount'      => ($amount !== '' && $amount !== null) ? (float) $amount : null,
                 'sort_order'  => (int) $this->input->post('sort_order'),
+                'verifier_id' => ($verifier_id !== '' && $verifier_id !== null) ? (int) $verifier_id : null,
                 'is_active'   => 1,
             );
             $this->Scholarship_type_model->insert($insert);
@@ -60,16 +64,19 @@ class Scholarshiptype extends Admin_Controller
         if ($this->form_validation->run() === false) {
             $data['scholarship_type']  = $this->Scholarship_type_model->get($id);
             $data['scholarship_types'] = $this->Scholarship_type_model->getAll();
+            $data['staff_list']        = $this->Staff_model->getAll(null, 1);
             $this->load->view('layout/header');
             $this->load->view('admin/scholarship/scholarshiptypeedit', $data);
             $this->load->view('layout/footer');
         } else {
-            $amount = $this->input->post('amount');
+            $amount      = $this->input->post('amount');
+            $verifier_id = $this->input->post('verifier_id');
             $update = array(
                 'name'        => $this->input->post('name'),
                 'description' => $this->input->post('description'),
                 'amount'      => ($amount !== '' && $amount !== null) ? (float) $amount : null,
                 'sort_order'  => (int) $this->input->post('sort_order'),
+                'verifier_id' => ($verifier_id !== '' && $verifier_id !== null) ? (int) $verifier_id : null,
                 'is_active'   => (int) $this->input->post('is_active'),
             );
             $this->Scholarship_type_model->update($id, $update);

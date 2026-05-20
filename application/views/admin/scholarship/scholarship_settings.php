@@ -13,30 +13,14 @@
             <div class="col-md-6">
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Set Verifier &amp; Approver</h3>
+                        <h3 class="box-title">Global Approver Setting</h3>
                     </div>
                     <form action="<?php echo site_url('admin/scholarshipapplication/settings'); ?>" method="post">
                         <div class="box-body">
                             <div class="callout callout-info">
-                                <p><strong>Two-step workflow:</strong><br/>
-                                The <em>Verifier</em> checks document authenticity and marks the application as verified.<br/>
-                                The <em>Approver</em> makes the final grant decision. They must be different people.</p>
-                            </div>
-                            <div class="form-group">
-                                <label>Verifier <small class="req">*</small></label>
-                                <select name="verifier_id" class="form-control select2">
-                                    <option value="">-- Select Verifier --</option>
-                                    <?php foreach ($staff_list as $s): ?>
-                                    <option value="<?php echo $s['id']; ?>"
-                                        <?php echo (isset($settings['verifier_id']) && (int)$settings['verifier_id'] === (int)$s['id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($s['name'] . ' ' . $s['surname']); ?>
-                                        <?php if (!empty($s['designation'])): ?>
-                                            (<?php echo htmlspecialchars($s['designation']); ?>)
-                                        <?php endif; ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <span class="text-danger"><?php echo form_error('verifier_id'); ?></span>
+                                <p><strong>Global Approver:</strong><br/>
+                                Set the final approver who makes the grant decision for all scholarship types.<br/>
+                                The verifier for each scholarship type is configured on the <a href="<?php echo site_url('admin/scholarshiptype'); ?>">Scholarship Types</a> page.</p>
                             </div>
                             <div class="form-group">
                                 <label>Approver <small class="req">*</small></label>
