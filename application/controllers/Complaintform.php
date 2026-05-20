@@ -63,7 +63,7 @@ class Complaintform extends CI_Controller
     public function success()
     {
         $setting             = $this->setting_model->getSetting();
-        $data['website_url'] = isset($setting->website) ? $setting->website : base_url();
+        $data['website_url'] = !empty($setting->website) ? $setting->website : (!empty($setting->base_url) ? $setting->base_url : base_url());
         $data['ticket_no']   = $this->session->flashdata('ticket_no');
         $data['header_image']= $this->_get_header_image();
         $data['main_content']= 'complaintform/success';
