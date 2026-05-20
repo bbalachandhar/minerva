@@ -4444,6 +4444,25 @@ CREATE TABLE `online_admission_universities` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `online_admission_followup`
+--
+
+DROP TABLE IF EXISTS `online_admission_followup`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `online_admission_followup` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `online_admission_id` INT NOT NULL,
+  `note` TEXT NOT NULL,
+  `next_contact_date` DATE NULL,
+  `added_by` INT NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `online_admission_id` (`online_admission_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `online_admissions`
 --
 

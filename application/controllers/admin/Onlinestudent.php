@@ -643,7 +643,10 @@ class Onlinestudent extends Admin_Controller
                     }
                 }
 
-                $row[]     = $document . ' ' . $printbtn . ' ' . $eyebtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn . ' ' . $revokebtn;
+                $applicant_name_esc = addslashes($value->firstname . ' ' . trim($value->middlename . ' ' . $last_name));
+                $followupbtn = "<a class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='Follow-Up Notes' onclick='openFollowup(" . $value->id . ",\"" . $applicant_name_esc . "\")'><i class='fa fa-comments-o'></i></a>";
+
+                $row[]     = $document . ' ' . $printbtn . ' ' . $eyebtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn . ' ' . $revokebtn . ' ' . $followupbtn;
                 $dt_data[] = $row;
             }
         }
@@ -1361,6 +1364,63 @@ class Onlinestudent extends Admin_Controller
             return false;
         }
         return true;
+    }
+
+    // ── Application Follow-Up Notes ───────────────────────────────────────────
+
+    public function followup_add()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+            echo json_encode(['success' => false, 'msg' => 'Access denied.']);
+            return;
+        }
+        $id   = (int) $this->input->post('online_admission_id');
+        $note = trim($this->input->post('note'));
+        if (!$id || $note === '') {
+            echo json_encode(['success' => false, 'msg' => 'Note cannot be empty.']);
+            return;
+        }
+        $staff_id  = $this->customlib->getStaffID();
+        $raw_next  = $this->input->post('next_contact_date');
+        $next_date = null;
+        if (!empty($raw_next)) {
+            $ts = $this->customlib->datetostrtotime($raw_next);
+            if ($ts) {
+                $next_date = date('Y-m-d', $ts);
+            }
+        }
+        $this->onlinestudent_model->add_followup([
+            'online_admission_id' => $id,
+            'note'                => htmlspecialchars($note),
+            'next_contact_date'   => $next_date,
+            'added_by'            => $staff_id,
+        ]);
+        echo json_encode(['success' => true, 'msg' => 'Follow-up note added.']);
+    }
+
+    public function followup_history($id)
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_view')) {
+            echo '<p class="text-danger">Access denied.</p>';
+            return;
+        }
+        $list = $this->onlinestudent_model->get_followup_list((int) $id);
+        $this->load->view('admin/onlinestudent/followup_history', [
+            'follow_up_list'       => $list,
+            'date_fmt'             => $this->customlib->getSchoolDateFormat(),
+            'online_admission_id'  => (int) $id,
+            'can_delete'           => $this->rbac->hasPrivilege('online_admission', 'can_delete'),
+        ]);
+    }
+
+    public function followup_delete($fid, $id)
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_delete')) {
+            echo '<p class="text-danger">Access denied.</p>';
+            return;
+        }
+        $this->onlinestudent_model->delete_followup((int) $fid);
+        $this->followup_history($id);
     }
 
 }

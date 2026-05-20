@@ -377,6 +377,45 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                     </form>
                 </div>
                 <!-- /.box -->
+
+                <!-- Follow-Up Notes Panel -->
+                <div class="box box-default" id="followup-panel">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-comments-o"></i> Follow-Up Notes</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <!-- Add new note form -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Note <span class="text-danger">*</span></label>
+                                    <textarea id="fu_note" class="form-control" rows="3" placeholder="Enter follow-up note / reason for payment delay…"></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Next Contact Date <small class="text-muted">(optional)</small></label>
+                                    <input type="text" id="fu_next_date" class="form-control date" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="col-md-3" style="padding-top:25px;">
+                                <button type="button" class="btn btn-primary" id="fu_save_btn" onclick="saveFollowup(<?php echo (int)$id; ?>)">
+                                    <i class="fa fa-plus"></i> Add Note
+                                </button>
+                            </div>
+                        </div>
+                        <!-- History -->
+                        <hr style="margin:10px 0;">
+                        <div id="fu-history-wrap">
+                            <div class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading…</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /.follow-up panel -->
+
             </div>
             <!--/.col (left) -->
         </div>
@@ -506,6 +545,49 @@ $(document).ready(function() {
         allowClear: true,
         width: '100%'
     });
+});
+</script>
+<script>
+// ── Follow-Up Notes (edit_application page) ───────────────────────────────────
+var _fuBase = '<?php echo base_url("admin/onlinestudent"); ?>';
+
+function loadFollowupHistory(admissionId, targetDiv) {
+    $(targetDiv).html('<div class="text-center"><i class="fa fa-spinner fa-spin"></i></div>');
+    $.get(_fuBase + '/followup_history/' + admissionId, function(html) {
+        $(targetDiv).html(html);
+    });
+}
+
+function saveFollowup(admissionId) {
+    var note = $('#fu_note').val().trim();
+    if (!note) { alert('Please enter a note.'); $('#fu_note').focus(); return; }
+    $('#fu_save_btn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+    $.post(_fuBase + '/followup_add', {
+        <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>',
+        online_admission_id: admissionId,
+        note: note,
+        next_contact_date: $('#fu_next_date').val()
+    }, function(res) {
+        $('#fu_save_btn').prop('disabled', false).html('<i class="fa fa-plus"></i> Add Note');
+        if (res.success) {
+            $('#fu_note').val('');
+            $('#fu_next_date').val('');
+            loadFollowupHistory(admissionId, '#fu-history-wrap');
+        } else {
+            alert(res.msg || 'Error saving note.');
+        }
+    }, 'json');
+}
+
+function deleteFollowup(fid, admissionId) {
+    if (!confirm('Delete this follow-up note?')) return;
+    $.get(_fuBase + '/followup_delete/' + fid + '/' + admissionId, function(html) {
+        $('#fu-history-wrap').html(html);
+    });
+}
+
+$(document).ready(function() {
+    loadFollowupHistory(<?php echo (int)$id; ?>, '#fu-history-wrap');
 });
 </script>
 

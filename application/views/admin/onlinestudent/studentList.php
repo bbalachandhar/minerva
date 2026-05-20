@@ -225,6 +225,48 @@
     </div>
 </div>
 
+<!-- Follow-Up Notes Modal -->
+<div class="modal fade" id="followupModal" tabindex="-1" role="dialog" aria-labelledby="followupModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="followupModalLabel"><i class="fa fa-comments-o"></i> Follow-Up Notes — <span id="fu_modal_name"></span></h4>
+            </div>
+            <div class="modal-body">
+                <!-- Add note form -->
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label>Note <span class="text-danger">*</span></label>
+                            <textarea id="fu_modal_note" class="form-control" rows="3" placeholder="Enter follow-up note…"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            <label>Next Contact Date <small class="text-muted">(optional)</small></label>
+                            <input type="text" id="fu_modal_next_date" class="form-control date" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-sm-3" style="padding-top:25px;">
+                        <button type="button" class="btn btn-primary btn-block" id="fu_modal_save_btn" onclick="saveFollowupModal()">
+                            <i class="fa fa-plus"></i> Add Note
+                        </button>
+                    </div>
+                </div>
+                <hr style="margin:8px 0;">
+                <!-- History -->
+                <div id="fu_modal_history">
+                    <div class="text-center"><i class="fa fa-spinner fa-spin fa-2x"></i></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     ( function ( $ ) {
     'use strict';
@@ -768,6 +810,67 @@
             });
         });
     });
+}(jQuery));
+</script>
+
+<!-- Follow-Up Notes JS -->
+<script>
+(function($) {
+    'use strict';
+    var _fuBase   = '<?php echo base_url("admin/onlinestudent"); ?>';
+    var _fuCsrfKey = '<?php echo $this->security->get_csrf_token_name(); ?>';
+    var _fuCsrfVal = '<?php echo $this->security->get_csrf_hash(); ?>';
+    var _fuCurrentId = null;
+
+    window.openFollowup = function(admissionId, name) {
+        _fuCurrentId = admissionId;
+        $('#fu_modal_name').text(name);
+        $('#fu_modal_note').val('');
+        $('#fu_modal_next_date').val('');
+        loadFollowupHistoryModal(admissionId);
+        $('#followupModal').modal('show');
+    };
+
+    function loadFollowupHistoryModal(admissionId) {
+        $('#fu_modal_history').html('<div class="text-center"><i class="fa fa-spinner fa-spin fa-2x"></i></div>');
+        $.get(_fuBase + '/followup_history/' + admissionId, function(html) {
+            $('#fu_modal_history').html(html);
+        });
+    }
+
+    window.saveFollowupModal = function() {
+        var note = $('#fu_modal_note').val().trim();
+        if (!note) { alert('Please enter a note.'); $('#fu_modal_note').focus(); return; }
+        var $btn = $('#fu_modal_save_btn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+        var postData = {
+            online_admission_id: _fuCurrentId,
+            note: note,
+            next_contact_date: $('#fu_modal_next_date').val()
+        };
+        postData[_fuCsrfKey] = _fuCsrfVal;
+        $.post(_fuBase + '/followup_add', postData, function(res) {
+            $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Add Note');
+            if (res.success) {
+                $('#fu_modal_note').val('');
+                $('#fu_modal_next_date').val('');
+                loadFollowupHistoryModal(_fuCurrentId);
+            } else {
+                alert(res.msg || 'Error saving note.');
+            }
+        }, 'json');
+    };
+
+    window.deleteFollowup = function(fid, admissionId) {
+        if (!confirm('Delete this follow-up note?')) return;
+        $.get(_fuBase + '/followup_delete/' + fid + '/' + admissionId, function(html) {
+            // Refresh whichever container is visible
+            if ($('#followupModal').hasClass('in')) {
+                $('#fu_modal_history').html(html);
+            } else {
+                $('#fu-history-wrap').html(html);
+            }
+        });
+    };
 }(jQuery));
 </script>
 <?php endif; ?>

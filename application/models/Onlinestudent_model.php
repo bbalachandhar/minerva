@@ -1146,5 +1146,28 @@ class Onlinestudent_model extends MY_Model
         }
         return false;
     }
+
+    // ── Follow-Up Notes ───────────────────────────────────────────────────────
+
+    public function add_followup($data)
+    {
+        $this->db->insert('online_admission_followup', $data);
+        return $this->db->insert_id();
+    }
+
+    public function get_followup_list($online_admission_id)
+    {
+        $this->db->select('oaf.*, CONCAT(s.name, " ", s.surname) AS staff_name, s.employee_id')
+            ->from('online_admission_followup oaf')
+            ->join('staff s', 's.id = oaf.added_by', 'left')
+            ->where('oaf.online_admission_id', (int) $online_admission_id)
+            ->order_by('oaf.id', 'DESC');
+        return $this->db->get()->result_array();
+    }
+
+    public function delete_followup($id)
+    {
+        $this->db->where('id', (int) $id)->delete('online_admission_followup');
+    }
 }
 
