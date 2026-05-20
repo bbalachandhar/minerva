@@ -39,6 +39,16 @@
                                             </button>
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td>Complaint / Suggestion Form</td>
+                                        <td>A public form for anyone (including non-registered users) to submit complaints or suggestions.</td>
+                                        <td><a href="<?php echo site_url('complaint'); ?>" target="_blank"><?php echo site_url('complaint'); ?></a></td>
+                                        <td class="text-right">
+                                            <button class="btn btn-default btn-xs copy-to-clipboard" data-clipboard-text="<?php echo site_url('complaint'); ?>" data-toggle="tooltip" title="Copy to Clipboard">
+                                                <i class="fa fa-clipboard"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
