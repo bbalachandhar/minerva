@@ -134,6 +134,8 @@ if (!function_exists('main_menu_array')) {
                 'onlineadmission'        => array('index','edit'),
                 'onlinestudent'          => array('index','edit'),
                 'admission_cancellation' => array('index'),
+                'scholarshipapplication' => array('index','view','verify','approve','settings','settings_ajax'),
+                'scholarshiptype'        => array('index','edit'),
             ),
             
             'front_office' => array(

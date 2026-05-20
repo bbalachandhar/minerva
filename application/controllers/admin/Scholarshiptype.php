@@ -21,7 +21,7 @@ class Scholarshiptype extends Admin_Controller
             access_denied();
         }
 
-        $this->session->set_userdata('top_menu', 'Student Information');
+        $this->session->set_userdata('top_menu', 'Admissions');
         $this->session->set_userdata('sub_menu', 'admin/scholarshiptype');
 
         $this->form_validation->set_rules('name', 'Scholarship Name', 'trim|required|max_length[300]|xss_clean');

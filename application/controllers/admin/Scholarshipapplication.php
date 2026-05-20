@@ -23,7 +23,7 @@ class Scholarshipapplication extends Admin_Controller
             access_denied();
         }
 
-        $this->session->set_userdata('top_menu', 'Student Information');
+        $this->session->set_userdata('top_menu', 'Admissions');
         $this->session->set_userdata('sub_menu', 'admin/scholarshipapplication');
 
         $status = $this->input->get('status');
@@ -60,7 +60,7 @@ class Scholarshipapplication extends Admin_Controller
         $data['can_verify']      = ($settings && (int)$settings['verifier_id'] === $current_staff_id);
         $data['can_approve']     = ($settings && (int)$settings['approver_id'] === $current_staff_id);
 
-        $this->session->set_userdata('top_menu', 'Student Information');
+        $this->session->set_userdata('top_menu', 'Admissions');
         $this->session->set_userdata('sub_menu', 'admin/scholarshipapplication');
 
         $this->load->view('layout/header');
@@ -218,7 +218,7 @@ class Scholarshipapplication extends Admin_Controller
             access_denied();
         }
 
-        $this->session->set_userdata('top_menu', 'Student Information');
+        $this->session->set_userdata('top_menu', 'Admissions');
         $this->session->set_userdata('sub_menu', 'admin/scholarshipapplication');
 
         $this->form_validation->set_rules('verifier_id', 'Verifier', 'trim|required|integer');
