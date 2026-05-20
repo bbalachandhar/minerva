@@ -9,7 +9,7 @@
     <section class="content">
         <?php echo $this->session->flashdata('msg'); ?>
         <div class="row">
-            <?php if ($this->rbac->hasPrivilege('online_admission', 'can_add')): ?>
+            <?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_add')): ?>
             <div class="col-md-4">
                 <div class="box box-primary">
                     <div class="box-header with-border">
@@ -43,7 +43,7 @@
             </div>
             <?php endif; ?>
 
-            <div class="col-md-<?php echo $this->rbac->hasPrivilege('online_admission', 'can_add') ? '8' : '12'; ?>">
+            <div class="col-md-<?php echo $this->rbac->hasPrivilege('scholarship_type', 'can_add') ? '8' : '12'; ?>">
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title">Scholarship Type List</h3>
@@ -85,12 +85,12 @@
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-right">
-                                        <?php if ($this->rbac->hasPrivilege('online_admission', 'can_edit')): ?>
+                                        <?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_edit')): ?>
                                         <a href="<?php echo site_url('admin/scholarshiptype/edit/' . $t['id']); ?>" class="btn btn-xs btn-warning">
                                             <i class="fa fa-edit"></i> Edit
                                         </a>
                                         <?php endif; ?>
-                                        <?php if ($this->rbac->hasPrivilege('online_admission', 'can_delete')): ?>
+                                        <?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_delete')): ?>
                                         <a href="<?php echo site_url('admin/scholarshiptype/delete/' . $t['id']); ?>"
                                            class="btn btn-xs btn-danger"
                                            onclick="return confirm('Delete this scholarship type?')">

@@ -19,7 +19,7 @@ class Scholarshipapplication extends Admin_Controller
 
     public function index()
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_view')) {
             access_denied();
         }
 
@@ -41,7 +41,7 @@ class Scholarshipapplication extends Admin_Controller
 
     public function view($id)
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_view')) {
             access_denied();
         }
 
@@ -72,7 +72,7 @@ class Scholarshipapplication extends Admin_Controller
 
     public function verify($id)
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_edit')) {
             access_denied();
         }
 
@@ -117,7 +117,7 @@ class Scholarshipapplication extends Admin_Controller
 
     public function approve($id)
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_edit')) {
             access_denied();
         }
 
@@ -163,7 +163,7 @@ class Scholarshipapplication extends Admin_Controller
 
     public function download($id)
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_view')) {
             access_denied();
         }
         $application = $this->Scholarship_application_model->get($id);
@@ -182,7 +182,7 @@ class Scholarshipapplication extends Admin_Controller
 
     public function settings_ajax()
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_edit')) {
             echo json_encode(['success' => false, 'msg' => 'Access denied.']);
             return;
         }
@@ -214,7 +214,7 @@ class Scholarshipapplication extends Admin_Controller
 
     public function settings()
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_edit')) {
             access_denied();
         }
 

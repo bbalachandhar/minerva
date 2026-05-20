@@ -17,7 +17,7 @@ class Scholarshiptype extends Admin_Controller
 
     public function index()
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('scholarship_type', 'can_view')) {
             access_denied();
         }
 
@@ -32,7 +32,7 @@ class Scholarshiptype extends Admin_Controller
             $this->load->view('admin/scholarship/scholarshiptype', $data);
             $this->load->view('layout/footer');
         } else {
-            if (!$this->rbac->hasPrivilege('online_admission', 'can_add')) {
+            if (!$this->rbac->hasPrivilege('scholarship_type', 'can_add')) {
                 access_denied();
             }
             $amount = $this->input->post('amount');
@@ -51,7 +51,7 @@ class Scholarshiptype extends Admin_Controller
 
     public function edit($id)
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('scholarship_type', 'can_edit')) {
             access_denied();
         }
 
@@ -80,7 +80,7 @@ class Scholarshiptype extends Admin_Controller
 
     public function delete($id)
     {
-        if (!$this->rbac->hasPrivilege('online_admission', 'can_delete')) {
+        if (!$this->rbac->hasPrivilege('scholarship_type', 'can_delete')) {
             access_denied();
         }
         // Block if any applications reference this type
