@@ -30,6 +30,7 @@ class Scholarshipapplication extends Admin_Controller
         $data['applications']     = $this->Scholarship_application_model->getAll($status ?: null);
         $data['filter_status']    = $status;
         $data['settings']         = $this->Scholarship_application_model->getSettings();
+        $data['staff_list']       = $this->Staff_model->getAll(null, 1);
 
         $this->load->view('layout/header');
         $this->load->view('admin/scholarship/scholarshipapplication_list', $data);
@@ -175,6 +176,38 @@ class Scholarshipapplication extends Admin_Controller
         }
         $this->load->library('media_storage');
         $this->media_storage->filedownload($application['document'], 'uploads/scholarship_docs');
+    }
+
+    // ── Settings AJAX (modal submit) ──────────────────────────────────────────
+
+    public function settings_ajax()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+            echo json_encode(['success' => false, 'msg' => 'Access denied.']);
+            return;
+        }
+
+        $this->form_validation->set_rules('verifier_id', 'Verifier', 'trim|required|integer');
+        $this->form_validation->set_rules('approver_id', 'Approver', 'trim|required|integer');
+
+        if ($this->form_validation->run() === false) {
+            echo json_encode(['success' => false, 'msg' => strip_tags(validation_errors())]);
+            return;
+        }
+
+        $verifier_id = (int) $this->input->post('verifier_id');
+        $approver_id = (int) $this->input->post('approver_id');
+
+        if ($verifier_id === $approver_id) {
+            echo json_encode(['success' => false, 'msg' => 'Verifier and Approver must be different staff members.']);
+            return;
+        }
+
+        $this->Scholarship_application_model->saveSettings([
+            'verifier_id' => $verifier_id,
+            'approver_id' => $approver_id,
+        ]);
+        echo json_encode(['success' => true, 'msg' => 'Scholarship workflow settings saved.']);
     }
 
     // ── Settings: set verifier / approver ────────────────────────────────────
