@@ -1469,6 +1469,51 @@ $(document).ready(function(){
         // rAF ensures offsetWidth is valid in Safari before first paint
         requestAnimationFrame(function() { offset = 0; update(); });
         $(window).on('resize', function() { update(); });
+
+        // ── Auto-scroll: advance one card every 4 s, wraps around ──────────
+        var autoTimer = null;
+        var paused    = false;
+
+        function autoAdvance() {
+            var vis    = getVisible();
+            var maxOff = Math.max(0, total - vis);
+            if (maxOff === 0) return; // nothing to scroll
+            if (offset >= maxOff) {
+                offset = 0;          // wrap back to start
+            } else {
+                offset++;
+            }
+            update();
+        }
+
+        function startAuto() {
+            if (autoTimer) return;
+            autoTimer = setInterval(autoAdvance, 4000);
+        }
+
+        function stopAuto() {
+            if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        }
+
+        // Pause on hover or manual click, resume after 6 s idle
+        var resumeTimer = null;
+        function pauseAndResume() {
+            paused = true;
+            stopAuto();
+            if (resumeTimer) clearTimeout(resumeTimer);
+            resumeTimer = setTimeout(function() { paused = false; startAuto(); }, 6000);
+        }
+
+        var outer = document.querySelector('.mcc-carousel-outer');
+        if (outer) {
+            outer.addEventListener('mouseenter', pauseAndResume);
+            outer.addEventListener('touchstart',  pauseAndResume, { passive: true });
+        }
+        // Also pause when user clicks prev/next manually
+        var origCarousel = window.mccCarousel;
+        window.mccCarousel = function(dir) { origCarousel(dir); pauseAndResume(); };
+
+        startAuto();
     })();
 });
 
