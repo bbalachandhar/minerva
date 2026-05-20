@@ -11,6 +11,8 @@ class Scholarshiptype extends Admin_Controller
         parent::__construct();
         $this->load->library('form_validation');
         $this->load->model('Scholarship_type_model');
+        $this->load->model('Scholarship_application_model');
+        $this->load->model('Staff_model');
     }
 
     public function index()

@@ -186,5 +186,11 @@ $(function () {
         $('#settingsMsg').html('');
         $('#settingsSaveBtn').prop('disabled', false).html('<i class="fa fa-save"></i> Save Settings');
     });
+
+    // Searchable dropdowns inside modal
+    $('#settingsVerifier, #settingsApprover').select2({
+        dropdownParent: $('#settingsModal'),
+        width: '100%'
+    });
 });
 </script>
