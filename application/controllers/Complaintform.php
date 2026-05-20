@@ -10,8 +10,8 @@ class Complaintform extends CI_Controller
         parent::__construct();
         $this->load->database();
         $this->load->library('form_validation');
-        $this->load->model('complaint_Model');
         $this->load->model('setting_model');
+        $this->load->model('complaint_Model');
         $this->load->helper('url');
         $this->load->helper('form');
     }
