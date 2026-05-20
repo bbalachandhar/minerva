@@ -201,5 +201,4 @@ class Scholarshipapplication extends Admin_Controller
         $this->Scholarship_application_model->saveSettings(['approver_id' => $approver_id]);
         echo json_encode(['success' => true, 'msg' => 'Scholarship workflow settings saved.']);
     }
-
-    // ── Settings AJAX (modal submit) ──────────────────────────────────────────
+}
