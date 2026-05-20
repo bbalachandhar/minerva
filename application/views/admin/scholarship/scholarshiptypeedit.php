@@ -29,6 +29,12 @@
                                 <textarea name="description" class="form-control" rows="3"><?php echo set_value('description', $scholarship_type['description']); ?></textarea>
                             </div>
                             <div class="form-group">
+                                <label>Amount (&#8377;)</label>
+                                <input type="number" name="amount" class="form-control" step="0.01" min="0"
+                                       value="<?php echo set_value('amount', $scholarship_type['amount'] ?? ''); ?>"
+                                       placeholder="Leave blank if not fixed"/>
+                            </div>
+                            <div class="form-group">
                                 <label>Sort Order</label>
                                 <input type="number" name="sort_order" class="form-control" min="0"
                                        value="<?php echo set_value('sort_order', $scholarship_type['sort_order']); ?>"/>

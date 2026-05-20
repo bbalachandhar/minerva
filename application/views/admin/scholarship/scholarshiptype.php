@@ -27,6 +27,10 @@
                                 <textarea name="description" class="form-control" rows="2" placeholder="Optional description"><?php echo set_value('description'); ?></textarea>
                             </div>
                             <div class="form-group">
+                                <label>Amount (&#8377;)</label>
+                                <input type="number" name="amount" class="form-control" step="0.01" min="0" value="<?php echo set_value('amount'); ?>" placeholder="Leave blank if not fixed"/>
+                            </div>
+                            <div class="form-group">
                                 <label>Sort Order</label>
                                 <input type="number" name="sort_order" class="form-control" value="<?php echo set_value('sort_order', 0); ?>" min="0"/>
                             </div>
@@ -59,6 +63,7 @@
                                     <th>#</th>
                                     <th>Scholarship Name</th>
                                     <th>Description</th>
+                                    <th>Amount (&#8377;)</th>
                                     <th>Sort</th>
                                     <th>Status</th>
                                     <th class="noExport text-right">Action</th>
@@ -70,6 +75,7 @@
                                     <td><?php echo $i + 1; ?></td>
                                     <td><?php echo htmlspecialchars($t['name']); ?></td>
                                     <td><?php echo htmlspecialchars($t['description'] ?? ''); ?></td>
+                                    <td><?php echo isset($t['amount']) && $t['amount'] !== null ? '&#8377; ' . number_format((float)$t['amount'], 2) : '<span class="text-muted">—</span>'; ?></td>
                                     <td><?php echo (int)$t['sort_order']; ?></td>
                                     <td>
                                         <?php if ($t['is_active']): ?>
@@ -95,7 +101,7 @@
                                 </tr>
                                 <?php endforeach; ?>
                                 <?php if (empty($scholarship_types)): ?>
-                                <tr><td colspan="6" class="text-center text-muted">No scholarship types found.</td></tr>
+                                <tr><td colspan="7" class="text-center text-muted">No scholarship types found.</td></tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>

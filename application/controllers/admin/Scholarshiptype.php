@@ -33,9 +33,11 @@ class Scholarshiptype extends Admin_Controller
             if (!$this->rbac->hasPrivilege('online_admission', 'can_add')) {
                 access_denied();
             }
+            $amount = $this->input->post('amount');
             $insert = array(
                 'name'        => $this->input->post('name'),
                 'description' => $this->input->post('description'),
+                'amount'      => ($amount !== '' && $amount !== null) ? (float) $amount : null,
                 'sort_order'  => (int) $this->input->post('sort_order'),
                 'is_active'   => 1,
             );
@@ -60,9 +62,11 @@ class Scholarshiptype extends Admin_Controller
             $this->load->view('admin/scholarship/scholarshiptypeedit', $data);
             $this->load->view('layout/footer');
         } else {
+            $amount = $this->input->post('amount');
             $update = array(
                 'name'        => $this->input->post('name'),
                 'description' => $this->input->post('description'),
+                'amount'      => ($amount !== '' && $amount !== null) ? (float) $amount : null,
                 'sort_order'  => (int) $this->input->post('sort_order'),
                 'is_active'   => (int) $this->input->post('is_active'),
             );
