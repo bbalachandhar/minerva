@@ -32,7 +32,7 @@
                             <i class="fa fa-list"></i> Manage Types
                         </a>
                         <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#settingsModal">
-                            <i class="fa fa-cog"></i> Workflow Settings
+                            <i class="fa fa-cog"></i> Approver Settings
                         </button>
                     </div>
                 </div>
@@ -51,11 +51,10 @@
         ?>
         <?php if ($settings): ?>
         <div class="callout callout-info" style="margin-bottom:15px">
-            <strong>Workflow:</strong>
-            Verifier: <strong><?php echo !empty($settings['verifier_id']) ? ($staff_map[(int)$settings['verifier_id']] ?? 'Staff #'.$settings['verifier_id']) : '<span class="text-danger">Not set</span>'; ?></strong>
-            &nbsp;|&nbsp;
-            Approver: <strong><?php echo !empty($settings['approver_id']) ? ($staff_map[(int)$settings['approver_id']] ?? 'Staff #'.$settings['approver_id']) : '<span class="text-danger">Not set</span>'; ?></strong>
+            <strong>Approver:</strong>
+            <strong><?php echo !empty($settings['approver_id']) ? ($staff_map[(int)$settings['approver_id']] ?? 'Staff #'.$settings['approver_id']) : '<span class="text-danger">Not set</span>'; ?></strong>
             &nbsp;&mdash; <a href="#" data-toggle="modal" data-target="#settingsModal">Change</a>
+            &nbsp;|&nbsp; Verifier is assigned per scholarship type (<a href="<?php echo site_url('admin/scholarshiptype'); ?>">Manage Types</a>)
         </div>
         <?php endif; ?>
 
@@ -107,37 +106,24 @@
     </section>
 </div>
 
-<!-- ── Workflow Settings Modal ──────────────────────────────────────────── -->
+<!-- ── Approver Settings Modal ──────────────────────────────────────────── -->
 <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog" aria-labelledby="settingsModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title" id="settingsModalLabel"><i class="fa fa-cog"></i> Scholarship Workflow Settings</h4>
+                <h4 class="modal-title" id="settingsModalLabel"><i class="fa fa-cog"></i> Final Approver Setting</h4>
             </div>
             <div class="modal-body">
                 <div class="callout callout-info">
-                    <p><strong>Two-step workflow:</strong><br/>
-                    The <em>Verifier</em> checks document authenticity and marks the application as verified.<br/>
-                    The <em>Approver</em> makes the final grant decision. They must be different people.</p>
+                    <p><strong>Global Approver:</strong><br/>
+                    The final approver makes the grant decision for all scholarship types.<br/>
+                    The verifier for each type is set on the <a href="<?php echo site_url('admin/scholarshiptype'); ?>" target="_blank">Scholarship Types</a> page.</p>
                 </div>
                 <div id="settingsMsg"></div>
                 <form id="settingsForm">
                     <div class="form-group">
-                        <label>Verifier <small class="req">*</small></label>
-                        <select name="verifier_id" id="settingsVerifier" class="form-control">
-                            <option value="">-- Select Verifier --</option>
-                            <?php foreach ($staff_list as $s): ?>
-                            <option value="<?php echo $s['id']; ?>"
-                                <?php echo (isset($settings['verifier_id']) && (int)$settings['verifier_id'] === (int)$s['id']) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($s['name'] . ' ' . $s['surname']); ?>
-                                <?php if (!empty($s['designation'])): ?>(<?php echo htmlspecialchars($s['designation']); ?>)<?php endif; ?>
-                            </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Approver <small class="req">*</small></label>
+                        <label>Final Approver <small class="req">*</small></label>
                         <select name="approver_id" id="settingsApprover" class="form-control">
                             <option value="">-- Select Approver --</option>
                             <?php foreach ($staff_list as $s): ?>
@@ -153,7 +139,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="settingsSaveBtn"><i class="fa fa-save"></i> Save Settings</button>
+                <button type="button" class="btn btn-primary" id="settingsSaveBtn"><i class="fa fa-save"></i> Save</button>
             </div>
         </div>
     </div>
@@ -163,34 +149,26 @@
 $(function () {
     $('#settingsSaveBtn').on('click', function () {
         var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
-        var data = {
-            verifier_id: $('#settingsVerifier').val(),
-            approver_id: $('#settingsApprover').val()
-        };
+        var data = { approver_id: $('#settingsApprover').val() };
         $.post('<?php echo site_url('admin/scholarshipapplication/settings_ajax'); ?>', data, function (res) {
             if (res.success) {
                 $('#settingsMsg').html('<div class="alert alert-success">' + res.msg + '</div>');
                 setTimeout(function () { location.reload(); }, 800);
             } else {
                 $('#settingsMsg').html('<div class="alert alert-danger">' + res.msg + '</div>');
-                $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Settings');
+                $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save');
             }
         }, 'json').fail(function () {
             $('#settingsMsg').html('<div class="alert alert-danger">An error occurred. Please try again.</div>');
-            $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Settings');
+            $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save');
         });
     });
 
-    // Clear message when modal reopens
     $('#settingsModal').on('show.bs.modal', function () {
         $('#settingsMsg').html('');
-        $('#settingsSaveBtn').prop('disabled', false).html('<i class="fa fa-save"></i> Save Settings');
+        $('#settingsSaveBtn').prop('disabled', false).html('<i class="fa fa-save"></i> Save');
     });
 
-    // Searchable dropdowns inside modal
-    $('#settingsVerifier, #settingsApprover').select2({
-        dropdownParent: $('#settingsModal'),
-        width: '100%'
-    });
+    $('#settingsApprover').select2({ dropdownParent: $('#settingsModal'), width: '100%' });
 });
 </script>

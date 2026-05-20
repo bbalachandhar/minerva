@@ -202,31 +202,4 @@ class Scholarshipapplication extends Admin_Controller
         echo json_encode(['success' => true, 'msg' => 'Scholarship workflow settings saved.']);
     }
 
-    // ── Settings: set verifier / approver ────────────────────────────────────
-
-    public function settings()
-    {
-        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_edit')) {
-            access_denied();
-        }
-
-        $this->session->set_userdata('top_menu', 'Admissions');
-        $this->session->set_userdata('sub_menu', 'admin/scholarshipapplication');
-
-        $this->form_validation->set_rules('approver_id', 'Approver', 'trim|required|integer');
-
-        if ($this->form_validation->run() === false) {
-            $data['settings']   = $this->Scholarship_application_model->getSettings();
-            $data['staff_list'] = $this->Staff_model->getAll(null, 1);
-
-            $this->load->view('layout/header');
-            $this->load->view('admin/scholarship/scholarship_settings', $data);
-            $this->load->view('layout/footer');
-        } else {
-            $approver_id = (int) $this->input->post('approver_id');
-            $this->Scholarship_application_model->saveSettings(['approver_id' => $approver_id]);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success">Scholarship workflow settings saved.</div>');
-            redirect('admin/scholarshipapplication/settings');
-        }
-    }
-}
+    // ── Settings AJAX (modal submit) ──────────────────────────────────────────
