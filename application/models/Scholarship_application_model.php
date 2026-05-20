@@ -10,8 +10,8 @@ class Scholarship_application_model extends CI_Model
     {
         $this->db->select('sa.*, st.name AS scholarship_name,
             oa.firstname, oa.lastname, oa.reference_no, oa.email, oa.mobileno,
-            CONCAT(vs.firstname, " ", vs.lastname) AS verifier_name,
-            CONCAT(ap.firstname, " ", ap.lastname) AS approver_name');
+            CONCAT(vs.name, " ", vs.surname) AS verifier_name,
+            CONCAT(ap.name, " ", ap.surname) AS approver_name');
         $this->db->from('scholarship_applications sa');
         $this->db->join('scholarship_types st', 'st.id = sa.scholarship_type_id', 'left');
         $this->db->join('online_admissions oa', 'oa.id = sa.online_admission_id', 'left');
@@ -31,8 +31,8 @@ class Scholarship_application_model extends CI_Model
     {
         $this->db->select('sa.*, st.name AS scholarship_name,
             oa.firstname, oa.lastname, oa.reference_no, oa.email, oa.mobileno,
-            CONCAT(vs.firstname, " ", vs.lastname) AS verifier_name,
-            CONCAT(ap.firstname, " ", ap.lastname) AS approver_name');
+            CONCAT(vs.name, " ", vs.surname) AS verifier_name,
+            CONCAT(ap.name, " ", ap.surname) AS approver_name');
         $this->db->from('scholarship_applications sa');
         $this->db->join('scholarship_types st', 'st.id = sa.scholarship_type_id', 'left');
         $this->db->join('online_admissions oa', 'oa.id = sa.online_admission_id', 'left');

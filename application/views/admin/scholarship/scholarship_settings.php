@@ -29,7 +29,7 @@
                                     <?php foreach ($staff_list as $s): ?>
                                     <option value="<?php echo $s['id']; ?>"
                                         <?php echo (isset($settings['verifier_id']) && (int)$settings['verifier_id'] === (int)$s['id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($s['firstname'] . ' ' . $s['lastname']); ?>
+                                        <?php echo htmlspecialchars($s['name'] . ' ' . $s['surname']); ?>
                                         <?php if (!empty($s['designation'])): ?>
                                             (<?php echo htmlspecialchars($s['designation']); ?>)
                                         <?php endif; ?>
@@ -45,7 +45,7 @@
                                     <?php foreach ($staff_list as $s): ?>
                                     <option value="<?php echo $s['id']; ?>"
                                         <?php echo (isset($settings['approver_id']) && (int)$settings['approver_id'] === (int)$s['id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($s['firstname'] . ' ' . $s['lastname']); ?>
+                                        <?php echo htmlspecialchars($s['name'] . ' ' . $s['surname']); ?>
                                         <?php if (!empty($s['designation'])): ?>
                                             (<?php echo htmlspecialchars($s['designation']); ?>)
                                         <?php endif; ?>
