@@ -5,15 +5,19 @@
 
 -- 1. Scholarship types master list (admin-managed, institution-neutral)
 CREATE TABLE IF NOT EXISTS `scholarship_types` (
-    `id`          INT          NOT NULL AUTO_INCREMENT,
-    `name`        VARCHAR(300) NOT NULL,
-    `description` TEXT         NULL,
-    `is_active`   TINYINT(1)   NOT NULL DEFAULT 1,
-    `sort_order`  INT          NOT NULL DEFAULT 0,
-    `created_at`  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `id`          INT           NOT NULL AUTO_INCREMENT,
+    `name`        VARCHAR(300)  NOT NULL,
+    `description` TEXT          NULL,
+    `amount`      DECIMAL(10,2) NULL DEFAULT NULL,
+    `is_active`   TINYINT(1)    NOT NULL DEFAULT 1,
+    `sort_order`  INT           NOT NULL DEFAULT 0,
+    `created_at`  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- If upgrading an existing install that already has the table, add the amount column:
+ALTER TABLE `scholarship_types` ADD COLUMN IF NOT EXISTS `amount` DECIMAL(10,2) NULL DEFAULT NULL AFTER `description`;
 
 -- 2. Applicant scholarship applications
 CREATE TABLE IF NOT EXISTS `scholarship_applications` (

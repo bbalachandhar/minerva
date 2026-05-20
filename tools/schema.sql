@@ -11085,6 +11085,8 @@ INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_k
 INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (302,43,'CoE Dashboard','coe_dashboard','coe_dashboard','coe/coe_dashboard',NULL,'(\'coe_dashboard\', \'can_view\')',NULL,'coe_dashboard','index',NULL,1,'2026-05-10 23:08:07','2026-05-10 23:08:07');
 INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (303,43,'Arrear Register','coe_arrear','coe_arrear','coe/coe_arrear',4,'(\'coe_arrear\', \'can_view\')',NULL,'coe_arrear','index,student',NULL,1,'2026-05-10 23:08:07','2026-05-10 23:08:07');
 INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (306,43,'Exam Applications','coe_application','coe_exam_applications','coe/coe_application',1,'("coe_application", "can_view")',1000,'coe_application','index,view,generate,mark_end_semester',NULL,1,'2026-05-11 21:39:28','2026-05-11 21:39:28');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (307,40,'Scholarship Applications',NULL,'scholarship_applications','admin/scholarshipapplication',NULL,'(\'online_admission\', \'can_view\')',NULL,'scholarshipapplication','index,view,verify,approve,download,settings',NULL,1,'2026-05-15 00:00:00','2026-05-15 00:00:00');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (308,40,'Scholarship Types',NULL,'scholarship_types','admin/scholarshiptype',NULL,'(\'online_admission\', \'can_view\')',NULL,'scholarshiptype','index,edit',NULL,1,'2026-05-15 00:00:00','2026-05-15 00:00:00');
 /*!40000 ALTER TABLE `sidebar_sub_menus` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -11975,3 +11977,71 @@ CREATE TABLE IF NOT EXISTS `coe_arrear_applications` (
   KEY `idx_batch` (`exam_group_class_batch_exam_id`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- Scholarship Module
+-- Added: 2026-05-15
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS `scholarship_types` (
+  `id`          int(11)       NOT NULL AUTO_INCREMENT,
+  `name`        varchar(300)  NOT NULL,
+  `description` text          DEFAULT NULL,
+  `amount`      decimal(10,2) DEFAULT NULL,
+  `is_active`   tinyint(1)    NOT NULL DEFAULT 1,
+  `sort_order`  int(11)       NOT NULL DEFAULT 0,
+  `created_at`  timestamp     NOT NULL DEFAULT current_timestamp(),
+  `updated_at`  timestamp     NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `scholarship_applications` (
+  `id`                  int(11)      NOT NULL AUTO_INCREMENT,
+  `online_admission_id` int(11)      NOT NULL,
+  `scholarship_type_id` int(11)      NOT NULL,
+  `applicant_remarks`   text         DEFAULT NULL,
+  `document`            varchar(255) DEFAULT NULL COMMENT 'Stored filename under uploads/scholarship_docs/',
+  `status`              enum('pending','verified','approved','rejected') NOT NULL DEFAULT 'pending',
+  `verifier_id`         int(11)      DEFAULT NULL,
+  `verifier_remarks`    text         DEFAULT NULL,
+  `verified_at`         datetime     DEFAULT NULL,
+  `approver_id`         int(11)      DEFAULT NULL,
+  `approver_remarks`    text         DEFAULT NULL,
+  `approved_at`         datetime     DEFAULT NULL,
+  `created_at`          timestamp    NOT NULL DEFAULT current_timestamp(),
+  `updated_at`          timestamp    NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_applicant_scholarship` (`online_admission_id`,`scholarship_type_id`),
+  KEY `fk_sa_type`     (`scholarship_type_id`),
+  KEY `fk_sa_verifier` (`verifier_id`),
+  KEY `fk_sa_approver` (`approver_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `scholarship_settings` (
+  `id`          int(11)   NOT NULL AUTO_INCREMENT,
+  `verifier_id` int(11)   DEFAULT NULL COMMENT 'staff.id of the verifier',
+  `approver_id` int(11)   DEFAULT NULL COMMENT 'staff.id of the approver',
+  `updated_at`  timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Default empty settings row (single-row table; UPSERT by id=1)
+INSERT IGNORE INTO `scholarship_settings` (`id`, `verifier_id`, `approver_id`) VALUES (1, NULL, NULL);
+
+-- Seed the 15 standard scholarship types
+INSERT IGNORE INTO `scholarship_types` (`id`, `name`, `sort_order`, `is_active`) VALUES
+(1,'Merit Scholarship based on HSC Marks (Engineering Cut off) / School Toppers / MAT-SET conducted by our college',1,1),
+(2,'Merit Scholarship for toppers from Government schools',2,1),
+(3,'Wards of Single parent based on their Income',3,1),
+(4,'Siblings of Alumni of Meenakshi Groups of Institutions',4,1),
+(5,'Siblings of current students studying in MCE, K.K Nagar, Chennai & AMACE, Kanchipuram',5,1),
+(6,'12th standard students of Meenakshi Group of Schools',6,1),
+(7,'Current Final Year UG Students of Meenakshi Group of Colleges for PG',7,1),
+(8,'Current Final year students of Meenakshi Ammal Polytechnic College for Lateral Entry',8,1),
+(9,'Ward of Faculty / Staff of Meenakshi Group of Institutions',9,1),
+(10,'Wards of Ex-Servicemen',10,1),
+(11,'State / District level sports students',11,1),
+(12,'NCC Students',12,1),
+(13,'Female Candidates seeking admission in Civil / Mechanical stream',13,1),
+(14,'Physically challenged candidates',14,1),
+(15,'Other special category decided by Management',15,1);
