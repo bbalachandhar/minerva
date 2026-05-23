@@ -390,6 +390,17 @@ echo $this->customlib->dateformat($fee_type_value->due_date);
         <?php echo $this->lang->line('fees_discount_details'); ?>
         <span class="float-right bmedium total_discount_alloted">
     </span></h4>
+
+    <?php if (!empty($merit_scholarship)): ?>
+    <div class="callout callout-success" style="margin:0 0 12px 0; padding:8px 15px;">
+        <i class="fa fa-star text-yellow"></i>
+        <strong>Merit Scholarship Approved:</strong>
+        <?php echo htmlspecialchars($merit_scholarship['sch_name']); ?>
+        &mdash; <strong>&#8377;<?php echo number_format((float)$merit_scholarship['sch_amount']); ?></strong>
+        has been pre-selected below. Please verify and proceed.
+    </div>
+    <?php endif; ?>
+
     <div class="row around10">
     <div class="col-md-12">
     <?php
@@ -398,14 +409,18 @@ echo $this->customlib->dateformat($fee_type_value->due_date);
             <table class="table mb0">
             <tbody>
             <?php
-            foreach($feediscountList as $key=>$feediscount){  ?>
+            foreach($feediscountList as $key=>$feediscount){
+                // Pre-check this discount if it matches the applicant's approved merit scholarship
+                $is_merit_pre_check = !empty($merit_discount_id) && (int)$feediscount['id'] === (int)$merit_discount_id;
+                $checked_attr = $is_merit_pre_check ? 'checked="checked"' : set_checkbox('discount_id[]', $feediscount['id']);
+            ?>
     <tr>
       <td colspan="3" class="mailbox-name white-space-nowrap border0">
         <div class="panel-group1 mb0">
         <div class="panel panel-default1">
       <div class="panel-heading pt5 pb5">
         <h6 class="panel-title panel-title1 overflow-hidden">
-          <input class="discount_group_chk vertical-middle" type="checkbox" name="discount_id[]" value="<?php echo $feediscount['id']; ?>" <?php echo set_checkbox('discount_id[]', $feediscount['id']); ?>>
+          <input class="discount_group_chk vertical-middle" type="checkbox" name="discount_id[]" value="<?php echo $feediscount['id']; ?>" <?php echo $checked_attr; ?>>
           <a class="display-inline collapsed box-plus-panel" data-toggle="collapse" href="#collapse_fees_<?php echo $feediscount['id'] ?>">
              <span class="font14"><?php  echo $feediscount['name']." - ".$feediscount['code']; ?></span></a>
           <span class="float-right bmedium pt3 discount_group_total" data-discount="<?php echo $feediscount['amount']; ?>"><?php  ?></span>

@@ -99,6 +99,20 @@ class Onlinestudent extends Admin_Controller
         $data['feediscountList']       = $feesdiscount_result;
         //fees discount
 
+        // Merit scholarship pre-fill: if this applicant has an approved MAT-SET scholarship,
+        // pass its linked fees_discount_id so the onboarding form can pre-check it.
+        $merit_sch = $this->db
+            ->select('sa.id, sa.scholarship_type_id, st.name AS sch_name, st.amount AS sch_amount, st.fees_discount_id')
+            ->from('scholarship_applications sa')
+            ->join('scholarship_types st', 'st.id = sa.scholarship_type_id', 'inner')
+            ->where('sa.online_admission_id', $id)
+            ->where('sa.status', 'approved')
+            ->where_in('sa.scholarship_type_id', [16, 17, 18, 19, 20])
+            ->limit(1)
+            ->get()->row_array();
+        $data['merit_scholarship'] = $merit_sch ?: null;
+        $data['merit_discount_id'] = !empty($merit_sch['fees_discount_id']) ? (int) $merit_sch['fees_discount_id'] : 0;
+
         if ($this->input->post('save') == 'enroll') {
             if (!$this->sch_setting_detail->adm_auto_insert) {
 
