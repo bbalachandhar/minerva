@@ -178,7 +178,7 @@ $report_heading = !empty($report_heading) ? $report_heading : $this->lang->line(
                                     <div> <?php echo
                                             $this->customlib->get_postmessage();
                                             ?></div>
-                                    <table class="table table-striped table-bordered table-hover example xyz staff-attendance-report">
+                                    <table class="table table-striped table-bordered table-hover staff-attendance-report" style="white-space:nowrap;">
                                         <thead>
                                             <tr>
                                                 <th>
@@ -439,43 +439,7 @@ $report_heading = !empty($report_heading) ? $report_heading : $this->lang->line(
         }
     });
 
-    $(document).ready(function() {
-        if (!$('.staff-attendance-report').length) {
-            return;
-        }
 
-        var addColoredExcelButton = function() {
-            if ($('#staff-colored-excel-btn').length) {
-                return;
-            }
-
-            var $btns = $('.dt-buttons');
-            if (!$btns.length) {
-                return;
-            }
-
-            var $btn = $('<a/>', {
-                id: 'staff-colored-excel-btn',
-                class: 'dt-button buttons-html5 buttons-excel',
-                title: 'Excel (Colored)',
-                html: '<i class="fa fa-file-excel-o"></i> <span>Excel (Colored)</span>'
-            });
-
-            $btn.on('click', function(e) {
-                e.preventDefault();
-                var role = $('#role').val() || '';
-                var month = $('#month').val() || '';
-                var year = $('#year').val() || '';
-                var isPunchReport = <?php echo $is_punch_report ? '1' : '0'; ?>;
-                var url = baseurl + 'attendencereports/staffattendancereport_export_excel?role=' + encodeURIComponent(role) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year) + '&with_punch_report=' + encodeURIComponent(isPunchReport);
-                window.location.href = url;
-            });
-
-            $btns.append($btn);
-        };
-
-        setTimeout(addColoredExcelButton, 0);
-    });
 
     var base_url = '<?php echo base_url() ?>';
 
