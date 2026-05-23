@@ -589,15 +589,21 @@ class Attendencereports extends Admin_Controller
             for ($i = 1; $i <= $num_of_days; $i++) {
                 $att_date           = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
                 $attendence_array[] = $att_date;
-
-                $res = $this->staffattendancemodel->searchAttendanceReport($role, $att_date);
-                
-                $s = array();
-                foreach ($res as $result_k => $result_v) {
-                    $s[$result_v['id']] = $result_v;
-                }
-                $date_result[$att_date] = $s;
+                $date_result[$att_date] = [];
             }
+
+            // Single query fetches all attendance for the whole month (replaces 31-query loop)
+            $month_start_str = $searchyear . '-' . $month_number . '-01';
+            $all_month_rows  = $this->staffattendancemodel->searchAttendanceReportForMonth(
+                $role, $month_start_str, $last_day_of_month
+            );
+            foreach ($all_month_rows as $result_v) {
+                $att_date = $result_v['date'];
+                if (isset($date_result[$att_date])) {
+                    $date_result[$att_date][$result_v['id']] = $result_v;
+                }
+            }
+            unset($all_month_rows);
 
             // Enrich attendance keys from punch times (mirrors biometric processing logic).
             // Only applies to biometric records (biometric_attendence=1) with valid in_time.
@@ -708,15 +714,6 @@ class Attendencereports extends Admin_Controller
             }
             $data['staff_working_day_summary'] = $staff_working_day_summary;
 
-            $monthAttendance = array();
-            if(!empty($stafflist)){
-                foreach ($stafflist as $result_k => $result_v) {
-                    $date              = $searchyear . "-" . $month;
-                    $newdate           = date('Y-m-d', strtotime($date));
-                    $monthAttendance[] = $this->monthAttendance($newdate, 1, $result_v['id']);
-                }
-            }
-
             $absent_working_day_counts = [];
             if (!empty($stafflist)) {
                 foreach ($stafflist as $staff_row) {
@@ -739,6 +736,12 @@ class Attendencereports extends Admin_Controller
                 $this->load->model('staffAttendaceSetting_model');
                 $start_date = $searchyear . '-' . $month_number . '-01';
                 $end_date = date('Y-m-t', strtotime($start_date));
+
+                // Batch-fetch all staff attendance for the month in one query
+                $all_staff_ids_for_late = array_column($stafflist, 'id');
+                $all_att_rows_map = $this->staffattendancemodel->getAttendanceRowsInRangeMultiStaff(
+                    $all_staff_ids_for_late, $start_date, $end_date
+                );
 
                 $role_settings_map = [];
                 $admin_role_row = $this->db->query("SELECT id FROM roles WHERE LOWER(name)='admin' ORDER BY id ASC LIMIT 1")->row_array();
@@ -772,7 +775,7 @@ class Attendencereports extends Admin_Controller
                     $staff_id = $staff_row['id'];
                     $role_id = (int) ($staff_row['role_id'] ?? 0);
                     $settings = $role_settings_map[$role_id] ?? [];
-                    $rows = $this->staffattendancemodel->getAttendanceRowsInRange($staff_id, $start_date, $end_date);
+                    $rows = $all_att_rows_map[$staff_id] ?? [];
 
                     $late_total = 0;
                     $permission_total = 0;
@@ -816,7 +819,6 @@ class Attendencereports extends Admin_Controller
             $data['total_permission_counts'] = $total_permission_counts;
 
 
-            $data['monthAttendance'] = $monthAttendance;
             $data['resultlist']      = $date_result;
             $data['no_of_days']      = $num_of_days;
 

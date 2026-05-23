@@ -253,6 +253,92 @@ class Staffattendancemodel extends MY_Model {
     }
 
     /**
+     * Fetch all attendance rows for a range of dates for ALL (or role-filtered) staff
+     * in a single query.  Replaces the day-by-day loop in staffattendancereport().
+     *
+     * Returns rows indexed by [date][staff_id].
+     */
+    public function searchAttendanceReportForMonth($user_type, $start_date, $end_date)
+    {
+        if ($this->session->has_userdata('admin')) {
+            $getStaffRole     = $this->customlib->getStaffRole();
+            $staffrole        = json_decode($getStaffRole);
+            $superadmin_visible = $this->customlib->superadmin_visible();
+            $condition = '';
+            if ($superadmin_visible == 'disabled' && $staffrole->id != 7) {
+                $condition = "AND staff_roles.role_id != 7";
+            }
+        } else {
+            $condition = '';
+        }
+
+        $start = $this->db->escape($start_date);
+        $end   = $this->db->escape($end_date);
+
+        if ($user_type == "select") {
+            $role_filter = '';
+        } else {
+            $role_filter = "AND roles.name = " . $this->db->escape($user_type);
+        }
+
+        $sql = "SELECT
+                    sa.staff_attendance_type_id,
+                    sat.type            AS att_type,
+                    sat.key_value       AS `key`,
+                    sa.remark,
+                    sa.in_time,
+                    sa.out_time,
+                    sa.session_attendance_data,
+                    sa.biometric_attendence,
+                    sa.qrcode_attendance,
+                    s.name,
+                    s.surname,
+                    s.employee_id,
+                    s.contact_no,
+                    s.email,
+                    roles.name          AS user_type,
+                    roles.id            AS role_id,
+                    sa.date,
+                    sa.id               AS attendence_id,
+                    s.id                AS id
+                FROM staff_attendance sa
+                JOIN staff s           ON s.id = sa.staff_id AND s.is_active = 1
+                LEFT JOIN staff_attendance_type sat ON sat.id = sa.staff_attendance_type_id
+                LEFT JOIN staff_roles  ON staff_roles.staff_id = s.id
+                LEFT JOIN roles        ON roles.id = staff_roles.role_id
+                WHERE sa.date BETWEEN $start AND $end
+                $role_filter
+                $condition
+                ORDER BY sa.date, s.id";
+
+        return $this->db->query($sql)->result_array();
+    }
+
+    /**
+     * Fetch attendance rows for multiple staff IDs in a single query.
+     * Returns [staff_id => [rows]] map.
+     */
+    public function getAttendanceRowsInRangeMultiStaff(array $staff_ids, $start_date, $end_date)
+    {
+        if (empty($staff_ids)) {
+            return [];
+        }
+        $ids_str = implode(',', array_map('intval', $staff_ids));
+        $sql = "SELECT staff_id, date, in_time, out_time, staff_attendance_type_id,
+                       session_attendance_data, biometric_attendence
+                FROM staff_attendance
+                WHERE staff_id IN ($ids_str)
+                  AND date BETWEEN " . $this->db->escape($start_date) . " AND " . $this->db->escape($end_date) . "
+                ORDER BY date ASC";
+        $rows = $this->db->query($sql)->result_array();
+        $map  = [];
+        foreach ($rows as $row) {
+            $map[$row['staff_id']][] = $row;
+        }
+        return $map;
+    }
+
+    /**
      * Delete processed (biometric) attendance rows between two dates inclusive.
      * Returns number of rows affected.
      */
