@@ -4565,6 +4565,8 @@ CREATE TABLE `online_admissions` (
   `cancelled_by` int DEFAULT NULL COMMENT 'Staff ID who cancelled the admission',
   `cancellation_reason` text COMMENT 'Reason provided by staff for cancellation',
   `session_id` int DEFAULT NULL COMMENT 'Admission target session ID',
+  `mat_exam_score` decimal(6,2) DEFAULT NULL COMMENT 'Raw score in MCE merit exam (out of 100)',
+  `mat_exam_percentage` decimal(5,2) DEFAULT NULL COMMENT 'Percentage in MCE merit exam (= score since total is 100)',
   PRIMARY KEY (`id`),
   KEY `class_section_id` (`class_section_id`),
   KEY `category_id` (`category_id`),
@@ -11108,6 +11110,7 @@ INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_k
 INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (306,43,'Exam Applications','coe_application','coe_exam_applications','coe/coe_application',1,'("coe_application", "can_view")',1000,'coe_application','index,view,generate,mark_end_semester',NULL,1,'2026-05-11 21:39:28','2026-05-11 21:39:28');
 INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (307,40,'Scholarship Applications',NULL,'scholarship_applications','admin/scholarshipapplication',NULL,'(\'scholarship_application\', \'can_view\')',NULL,'scholarshipapplication','index,view,verify,approve,download,settings',NULL,1,'2026-05-15 00:00:00','2026-05-15 00:00:00');
 INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (308,40,'Scholarship Types',NULL,'scholarship_types','admin/scholarshiptype',NULL,'(\'scholarship_type\', \'can_view\')',NULL,'scholarshiptype','index,edit',NULL,1,'2026-05-15 00:00:00','2026-05-15 00:00:00');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (310,40,'Merit Scholarship',NULL,'merit_scholarship','admin/meritscholarship',NULL,'(\'scholarship_application\', \'can_view\')',NULL,'meritscholarship','index,save_score,bulk_upload,assign_single,assign_all,sample_csv',NULL,1,'2026-05-24 00:00:00','2026-05-24 00:00:00');
 /*!40000 ALTER TABLE `sidebar_sub_menus` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -12005,15 +12008,18 @@ CREATE TABLE IF NOT EXISTS `coe_arrear_applications` (
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS `scholarship_types` (
-  `id`          int(11)       NOT NULL AUTO_INCREMENT,
-  `name`        varchar(300)  NOT NULL,
-  `description` text          DEFAULT NULL,
-  `amount`      decimal(10,2) DEFAULT NULL,
-  `is_active`   tinyint(1)    NOT NULL DEFAULT 1,
-  `sort_order`  int(11)       NOT NULL DEFAULT 0,
-  `verifier_id` int(11)       DEFAULT NULL COMMENT 'Designated verifier staff.id for this scholarship type',
-  `created_at`  timestamp     NOT NULL DEFAULT current_timestamp(),
-  `updated_at`  timestamp     NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `id`             int(11)       NOT NULL AUTO_INCREMENT,
+  `name`           varchar(300)  NOT NULL,
+  `description`    text          DEFAULT NULL,
+  `amount`         decimal(10,2) DEFAULT NULL,
+  `is_active`      tinyint(1)    NOT NULL DEFAULT 1,
+  `sort_order`     int(11)       NOT NULL DEFAULT 0,
+  `verifier_id`    int(11)       DEFAULT NULL COMMENT 'Designated verifier staff.id for this scholarship type',
+  `min_percentage` decimal(5,2)  DEFAULT NULL COMMENT 'Minimum percentage for this tier (inclusive)',
+  `max_percentage` decimal(5,2)  DEFAULT NULL COMMENT 'Maximum percentage for this tier (inclusive)',
+  `fees_discount_id` int(11)     DEFAULT NULL COMMENT 'Linked fees_discounts.id for auto-apply at onboarding',
+  `created_at`     timestamp     NOT NULL DEFAULT current_timestamp(),
+  `updated_at`     timestamp     NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -12067,3 +12073,29 @@ INSERT IGNORE INTO `scholarship_types` (`id`, `name`, `sort_order`, `is_active`)
 (13,'Female Candidates seeking admission in Civil / Mechanical stream',13,1),
 (14,'Physically challenged candidates',14,1),
 (15,'Other special category decided by Management',15,1);
+
+-- Seed MAT-SET merit exam tiers (IDs 16-20)
+-- Added: 2026-05-24 (merit scholarship module)
+INSERT IGNORE INTO `scholarship_types` (`id`, `name`, `amount`, `min_percentage`, `max_percentage`, `sort_order`, `is_active`) VALUES
+(16,'MAT-SET (Merit Exam) - Category 1 (90-100%)', 50000.00, 90.00, 100.00, 16, 1),
+(17,'MAT-SET (Merit Exam) - Category 2 (75-89%)',  30000.00, 75.00,  89.99, 17, 1),
+(18,'MAT-SET (Merit Exam) - Category 3 (60-74%)',  20000.00, 60.00,  74.99, 18, 1),
+(19,'MAT-SET (Merit Exam) - Category 4 (50-59%)',  10000.00, 50.00,  59.99, 19, 1),
+(20,'MAT-SET (Merit Exam) - Category 5 (Standard, 0-49%)', 5000.00, 0.00, 49.99, 20, 1);
+
+-- Seed fees_discounts for MAT merit tiers (idempotent via code unique check)
+-- Added: 2026-05-24 (merit scholarship module)
+INSERT IGNORE INTO `fees_discounts` (`name`, `code`, `type`, `amount`, `is_active`, `description`) VALUES
+('Merit Scholarship Cat 1 (Rs 50,000)', 'MAT_CAT1', 'fixed', 50000.00, 'yes', 'Auto-created for MAT-SET merit exam Category 1'),
+('Merit Scholarship Cat 2 (Rs 30,000)', 'MAT_CAT2', 'fixed', 30000.00, 'yes', 'Auto-created for MAT-SET merit exam Category 2'),
+('Merit Scholarship Cat 3 (Rs 20,000)', 'MAT_CAT3', 'fixed', 20000.00, 'yes', 'Auto-created for MAT-SET merit exam Category 3'),
+('Merit Scholarship Cat 4 (Rs 10,000)', 'MAT_CAT4', 'fixed', 10000.00, 'yes', 'Auto-created for MAT-SET merit exam Category 4'),
+('Merit Scholarship Cat 5 Standard (Rs 5,000)', 'MAT_CAT5', 'fixed', 5000.00, 'yes', 'Auto-created for MAT-SET merit exam Category 5 (standard)');
+
+-- Link scholarship_types.fees_discount_id → fees_discounts (run after both tables are seeded)
+-- NOTE: Uses UPDATE ... JOIN; safe to re-run since fees_discount_id may already be set.
+UPDATE `scholarship_types` st JOIN `fees_discounts` fd ON fd.code = 'MAT_CAT1' SET st.fees_discount_id = fd.id WHERE st.id = 16;
+UPDATE `scholarship_types` st JOIN `fees_discounts` fd ON fd.code = 'MAT_CAT2' SET st.fees_discount_id = fd.id WHERE st.id = 17;
+UPDATE `scholarship_types` st JOIN `fees_discounts` fd ON fd.code = 'MAT_CAT3' SET st.fees_discount_id = fd.id WHERE st.id = 18;
+UPDATE `scholarship_types` st JOIN `fees_discounts` fd ON fd.code = 'MAT_CAT4' SET st.fees_discount_id = fd.id WHERE st.id = 19;
+UPDATE `scholarship_types` st JOIN `fees_discounts` fd ON fd.code = 'MAT_CAT5' SET st.fees_discount_id = fd.id WHERE st.id = 20;
