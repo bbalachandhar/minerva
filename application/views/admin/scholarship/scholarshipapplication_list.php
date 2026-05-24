@@ -51,6 +51,36 @@
             </div>
         </div>
 
+        <!-- ── Status Count Widgets ──────────────────────────────────────── -->
+        <div class="row">
+            <?php
+            $widgets = [
+                ['key'=>'pending',  'label'=>'Pending',  'bg'=>'bg-yellow', 'icon'=>'fa-clock-o'],
+                ['key'=>'verified', 'label'=>'Verified', 'bg'=>'bg-aqua',   'icon'=>'fa-check-circle'],
+                ['key'=>'approved', 'label'=>'Approved', 'bg'=>'bg-green',  'icon'=>'fa-thumbs-up'],
+                ['key'=>'rejected', 'label'=>'Rejected', 'bg'=>'bg-red',    'icon'=>'fa-times-circle'],
+            ];
+            foreach ($widgets as $w):
+                $isActive = ($filter_status === $w['key']);
+                $wUrl = site_url('admin/scholarshipapplication') . '?status=' . $w['key'] . ($filter_type_id ? '&type_id=' . $filter_type_id : '');
+            ?>
+            <div class="col-xs-12 col-sm-6 col-md-3">
+                <a href="<?php echo $wUrl; ?>" style="text-decoration:none;">
+                    <div class="info-box<?php echo $isActive ? ' ' . $w['bg'] : ''; ?>"
+                         style="<?php echo $isActive ? '' : 'opacity:0.75;'; ?> transition:opacity .15s;">
+                        <span class="info-box-icon <?php echo $isActive ? '' : $w['bg']; ?>">
+                            <i class="fa <?php echo $w['icon']; ?>"></i>
+                        </span>
+                        <div class="info-box-content">
+                            <span class="info-box-text"><?php echo $w['label']; ?></span>
+                            <span class="info-box-number"><?php echo $status_counts[$w['key']]; ?></span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
         <!-- ── Filters ────────────────────────────────────────────────────── -->
         <div class="box box-default">
             <div class="box-body">
@@ -60,18 +90,14 @@
                         // Build base URL preserving existing type_id filter when changing status
                         $type_qs   = $filter_type_id ? '&type_id=' . $filter_type_id : '';
                         $status_qs = $filter_status  ? '&status=' . $filter_status   : '';
-
-                        $statuses = [''=>'All Statuses', 'pending'=>'Pending', 'verified'=>'Verified', 'approved'=>'Approved', 'rejected'=>'Rejected'];
-                        foreach ($statuses as $key => $label):
-                            $active = ($filter_status === $key || ($key === '' && !$filter_status)) ? 'btn-primary' : 'btn-default';
-                            $url    = site_url('admin/scholarshipapplication') . '?' . ($key ? 'status=' . $key : '') . $type_qs;
                         ?>
-                        <a href="<?php echo $url; ?>" class="btn btn-sm <?php echo $active; ?>"><?php echo $label; ?>
-                            <?php if ($key !== ''): ?>
-                            <span class="badge"><?php echo count(array_filter($applications_all ?? $applications, fn($a) => $a['status'] === $key)); ?></span>
-                            <?php endif; ?>
-                        </a>
-                        <?php endforeach; ?>
+                        <select id="statusFilter" class="form-control input-sm" style="display:inline-block;width:auto;vertical-align:middle;">
+                            <option value="">— All Statuses (<?php echo $status_counts['all']; ?>) —</option>
+                            <option value="pending"  <?php echo $filter_status === 'pending'  ? 'selected' : ''; ?>>Pending (<?php echo $status_counts['pending']; ?>)</option>
+                            <option value="verified" <?php echo $filter_status === 'verified' ? 'selected' : ''; ?>>Verified (<?php echo $status_counts['verified']; ?>)</option>
+                            <option value="approved" <?php echo $filter_status === 'approved' ? 'selected' : ''; ?>>Approved (<?php echo $status_counts['approved']; ?>)</option>
+                            <option value="rejected" <?php echo $filter_status === 'rejected' ? 'selected' : ''; ?>>Rejected (<?php echo $status_counts['rejected']; ?>)</option>
+                        </select>
 
                         &nbsp;&nbsp;
                         <select id="typeFilter" class="form-control input-sm" style="display:inline-block;width:auto;vertical-align:middle;">
@@ -149,8 +175,11 @@
                                 $b = $badges[$app['status']] ?? 'default';
                             ?><span class="label label-<?php echo $b; ?>"><?php echo ucfirst($app['status']); ?></span></td>
                             <td class="text-right">
-                                <a href="<?php echo site_url('admin/scholarshipapplication/view/' . $app['id']); ?>"
-                                   class="btn btn-xs btn-primary"><i class="fa fa-eye"></i> View</a>
+                                <button type="button" class="btn btn-xs btn-primary btn-view-app"
+                                        data-url="<?php echo site_url('admin/scholarshipapplication/view/' . $app['id']); ?>"
+                                        data-ref="<?php echo htmlspecialchars($app['reference_no'] ?? ''); ?>">
+                                    <i class="fa fa-eye"></i> View
+                                </button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -162,6 +191,26 @@
             </div>
         </div>
     </section>
+</div>
+
+<!-- ── Application Detail Modal ──────────────────────────────────────── -->
+<div class="modal fade" id="appDetailModal" tabindex="-1" role="dialog" aria-labelledby="appDetailModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title" id="appDetailModalLabel">
+                    <i class="fa fa-graduation-cap"></i> Scholarship Application
+                    <small id="appDetailRef" class="text-muted"></small>
+                </h4>
+            </div>
+            <div class="modal-body" id="appDetailBody">
+                <div class="text-center" style="padding:40px 0;">
+                    <i class="fa fa-spinner fa-spin fa-2x"></i><br/><small>Loading…</small>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- ── Approver Settings Modal ──────────────────────────────────────────── -->
@@ -237,6 +286,44 @@ $(function () {
         if (statusVal) url += 'status=' + statusVal + '&';
         if (typeId)    url += 'type_id=' + typeId;
         window.location.href = url;
+    });
+
+    // Status filter dropdown — navigate preserving current type
+    $('#statusFilter').on('change', function () {
+        var statusVal = $(this).val();
+        var typeId    = '<?php echo addslashes($filter_type_id ?? ''); ?>';
+        var url       = '<?php echo site_url('admin/scholarshipapplication'); ?>?';
+        if (statusVal) url += 'status=' + statusVal + '&';
+        if (typeId)    url += 'type_id=' + typeId;
+        window.location.href = url;
+    });
+
+    // Application detail modal — AJAX load
+    $(document).on('click', '.btn-view-app', function () {
+        var url = $(this).data('url');
+        var ref = $(this).data('ref');
+        $('#appDetailRef').text(ref ? ' \u2014 ' + ref : '');
+        $('#appDetailBody').html('<div class="text-center" style="padding:40px 0;"><i class="fa fa-spinner fa-spin fa-2x"></i><br/><small>Loading\u2026</small></div>');
+        $('#appDetailModal').modal('show');
+        $.ajax({
+            url: url,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            success: function (html) { $('#appDetailBody').html(html); },
+            error:   function ()     { $('#appDetailBody').html('<div class="alert alert-danger">Failed to load application details. Please try again.</div>'); }
+        });
+    });
+
+    // DataTable — 20 records per page
+    $('.example').DataTable({
+        "aaSorting": [],
+        pageLength: 20,
+        dom: 'Bfrtip',
+        buttons: [
+            { extend: 'copyHtml5',  text: '<i class="fa fa-files-o"></i>',      titleAttr: 'Copy',  exportOptions: { columns: 'thead th:not(.noExport)' } },
+            { extend: 'excelHtml5', text: '<i class="fa fa-file-excel-o"></i>',  titleAttr: 'Excel', exportOptions: { columns: 'thead th:not(.noExport)' } },
+            { extend: 'pdfHtml5',   text: '<i class="fa fa-file-pdf-o"></i>',    titleAttr: 'PDF',   exportOptions: { columns: 'thead th:not(.noExport)' } },
+            { extend: 'colvis',     text: '<i class="fa fa-columns"></i>' }
+        ]
     });
 });
 </script>

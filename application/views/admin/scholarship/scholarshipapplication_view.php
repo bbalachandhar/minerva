@@ -1,3 +1,11 @@
+<?php
+$app    = $application;
+$badges = ['pending'=>'warning','verified'=>'info','approved'=>'success','rejected'=>'danger'];
+$badge  = $badges[$app['status']] ?? 'default';
+// When loaded standalone (direct URL), wrap in full layout containers
+$is_ajax = defined('BASEPATH') && isset($_SERVER['HTTP_X_REQUESTED_WITH'])
+           && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+if (!$is_ajax): ?>
 <div class="content-wrapper">
     <section class="content-header">
         <h1><i class="fa fa-graduation-cap"></i> Scholarship Application — Detail</h1>
@@ -9,11 +17,9 @@
     </section>
     <section class="content">
         <?php echo $this->session->flashdata('msg'); ?>
-        <?php
-        $app = $application;
-        $badges = ['pending'=>'warning','verified'=>'info','approved'=>'success','rejected'=>'danger'];
-        $badge  = $badges[$app['status']] ?? 'default';
-        ?>
+<?php endif; ?>
+
+        <?php if ($is_ajax): ?><?php echo $this->session->flashdata('msg'); ?><?php endif; ?>
 
         <div class="row">
             <!-- Left: details -->
@@ -71,9 +77,15 @@
                         <?php endif; ?>
                     </div>
                     <div class="box-footer">
+                        <?php if ($is_ajax): ?>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+                            <i class="fa fa-arrow-left"></i> Back to List
+                        </button>
+                        <?php else: ?>
                         <a href="<?php echo site_url('admin/scholarshipapplication'); ?>" class="btn btn-default">
                             <i class="fa fa-arrow-left"></i> Back to List
                         </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -152,5 +164,8 @@
 
             </div>
         </div>
+
+<?php if (!$is_ajax): ?>
     </section>
 </div>
+<?php endif; ?>

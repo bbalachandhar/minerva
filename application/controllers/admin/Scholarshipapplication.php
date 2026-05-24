@@ -35,6 +35,16 @@ class Scholarshipapplication extends Admin_Controller
         $data['settings']         = $this->Scholarship_application_model->getSettings();
         $data['staff_list']       = $this->Staff_model->getAll(null, 1);
 
+        // Status counts (unfiltered — used for dashboard widgets)
+        $all_for_counts = $this->Scholarship_application_model->getAll(null, null);
+        $data['status_counts'] = [
+            'all'      => count($all_for_counts),
+            'pending'  => count(array_filter($all_for_counts, fn($a) => $a['status'] === 'pending')),
+            'verified' => count(array_filter($all_for_counts, fn($a) => $a['status'] === 'verified')),
+            'approved' => count(array_filter($all_for_counts, fn($a) => $a['status'] === 'approved')),
+            'rejected' => count(array_filter($all_for_counts, fn($a) => $a['status'] === 'rejected')),
+        ];
+
         $this->load->view('layout/header');
         $this->load->view('admin/scholarship/scholarshipapplication_list', $data);
         $this->load->view('layout/footer');
@@ -66,6 +76,12 @@ class Scholarshipapplication extends Admin_Controller
 
         $this->session->set_userdata('top_menu', 'Admissions');
         $this->session->set_userdata('sub_menu', 'admin/scholarshipapplication');
+
+        // AJAX request: return only the inner content (no header/footer)
+        if ($this->input->is_ajax_request()) {
+            $this->load->view('admin/scholarship/scholarshipapplication_view', $data);
+            return;
+        }
 
         $this->load->view('layout/header');
         $this->load->view('admin/scholarship/scholarshipapplication_view', $data);
