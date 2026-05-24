@@ -61,15 +61,21 @@
             </div>
             <div class="box-body" style="display:none;">
                 <table class="table table-bordered table-condensed" style="max-width:600px;">
-                    <thead><tr><th>Category</th><th>% Range</th><th>Scholarship Amount</th></tr></thead>
+                    <thead><tr><th>Category</th><th>% Range</th><th>Scholarship Amount</th><th>Note</th></tr></thead>
                     <tbody>
                         <?php foreach ($tiers as $tid => $t): ?>
                         <tr>
                             <td><span class="label label-<?php echo $t['color']; ?>"><?php echo htmlspecialchars($t['label']); ?></span></td>
                             <td><?php echo $t['min']; ?>% – <?php echo $t['max']; ?>%</td>
                             <td>&#8377;<?php echo number_format($t['amount']); ?></td>
+                            <td><?php echo $tid === 20 ? '<small class="text-muted">Score must be &gt; 0 (exam attended)</small>' : ''; ?></td>
                         </tr>
                         <?php endforeach; ?>
+                        <tr class="warning">
+                            <td colspan="2"><em>Score = 0%</em></td>
+                            <td>—</td>
+                            <td><small>Exam not attended — no scholarship</small></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

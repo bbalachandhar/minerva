@@ -21,7 +21,7 @@ class Meritscholarship extends Admin_Controller
         17 => ['min' =>  75.00, 'max' =>  89.99, 'amount' => 30000, 'label' => 'Cat 2 (75-89%)',  'color' => 'primary'],
         18 => ['min' =>  60.00, 'max' =>  74.99, 'amount' => 20000, 'label' => 'Cat 3 (60-74%)',  'color' => 'info'],
         19 => ['min' =>  50.00, 'max' =>  59.99, 'amount' => 10000, 'label' => 'Cat 4 (50-59%)',  'color' => 'warning'],
-        20 => ['min' =>   0.00, 'max' =>  49.99, 'amount' =>  5000, 'label' => 'Cat 5 (0-49%)',   'color' => 'default'],
+        20 => ['min' =>   1.00, 'max' =>  49.99, 'amount' =>  5000, 'label' => 'Cat 5 (1-49%)',   'color' => 'default'],
     ];
 
     public function __construct()
@@ -32,9 +32,16 @@ class Meritscholarship extends Admin_Controller
 
     // ── Private helpers ────────────────────────────────────────────────────────
 
-    /** Determine tier scholarship_type_id from a percentage. Always returns 16–20. */
-    private function _tier_id(float $pct): int
+    /**
+     * Determine tier scholarship_type_id from a percentage.
+     * Returns null for score = 0 (exam not attended).
+     * Returns 16–20 for scores 1–100.
+     */
+    private function _tier_id(float $pct): ?int
     {
+        if ($pct <= 0) {
+            return null; // 0% = did not attend — no scholarship
+        }
         foreach (self::$tiers as $tid => $range) {
             if ($pct >= $range['min'] && $pct <= $range['max']) {
                 return $tid;
@@ -81,12 +88,12 @@ class Meritscholarship extends Admin_Controller
         $applicants = $q->order_by('oa.mat_exam_percentage IS NULL ASC, oa.mat_exam_percentage DESC', NULL, FALSE)
                         ->get()->result_array();
 
-        // Annotate each row with computed tier (only if score present and not yet assigned)
+        // Annotate each row with computed tier (only if score present, > 0, and not yet assigned)
         foreach ($applicants as &$row) {
-            if ($row['mat_exam_percentage'] !== null && $row['sch_app_id'] === null) {
+            if ($row['mat_exam_percentage'] !== null && (float)$row['mat_exam_percentage'] > 0 && $row['sch_app_id'] === null) {
                 $tid            = $this->_tier_id((float) $row['mat_exam_percentage']);
                 $row['tier_id'] = $tid;
-                $row['tier']    = self::$tiers[$tid];
+                $row['tier']    = $tid !== null ? self::$tiers[$tid] : null;
             } else {
                 $row['tier_id'] = null;
                 $row['tier']    = null;
@@ -302,6 +309,11 @@ class Meritscholarship extends Admin_Controller
             return;
         }
 
+        if ((float) $applicant['mat_exam_percentage'] <= 0) {
+            echo json_encode(['status' => 'error', 'msg' => 'Score is 0% — applicant did not attend the exam. No scholarship applicable.']);
+            return;
+        }
+
         // One scholarship per applicant – check for any existing application
         $existing = $this->db
             ->where('online_admission_id', $id)
@@ -348,12 +360,13 @@ class Meritscholarship extends Admin_Controller
             return;
         }
 
-        // Eligible: have exam score AND have NO existing scholarship_applications row
+        // Eligible: have exam score > 0 (attended exam) AND have NO existing scholarship_applications row
         $eligible = $this->db
             ->select('oa.id, oa.mat_exam_percentage')
             ->from('online_admissions oa')
             ->join('scholarship_applications sa', 'sa.online_admission_id = oa.id', 'left')
             ->where('oa.mat_exam_percentage IS NOT NULL')
+            ->where('oa.mat_exam_percentage >', 0)
             ->where('oa.is_enroll', 0)
             ->where('sa.id IS NULL')
             ->get()
