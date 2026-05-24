@@ -136,7 +136,7 @@ if (!function_exists('main_menu_array')) {
                 'admission_cancellation' => array('index'),
                 'scholarshipapplication' => array('index','view','verify','approve','settings','settings_ajax'),
                 'scholarshiptype'        => array('index','edit'),
-                'meritscholarship'       => array('index','save_score','bulk_upload','assign_single','assign_all'),
+                'meritscholarship'       => array('index','save_score','bulk_upload','assign_single','assign_all','sample_csv'),
             ),
             
             'front_office' => array(

@@ -88,6 +88,11 @@
                     CSV format: <code>reference_no, score</code> &nbsp;(score is out of 100 — header row optional)<br>
                     Example: <code>MCE2025001, 78</code>
                 </p>
+                <p>
+                    <a href="<?php echo site_url('admin/meritscholarship/sample_csv'); ?>" class="btn btn-default btn-sm">
+                        <i class="fa fa-download"></i> Download Sample CSV (pre-filled with applicant reference numbers)
+                    </a>
+                </p>
                 <form method="POST" action="<?php echo site_url('admin/meritscholarship/bulk_upload'); ?>"
                       enctype="multipart/form-data" class="form-inline">
                     <?php echo $this->security->get_csrf_token_name(); ?>

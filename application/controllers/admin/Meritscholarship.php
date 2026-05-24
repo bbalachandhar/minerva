@@ -382,4 +382,58 @@ class Meritscholarship extends Admin_Controller
         );
         redirect('admin/meritscholarship?filter=assigned');
     }
+
+    // ── Sample CSV download ───────────────────────────────────────────────────
+
+    /**
+     * Streams a sample CSV file pre-populated with all current applicant
+     * reference numbers (and a blank score column) so staff only need to
+     * fill in the score column and re-upload.
+     */
+    public function sample_csv()
+    {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_view')) {
+            access_denied();
+        }
+
+        // Fetch all applicants who have not yet been assigned a scholarship
+        $rows = $this->db
+            ->select('oa.reference_no, oa.firstname, oa.lastname')
+            ->from('online_admissions oa')
+            ->join('scholarship_applications sa', 'sa.online_admission_id = oa.id AND sa.scholarship_type_id IN (16,17,18,19,20)', 'left')
+            ->where('oa.is_enroll', 0)
+            ->where('sa.id IS NULL')
+            ->order_by('oa.reference_no', 'ASC')
+            ->get()
+            ->result_array();
+
+        $filename = 'merit_exam_scores_' . date('Ymd') . '.csv';
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $out = fopen('php://output', 'w');
+
+        // Header row
+        fputcsv($out, ['reference_no', 'score', 'applicant_name']);
+
+        foreach ($rows as $row) {
+            fputcsv($out, [
+                $row['reference_no'],
+                '',   // blank score – to be filled by staff
+                trim($row['firstname'] . ' ' . $row['lastname']),
+            ]);
+        }
+
+        // If no applicants, add an example row
+        if (empty($rows)) {
+            fputcsv($out, ['MCE2025001', '78', 'Example Applicant']);
+        }
+
+        fclose($out);
+        exit;
+    }
 }
