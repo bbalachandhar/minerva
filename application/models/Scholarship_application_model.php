@@ -6,7 +6,7 @@ class Scholarship_application_model extends CI_Model
     /**
      * Get all applications with applicant name and scholarship type name joined.
      */
-    public function getAll($status = null)
+    public function getAll($status = null, $type_id = null)
     {
         $this->db->select('sa.*, st.name AS scholarship_name, st.verifier_id AS type_verifier_id,
             oa.firstname, oa.lastname, oa.reference_no, oa.email, oa.mobileno,
@@ -21,6 +21,9 @@ class Scholarship_application_model extends CI_Model
         $this->db->join('staff tv', 'tv.id = st.verifier_id', 'left');
         if ($status !== null) {
             $this->db->where('sa.status', $status);
+        }
+        if ($type_id !== null) {
+            $this->db->where('sa.scholarship_type_id', (int) $type_id);
         }
         $this->db->order_by('sa.id', 'DESC');
         return $this->db->get()->result_array();

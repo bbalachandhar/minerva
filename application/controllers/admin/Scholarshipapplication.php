@@ -26,9 +26,12 @@ class Scholarshipapplication extends Admin_Controller
         $this->session->set_userdata('top_menu', 'Admissions');
         $this->session->set_userdata('sub_menu', 'admin/scholarshipapplication');
 
-        $status = $this->input->get('status');
-        $data['applications']     = $this->Scholarship_application_model->getAll($status ?: null);
+        $status  = $this->input->get('status');
+        $type_id = $this->input->get('type_id') ? (int) $this->input->get('type_id') : null;
+        $data['applications']     = $this->Scholarship_application_model->getAll($status ?: null, $type_id);
         $data['filter_status']    = $status;
+        $data['filter_type_id']   = $type_id;
+        $data['scholarship_types'] = $this->Scholarship_type_model->getAll();
         $data['settings']         = $this->Scholarship_application_model->getSettings();
         $data['staff_list']       = $this->Staff_model->getAll(null, 1);
 

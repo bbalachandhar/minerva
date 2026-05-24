@@ -9,31 +9,89 @@
     <section class="content">
         <?php echo $this->session->flashdata('msg'); ?>
 
-        <!-- Filter bar -->
+        <!-- ── Page Instructions ──────────────────────────────────────────── -->
+        <div class="box box-info collapsed-box">
+            <div class="box-header with-border" style="cursor:pointer" data-widget="collapse">
+                <h3 class="box-title"><i class="fa fa-question-circle"></i> How this page works &amp; Audit Guide</h3>
+                <div class="box-tools pull-right">
+                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-plus"></i></button>
+                </div>
+            </div>
+            <div class="box-body" style="display:none;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4><i class="fa fa-flow-line"></i> Workflow</h4>
+                        <ol style="padding-left:18px; line-height:2;">
+                            <li><strong>Applicant submits</strong> — application lands in <span class="label label-warning">Pending</span> state.</li>
+                            <li><strong>Verifier reviews</strong> — the verifier assigned to each scholarship <em>type</em> checks eligibility and marks it <span class="label label-info">Verified</span> or <span class="label label-danger">Rejected</span>.</li>
+                            <li><strong>Approver approves</strong> — the global approver (set in Approver Settings) grants or rejects the verified application. Final state becomes <span class="label label-success">Approved</span> or <span class="label label-danger">Rejected</span>.</li>
+                            <li><strong>Merit Scholarship</strong> — applications created via <a href="<?php echo site_url('admin/meritscholarship'); ?>">Merit Exam Marks page</a> are auto-set to <span class="label label-success">Approved</span> based on MAT-SET exam score.</li>
+                        </ol>
+                    </div>
+                    <div class="col-md-6">
+                        <h4><i class="fa fa-search"></i> Audit Tips</h4>
+                        <ul style="padding-left:18px; line-height:2;">
+                            <li>Use the <strong>Status filter</strong> to isolate pending/approved/rejected applications.</li>
+                            <li>Use the <strong>Scholarship Type filter</strong> to see all applications for a specific scholarship (e.g. only Merit Cat 1).</li>
+                            <li>Combine both filters for cross-sections (e.g. "Approved Merit Cat 1" applications).</li>
+                            <li>Export the filtered table using the <strong>Excel / PDF</strong> buttons in the table header.</li>
+                            <li>Each application detail page shows who verified and who approved, with timestamps.</li>
+                            <li>Verifier assignment is per scholarship type — manage via <a href="<?php echo site_url('admin/scholarshiptype'); ?>">Scholarship Types</a>.</li>
+                            <li>Global approver is set via the <strong>Approver Settings</strong> button on this page.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="callout callout-warning" style="margin-top:5px; margin-bottom:0;">
+                    <strong>Status meanings:</strong>
+                    <span class="label label-warning">Pending</span> — submitted, awaiting verification &nbsp;|&nbsp;
+                    <span class="label label-info">Verified</span> — verifier approved, awaiting final approval &nbsp;|&nbsp;
+                    <span class="label label-success">Approved</span> — fully granted &nbsp;|&nbsp;
+                    <span class="label label-danger">Rejected</span> — declined at any stage
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Filters ────────────────────────────────────────────────────── -->
         <div class="box box-default">
             <div class="box-body">
                 <div class="row">
-                    <div class="col-md-8">
+                    <div class="col-md-12">
                         <?php
-                        $statuses = [''=>'All', 'pending'=>'Pending', 'verified'=>'Verified', 'approved'=>'Approved', 'rejected'=>'Rejected'];
+                        // Build base URL preserving existing type_id filter when changing status
+                        $type_qs   = $filter_type_id ? '&type_id=' . $filter_type_id : '';
+                        $status_qs = $filter_status  ? '&status=' . $filter_status   : '';
+
+                        $statuses = [''=>'All Statuses', 'pending'=>'Pending', 'verified'=>'Verified', 'approved'=>'Approved', 'rejected'=>'Rejected'];
                         foreach ($statuses as $key => $label):
                             $active = ($filter_status === $key || ($key === '' && !$filter_status)) ? 'btn-primary' : 'btn-default';
+                            $url    = site_url('admin/scholarshipapplication') . '?' . ($key ? 'status=' . $key : '') . $type_qs;
                         ?>
-                        <a href="<?php echo site_url('admin/scholarshipapplication' . ($key ? '?status=' . $key : '')); ?>"
-                           class="btn btn-sm <?php echo $active; ?>"><?php echo $label; ?>
-                           <?php if ($key !== ''): ?>
-                           <span class="badge"><?php echo count(array_filter($applications, fn($a) => $a['status'] === $key)); ?></span>
-                           <?php endif; ?>
+                        <a href="<?php echo $url; ?>" class="btn btn-sm <?php echo $active; ?>"><?php echo $label; ?>
+                            <?php if ($key !== ''): ?>
+                            <span class="badge"><?php echo count(array_filter($applications_all ?? $applications, fn($a) => $a['status'] === $key)); ?></span>
+                            <?php endif; ?>
                         </a>
                         <?php endforeach; ?>
-                    </div>
-                    <div class="col-md-4 text-right">
-                        <a href="<?php echo site_url('admin/scholarshiptype'); ?>" class="btn btn-default btn-sm">
-                            <i class="fa fa-list"></i> Manage Types
-                        </a>
-                        <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#settingsModal">
-                            <i class="fa fa-cog"></i> Approver Settings
-                        </button>
+
+                        &nbsp;&nbsp;
+                        <select id="typeFilter" class="form-control input-sm" style="display:inline-block;width:auto;vertical-align:middle;">
+                            <option value="">— All Scholarship Types —</option>
+                            <?php foreach ($scholarship_types as $st): ?>
+                            <option value="<?php echo $st['id']; ?>"
+                                <?php echo ((int)$filter_type_id === (int)$st['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($st['name']); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <div class="pull-right">
+                            <a href="<?php echo site_url('admin/scholarshiptype'); ?>" class="btn btn-default btn-sm">
+                                <i class="fa fa-list"></i> Manage Types
+                            </a>
+                            <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#settingsModal">
+                                <i class="fa fa-cog"></i> Approver Settings
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -170,5 +228,15 @@ $(function () {
     });
 
     $('#settingsApprover').select2({ dropdownParent: $('#settingsModal'), width: '100%' });
+
+    // Type filter dropdown — navigate preserving current status
+    $('#typeFilter').on('change', function () {
+        var typeId    = $(this).val();
+        var statusVal = '<?php echo addslashes($filter_status ?? ''); ?>';
+        var url       = '<?php echo site_url('admin/scholarshipapplication'); ?>?';
+        if (statusVal) url += 'status=' + statusVal + '&';
+        if (typeId)    url += 'type_id=' + typeId;
+        window.location.href = url;
+    });
 });
 </script>
