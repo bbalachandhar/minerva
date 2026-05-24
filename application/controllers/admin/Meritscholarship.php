@@ -78,8 +78,7 @@ class Meritscholarship extends Admin_Controller
             $q->where('sa.id IS NOT NULL');
         }
 
-        $applicants = $q->order_by('oa.mat_exam_percentage IS NULL', 'ASC')
-                        ->order_by('oa.mat_exam_percentage', 'DESC')
+        $applicants = $q->order_by('oa.mat_exam_percentage IS NULL ASC, oa.mat_exam_percentage DESC', NULL, FALSE)
                         ->get()->result_array();
 
         // Annotate each row with computed tier (only if score present and not yet assigned)
