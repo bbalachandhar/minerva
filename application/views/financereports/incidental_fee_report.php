@@ -191,6 +191,16 @@
 </div>
 
 <script type="text/javascript">
+    function showdate(value) {
+        if (value == 'period') {
+            $('#date_from').closest('.col-md-3').show();
+            $('#date_to').closest('.col-md-3').show();
+        } else {
+            $('#date_from').closest('.col-md-3').hide();
+            $('#date_to').closest('.col-md-3').hide();
+        }
+    }
+
     $(document).ready(function () {
         // Initialize Select2 for student dropdown
         $('.select2').select2();
@@ -200,17 +210,6 @@
             autoclose: true,
             todayHighlight: true
         });
-
-        // Function to show/hide date range inputs based on search type
-        function showdate(value) {
-            if (value == 'period') {
-                $('#date_from').parent().show();
-                $('#date_to').parent().show();
-            } else {
-                $('#date_from').parent().hide();
-                $('#date_to').parent().hide();
-            }
-        }
 
         // Initial call to show/hide dates based on pre-selected search type
         showdate($('select[name="search_type"]').val());
