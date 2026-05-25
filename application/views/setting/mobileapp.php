@@ -125,7 +125,7 @@
                                         <div class="form-group row">
                                             <label class="col-sm-4"> <?php echo $this->lang->line('admin_mobile_app_api_url') ?></label>
                                             <div class="col-sm-8">
-                                                <input type="text" name="admin_mobile_api_url" id="admin_mobile_api_url" class="form-control" value="<?php echo $result->admin_mobile_api_url; ?>">
+                                                <input type="text" name="admin_mobile_api_url" id="admin_mobile_api_url" class="form-control" value="<?php echo $result->admin_mobile_api_url ?? ''; ?>">
                                                 <span class="text-danger"><?php echo form_error('admin_mobile_api_url'); ?></span>
                                             </div>
                                         </div>
@@ -134,7 +134,7 @@
                                         <div class="form-group row">
                                             <label class="col-sm-4"> <?php echo $this->lang->line('admin_mobile_app_primary_color_code') ?></label>
                                             <div class="col-sm-8">
-                                                <input type="text" name="admin_app_primary_color_code" id="admin_app_primary_color_code" class="form-control" value="<?php echo $result->admin_app_primary_color_code; ?>">
+                                                <input type="text" name="admin_app_primary_color_code" id="admin_app_primary_color_code" class="form-control" value="<?php echo $result->admin_app_primary_color_code ?? ''; ?>">
                                                 <span class="text-danger"><?php echo form_error('admin_app_primary_color_code'); ?></span>
                                             </div>
                                         </div>
@@ -143,7 +143,7 @@
                                         <div class="form-group row">
                                             <label class="col-sm-4"> <?php echo $this->lang->line('admin_mobile_app_secondary_color_code'); ?></label>
                                             <div class="col-sm-8">
-                                                <input type="text" name="admin_app_secondary_color_code" id="admin_app_secondary_color_code" class="form-control" value="<?php echo $result->admin_app_secondary_color_code; ?>">
+                                                <input type="text" name="admin_app_secondary_color_code" id="admin_app_secondary_color_code" class="form-control" value="<?php echo $result->admin_app_secondary_color_code ?? ''; ?>">
                                                 <span class="text-danger"><?php echo form_error('admin_app_secondary_color_code'); ?></span>
                                             </div>
                                         </div>

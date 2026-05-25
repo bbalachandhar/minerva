@@ -125,8 +125,8 @@ class Coe_eligibility_model extends CI_Model
         $this->db->insert('coe_eligibility_overrides', [
             'application_id'  => $application_id,
             'override_reason' => $reason,
-            'overridden_by'   => $processed_by,
-            'created_at'      => date('Y-m-d H:i:s'),
+            'override_by'     => $processed_by,
+            'override_at'     => date('Y-m-d H:i:s'),
         ]);
     }
 
@@ -139,13 +139,21 @@ class Coe_eligibility_model extends CI_Model
         return $this->db->query(
             "SELECT
                 COUNT(*) AS total,
+                COUNT(DISTINCT student_session_id) AS total_students,
                 SUM(application_status = 'eligible') AS eligible_count,
+                COUNT(DISTINCT CASE WHEN application_status = 'eligible' THEN student_session_id END) AS eligible_students,
                 SUM(application_status = 'ineligible') AS ineligible_count,
+                COUNT(DISTINCT CASE WHEN application_status = 'ineligible' THEN student_session_id END) AS ineligible_students,
                 SUM(application_status = 'override_eligible') AS override_count,
+                COUNT(DISTINCT CASE WHEN application_status = 'override_eligible' THEN student_session_id END) AS override_students,
                 SUM(application_status = 'pending') AS pending_count,
+                COUNT(DISTINCT CASE WHEN application_status = 'pending' THEN student_session_id END) AS pending_students,
                 SUM(ineligible_reason = 'attendance') AS att_fail_count,
+                COUNT(DISTINCT CASE WHEN ineligible_reason = 'attendance' THEN student_session_id END) AS att_fail_students,
                 SUM(ineligible_reason = 'fee_dues') AS fee_fail_count,
-                SUM(ineligible_reason = 'both') AS both_fail_count
+                COUNT(DISTINCT CASE WHEN ineligible_reason = 'fee_dues' THEN student_session_id END) AS fee_fail_students,
+                SUM(ineligible_reason = 'both') AS both_fail_count,
+                COUNT(DISTINCT CASE WHEN ineligible_reason = 'both' THEN student_session_id END) AS both_fail_students
              FROM coe_exam_applications
              WHERE exam_group_class_batch_exam_id = ?",
             [$batch_exam_id]

@@ -176,9 +176,15 @@
                                                 <i class="fa fa-list"></i> Manage
                                             </a>
                                             <?php if ($this->rbac->hasPrivilege('coe_event', 'can_edit')): ?>
-                                            <a href="<?php echo site_url('coe/coe_event/edit/' . $ev->id); ?>" class="btn btn-default btn-xs" title="Edit">
+                                            <button type="button" class="btn btn-default btn-xs btn-edit-event"
+                                                data-id="<?php echo $ev->id; ?>"
+                                                data-name="<?php echo htmlspecialchars($ev->name, ENT_QUOTES); ?>"
+                                                data-category="<?php echo $ev->exam_category; ?>"
+                                                data-type="<?php echo $ev->exam_type; ?>"
+                                                data-description="<?php echo htmlspecialchars($ev->description ?? '', ENT_QUOTES); ?>"
+                                                title="Edit">
                                                 <i class="fa fa-pencil"></i>
-                                            </a>
+                                            </button>
                                             <?php endif; ?>
                                             <?php if ($this->rbac->hasPrivilege('coe_event', 'can_delete') && $total_bc === 0): ?>
                                             <a href="<?php echo site_url('coe/coe_event/delete/' . $ev->id); ?>"
@@ -198,6 +204,99 @@
         </div>
     </section>
 </div>
+
+<!-- ── Edit Exam Event Modal ──────────────────────────────────────────── -->
+<div class="modal fade" id="editEventModal" tabindex="-1" role="dialog" aria-labelledby="editEventModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title" id="editEventModalLabel"><i class="fa fa-pencil-square-o"></i> Edit Exam Event</h4>
+            </div>
+            <form id="editEventForm">
+                <input type="hidden" id="edit_event_id">
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" id="edit_csrf_token"
+                       value="<?php echo $this->security->get_csrf_hash(); ?>">
+                <div class="modal-body">
+
+                    <div class="form-group">
+                        <label for="edit_name">Event Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" id="edit_name" class="form-control" required maxlength="250">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_category">Category <span class="text-danger">*</span></label>
+                                <select name="exam_category" id="edit_category" class="form-control" required>
+                                    <option value="main">Main / Regular</option>
+                                    <option value="arrear">Arrear</option>
+                                    <option value="supplementary">Supplementary</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_type">Mode <span class="text-danger">*</span></label>
+                                <select name="exam_type" id="edit_type" class="form-control" required>
+                                    <option value="theory">Theory</option>
+                                    <option value="practical">Practical</option>
+                                    <option value="project">Project</option>
+                                    <option value="viva">Viva</option>
+                                    <option value="online">Online</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_description">Description <span class="text-muted">(optional)</span></label>
+                        <textarea name="description" id="edit_description" class="form-control" rows="2"></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning" id="editEventSaveBtn">
+                        <i class="fa fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).on('click', '.btn-edit-event', function () {
+    var btn = $(this);
+    $('#edit_event_id').val(btn.data('id'));
+    $('#edit_name').val(btn.data('name'));
+    $('#edit_category').val(btn.data('category'));
+    $('#edit_type').val(btn.data('type'));
+    $('#edit_description').val(btn.data('description'));
+    $('#editEventModal').modal('show');
+});
+
+$('#editEventForm').on('submit', function (e) {
+    e.preventDefault();
+    var id   = $('#edit_event_id').val();
+    var $btn = $('#editEventSaveBtn');
+    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving…');
+
+    $.post('<?php echo site_url('coe/coe_event/update'); ?>/' + id, $(this).serialize(), function (res) {
+        $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Changes');
+        if (res.success) {
+            $('#editEventModal').modal('hide');
+            location.reload();
+        } else {
+            swal('Validation Error', res.message, 'error');
+        }
+    }, 'json').fail(function () {
+        $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Changes');
+        swal('Error', 'Request failed. Please try again.', 'error');
+    });
+});
+</script>
 
 <script>
 $(function () {

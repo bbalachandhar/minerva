@@ -105,15 +105,20 @@
                             </tr>
                         </tfoot>
                     </table>
+                    <?php if (!empty($collection['notes'])) { ?>
                     <div class="row">
                         <div class="col-xs-12">
-                            <strong><?php echo $this->lang->line('notes'); ?>:</strong> <?php echo $collection['notes']; ?>
+                            <strong><?php echo $this->lang->line('notes'); ?>:</strong> <?php echo htmlspecialchars($collection['notes']); ?>
                         </div>
                     </div>
+                    <?php } ?>
                     <hr/>
                     <div class="row">
                         <div class="col-xs-6">
                             <strong><?php echo $this->lang->line('collected_by'); ?>:</strong> <?php echo $collection['collected_by_name']; ?>
+                        </div>
+                        <div class="col-xs-6 text-right">
+                            <strong><?php echo $this->lang->line('payment_mode'); ?>:</strong> <?php echo !empty($collection['payment_mode']) ? $collection['payment_mode'] : '—'; ?>
                         </div>
                     </div>
                 </div>

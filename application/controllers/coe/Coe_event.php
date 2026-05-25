@@ -165,12 +165,20 @@ class Coe_event extends MY_Addon_CoeController
     public function update($id)
     {
         if (!$this->rbac->hasPrivilege('coe_event', 'can_edit')) {
+            if ($this->input->is_ajax_request()) {
+                return $this->output->set_content_type('application/json')
+                    ->set_output(json_encode(['success' => false, 'message' => 'Access denied']));
+            }
             access_denied();
         }
 
-        $id = (int) $id;
+        $id    = (int) $id;
         $event = $this->db->where('id', $id)->where('is_end_semester', 1)->get('exam_groups')->row();
         if (!$event) {
+            if ($this->input->is_ajax_request()) {
+                return $this->output->set_content_type('application/json')
+                    ->set_output(json_encode(['success' => false, 'message' => 'Event not found']));
+            }
             show_404();
         }
 
@@ -179,6 +187,10 @@ class Coe_event extends MY_Addon_CoeController
         $this->form_validation->set_rules('exam_type',     'Mode',       'trim|required|in_list[theory,practical,project,viva,online]');
 
         if ($this->form_validation->run() === false) {
+            if ($this->input->is_ajax_request()) {
+                return $this->output->set_content_type('application/json')
+                    ->set_output(json_encode(['success' => false, 'message' => strip_tags(validation_errors())]));
+            }
             $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . validation_errors() . '</div>');
             redirect('coe/coe_event/edit/' . $id);
         }
@@ -191,6 +203,12 @@ class Coe_event extends MY_Addon_CoeController
         ]);
 
         $this->Coe_audit_model->log('coe_event_updated', 'exam_groups', $id, null, ['name' => $this->input->post('name')]);
+
+        if ($this->input->is_ajax_request()) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['success' => true, 'message' => 'Exam event updated successfully.']));
+        }
+
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Exam event updated.</div>');
         redirect('coe/coe_event/manage/' . $id);
     }

@@ -119,6 +119,7 @@
                                         <th><?php echo $this->lang->line('incidental_report_amount_collected'); ?></th>
                                         <th><?php echo $this->lang->line('payment_mode'); ?></th>
                                             <th><?php echo $this->lang->line('collected_by'); ?></th>
+                                            <th><?php echo $this->lang->line('notes'); ?></th>
                                             <th class="text-right"><?php echo $this->lang->line('action'); ?></th>
                                         </tr>
                                     </thead>
@@ -158,6 +159,7 @@
                                                 <td><?php echo $collection['amount_collected']; ?></td>
                                                 <td><?php echo !empty($collection['payment_mode']) ? $collection['payment_mode'] : 'N/A'; ?></td>
                                                 <td><?php echo $collection['collected_by_name']; ?></td>
+                                                <td><?php echo !empty($collection['notes']) ? htmlspecialchars($collection['notes']) : '—'; ?></td>
                                                 <td class="text-right">
                                                     <a href="<?php echo site_url('financereports/print_incidental_receipt/' . $collection['id']); ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('print'); ?>" target="_blank">
                                                         <i class="fa fa-print"></i>
@@ -176,7 +178,7 @@
                                     <tr>
                                         <th colspan="8" class="text-right"><?php echo $this->lang->line('total_amount_collected'); ?>:</th>
                                         <th><?php echo $total_amount_collected; ?></th>
-                                        <th colspan="3"></th>
+                                        <th colspan="4"></th>
                                     </tr>
                                 </tfoot>
                             </table>
