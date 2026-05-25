@@ -27,7 +27,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="search_type"><?php echo $this->lang->line('search_duration'); ?></label>
-                                        <select class="form-control" name="search_type" onchange="showdate(this.value)">
+                                        <select class="form-control" name="search_type" onchange="toggleIncidentalDates(this.value)">
                                             <?php foreach ($searchlist as $key => $search) { ?>
                                                 <option value="<?php echo $key ?>" <?php if ((isset($search_type)) && ($search_type == $key)) { echo "selected"; } ?>><?php echo $search ?></option>
                                             <?php } ?>
@@ -191,7 +191,7 @@
 </div>
 
 <script type="text/javascript">
-    function showdate(value) {
+    function toggleIncidentalDates(value) {
         if (value == 'period') {
             $('#date_from').closest('.col-md-3').show();
             $('#date_to').closest('.col-md-3').show();
@@ -212,7 +212,7 @@
         });
 
         // Initial call to show/hide dates based on pre-selected search type
-        showdate($('select[name="search_type"]').val());
+        toggleIncidentalDates($('select[name="search_type"]').val());
 
         // AJAX to load students based on selected class and session
         $('#class_id').on('change', function () {
