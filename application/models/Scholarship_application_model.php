@@ -8,7 +8,7 @@ class Scholarship_application_model extends CI_Model
      */
     public function getAll($status = null, $type_id = null)
     {
-        $this->db->select('sa.*, st.name AS scholarship_name, st.verifier_id AS type_verifier_id,
+        $this->db->select('sa.*, st.name AS scholarship_name, st.amount AS scholarship_amount, st.verifier_id AS type_verifier_id,
             oa.firstname, oa.lastname, oa.reference_no, oa.email, oa.mobileno,
             CONCAT(vs.name, " ", vs.surname) AS verifier_name,
             CONCAT(ap.name, " ", ap.surname) AS approver_name,
@@ -34,7 +34,7 @@ class Scholarship_application_model extends CI_Model
      */
     public function get($id)
     {
-        $this->db->select('sa.*, st.name AS scholarship_name, st.verifier_id AS type_verifier_id,
+        $this->db->select('sa.*, st.name AS scholarship_name, st.amount AS scholarship_amount, st.verifier_id AS type_verifier_id,
             oa.firstname, oa.lastname, oa.reference_no, oa.email, oa.mobileno,
             CONCAT(vs.name, " ", vs.surname) AS verifier_name,
             CONCAT(ap.name, " ", ap.surname) AS approver_name,

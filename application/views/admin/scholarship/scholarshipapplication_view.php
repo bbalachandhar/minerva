@@ -38,6 +38,25 @@ if (!$is_ajax): ?>
                             <tr><th>Mobile</th><td><?php echo htmlspecialchars($app['mobileno'] ?? ''); ?></td></tr>
                             <tr><th>Email</th><td><?php echo htmlspecialchars($app['email'] ?? ''); ?></td></tr>
                             <tr><th>Scholarship Type</th><td><?php echo htmlspecialchars($app['scholarship_name'] ?? ''); ?></td></tr>
+                            <tr><th>Scholarship Amount</th>
+                                <td>
+                                    <?php
+                                    $eff_amount = isset($app['override_amount']) && $app['override_amount'] !== null
+                                        ? $app['override_amount'] : ($app['scholarship_amount'] ?? null);
+                                    if ($eff_amount !== null && $eff_amount !== ''):
+                                        echo '<strong>&#8377; ' . number_format((float)$eff_amount, 2) . '</strong>';
+                                        if (isset($app['override_amount']) && $app['override_amount'] !== null):
+                                            echo ' <span class="label label-warning">Overridden</span>';
+                                            if (!empty($app['scholarship_amount'])):
+                                                echo ' <small class="text-muted">(Type default: &#8377; ' . number_format((float)$app['scholarship_amount'], 2) . ')</small>';
+                                            endif;
+                                        endif;
+                                    else:
+                                        echo '<span class="text-muted">&mdash; Not set</span>';
+                                    endif;
+                                    ?>
+                                </td>
+                            </tr>
                             <tr><th>Applicant Remarks</th><td><?php echo nl2br(htmlspecialchars($app['applicant_remarks'] ?? '')); ?></td></tr>
                             <tr><th>Supporting Document</th>
                                 <td>
@@ -152,6 +171,46 @@ if (!$is_ajax): ?>
                 </div>
                 <?php endif; ?>
 
+                <!-- Amount Override panel (any admin with can_edit) -->
+                <?php if ($this->rbac->hasPrivilege('scholarship_application', 'can_edit')): ?>
+                <div class="box box-warning">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-pencil-square-o"></i> Override Scholarship Amount</h3>
+                    </div>
+                    <form action="<?php echo site_url('admin/scholarshipapplication/override_amount/' . $app['id']); ?>" method="post"
+                          onsubmit="return validateOverride(this);">
+                        <div class="box-body">
+                            <?php if (!empty($app['override_amount'])): ?>
+                            <div class="callout callout-warning" style="margin-bottom:10px">
+                                <strong>Current override:</strong> &#8377; <?php echo number_format((float)$app['override_amount'], 2); ?><br/>
+                                <small class="text-muted"><?php echo nl2br(htmlspecialchars($app['override_comment'] ?? '')); ?></small>
+                                <?php if (!empty($app['override_by'])): ?>
+                                <br/><small class="text-muted">By staff #<?php echo $app['override_by']; ?> on <?php echo date('d M Y h:i A', strtotime($app['override_at'])); ?></small>
+                                <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
+                            <div class="form-group">
+                                <label>Override Amount (&#8377;) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" min="0" name="override_amount" class="form-control"
+                                       value="<?php echo htmlspecialchars($app['override_amount'] ?? $app['scholarship_amount'] ?? ''); ?>"
+                                       placeholder="Enter new amount" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Reason / Comment <span class="text-danger">* mandatory</span></label>
+                                <textarea name="override_comment" class="form-control" rows="3" id="overrideComment"
+                                          placeholder="You MUST explain why this amount is being overridden..."></textarea>
+                                <small class="text-danger" id="overrideCommentErr" style="display:none">Comment is required before saving an override.</small>
+                            </div>
+                        </div>
+                        <div class="box-footer">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fa fa-save"></i> Save Override
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <?php endif; ?>
+
                 <?php if ($app['status'] === 'approved'): ?>
                 <div class="callout callout-success">
                     <h4><i class="fa fa-check-circle"></i> This scholarship has been Approved.</h4>
@@ -169,3 +228,17 @@ if (!$is_ajax): ?>
     </section>
 </div>
 <?php endif; ?>
+
+<script>
+function validateOverride(form) {
+    var comment = document.getElementById('overrideComment');
+    var err     = document.getElementById('overrideCommentErr');
+    if (!comment || comment.value.trim() === '') {
+        if (err) { err.style.display = 'block'; }
+        if (comment) { comment.focus(); }
+        return false;
+    }
+    if (err) { err.style.display = 'none'; }
+    return true;
+}
+</script>

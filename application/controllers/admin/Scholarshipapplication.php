@@ -180,6 +180,46 @@ class Scholarshipapplication extends Admin_Controller
         redirect('admin/scholarshipapplication/view/' . $id);
     }
 
+    // ── Override amount ───────────────────────────────────────────────────────
+
+    public function override_amount($id)
+    {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_edit')) {
+            access_denied();
+        }
+
+        $application = $this->Scholarship_application_model->get($id);
+        if (!$application) { show_404(); }
+
+        $amount  = $this->input->post('override_amount');
+        $comment = trim($this->input->post('override_comment') ?? '');
+
+        if ($comment === '') {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Override comment is mandatory. Please explain why the amount is being changed.</div>');
+            redirect('admin/scholarshipapplication/view/' . $id);
+            return;
+        }
+
+        if (!is_numeric($amount) || (float) $amount < 0) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Invalid override amount. Enter a valid positive number.</div>');
+            redirect('admin/scholarshipapplication/view/' . $id);
+            return;
+        }
+
+        $userdata         = $this->customlib->getUserData();
+        $current_staff_id = (is_array($userdata) && isset($userdata['id'])) ? (int) $userdata['id'] : 0;
+
+        $this->Scholarship_application_model->update($id, [
+            'override_amount'           => (float) $amount,
+            'override_comment'          => $this->security->xss_clean($comment),
+            'override_by'               => $current_staff_id,
+            'override_at'               => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">Scholarship amount overridden successfully.</div>');
+        redirect('admin/scholarshipapplication/view/' . $id);
+    }
+
     // ── Download document ─────────────────────────────────────────────────────
 
     public function download($id)

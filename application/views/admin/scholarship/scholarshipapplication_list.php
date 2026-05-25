@@ -157,6 +157,7 @@
                             <th>Reference No</th>
                             <th>Applicant</th>
                             <th>Scholarship Type</th>
+                            <th>Amount</th>
                             <th>Applied On</th>
                             <th>Status</th>
                             <th class="noExport text-right">Action</th>
@@ -169,6 +170,20 @@
                             <td><?php echo htmlspecialchars($app['reference_no'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars(($app['firstname'] ?? '') . ' ' . ($app['lastname'] ?? '')); ?></td>
                             <td><?php echo htmlspecialchars($app['scholarship_name'] ?? ''); ?></td>
+                            <td>
+                                <?php
+                                $eff_amount = isset($app['override_amount']) && $app['override_amount'] !== null
+                                    ? $app['override_amount'] : ($app['scholarship_amount'] ?? null);
+                                if ($eff_amount !== null && $eff_amount !== ''):
+                                    echo '<strong>' . number_format((float)$eff_amount, 2) . '</strong>';
+                                    if (isset($app['override_amount']) && $app['override_amount'] !== null):
+                                        echo ' <span class="label label-warning" title="Overridden from type default">Override</span>';
+                                    endif;
+                                else:
+                                    echo '<span class="text-muted">—</span>';
+                                endif;
+                                ?>
+                            </td>
                             <td><?php echo date('d M Y', strtotime($app['created_at'])); ?></td>
                             <td><?php
                                 $badges = ['pending'=>'warning','verified'=>'info','approved'=>'success','rejected'=>'danger'];
@@ -184,7 +199,7 @@
                         </tr>
                         <?php endforeach; ?>
                         <?php if (empty($applications)): ?>
-                        <tr><td colspan="7" class="text-center text-muted">No applications found.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted">No applications found.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
