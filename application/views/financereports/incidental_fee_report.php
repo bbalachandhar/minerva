@@ -72,15 +72,15 @@
                                 </div>
                             </div>
                             <div class="row">
-
-                                <div class="col-md-3">
+                                <?php $hide_dates = (!isset($search_type) || $search_type != 'period') ? 'style="display:none"' : ''; ?>
+                                <div class="col-md-3" <?php echo $hide_dates; ?>>
                                     <div class="form-group">
                                         <label for="date_from"><?php echo $this->lang->line('date_from'); ?></label>
                                         <input id="date_from" name="date_from" type="text" class="form-control date" value="<?php echo set_value('date_from'); ?>" />
                                         <span class="text-danger"><?php echo form_error('date_from'); ?></span>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-3" <?php echo $hide_dates; ?>>
                                     <div class="form-group">
                                         <label for="date_to"><?php echo $this->lang->line('date_to'); ?></label>
                                         <input id="date_to" name="date_to" type="text" class="form-control date" value="<?php echo set_value('date_to'); ?>" />
