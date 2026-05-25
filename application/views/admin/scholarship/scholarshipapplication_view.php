@@ -211,6 +211,65 @@ if (!$is_ajax): ?>
                 </div>
                 <?php endif; ?>
 
+                <!-- Change Scholarship Type panel (any admin with can_edit) -->
+                <?php if ($this->rbac->hasPrivilege('scholarship_application', 'can_edit')): ?>
+                <div class="box box-danger">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-exchange"></i> Change Scholarship Type</h3>
+                    </div>
+                    <form action="<?php echo site_url('admin/scholarshipapplication/change_type/' . $app['id']); ?>" method="post"
+                          onsubmit="return validateTypeChange(this);">
+                        <div class="box-body">
+                            <div class="callout callout-warning" style="margin-bottom:10px">
+                                <i class="fa fa-warning"></i> Changing the type will <strong>reset</strong> the application
+                                to <strong>Pending</strong> and clear any amount override.
+                            </div>
+                            <?php if (!empty($app['type_changed_at'])): ?>
+                            <div class="callout callout-info" style="margin-bottom:10px">
+                                <strong>Last type change:</strong>
+                                <?php echo date('d M Y h:i A', strtotime($app['type_changed_at'])); ?>
+                                <?php if (!empty($app['type_changed_by_name'])): ?>
+                                by <?php echo htmlspecialchars($app['type_changed_by_name']); ?>
+                                <?php endif; ?><br/>
+                                <small class="text-muted"><?php echo nl2br(htmlspecialchars($app['type_change_comment'] ?? '')); ?></small>
+                            </div>
+                            <?php endif; ?>
+                            <div class="form-group">
+                                <label>New Scholarship Type <span class="text-danger">*</span></label>
+                                <select name="scholarship_type_id" class="form-control" required id="changeTypeSelect"
+                                        onchange="updateTypeAmountPreview(this)">
+                                    <option value="">— Select new type —</option>
+                                    <?php foreach ($scholarship_types as $st): ?>
+                                    <option value="<?php echo $st['id']; ?>"
+                                            data-amount="<?php echo htmlspecialchars($st['amount'] ?? ''); ?>"
+                                            <?php echo ((int)$st['id'] === (int)$app['scholarship_type_id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($st['name']); ?>
+                                        <?php if (!empty($st['amount'])): ?>(&#8377;<?php echo number_format((float)$st['amount'], 2); ?>)<?php endif; ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="form-group" id="newTypeAmountRow" style="display:none">
+                                <label>Default amount for selected type</label>
+                                <p class="form-control-static text-info" id="newTypeAmountDisplay"></p>
+                            </div>
+                            <div class="form-group">
+                                <label>Reason for Change <span class="text-danger">* mandatory</span></label>
+                                <textarea name="type_change_comment" class="form-control" rows="3" id="typeChangeComment"
+                                          placeholder="You MUST explain why the scholarship type is being changed..."></textarea>
+                                <small class="text-danger" id="typeChangeCommentErr" style="display:none">Comment is required before changing the type.</small>
+                            </div>
+                        </div>
+                        <div class="box-footer">
+                            <button type="submit" class="btn btn-danger"
+                                    onclick="return confirm('This will reset the application to Pending and clear any override. Continue?')">
+                                <i class="fa fa-exchange"></i> Change Type
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <?php endif; ?>
+
                 <?php if ($app['status'] === 'approved'): ?>
                 <div class="callout callout-success">
                     <h4><i class="fa fa-check-circle"></i> This scholarship has been Approved.</h4>
@@ -240,5 +299,30 @@ function validateOverride(form) {
     }
     if (err) { err.style.display = 'none'; }
     return true;
+}
+
+function validateTypeChange(form) {
+    var comment = document.getElementById('typeChangeComment');
+    var err     = document.getElementById('typeChangeCommentErr');
+    if (!comment || comment.value.trim() === '') {
+        if (err) { err.style.display = 'block'; }
+        if (comment) { comment.focus(); }
+        return false;
+    }
+    if (err) { err.style.display = 'none'; }
+    return true;
+}
+
+function updateTypeAmountPreview(sel) {
+    var row    = document.getElementById('newTypeAmountRow');
+    var disp   = document.getElementById('newTypeAmountDisplay');
+    var amount = sel.options[sel.selectedIndex].getAttribute('data-amount');
+    if (amount && amount !== '') {
+        disp.textContent = '\u20B9 ' + parseFloat(amount).toFixed(2);
+        row.style.display = '';
+    } else {
+        row.style.display = 'none';
+        disp.textContent = '';
+    }
 }
 </script>

@@ -38,13 +38,15 @@ class Scholarship_application_model extends CI_Model
             oa.firstname, oa.lastname, oa.reference_no, oa.email, oa.mobileno,
             CONCAT(vs.name, " ", vs.surname) AS verifier_name,
             CONCAT(ap.name, " ", ap.surname) AS approver_name,
-            CONCAT(tv.name, " ", tv.surname) AS type_verifier_name');
+            CONCAT(tv.name, " ", tv.surname) AS type_verifier_name,
+            CONCAT(tch.name, " ", tch.surname) AS type_changed_by_name');
         $this->db->from('scholarship_applications sa');
         $this->db->join('scholarship_types st', 'st.id = sa.scholarship_type_id', 'left');
         $this->db->join('online_admissions oa', 'oa.id = sa.online_admission_id', 'left');
         $this->db->join('staff vs', 'vs.id = sa.verifier_id', 'left');
         $this->db->join('staff ap', 'ap.id = sa.approver_id', 'left');
         $this->db->join('staff tv', 'tv.id = st.verifier_id', 'left');
+        $this->db->join('staff tch', 'tch.id = sa.type_changed_by', 'left');
         $this->db->where('sa.id', $id);
         return $this->db->get()->row_array();
     }

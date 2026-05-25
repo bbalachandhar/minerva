@@ -67,9 +67,10 @@ class Scholarshipapplication extends Admin_Controller
         $userdata         = $this->customlib->getUserData();
         $current_staff_id = (is_array($userdata) && isset($userdata['id'])) ? (int) $userdata['id'] : 0;
 
-        $data['application']      = $application;
-        $data['settings']         = $settings;
-        $data['current_staff_id'] = $current_staff_id;
+        $data['application']        = $application;
+        $data['settings']           = $settings;
+        $data['current_staff_id']   = $current_staff_id;
+        $data['scholarship_types']  = $this->Scholarship_type_model->getAll(true); // active only
         // Verifier is per scholarship type; approver is global
         $data['can_verify']  = (!empty($application['type_verifier_id']) && (int)$application['type_verifier_id'] === $current_staff_id);
         $data['can_approve'] = ($settings && !empty($settings['approver_id']) && (int)$settings['approver_id'] === $current_staff_id);
@@ -217,6 +218,74 @@ class Scholarshipapplication extends Admin_Controller
         ]);
 
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Scholarship amount overridden successfully.</div>');
+        redirect('admin/scholarshipapplication/view/' . $id);
+    }
+
+    // ── Change scholarship type ───────────────────────────────────────────────
+
+    public function change_type($id)
+    {
+        if (!$this->rbac->hasPrivilege('scholarship_application', 'can_edit')) {
+            access_denied();
+        }
+
+        $application = $this->Scholarship_application_model->get($id);
+        if (!$application) { show_404(); }
+
+        $new_type_id = (int) $this->input->post('scholarship_type_id');
+        $comment     = trim($this->input->post('type_change_comment') ?? '');
+
+        if ($new_type_id === (int) $application['scholarship_type_id']) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning">The selected type is already the current scholarship type. No change made.</div>');
+            redirect('admin/scholarshipapplication/view/' . $id);
+            return;
+        }
+
+        if ($comment === '') {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">A reason/comment is mandatory when changing the scholarship type.</div>');
+            redirect('admin/scholarshipapplication/view/' . $id);
+            return;
+        }
+
+        $new_type = $this->Scholarship_type_model->get($new_type_id);
+        if (!$new_type || !$new_type['is_active']) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Invalid or inactive scholarship type selected.</div>');
+            redirect('admin/scholarshipapplication/view/' . $id);
+            return;
+        }
+
+        // Check if this applicant already has a separate application for the new type
+        if ($this->Scholarship_application_model->alreadyApplied($application['online_admission_id'], $new_type_id)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">This applicant already has an application for &ldquo;' . htmlspecialchars($new_type['name']) . '&rdquo;. Cannot reassign to a duplicate type.</div>');
+            redirect('admin/scholarshipapplication/view/' . $id);
+            return;
+        }
+
+        $userdata         = $this->customlib->getUserData();
+        $current_staff_id = (is_array($userdata) && isset($userdata['id'])) ? (int) $userdata['id'] : 0;
+
+        $this->Scholarship_application_model->update($id, [
+            'scholarship_type_id'  => $new_type_id,
+            // Reset workflow — new type may have a different verifier
+            'status'               => 'pending',
+            'verifier_id'          => null,
+            'verifier_remarks'     => null,
+            'verified_at'          => null,
+            'approver_id'          => null,
+            'approver_remarks'     => null,
+            'approved_at'          => null,
+            // Clear amount override — new type has its own default
+            'override_amount'      => null,
+            'override_comment'     => null,
+            'override_by'          => null,
+            'override_at'          => null,
+            // Log the change
+            'type_change_comment'  => $this->security->xss_clean($comment),
+            'type_changed_by'      => $current_staff_id,
+            'type_changed_at'      => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">Scholarship type changed to &ldquo;' . htmlspecialchars($new_type['name']) . '&rdquo;. Application reset to Pending.</div>');
         redirect('admin/scholarshipapplication/view/' . $id);
     }
 
