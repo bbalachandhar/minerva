@@ -845,6 +845,18 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                 <td>Medium</td>
                                                 <td><?php echo $student['medium']; ?></td>
                                             </tr>
+                                            <tr>
+                                                <td>Allotment No</td>
+                                                <td><?php echo $student['allotment_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Consortium No</td>
+                                                <td><?php echo $student['consortium_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Application No</td>
+                                                <td><?php echo $student['application_no']; ?></td>
+                                            </tr>
 
                                         </tbody>
                                     </table>
