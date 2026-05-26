@@ -89,15 +89,16 @@
             padding: 10px;
             border-radius: 10px;
             background: #fff;
-            margin-top: 20px;
+            display: block;
+            margin: 0 auto;
         }
         .logo-right {
-            right: 20px;
             width: 80%;
             padding: 10px;
             border-radius: 10px;
             background: #fff;
-            margin-top: 20px;
+            display: block;
+            margin: 0 auto;
         }
         .section-card {
             background: #f9f9f9;
@@ -202,16 +203,16 @@
     <div id="particles-js"></div>
     <div class="container">
         <div class="form-container">
-            <div class="header row">
-                <div class="col-md-2">
+            <div class="header row align-items-center">
+                <div class="col-md-2 text-center">
                     <img src="<?php echo base_url('uploads/logos/' . $sch_setting->admission_logo_left); ?>" alt="College Logo" class="logo-left">
                 </div>
-                <div class="col-md-7">
+                <div class="col-md-7 text-center">
                     <h2 class="mb-1"><?php echo $sch_setting->name; ?></h2>
                     <p class="mb-0"><?php echo $sch_setting->address; ?></p>
                     <p>Ph: <?php echo $sch_setting->phone; ?> | Email: <?php echo $sch_setting->email; ?> | Website: <?php echo isset($sch_setting->website) ? $sch_setting->website : ''; ?></p>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 text-center">
                     <img src="<?php echo base_url('uploads/logos/' . $sch_setting->admission_logo_right); ?>" alt="College Logo" class="logo-right">
                 </div>
             </div>
