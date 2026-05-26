@@ -40,7 +40,9 @@
   $school_name = $ht->school_name  ?? 'Institution';
   $school_addr = $ht->school_address ?? '';
   $logo_file   = $ht->admin_logo    ?? '';
-  $logo_url    = $logo_file ? base_url('uploads/logos/' . htmlspecialchars($logo_file)) : '';
+  $logo_url    = ($logo_file && is_file(FCPATH . 'uploads/logos/' . $logo_file))
+                 ? base_url('uploads/logos/' . htmlspecialchars($logo_file))
+                 : '';
   ?>
 
   <!-- Header -->
@@ -87,11 +89,14 @@
     <div class="card-body">
 
       <?php
-      $student_name = trim(($ht->firstname ?? '') . ' ' . ($ht->lastname ?? ''));
-      $photo_path   = FCPATH . 'uploads/student_images/' . ($ht->student_image ?? '');
-      $photo_url    = ($ht->student_image && is_file($photo_path))
-                      ? base_url('uploads/student_images/' . htmlspecialchars($ht->student_image))
-                      : null;
+      $student_name   = trim(($ht->firstname ?? '') . ' ' . ($ht->lastname ?? ''));
+      $gender         = strtolower($ht->gender ?? '');
+      $default_photo  = ($gender === 'female') ? 'default_female.jpg' : 'default_male.jpg';
+      $photo_url      = ($ht->student_image && is_file(FCPATH . 'uploads/student_images/' . $ht->student_image))
+                        ? base_url('uploads/student_images/' . htmlspecialchars($ht->student_image))
+                        : (is_file(FCPATH . 'uploads/student_images/' . $default_photo)
+                           ? base_url('uploads/student_images/' . $default_photo)
+                           : null);
       ?>
 
       <!-- Student photo + basic info -->
