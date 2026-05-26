@@ -255,8 +255,8 @@ class Coe_arrear_model extends CI_Model
                 'csr.id AS result_id',
                 'csr.exam_group_class_batch_exam_id AS batch_exam_id',
                 'sub.id AS subject_id',
-                'sub.subject_name',
-                'sub.subject_code',
+                'sub.name AS subject_name',
+                'sub.code AS subject_code',
                 'csr.external_marks',
                 'csr.total_marks',
                 'csr.grade',
@@ -314,8 +314,8 @@ class Coe_arrear_model extends CI_Model
                 'caa.*',
                 "CONCAT(st.firstname,' ',st.lastname) AS student_name",
                 'st.admission_no',
-                'sub.subject_name',
-                'sub.subject_code',
+                'sub.name AS subject_name',
+                'sub.code AS subject_code',
                 "CONCAT(sf.name) AS reviewed_by_name",
             ])
             ->from('coe_arrear_applications caa')
@@ -341,8 +341,8 @@ class Coe_arrear_model extends CI_Model
         return $this->db
             ->select([
                 'caa.*',
-                'sub.subject_name',
-                'sub.subject_code',
+                'sub.name AS subject_name',
+                'sub.code AS subject_code',
                 "CONCAT(sf.name) AS reviewed_by_name",
             ])
             ->from('coe_arrear_applications caa')

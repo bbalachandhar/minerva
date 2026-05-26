@@ -32,7 +32,7 @@ class Coe_marks_model extends CI_Model
     {
         $this->db
             ->select('sr.*, CONCAT(st.firstname, " ", st.lastname) AS student_name,
-                      st.admission_no, sub.subject_name, sub.subject_code')
+                      st.admission_no, sub.name AS subject_name, sub.code AS subject_code')
             ->from('coe_student_results sr')
             ->join('students st',  'st.id = sr.student_id',  'left')
             ->join('subjects sub', 'sub.id = sr.subject_id', 'left')
@@ -48,7 +48,7 @@ class Coe_marks_model extends CI_Model
             $this->db->where('sr.student_id', (int) $filters['student_id']);
         }
 
-        return $this->db->order_by('st.firstname, sub.subject_code')->get()->result();
+        return $this->db->order_by('st.firstname, sub.code')->get()->result();
     }
 
     // ------------------------------------------------------------------
@@ -161,7 +161,7 @@ class Coe_marks_model extends CI_Model
             ->from('coe_subject_config sc')
             ->join('subjects sub', 'sub.id = sc.subject_id', 'left')
             ->where('sc.exam_group_class_batch_exam_id', (int) $batch_exam_id)
-            ->order_by('sub.subject_code')
+            ->order_by('sub.code')
             ->get()->result();
     }
 
@@ -339,7 +339,7 @@ class Coe_marks_model extends CI_Model
             ->join('coe_subject_config sc', 'sc.subject_id = sr.subject_id AND sc.exam_group_class_batch_exam_id = sr.exam_group_class_batch_exam_id', 'left')
             ->where('sr.exam_group_class_batch_exam_id', (int) $batch_exam_id)
             ->where('sr.student_id', (int) $student_id)
-            ->order_by('sub.subject_code')
+            ->order_by('sub.code')
             ->get()->result();
 
         $sgpa = $this->db
@@ -356,11 +356,11 @@ class Coe_marks_model extends CI_Model
     public function getSubjectsByBatchExam($batch_exam_id)
     {
         return $this->db
-            ->select('sub.id, sub.name AS subject_name, sub.code AS subject_code')
+            ->select('sub.id, sub.id AS subject_id, sub.name AS subject_name, sub.code AS subject_code')
             ->from('exam_group_class_batch_exam_subjects egcbes')
             ->join('subjects sub', 'sub.id = egcbes.subject_id', 'left')
             ->where('egcbes.exam_group_class_batch_exams_id', (int) $batch_exam_id)
-            ->order_by('sub.subject_name ASC')
+            ->order_by('sub.name ASC')
             ->get()->result();
     }
 

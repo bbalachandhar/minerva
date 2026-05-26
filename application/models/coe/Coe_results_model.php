@@ -242,18 +242,18 @@ class Coe_results_model extends CI_Model {
             $sem->subjects = $this->db
                 ->select([
                     'sr.*',
-                    'subj.subject_code',
-                    'subj.subject_name',
+                    'subj.code AS subject_code',
+                    'subj.name AS subject_name',
                     'cfg.credits',
                 ])
                 ->from('coe_student_results sr')
                 ->join('subjects subj', 'subj.id = sr.subject_id', 'left')
-                ->join('coe_subject_configs cfg',
+                ->join('coe_subject_config cfg',
                     'cfg.subject_id = sr.subject_id AND cfg.exam_group_class_batch_exam_id = sr.exam_group_class_batch_exam_id',
                     'left')
                 ->where('sr.exam_group_class_batch_exam_id', (int) $sem->exam_group_class_batch_exam_id)
                 ->where('sr.student_id', $student_id)
-                ->order_by('subj.subject_code ASC')
+                ->order_by('subj.code ASC')
                 ->get()->result();
 
             $credits = (float) ($sem->total_credits ?: 0);

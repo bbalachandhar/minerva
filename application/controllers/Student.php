@@ -416,6 +416,26 @@ class Student extends Admin_Controller
         $data['title']                 = 'Add Student';
         $data['title_list']            = 'Recently Added Student';
         $data['adm_auto_insert']       = $this->sch_setting_detail->adm_auto_insert;
+
+        $data['next_admission_no'] = '';
+        if ($this->sch_setting_detail->adm_auto_insert) {
+            $year_prefix   = !empty($this->sch_setting_detail->adm_include_current_year) ? date('Y') : '';
+            $id_prefix     = $this->sch_setting_detail->adm_prefix . $year_prefix;
+            $number_digits = (int)$this->sch_setting_detail->adm_no_digit - strlen($id_prefix);
+            if ($number_digits < 1) $number_digits = 1;
+            if ($this->sch_setting_detail->adm_update_status) {
+                $last_student = $this->student_model->lastRecord();
+                if (!empty($last_student) && strpos($last_student->admission_no, $id_prefix) === 0) {
+                    $last_digit = str_replace($id_prefix, '', $last_student->admission_no);
+                    $data['next_admission_no'] = $id_prefix . sprintf('%0' . $number_digits . 'd', $last_digit + 1);
+                } else {
+                    $data['next_admission_no'] = $id_prefix . sprintf('%0' . $number_digits . 'd', $this->sch_setting_detail->adm_start_from);
+                }
+            } else {
+                $data['next_admission_no'] = $id_prefix . sprintf('%0' . $number_digits . 'd', $this->sch_setting_detail->adm_start_from);
+            }
+        }
+
         $data["student_categorize"]    = 'class';
         $session                       = $this->setting_model->getCurrentSession();
         $data['feesessiongroup_model'] = $this->feesessiongroup_model->getFeesByGroup();
@@ -768,10 +788,10 @@ class Student extends Admin_Controller
                         if ($this->sch_setting_detail->adm_update_status) {
 				
                             $admission_no = $id_prefix . $this->sch_setting_detail->adm_start_from;
-				
+			
                             $last_student = $this->student_model->lastRecord();
-                            if (!empty($last_student)) {
-				
+                            if (!empty($last_student) && strpos($last_student->admission_no, $id_prefix) === 0) {
+			
                                 $last_admission_digit = str_replace($id_prefix, "", $last_student->admission_no);
                                 $admission_no                = $id_prefix . sprintf("%0" . $number_digits . "d", $last_admission_digit + 1);
                                 $data_insert['admission_no'] = $admission_no;

@@ -13,7 +13,16 @@
                     <?php echo $this->customlib->getCSRF(); ?>
                     <?php
                     $indent_policy = $indent_fallback_settings ?? [];
+                    $configured_indent_l1 = $configured_l1_approver ?? null;
                     $configured_indent_l2 = $configured_l2_approver ?? null;
+                    $indent_l1_label = '';
+                    if (!empty($configured_indent_l1)) {
+                        $indent_l1_label = trim((string) (($configured_indent_l1['name'] ?? '') . ' ' . ($configured_indent_l1['surname'] ?? '')));
+                        $indent_l1_employee = trim((string) ($configured_indent_l1['employee_id'] ?? ''));
+                        if ($indent_l1_employee !== '') {
+                            $indent_l1_label .= ' (' . $indent_l1_employee . ')';
+                        }
+                    }
                     $indent_l2_label = '';
                     if (!empty($configured_indent_l2)) {
                         $indent_l2_label = trim((string) (($configured_indent_l2['name'] ?? '') . ' ' . ($configured_indent_l2['surname'] ?? '')));
@@ -22,30 +31,14 @@
                             $indent_l2_label .= ' (' . $indent_l2_employee . ')';
                         }
                     }
-                    $requester_department_id = (int) ($requester_department_id ?? 0);
-                    $requester_department_head = $department_head_map[$requester_department_id] ?? null;
-                    $indent_head_label = '';
-                    if (!empty($requester_department_head)) {
-                        $indent_head_label = trim((string) ($requester_department_head['name'] ?? ''));
-                        $indent_head_employee = trim((string) ($requester_department_head['employee_id'] ?? ''));
-                        if ($indent_head_employee !== '') {
-                            $indent_head_label .= ' (' . $indent_head_employee . ')';
-                        }
-                    }
                     ?>
-                    <?php if (empty($configured_indent_l2)) { ?>
+                    <?php if (empty($configured_indent_l1) || empty($configured_indent_l2)) { ?>
                         <div class="alert alert-danger">
-                            Indent approval fallback settings are incomplete. Configure Indent Approver L2 in System Settings &gt; Indent Approval Fallback before creating indents.
+                            Indent approval fallback settings are incomplete. Configure Indent Approver L1 and L2 in System Settings &gt; Indent Approval Fallback before creating indents.
                         </div>
                     <?php } else { ?>
                         <div class="alert alert-info" id="indentApprovalSummary">
-                            <?php if (!empty($indent_policy['use_department_head_l1']) && !empty($requester_department_head)) { ?>
-                                Fallback route will use the requester department head as Level 1 and the configured staff as Level 2.
-                            <?php } elseif (!empty($indent_policy['use_department_head_l1'])) { ?>
-                                No active department head is mapped for the requester department. Level 1 will fall back to the configured Level 2 approver.
-                            <?php } else { ?>
-                                Department-head-based Level 1 is disabled. The configured fallback approver will be used for approval routing.
-                            <?php } ?>
+                            Indent will be routed to <?php echo html_escape($indent_l1_label); ?> (L1) and <?php echo html_escape($indent_l2_label); ?> (L2).
                         </div>
                     <?php } ?>
                     <div class="row">
@@ -88,11 +81,11 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Indent Approver L1</label>
-                                <select name="approver_staff_id" id="indent_approver_l1" class="form-control" <?php echo (!empty($is_super_admin) && !empty($indent_policy['superadmin_can_override_l1'])) ? '' : 'disabled'; ?> data-default-l2-id="<?php echo (int) ($indent_policy['l2_staff_id'] ?? 0); ?>" data-head-id="<?php echo (int) ($requester_department_head['id'] ?? 0); ?>" data-head-name="<?php echo html_escape((string) $indent_head_label); ?>">
-                                    <?php if (!empty($requester_department_head)) { ?>
-                                        <option value="<?php echo (int) $requester_department_head['id']; ?>"><?php echo html_escape($indent_head_label); ?></option>
+                                <select name="approver_staff_id" id="indent_approver_l1" class="form-control" <?php echo (!empty($is_super_admin) && !empty($indent_policy['superadmin_can_override_l1'])) ? '' : 'disabled'; ?> data-default-l1-id="<?php echo (int) ($indent_policy['l1_staff_id'] ?? 0); ?>" data-default-l2-id="<?php echo (int) ($indent_policy['l2_staff_id'] ?? 0); ?>">
+                                    <?php if (!empty($configured_indent_l1)) { ?>
+                                        <option value="<?php echo (int) $configured_indent_l1['id']; ?>"><?php echo html_escape($indent_l1_label); ?></option>
                                     <?php } ?>
-                                    <?php if (!empty($configured_indent_l2)) { ?>
+                                    <?php if (!empty($configured_indent_l2) && (!empty($configured_indent_l1) && (int) $configured_indent_l2['id'] !== (int) $configured_indent_l1['id'])) { ?>
                                         <option value="<?php echo (int) $configured_indent_l2['id']; ?>"><?php echo html_escape($indent_l2_label); ?></option>
                                     <?php } ?>
                                     <?php foreach (($staff_list ?? []) as $staff) { ?>
@@ -108,7 +101,7 @@
                                         <option value="<?php echo $staff_id; ?>"><?php echo html_escape($staff_label); ?></option>
                                     <?php } ?>
                                 </select>
-                                <p class="help-block">This is auto-prefilled from the requester department head or falls back to Level 2. Super Admin can change it only when override is enabled.</p>
+                                <p class="help-block">Auto-prefilled from the configured L1 approver. Super Admin can change it only when override is enabled.</p>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -117,7 +110,7 @@
                                 <select name="indent_approver_level2_staff_id" id="indent_approver_l2" class="form-control" disabled>
                                     <option value="<?php echo !empty($configured_indent_l2) ? (int) $configured_indent_l2['id'] : 0; ?>"><?php echo html_escape($indent_l2_label !== '' ? $indent_l2_label : 'Select'); ?></option>
                                 </select>
-                                <p class="help-block">This approver is always the final approver and also acts as the Level 1 fallback when no department head is available.</p>
+                                <p class="help-block">This approver is always the final approver.</p>
                             </div>
                         </div>
                     </div>
@@ -190,12 +183,11 @@
 
     var base_url = '<?php echo base_url(); ?>';
     var indentPolicy = {
-        useDepartmentHeadL1: <?php echo !empty($indent_policy['use_department_head_l1']) ? 'true' : 'false'; ?>,
+        l1StaffId: <?php echo (int) ($indent_policy['l1_staff_id'] ?? 0); ?>,
         l2StaffId: <?php echo (int) ($indent_policy['l2_staff_id'] ?? 0); ?>,
         superadminCanOverrideL1: <?php echo !empty($indent_policy['superadmin_can_override_l1']) ? 'true' : 'false'; ?>,
         isSuperAdmin: <?php echo !empty($is_super_admin) ? 'true' : 'false'; ?>,
-        departmentHeadId: <?php echo (int) ($requester_department_head['id'] ?? 0); ?>,
-        departmentHeadLabel: <?php echo json_encode((string) $indent_head_label); ?>,
+        l1Label: <?php echo json_encode((string) $indent_l1_label); ?>,
         l2Label: <?php echo json_encode((string) $indent_l2_label); ?>
     };
 
@@ -210,21 +202,8 @@
     }
 
     function updateIndentApprovers() {
-        var l1Id = indentPolicy.l2StaffId;
-        var summary = 'Department-head-based Level 1 is disabled. The configured fallback approver will be used for approval routing.';
-
-        if (indentPolicy.useDepartmentHeadL1) {
-            if (indentPolicy.departmentHeadId > 0) {
-                l1Id = indentPolicy.departmentHeadId;
-                summary = 'Fallback route will use the requester department head as Level 1 and the configured staff as Level 2.';
-            } else {
-                summary = 'No active department head is mapped for the requester department. Level 1 will fall back to the configured Level 2 approver.';
-            }
-        }
-
-        setSelectValue($('#indent_approver_l1'), l1Id);
+        setSelectValue($('#indent_approver_l1'), indentPolicy.l1StaffId > 0 ? indentPolicy.l1StaffId : indentPolicy.l2StaffId);
         setSelectValue($('#indent_approver_l2'), indentPolicy.l2StaffId);
-        $('#indentApprovalSummary').text(summary);
     }
 
     function populateItem(itemCategoryId) {

@@ -16,7 +16,7 @@
                         <td><?= htmlspecialchars($evt->exam_group_name ?? $evt->exam ?? '') ?></td>
                         <td><?= htmlspecialchars($evt->date_from ?? '—') ?> to <?= htmlspecialchars($evt->date_to ?? '—') ?></td>
                         <td>
-                            <a href="<?= site_url('coe/coe_schedule/manage/' . $evt->id) ?>" class="btn btn-sm btn-primary">
+                            <a href="<?= site_url('coe/coe_schedule/manage/' . ($evt->batch_exam_id ?? $evt->id ?? 0)) ?>" class="btn btn-sm btn-primary">
                                 <i class="fa fa-calendar-check-o"></i> Manage Schedule
                             </a>
                         </td>

@@ -12,11 +12,21 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>
-                                            <input type="checkbox" name="indent_fallback_use_department_head_l1" value="1" <?php echo !empty($indent_fallback_policy['use_department_head_l1']) ? 'checked' : ''; ?>>
-                                            Use Department Head as Indent Approver L1
-                                        </label>
-                                        <p class="help-block">When enabled, the requester department head is assigned as Level 1. If no department head is mapped, Level 1 falls back to the configured Level 2 approver.</p>
+                                        <label>Indent Approver L1 (Mandatory)</label>
+                                        <select name="indent_fallback_l1_staff_id" id="indent_fallback_l1_staff_id" class="form-control" required>
+                                            <option value="0">Select</option>
+                                            <?php foreach (($staff_list ?? []) as $staff) { ?>
+                                                <?php
+                                                $staff_id = (int) ($staff['id'] ?? 0);
+                                                $staff_name = trim((string) (($staff['name'] ?? '') . ' ' . ($staff['surname'] ?? '')));
+                                                $employee_id = trim((string) ($staff['employee_id'] ?? ''));
+                                                ?>
+                                                <option value="<?php echo $staff_id; ?>" <?php echo ((int) ($indent_fallback_policy['l1_staff_id'] ?? 0) === $staff_id) ? 'selected' : ''; ?>>
+                                                    <?php echo html_escape($staff_name . ($employee_id !== '' ? ' (' . $employee_id . ')' : '')); ?>
+                                                </option>
+                                            <?php } ?>
+                                        </select>
+                                        <p class="help-block">This approver is assigned as the Level 1 indent approver.</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -47,7 +57,7 @@
                                                 </option>
                                             <?php } ?>
                                         </select>
-                                        <p class="help-block">This approver is always used as the final indent approver and also acts as the Level 1 fallback when no department head is available.</p>
+                                        <p class="help-block">This approver is always used as the final indent approver.</p>
                                     </div>
                                 </div>
                             </div>
@@ -68,7 +78,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         if ($.fn.select2) {
-            $('#indent_fallback_l2_staff_id').select2({
+            $('#indent_fallback_l1_staff_id, #indent_fallback_l2_staff_id').select2({
                 width: '100%',
                 placeholder: 'Search by name or employee ID...',
                 allowClear: true

@@ -9,7 +9,7 @@ class Inventoryindent extends Admin_Controller
     private function ensureIndentFallbackSettingColumns()
     {
         $required = [
-            'indent_fallback_use_department_head_l1' => 'TINYINT(1) NOT NULL DEFAULT 1',
+            'indent_fallback_l1_staff_id' => 'INT(11) NULL',
             'indent_fallback_l2_staff_id' => 'INT(11) NULL',
             'indent_fallback_superadmin_can_override_l1' => 'TINYINT(1) NOT NULL DEFAULT 1',
         ];
@@ -32,7 +32,7 @@ class Inventoryindent extends Admin_Controller
         $this->ensureIndentFallbackSettingColumns();
 
         $row = $this->db
-            ->select('indent_fallback_use_department_head_l1, indent_fallback_l2_staff_id, indent_fallback_superadmin_can_override_l1')
+            ->select('indent_fallback_l1_staff_id, indent_fallback_l2_staff_id, indent_fallback_superadmin_can_override_l1')
             ->from('sch_settings')
             ->order_by('id', 'ASC')
             ->limit(1)
@@ -40,7 +40,7 @@ class Inventoryindent extends Admin_Controller
             ->row_array();
 
         return [
-            'use_department_head_l1' => isset($row['indent_fallback_use_department_head_l1']) ? (int) $row['indent_fallback_use_department_head_l1'] === 1 : true,
+            'l1_staff_id' => isset($row['indent_fallback_l1_staff_id']) ? (int) $row['indent_fallback_l1_staff_id'] : 0,
             'l2_staff_id' => isset($row['indent_fallback_l2_staff_id']) ? (int) $row['indent_fallback_l2_staff_id'] : 0,
             'superadmin_can_override_l1' => isset($row['indent_fallback_superadmin_can_override_l1']) ? (int) $row['indent_fallback_superadmin_can_override_l1'] === 1 : true,
         ];
@@ -136,10 +136,7 @@ class Inventoryindent extends Admin_Controller
             ];
         }
 
-        $l1_staff = null;
-        if (!empty($settings['use_department_head_l1']) && !empty($department_id)) {
-            $l1_staff = $this->getActiveDepartmentHeadByDepartmentId((int) $department_id);
-        }
+        $l1_staff = $this->getActiveStaffById((int) $settings['l1_staff_id']);
 
         if ($this->isCurrentUserSuperAdmin() && !empty($settings['superadmin_can_override_l1']) && (int) $requested_l1_staff_id > 0) {
             $override_staff = $this->getActiveStaffById((int) $requested_l1_staff_id);
@@ -235,6 +232,7 @@ class Inventoryindent extends Admin_Controller
             ->result_array();
         $data['is_super_admin'] = $this->isCurrentUserSuperAdmin();
         $data['indent_fallback_settings'] = $this->getIndentFallbackSettings();
+        $data['configured_l1_approver'] = $this->getActiveStaffById((int) $data['indent_fallback_settings']['l1_staff_id']);
         $data['configured_l2_approver'] = $this->getActiveStaffById((int) $data['indent_fallback_settings']['l2_staff_id']);
 
         $requested_by = (int) $this->customlib->getStaffID();

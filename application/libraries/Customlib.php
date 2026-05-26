@@ -903,7 +903,7 @@ class Customlib
     public function getDigits()
     {
         $array = array();
-        for ($i = 1; $i <= 12; $i++) {
+        for ($i = 1; $i <= 20; $i++) {
 
             $array[$i] = $i;
         }

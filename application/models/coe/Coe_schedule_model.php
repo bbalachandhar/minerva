@@ -16,13 +16,13 @@ class Coe_schedule_model extends CI_Model
         return $this->db
             ->select([
                 'cs.*',
-                'subj.subject_code',
-                'subj.subject_name',
-                'h.hall_name',
+                'subj.code AS subject_code',
+                'subj.name AS subject_name',
+                'h.name AS hall_name',
             ])
             ->from('coe_exam_schedule cs')
             ->join('subjects subj', 'subj.id = cs.subject_id', 'left')
-            ->join('coe_invigilation_halls h', 'h.id = cs.hall_id', 'left')
+            ->join('halls h', 'h.id = cs.hall_id', 'left')
             ->where('cs.exam_group_class_batch_exam_id', (int) $batch_exam_id)
             ->order_by('cs.exam_date ASC, cs.start_time ASC')
             ->get()->result();
@@ -78,8 +78,9 @@ class Coe_schedule_model extends CI_Model
     public function getHalls()
     {
         return $this->db
-            ->select('id, hall_name, capacity')
-            ->order_by('hall_name ASC')
-            ->get('coe_invigilation_halls')->result();
+            ->select('id, name AS hall_name, capacity')
+            ->where('is_active', 1)
+            ->order_by('name ASC')
+            ->get('halls')->result();
     }
 }

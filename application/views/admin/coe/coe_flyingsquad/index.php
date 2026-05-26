@@ -21,7 +21,7 @@
                     <td><?= $i++ ?></td>
                     <td><?= htmlspecialchars($ev->exam_group_name ?? $ev->exam ?? $ev->exam_group_class_batch_exam_id ?? 'Event #'.$ev->id) ?></td>
                     <td>
-                        <a href="<?= site_url('coe/coe_flyingsquad/manage/' . $ev->id) ?>" class="btn btn-sm btn-primary">
+                        <a href="<?= site_url('coe/coe_flyingsquad/manage/' . ($ev->batch_exam_id ?? $ev->id ?? 0)) ?>" class="btn btn-sm btn-primary">
                             <i class="fa fa-shield"></i> Manage Visits
                         </a>
                     </td>

@@ -65,15 +65,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <input type="hidden" name="sibling_name" value="<?php echo set_value('sibling_name'); ?>" id="sibling_name_next">
                                     <input type="hidden" name="sibling_id" value="<?php echo set_value('sibling_id', 0); ?>" id="sibling_id">
                                     <div class="row">
-                                        <?php if (!$adm_auto_insert) {?>
-                                            <div class="col-md-3">
-                                                <div class="form-group">
-                                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('admission_no'); ?></label> <small class="req"> *</small>
-                                                    <input autofocus="" id="admission_no" name="admission_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('admission_no'); ?>" />
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="exampleInputEmail1"><?php echo $this->lang->line('admission_no'); ?></label> <small class="req"> *</small>
+                                                <?php if ($adm_auto_insert) { ?>
+                                                    <input id="admission_no" type="text" class="form-control" value="<?php echo $next_admission_no; ?>" readonly style="background:#f5f5f5;cursor:not-allowed;" />
+                                                <?php } else { ?>
+                                                    <input autofocus="" id="admission_no" name="admission_no" placeholder="" type="text" class="form-control" value="<?php echo set_value('admission_no'); ?>" />
                                                     <span class="text-danger"><?php echo form_error('admission_no'); ?></span>
-                                                </div>
+                                                <?php } ?>
                                             </div>
-                                        <?php }?>
+                                        </div>
                                         <?php if ($sch_setting->roll_no) {?>
                                                                                         <div class="col-md-3">
                                                                                             <div class="form-group">

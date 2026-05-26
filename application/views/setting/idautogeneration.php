@@ -100,6 +100,38 @@
                                                         ?> ><?php echo $digit; ?></option> <?php } ?>
                                                 </select>
                                                 <span class="text-danger"><?php echo form_error('adm_no_digit'); ?></span>
+                                                <small class="text-muted" id="adm_digit_hint">
+                                                    This is the <strong>total character count</strong> of the full admission number including prefix and year.<br>
+                                                    Formula: <code>Prefix length + Year (4 if enabled) + Number digits = Total</code><br>
+                                                    <span id="adm_digit_example"></span>
+                                                </small>
+                                                <script>
+                                                function updateAdmDigitHint() {
+                                                    var prefix = document.getElementById('adm_prefix') ? document.getElementById('adm_prefix').value : '';
+                                                    var includeYear = document.querySelector('input[name="adm_include_current_year"]') ? document.querySelector('input[name="adm_include_current_year"]').checked : false;
+                                                    var total = document.getElementById('adm_no_digit') ? parseInt(document.getElementById('adm_no_digit').value) || 0 : 0;
+                                                    var year = includeYear ? new Date().getFullYear().toString() : '';
+                                                    var prefixFull = prefix + year;
+                                                    var numDigits = total - prefixFull.length;
+                                                    var exampleEl = document.getElementById('adm_digit_example');
+                                                    if (prefix && total > 0) {
+                                                        var exampleNum = '1'.padStart(numDigits > 0 ? numDigits : 1, '0');
+                                                        exampleEl.innerHTML = 'e.g. <strong>' + prefixFull + exampleNum + '</strong> &rarr; ' + (numDigits > 0 ? numDigits + '-digit number part' : '<span class="text-danger">Total too small! Increase the digit count.</span>');
+                                                    } else {
+                                                        exampleEl.innerHTML = '';
+                                                    }
+                                                }
+                                                document.addEventListener('DOMContentLoaded', function() {
+                                                    ['adm_prefix', 'adm_no_digit'].forEach(function(id) {
+                                                        var el = document.getElementById(id);
+                                                        if (el) el.addEventListener('change', updateAdmDigitHint);
+                                                        if (el) el.addEventListener('input', updateAdmDigitHint);
+                                                    });
+                                                    var yearChk = document.querySelector('input[name="adm_include_current_year"]');
+                                                    if (yearChk) yearChk.addEventListener('change', updateAdmDigitHint);
+                                                    updateAdmDigitHint();
+                                                });
+                                                </script>
                                             </div>
                                         </div>
                                     </div>

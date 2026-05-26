@@ -246,6 +246,13 @@ REPLACE INTO `coe_audit_log` (`id`, `action`, `entity`, `entity_id`, `old_value`
 REPLACE INTO `coe_audit_log` (`id`, `action`, `entity`, `entity_id`, `old_value`, `new_value`, `performed_by`, `ip_address`, `performed_at`) VALUES (12,'coe_batch_created','exam_group_class_batch_exams',6,NULL,'{\"group_id\":4,\"class_id\":87,\"students_added\":0}',0,'::1','2026-05-11 17:20:30');
 REPLACE INTO `coe_moderation_rules` (`id`, `exam_group_class_batch_exam_id`, `subject_id`, `class_id`, `rule_type`, `value_type`, `value`, `max_cap`, `applies_to`, `is_applied`, `applied_by`, `applied_at`, `reason`, `created_at`, `updated_at`) VALUES (1,3,3,NULL,'grace','flat',3.00,70.00,'external',0,NULL,NULL,'Grace marks for DBMS paper difficulty','2026-05-10 16:32:36','2026-05-10 16:32:36');
 REPLACE INTO `coe_revaluation_requests` (`id`, `student_id`, `exam_group_class_batch_exam_id`, `subject_id`, `original_marks`, `request_date`, `payment_status`, `payment_ref`, `payment_amount`, `payment_date`, `stage`, `status`, `remarks`, `created_by`, `created_at`, `updated_at`) VALUES (1,5,3,1,45.00,'2026-05-01','paid','PAY/2026/0501/001',500.00,'2026-05-02',1,'assigned',NULL,1,'2026-05-10 16:32:36','2026-05-10 16:32:36');
+
+-- --------------------------------------------------------
+-- Flying Squad Visits (2 demo rows)
+-- --------------------------------------------------------
+REPLACE INTO `coe_flying_squad_visits` (`id`, `exam_group_class_batch_exam_id`, `visit_date`, `visit_time`, `observer_staff_id`, `hall_id`, `hall_name`, `observations`, `irregularities_found`, `irregularity_details`, `action_taken`, `severity`, `created_at`) VALUES (1, 17, '2026-06-01', '10:30:00', 1, 1, 'ANR Hall', 'Visited ANR Hall during FN session. All students seated properly, hall tickets verified. Invigilators present and attentive. Exam conducted in orderly manner.', 0, NULL, NULL, 'none', '2026-06-01 10:30:00');
+REPLACE INTO `coe_flying_squad_visits` (`id`, `exam_group_class_batch_exam_id`, `visit_date`, `visit_time`, `observer_staff_id`, `hall_id`, `hall_name`, `observations`, `irregularities_found`, `irregularity_details`, `action_taken`, `severity`, `created_at`) VALUES (2, 17, '2026-06-15', '11:00:00', 1, 2, 'Test Hall', 'Visited Test Hall during AN session. Overall conduct was satisfactory. One student found with unauthorized notes.', 1, 'Student R.Priya (Roll No: MCE/APR26/I/013) found with handwritten notes not permitted in exam hall.', 'Student warned and notes confiscated. UFM report filed. Student allowed to continue exam under close monitoring.', 'minor', '2026-06-15 11:00:00');
+
 SET FOREIGN_KEY_CHECKS=1;
 
 -- Verification:

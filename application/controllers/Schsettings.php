@@ -1681,7 +1681,7 @@ class Schsettings extends Admin_Controller
     private function ensureIndentApprovalFallbackColumns()
     {
         $required = [
-            'indent_fallback_use_department_head_l1' => 'TINYINT(1) NOT NULL DEFAULT 1',
+            'indent_fallback_l1_staff_id' => 'INT(11) NULL',
             'indent_fallback_l2_staff_id' => 'INT(11) NULL',
             'indent_fallback_superadmin_can_override_l1' => 'TINYINT(1) NOT NULL DEFAULT 1',
         ];
@@ -1702,7 +1702,7 @@ class Schsettings extends Admin_Controller
     private function buildIndentApprovalFallbackPolicyForView($setting)
     {
         return [
-            'use_department_head_l1' => isset($setting->indent_fallback_use_department_head_l1) ? (int) $setting->indent_fallback_use_department_head_l1 === 1 : true,
+            'l1_staff_id' => isset($setting->indent_fallback_l1_staff_id) ? (int) $setting->indent_fallback_l1_staff_id : 0,
             'l2_staff_id' => isset($setting->indent_fallback_l2_staff_id) ? (int) $setting->indent_fallback_l2_staff_id : 0,
             'superadmin_can_override_l1' => isset($setting->indent_fallback_superadmin_can_override_l1) ? (int) $setting->indent_fallback_superadmin_can_override_l1 === 1 : true,
         ];
@@ -1932,7 +1932,7 @@ class Schsettings extends Admin_Controller
 
         $this->ensureIndentApprovalFallbackColumns();
         $indent_cols = $this->db
-            ->select('indent_fallback_use_department_head_l1, indent_fallback_l2_staff_id, indent_fallback_superadmin_can_override_l1')
+            ->select('indent_fallback_l1_staff_id, indent_fallback_l2_staff_id, indent_fallback_superadmin_can_override_l1')
             ->from('sch_settings')
             ->order_by('id', 'ASC')
             ->limit(1)
@@ -1964,10 +1964,29 @@ class Schsettings extends Admin_Controller
 
         $setting = $this->setting_model->getSetting();
         $setting_id = (int) ($setting->id ?? 1);
+        $l1_staff_id = max(0, (int) $this->input->post('indent_fallback_l1_staff_id'));
         $l2_staff_id = max(0, (int) $this->input->post('indent_fallback_l2_staff_id'));
+
+        if ($l1_staff_id <= 0) {
+            echo json_encode(['status' => 0, 'message' => 'Indent Approver L1 is required.']);
+            return;
+        }
 
         if ($l2_staff_id <= 0) {
             echo json_encode(['status' => 0, 'message' => 'Indent Approver L2 is required.']);
+            return;
+        }
+
+        $l1_staff = $this->db
+            ->select('id')
+            ->from('staff')
+            ->where('id', $l1_staff_id)
+            ->where('is_active', 1)
+            ->limit(1)
+            ->get()
+            ->row_array();
+        if (empty($l1_staff)) {
+            echo json_encode(['status' => 0, 'message' => 'Selected Indent Approver L1 must be an active staff member.']);
             return;
         }
 
@@ -1986,7 +2005,7 @@ class Schsettings extends Admin_Controller
 
         $data = [
             'id' => $setting_id,
-            'indent_fallback_use_department_head_l1' => $this->input->post('indent_fallback_use_department_head_l1') ? 1 : 0,
+            'indent_fallback_l1_staff_id' => $l1_staff_id,
             'indent_fallback_l2_staff_id' => $l2_staff_id,
             'indent_fallback_superadmin_can_override_l1' => $this->input->post('indent_fallback_superadmin_can_override_l1') ? 1 : 0,
         ];

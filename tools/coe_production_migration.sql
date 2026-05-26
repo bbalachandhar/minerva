@@ -7,7 +7,7 @@
 --   - All ALTER TABLE uses IF NOT EXISTS (MySQL 8.0.14+ / MariaDB 10.3.2+)
 --   - All INSERTs use INSERT IGNORE (keyed on explicit IDs)
 --   - Sidebar uses WHERE NOT EXISTS to avoid duplicate parent menu
---   - sidebar_sub_menus uses INSERT IGNORE on id — safe because IDs 286-303,306
+--   - sidebar_sub_menus uses INSERT IGNORE on id — safe because IDs 286-303,306,309,310
 --     are not used by any other module on any instance
 --   - Production mcekknagar has hostel_fee_override at id=15016; CoE uses 15017+
 -- =============================================================================
@@ -465,6 +465,43 @@ CREATE TABLE IF NOT EXISTS `coe_ufm_incidents` (
   KEY `idx_ufm_room` (`seating_room_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE IF NOT EXISTS `coe_exam_schedule` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `exam_group_class_batch_exam_id` int(11) NOT NULL,
+  `subject_id` int(11) NOT NULL,
+  `exam_date` date NOT NULL,
+  `start_time` time NOT NULL,
+  `end_time` time NOT NULL,
+  `session_slot` enum('FN','AN') NOT NULL DEFAULT 'FN',
+  `hall_id` int(11) DEFAULT NULL,
+  `notes` varchar(500) DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_sch_sub` (`exam_group_class_batch_exam_id`,`subject_id`),
+  KEY `idx_bid` (`exam_group_class_batch_exam_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_flying_squad_visits` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `exam_group_class_batch_exam_id` int(11) NOT NULL,
+  `visit_date` date NOT NULL,
+  `visit_time` time DEFAULT NULL,
+  `observer_staff_id` int(11) NOT NULL,
+  `hall_id` int(11) DEFAULT NULL,
+  `hall_name` varchar(200) DEFAULT NULL,
+  `observations` text DEFAULT NULL,
+  `irregularities_found` tinyint(1) NOT NULL DEFAULT 0,
+  `irregularity_details` text DEFAULT NULL,
+  `action_taken` text DEFAULT NULL,
+  `severity` enum('none','minor','major') NOT NULL DEFAULT 'none',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_batch` (`exam_group_class_batch_exam_id`),
+  KEY `idx_date` (`visit_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =============================================================================
 -- SECTION 3: RBAC — permission_group and permission_category
 -- =============================================================================
@@ -495,7 +532,9 @@ INSERT IGNORE INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_
 (15025, 2000, 'CoE Result Publication',          'coe_results',       1, 1, 0, 0, NOW(), NOW()),
 (15026, 2000, 'CoE Exam Events CRUD',            'coe_event',         1, 1, 1, 1, NOW(), NOW()),
 (15027, 2000, 'CoE Dashboard',                   'coe_dashboard',     1, 0, 0, 0, NOW(), NOW()),
-(15028, 2000, 'CoE Arrear Register',             'coe_arrear',        1, 0, 0, 0, NOW(), NOW());
+(15028, 2000, 'CoE Arrear Register',             'coe_arrear',        1, 0, 0, 0, NOW(), NOW()),
+(15029, 2000, 'CoE Exam Schedule',               'coe_schedule',      1, 1, 1, 1, NOW(), NOW()),
+(15030, 2000, 'CoE Flying Squad',                'coe_flyingsquad',   1, 1, 1, 1, NOW(), NOW());
 
 -- =============================================================================
 -- SECTION 4: SIDEBAR MENUS
@@ -517,7 +556,7 @@ WHERE NOT EXISTS (SELECT 1 FROM `sidebar_menus` WHERE `activate_menu` = 'coe');
 -- Capture the CoE parent menu ID (works whether it was just inserted or pre-existed)
 SET @coe_menu_id = (SELECT `id` FROM `sidebar_menus` WHERE `activate_menu` = 'coe' LIMIT 1);
 
--- Sub-menus: INSERT IGNORE on id is safe — IDs 286-303, 306 are not used by
+-- Sub-menus: INSERT IGNORE on id is safe — IDs 286-303, 306, 309, 310 are not used by
 -- any other module. The sidebar_menu_id is replaced with @coe_menu_id so it
 -- correctly references the existing parent (id=41/42 on 5 prod DBs, or newly
 -- inserted id on minervademo)
@@ -526,25 +565,51 @@ INSERT IGNORE INTO `sidebar_sub_menus`
    `access_permissions`, `permission_group_id`, `activate_controller`,
    `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`)
 VALUES
-  (286, @coe_menu_id, 'Exam Regulations',     'coe_setup',          'coe_exam_regulations',  'coe/coe_setup',          3,    '(''coe_setup'', ''can_view'')',          1000, 'coe_setup',          'index',                                                               NULL, 1, NOW(), NOW()),
-  (287, @coe_menu_id, 'Exam Events',          'coe_event',          'coe_exam_events',       'coe/coe_event',          1,    '("coe_event", "can_view")',              1000, 'coe_event',          'index,add,save,edit,update,delete,manage,save_batch,update_batch,delete_batch', NULL, 1, NOW(), NOW()),
-  (288, @coe_menu_id, 'Eligibility Check',    'coe_eligibility',    'coe_eligibility',       'coe/coe_eligibility',    1,    '(''coe_eligibility'', ''can_view'')',    1000, 'coe_eligibility',    'index',                                                               NULL, 1, NOW(), NOW()),
-  (289, @coe_menu_id, 'Hall Tickets',         'coe_hallticket',     'coe_hallticket',        'coe/coe_hallticket',     1,    '(''coe_hallticket'', ''can_view'')',     1000, 'coe_hallticket',     'index',                                                               NULL, 1, NOW(), NOW()),
-  (290, @coe_menu_id, 'Nominal Roll',         'coe_nominalroll',    'coe_nominal_roll',      'coe/coe_nominalroll',    1,    '(''coe_nominalroll'', ''can_view'')',    1000, 'coe_nominalroll',    'index',                                                               NULL, 1, NOW(), NOW()),
-  (291, @coe_menu_id, 'Seating Arrangement',  'coe_seating',        'coe_seating',           'coe/coe_seating',        1,    '(''coe_seating'', ''can_view'')',        1000, 'coe_seating',        'index',                                                               NULL, 1, NOW(), NOW()),
-  (292, @coe_menu_id, 'Invigilation Duty',    'coe_invigilation',   'coe_invigilation',      'coe/coe_invigilation',   1,    '(''coe_invigilation'', ''can_view'')',   1000, 'coe_invigilation',   'index',                                                               NULL, 1, NOW(), NOW()),
-  (293, @coe_menu_id, 'Question Paper Dist.', 'coe_qpd',            'coe_qpd',               'coe/coe_qpd',            1,    '(''coe_qpd'', ''can_view'')',            2000, 'coe_qpd',            'index',                                                               NULL, 1, NOW(), NOW()),
-  (294, @coe_menu_id, 'Exam Attendance',      'coe_attendance',     'coe_attendance',        'coe/coe_attendance',     1,    '(''coe_attendance'', ''can_view'')',     2000, 'coe_attendance',     'index',                                                               NULL, 1, NOW(), NOW()),
-  (295, @coe_menu_id, 'UFM / Malpractice',    'coe_ufm',            'coe_ufm',               'coe/coe_ufm',            1,    '(''coe_ufm'', ''can_view'')',            2000, 'coe_ufm',            'index',                                                               NULL, 1, NOW(), NOW()),
-  (296, @coe_menu_id, 'Answer Scripts',       'coe_answer_scripts', NULL,                    'coe/coe_answer_scripts', 2,    '(''coe_answer_scripts'', ''can_view'')', 2000, 'coe_answer_scripts', 'index',                                                               NULL, 1, NOW(), NOW()),
-  (297, @coe_menu_id, 'OSM Marking',          'coe_osm',            NULL,                    'coe/coe_osm',            2,    '(''coe_osm'', ''can_view'')',            2000, 'coe_osm',            'index',                                                               NULL, 1, NOW(), NOW()),
-  (298, @coe_menu_id, 'Revaluation',          'coe_revaluation',    NULL,                    'coe/coe_revaluation',    2,    '(''coe_revaluation'', ''can_view'')',    2000, 'coe_revaluation',    'index',                                                               NULL, 1, NOW(), NOW()),
-  (299, @coe_menu_id, 'Moderation',           'coe_moderation',     NULL,                    'coe/coe_moderation',     2,    '(''coe_moderation'', ''can_view'')',     2000, 'coe_moderation',     'index',                                                               NULL, 1, NOW(), NOW()),
-  (300, @coe_menu_id, 'Marks & Results',      'coe_marks',          NULL,                    'coe/coe_marks',          2,    '(''coe_marks'', ''can_view'')',          2000, 'coe_marks',          'index',                                                               NULL, 1, NOW(), NOW()),
-  (301, @coe_menu_id, 'Result Publication',   'coe_results',        NULL,                    'coe/coe_results',        2,    '(''coe_results'', ''can_view'')',        2000, 'coe_results',        'index',                                                               NULL, 1, NOW(), NOW()),
-  (302, @coe_menu_id, 'CoE Dashboard',        'coe_dashboard',      'coe_dashboard',         'coe/coe_dashboard',      NULL, '(''coe_dashboard'', ''can_view'')',      NULL, 'coe_dashboard',      'index',                                                               NULL, 1, NOW(), NOW()),
-  (303, @coe_menu_id, 'Arrear Register',      'coe_arrear',         'coe_arrear',            'coe/coe_arrear',         4,    '(''coe_arrear'', ''can_view'')',         NULL, 'coe_arrear',         'index,student',                                                       NULL, 1, NOW(), NOW()),
-  (306, @coe_menu_id, 'Exam Applications',    'coe_application',    'coe_exam_applications', 'coe/coe_application',    1,    '("coe_application", "can_view")',        1000, 'coe_application',    'index,view,generate,mark_end_semester',                               NULL, 1, NOW(), NOW());
+  (302, @coe_menu_id, 'CoE Dashboard',        'coe_dashboard',      'coe_dashboard',         'coe/coe_dashboard',      1,    '(''coe_dashboard'', ''can_view'')',      NULL, 'coe_dashboard',      'index',                                                               NULL, 1, NOW(), NOW()),
+  (286, @coe_menu_id, 'Exam Regulations',     'coe_setup',          'coe_exam_regulations',  'coe/coe_setup',          2,    '(''coe_setup'', ''can_view'')',          1000, 'coe_setup',          'index',                                                               NULL, 1, NOW(), NOW()),
+  (287, @coe_menu_id, 'Exam Events',          'coe_event',          'coe_exam_events',       'coe/coe_event',          3,    '("coe_event", "can_view")',              1000, 'coe_event',          'index,add,save,edit,update,delete,manage,save_batch,update_batch,delete_batch', NULL, 1, NOW(), NOW()),
+  (306, @coe_menu_id, 'Exam Applications',    'coe_application',    'coe_exam_applications', 'coe/coe_application',    4,    '("coe_application", "can_view")',        1000, 'coe_application',    'index,view,generate,mark_end_semester',                               NULL, 1, NOW(), NOW()),
+  (288, @coe_menu_id, 'Eligibility Check',    'coe_eligibility',    'coe_eligibility',       'coe/coe_eligibility',    5,    '(''coe_eligibility'', ''can_view'')',    1000, 'coe_eligibility',    'index',                                                               NULL, 1, NOW(), NOW()),
+  (289, @coe_menu_id, 'Hall Tickets',         'coe_hallticket',     'coe_hallticket',        'coe/coe_hallticket',     6,    '(''coe_hallticket'', ''can_view'')',     1000, 'coe_hallticket',     'index',                                                               NULL, 1, NOW(), NOW()),
+  (290, @coe_menu_id, 'Nominal Roll',         'coe_nominalroll',    'coe_nominal_roll',      'coe/coe_nominalroll',    7,    '(''coe_nominalroll'', ''can_view'')',    1000, 'coe_nominalroll',    'index',                                                               NULL, 1, NOW(), NOW()),
+  (309, @coe_menu_id, 'Exam Schedule',        'coe_schedule',       'coe_schedule',          'coe/coe_schedule',       8,    '(''coe_schedule'', ''can_view'')',       1000, 'coe_schedule',       'index',                                                               NULL, 1, NOW(), NOW()),
+  (291, @coe_menu_id, 'Seating Arrangement',  'coe_seating',        'coe_seating',           'coe/coe_seating',        9,    '(''coe_seating'', ''can_view'')',        1000, 'coe_seating',        'index',                                                               NULL, 1, NOW(), NOW()),
+  (292, @coe_menu_id, 'Invigilation Duty',    'coe_invigilation',   'coe_invigilation',      'coe/coe_invigilation',   10,   '(''coe_invigilation'', ''can_view'')',   1000, 'coe_invigilation',   'index',                                                               NULL, 1, NOW(), NOW()),
+  (293, @coe_menu_id, 'Question Paper Dist.', 'coe_qpd',            'coe_qpd',               'coe/coe_qpd',            11,   '(''coe_qpd'', ''can_view'')',            2000, 'coe_qpd',            'index',                                                               NULL, 1, NOW(), NOW()),
+  (294, @coe_menu_id, 'Exam Attendance',      'coe_attendance',     'coe_attendance',        'coe/coe_attendance',     12,   '(''coe_attendance'', ''can_view'')',     2000, 'coe_attendance',     'index',                                                               NULL, 1, NOW(), NOW()),
+  (295, @coe_menu_id, 'UFM / Malpractice',    'coe_ufm',            'coe_ufm',               'coe/coe_ufm',            13,   '(''coe_ufm'', ''can_view'')',            2000, 'coe_ufm',            'index',                                                               NULL, 1, NOW(), NOW()),
+  (310, @coe_menu_id, 'Flying Squad',         'coe_flyingsquad',    'coe_flyingsquad',        'coe/coe_flyingsquad',   14,   '(''coe_flyingsquad'', ''can_view'')',    1000, 'coe_flyingsquad',    'index',                                                               NULL, 1, NOW(), NOW()),
+  (296, @coe_menu_id, 'Answer Scripts',       'coe_answer_scripts', NULL,                    'coe/coe_answer_scripts', 15,   '(''coe_answer_scripts'', ''can_view'')', 2000, 'coe_answer_scripts', 'index',                                                               NULL, 1, NOW(), NOW()),
+  (297, @coe_menu_id, 'OSM Marking',          'coe_osm',            NULL,                    'coe/coe_osm',            16,   '(''coe_osm'', ''can_view'')',            2000, 'coe_osm',            'index',                                                               NULL, 1, NOW(), NOW()),
+  (299, @coe_menu_id, 'Moderation',           'coe_moderation',     NULL,                    'coe/coe_moderation',     17,   '(''coe_moderation'', ''can_view'')',     2000, 'coe_moderation',     'index',                                                               NULL, 1, NOW(), NOW()),
+  (298, @coe_menu_id, 'Revaluation',          'coe_revaluation',    NULL,                    'coe/coe_revaluation',    18,   '(''coe_revaluation'', ''can_view'')',    2000, 'coe_revaluation',    'index',                                                               NULL, 1, NOW(), NOW()),
+  (300, @coe_menu_id, 'Marks & Results',      'coe_marks',          NULL,                    'coe/coe_marks',          19,   '(''coe_marks'', ''can_view'')',          2000, 'coe_marks',          'index',                                                               NULL, 1, NOW(), NOW()),
+  (301, @coe_menu_id, 'Result Publication',   'coe_results',        NULL,                    'coe/coe_results',        20,   '(''coe_results'', ''can_view'')',        2000, 'coe_results',        'index',                                                               NULL, 1, NOW(), NOW()),
+  (303, @coe_menu_id, 'Arrear Register',      'coe_arrear',         'coe_arrear',            'coe/coe_arrear',         21,   '(''coe_arrear'', ''can_view'')',         NULL, 'coe_arrear',         'index,student',                                                       NULL, 1, NOW(), NOW());
+
+-- Fix level ordering for already-deployed instances (idempotent UPDATE)
+-- This corrects level values that were inserted with old duplicate values.
+UPDATE `sidebar_sub_menus` SET `level` = 1  WHERE `id` = 302;
+UPDATE `sidebar_sub_menus` SET `level` = 2  WHERE `id` = 286;
+UPDATE `sidebar_sub_menus` SET `level` = 3  WHERE `id` = 287;
+UPDATE `sidebar_sub_menus` SET `level` = 4  WHERE `id` = 306;
+UPDATE `sidebar_sub_menus` SET `level` = 5  WHERE `id` = 288;
+UPDATE `sidebar_sub_menus` SET `level` = 6  WHERE `id` = 289;
+UPDATE `sidebar_sub_menus` SET `level` = 7  WHERE `id` = 290;
+UPDATE `sidebar_sub_menus` SET `level` = 8  WHERE `id` = 309;
+UPDATE `sidebar_sub_menus` SET `level` = 9  WHERE `id` = 291;
+UPDATE `sidebar_sub_menus` SET `level` = 10 WHERE `id` = 292;
+UPDATE `sidebar_sub_menus` SET `level` = 11 WHERE `id` = 293;
+UPDATE `sidebar_sub_menus` SET `level` = 12 WHERE `id` = 294;
+UPDATE `sidebar_sub_menus` SET `level` = 13 WHERE `id` = 295;
+UPDATE `sidebar_sub_menus` SET `level` = 14 WHERE `id` = 310;
+UPDATE `sidebar_sub_menus` SET `level` = 15 WHERE `id` = 296;
+UPDATE `sidebar_sub_menus` SET `level` = 16 WHERE `id` = 297;
+UPDATE `sidebar_sub_menus` SET `level` = 17 WHERE `id` = 299;
+UPDATE `sidebar_sub_menus` SET `level` = 18 WHERE `id` = 298;
+UPDATE `sidebar_sub_menus` SET `level` = 19 WHERE `id` = 300;
+UPDATE `sidebar_sub_menus` SET `level` = 20 WHERE `id` = 301;
+UPDATE `sidebar_sub_menus` SET `level` = 21 WHERE `id` = 303;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
