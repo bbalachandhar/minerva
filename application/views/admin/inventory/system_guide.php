@@ -23,6 +23,7 @@
                         <a href="#section-overview"    class="btn btn-default btn-block btn-sm"><i class="fa fa-sitemap"></i> System Overview</a>
                         <a href="#section-setup"       class="btn btn-default btn-block btn-sm"><i class="fa fa-wrench"></i> Initial Setup</a>
                         <a href="#section-onboarding"  class="btn btn-default btn-block btn-sm"><i class="fa fa-flag-checkered"></i> Onboarding Plan</a>
+                        <a href="#section-walkthrough" class="btn btn-primary btn-block btn-sm"><i class="fa fa-play-circle"></i> Step-by-Step Workflow</a>
                         <a href="#section-items"       class="btn btn-default btn-block btn-sm"><i class="fa fa-tags"></i> Items &amp; Categories</a>
                         <a href="#section-stock"       class="btn btn-default btn-block btn-sm"><i class="fa fa-download"></i> Stock Inward</a>
                     </div>
@@ -209,8 +210,16 @@ VALUES
                         <tr>
                             <td>5</td>
                             <td><strong>Opening Stock</strong></td>
-                            <td>Opening stock depends on valid item, supplier, and optionally store masters.</td>
-                            <td>Bulk upload via <code>admin/inventoryimport/itemstock</code></td>
+                            <td>
+                                Opening stock depends on item, supplier, and optionally store masters.<br>
+                                <span class="label label-success">Auto-create</span>
+                                If any of these are missing, the importer creates them on the fly from the CSV row.
+                                <strong>Steps 1–4 can be skipped for a quick first import</strong> — just fill in all name columns in the stock CSV and the system resolves everything automatically. Case-insensitive matching prevents duplicates.
+                            </td>
+                            <td>
+                                Bulk upload via <code>admin/inventoryimport/itemstock</code><br>
+                                <small class="text-muted">For full master detail (supplier phone, store codes etc.) — run steps 1–4 first.</small>
+                            </td>
                         </tr>
                         <tr>
                             <td>6</td>
@@ -248,7 +257,19 @@ VALUES
                     </tbody>
                 </table>
 
-                <h4>Recommended Execution Plan</h4>
+                <div class="callout callout-success">
+                    <h4 style="margin-top:0;"><i class="fa fa-bolt"></i> Quick Start — Inventory Only (no asset tracking needed)</h4>
+                    <p>If you just need opening stock and don't care about supplier contact details, store codes, or category descriptions:</p>
+                    <ol style="margin-bottom:0;">
+                        <li>Prepare one CSV with these columns: <code>item_name, item_category, supplier_name, store_name, unit, quantity, purchase_price, date</code></li>
+                        <li>Go to <strong><code>admin/inventoryimport/itemstock</code></strong> (or click <em>Bulk Upload</em> from the Stock Inward screen)</li>
+                        <li>Upload the CSV — the system auto-creates any missing category, supplier, store, and item on the fly</li>
+                        <li>Check the summary panel after upload — it lists everything that was auto-created</li>
+                    </ol>
+                </div>
+
+                <h4>Recommended Execution Plan (Structured)</h4>
+                <p>Use this when you need full master detail — supplier contacts, store codes, category flags (<code>is_asset</code>), etc.:</p>
                 <ol>
                     <li>Prepare source data in Excel. Download the sample CSV from each import page for exact column names.</li>
                     <li>Upload in order: <strong>Categories → Stores → Suppliers → Items → Opening Stock</strong>.</li>
@@ -262,7 +283,7 @@ VALUES
 
                 <div class="callout callout-warning">
                     <strong>Asset Import Order is Strict:</strong> Location codes must exist before the asset register import, and asset tags must exist before the assignment import.
-                    Upload in the order 8 → 9 → 10 without skipping steps.
+                    Upload in the order 8 → 9 → 10 without skipping steps. There is no auto-create for asset imports.
                 </div>
 
                 <div class="callout callout-info">
@@ -270,6 +291,286 @@ VALUES
                     After go-live, new receipts should come through PO + GRN so procurement, stock, and asset trails stay aligned.
                     For new asset purchases after go-live, use the GRN route — assets are auto-created when the GRN is accepted for an <code>is_asset=1</code> category.
                 </div>
+            </div>
+        </div>
+
+        <!-- ======================== STEP-BY-STEP WALKTHROUGH ======================== -->
+        <div class="box box-primary" id="section-walkthrough">
+            <div class="box-header with-border">
+                <h3 class="box-title"><i class="fa fa-play-circle"></i> 3a. Step-by-Step: Complete Live Workflow</h3>
+                <div class="box-tools pull-right"><small class="text-muted">Scenario: department needs to purchase 10 new laptops</small></div>
+            </div>
+            <div class="box-body">
+
+                <!-- Visual flow strip -->
+                <div class="well" style="background:#f9f9f9; padding:12px 16px; font-size:13px; overflow-x:auto; white-space:nowrap; margin-bottom:20px;">
+                    <span class="label label-default">1 Raise Indent</span>
+                    <i class="fa fa-arrow-right" style="margin:0 6px; color:#aaa;"></i>
+                    <span class="label label-warning">2 Indent Approval</span>
+                    <i class="fa fa-arrow-right" style="margin:0 6px; color:#aaa;"></i>
+                    <span class="label label-default">3 Create PO</span>
+                    <i class="fa fa-arrow-right" style="margin:0 6px; color:#aaa;"></i>
+                    <span class="label label-warning">4 PO Approval L1</span>
+                    <i class="fa fa-arrow-right" style="margin:0 6px; color:#aaa;"></i>
+                    <span class="label label-warning">5 PO Approval L2</span>
+                    <i class="fa fa-arrow-right" style="margin:0 6px; color:#aaa;"></i>
+                    <span class="label label-info">6 Create GRN</span>
+                    <i class="fa fa-arrow-right" style="margin:0 6px; color:#aaa;"></i>
+                    <span class="label label-success">7 Stock / Assets Ready</span>
+                    <i class="fa fa-arrow-right" style="margin:0 6px; color:#aaa;"></i>
+                    <span class="label label-primary">8 Issue / Assign</span>
+                </div>
+
+                <!-- Steps table -->
+                <table class="table table-bordered" style="font-size:13px;">
+                    <thead>
+                        <tr style="background:#f4f4f4;">
+                            <th style="width:40px;">#</th>
+                            <th style="width:140px;">Action</th>
+                            <th style="width:130px;">Who Does It</th>
+                            <th style="width:220px;">Screen &amp; URL</th>
+                            <th>What to Fill / Do</th>
+                            <th style="width:180px;">Result &amp; Next Step</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td><strong>1</strong></td>
+                            <td><strong>Raise an Indent</strong></td>
+                            <td><span class="label label-default">HOD / Dept Staff</span></td>
+                            <td><code>admin/inventoryindent</code><br><small>&rarr; click <em>New Indent</em></small></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Select <strong>Department</strong> and set <strong>Required Date</strong></li>
+                                    <li>Add line items: pick <strong>Item</strong> (e.g. Laptop), enter <strong>Quantity</strong> (10), add <strong>Justification</strong></li>
+                                    <li>Add more lines if multiple item types are needed</li>
+                                    <li>Click <strong>Submit Indent</strong></li>
+                                </ol>
+                            </td>
+                            <td>Status &rarr; <span class="label label-warning">pending</span><br>L1 approver is notified. <em>Go to Step 2.</em></td>
+                        </tr>
+
+                        <tr class="warning">
+                            <td><strong>2</strong></td>
+                            <td><strong>Indent Approval</strong></td>
+                            <td><span class="label label-warning">L1 Approver<br>(HOD / Fallback)</span></td>
+                            <td><code>admin/inventoryindent/approvals</code></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Open the <strong>Indent Approvals</strong> queue &mdash; only indents assigned to the logged-in user appear</li>
+                                    <li>Click <strong>View</strong> to inspect line items and justification</li>
+                                    <li>Click <strong>Approve</strong> (or <strong>Reject</strong> with a comment if items are not justified)</li>
+                                </ol>
+                                <div class="callout callout-info" style="margin:6px 0 0; padding:6px 10px;">
+                                    <strong>Who approves?</strong> L1 is the department head if configured in System Settings &rarr; Indent Approvals. If not set, falls back to the configured L2 staff.
+                                </div>
+                            </td>
+                            <td>
+                                <strong>Approved &rarr;</strong> <span class="label label-success">approved</span><br>
+                                Indent now appears in PO creation. <em>Go to Step 3.</em><br><br>
+                                <strong>Rejected &rarr;</strong> <span class="label label-danger">rejected</span><br>
+                                Requester must raise a new indent.
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>3</strong></td>
+                            <td><strong>Create Purchase Order</strong></td>
+                            <td><span class="label label-default">Stores / Purchase Manager</span></td>
+                            <td><code>admin/inventoryprocurement/createpo</code><br><small>or <em>Inventory &rarr; Purchase Orders &rarr; New PO</em></small></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Select the <strong>Approved Indent</strong> from the dropdown &mdash; only <span class="label label-success">approved</span> indents appear</li>
+                                    <li>Select the <strong>Supplier</strong> from the list</li>
+                                    <li>Set <strong>Expected Delivery Date</strong> and <strong>Tax %</strong></li>
+                                    <li>Line items load from the indent &mdash; confirm or adjust <strong>Unit Price</strong> for each line</li>
+                                    <li><strong>Approvers:</strong>
+                                        <ul style="margin-top:4px;">
+                                            <li>If Approval Matrix rules are configured &rarr; approvers are auto-filled (banner confirms this)</li>
+                                            <li>If no rules match &rarr; manually select L1 and L2 approvers from the dropdowns</li>
+                                        </ul>
+                                    </li>
+                                    <li>Click <strong>Submit PO</strong></li>
+                                </ol>
+                            </td>
+                            <td>PO status &rarr; <span class="label label-warning">pending_approval</span><br>L1 approver is activated. <em>Go to Step 4.</em></td>
+                        </tr>
+
+                        <tr class="warning">
+                            <td><strong>4</strong></td>
+                            <td><strong>PO Approval &mdash; Level 1</strong></td>
+                            <td><span class="label label-warning">L1 Approver<br>(Purchase Head / HOD)</span></td>
+                            <td><code>admin/inventoryprocurement/poapprovals</code></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Open the <strong>PO Approval</strong> queue &mdash; only POs assigned to the logged-in user appear here</li>
+                                    <li>Click <strong>View PO</strong> to check line items, supplier, and total amount</li>
+                                    <li>Click <strong>Approve</strong> (add comment if needed) <em>or</em> <strong>Reject</strong> with reason</li>
+                                </ol>
+                                <div class="callout callout-warning" style="margin:6px 0 0; padding:6px 10px;">
+                                    <strong>Important:</strong> If the PO does not appear in the queue, you are not the assigned L1 approver for this PO.
+                                    Check <code>inv_po_approvals</code> for who is assigned as <code>approval_level=1</code>.
+                                </div>
+                            </td>
+                            <td>
+                                <strong>If L2 configured:</strong> L1 &rarr; <span class="label label-success">approved</span>, L2 becomes <span class="label label-warning">pending</span>. <em>Go to Step 5.</em><br><br>
+                                <strong>If no L2:</strong> PO &rarr; <span class="label label-success">approved</span>. <em>Skip to Step 6.</em><br><br>
+                                <strong>Rejected:</strong> PO &rarr; <span class="label label-danger">rejected</span>. Create a new PO.
+                            </td>
+                        </tr>
+
+                        <tr class="warning">
+                            <td><strong>5</strong></td>
+                            <td><strong>PO Approval &mdash; Level 2</strong><br><small>(if configured)</small></td>
+                            <td><span class="label label-warning">L2 Approver<br>(Principal / Director)</span></td>
+                            <td><code>admin/inventoryprocurement/poapprovals</code></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Same queue as L1 &mdash; the row is only visible after L1 has approved</li>
+                                    <li>Review PO details and click <strong>Approve</strong> or <strong>Reject</strong></li>
+                                </ol>
+                            </td>
+                            <td>PO &rarr; <span class="label label-success">approved</span> (or <span class="label label-danger">rejected</span>).<br>Once approved, GRN can be created. <em>Go to Step 6.</em></td>
+                        </tr>
+
+                        <tr class="info">
+                            <td><strong>6</strong></td>
+                            <td><strong>Create GRN<br>(Goods Receipt)</strong></td>
+                            <td><span class="label label-info">Storekeeper / Stores Manager</span></td>
+                            <td><code>admin/inventoryprocurement/goodsreceipts</code><br><small>&rarr; open PO &rarr; <em>Create GRN</em></small></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Find the <span class="label label-success">approved</span> PO and click <strong>Create GRN</strong></li>
+                                    <li>Enter <strong>Delivery Challan / Invoice No.</strong> and <strong>Receipt Date</strong></li>
+                                    <li>For each line item:
+                                        <ul style="margin-top:4px;">
+                                            <li><strong>Received Qty</strong> &mdash; how many physically arrived (cannot exceed balance)</li>
+                                            <li><strong>Accepted Qty</strong> &mdash; how many passed quality check (cannot exceed received)</li>
+                                            <li><strong>Unit Price</strong> &mdash; from the actual invoice (may differ from PO price)</li>
+                                            <li><strong>Store</strong> &mdash; which store to put them into</li>
+                                        </ul>
+                                    </li>
+                                    <li>Click <strong>Submit GRN</strong></li>
+                                </ol>
+                                <div class="callout callout-info" style="margin:6px 0 0; padding:6px 10px;">
+                                    <strong>Partial delivery?</strong> Enter only what arrived today. You can create another GRN later for the remainder.
+                                    The PO stays as <span class="label label-info">partially_received</span> until fully delivered.
+                                </div>
+                            </td>
+                            <td>
+                                <strong>For consumables:</strong> Accepted qty added to <code>item_stock</code> immediately &mdash; available for issuance.<br><br>
+                                <strong>For asset categories (<code>is_asset=1</code>):</strong> Individual asset records auto-created in the Asset Register (one per accepted unit).<br><br>
+                                PO &rarr; <span class="label label-info">partially_received</span> or <span class="label label-primary">received</span>.
+                            </td>
+                        </tr>
+
+                        <tr class="success">
+                            <td><strong>7</strong></td>
+                            <td><strong>Verify Stock &amp; Assets</strong></td>
+                            <td><span class="label label-success">Stores Manager</span></td>
+                            <td>
+                                <strong>Consumables:</strong> <code>admin/itemstock</code><br>
+                                <strong>Fixed Assets:</strong> <code>admin/assetmanagement/register</code>
+                            </td>
+                            <td>
+                                <strong>Consumables:</strong>
+                                <ul style="margin:4px 0; padding-left:16px;">
+                                    <li>Go to <strong>Stock Inward</strong> &mdash; new entry visible with the GRN receipt date</li>
+                                    <li>Available balance is immediately updated for issuance</li>
+                                </ul>
+                                <strong>Fixed Assets (laptops, projectors, etc.):</strong>
+                                <ul style="margin:4px 0; padding-left:16px;">
+                                    <li>Go to <strong>Asset Register</strong> &mdash; new assets visible with status <span class="label label-default">in_stock</span></li>
+                                    <li>Each unit has an auto-generated asset tag (e.g. <code>AST-42-1</code>, <code>AST-42-2</code> ...)</li>
+                                    <li>Edit each asset to add serial number, brand, and warranty dates if not already captured on the GRN</li>
+                                </ul>
+                            </td>
+                            <td>Stock / assets are now available.<br><em>Go to Step 8a (consumables) or Step 8b (assets).</em></td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>8a</strong></td>
+                            <td><strong>Issue Consumable to Staff</strong></td>
+                            <td><span class="label label-default">Stores Manager</span></td>
+                            <td><code>admin/issueitem</code></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Click <strong>Issue Item</strong></li>
+                                    <li>Select <strong>Item</strong> &rarr; <strong>Store</strong> &rarr; <strong>Staff / Department</strong></li>
+                                    <li>Enter <strong>Quantity</strong>, <strong>Issue Date</strong>, and <strong>Purpose</strong></li>
+                                    <li>Submit &mdash; stock balance reduces immediately</li>
+                                </ol>
+                                <strong>To record a return later:</strong> filter issued items &rarr; click <strong>Return</strong> &rarr; stock is restored.
+                            </td>
+                            <td>Item issued. Stock balance reduced.<br>Issue record created in <code>item_issue</code>.</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>8b</strong></td>
+                            <td><strong>Assign Fixed Asset to Staff / Location</strong></td>
+                            <td><span class="label label-default">Stores Manager</span></td>
+                            <td><code>admin/assetmanagement/assignment</code></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Click <strong>New Assignment</strong></li>
+                                    <li>Select the <strong>Asset</strong> (by tag or name) &mdash; only <span class="label label-default">in_stock</span> assets are available</li>
+                                    <li>Choose <strong>Assignee Type</strong>: <em>Staff</em> (person) or <em>Place</em> (lab/room/dept)</li>
+                                    <li>Select the <strong>Staff Member</strong> (by employee ID) or <strong>Location</strong></li>
+                                    <li>Set <strong>Assignment Date</strong> and an optional <strong>Note</strong></li>
+                                    <li>Submit &mdash; asset status changes to <span class="label label-success">assigned</span></li>
+                                </ol>
+                            </td>
+                            <td>Asset status &rarr; <span class="label label-success">assigned</span>.<br>Full audit trail in Assignment History.</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>9</strong></td>
+                            <td><strong>Transfer Asset</strong><br><small>(custody change)</small></td>
+                            <td><span class="label label-default">Stores Manager</span></td>
+                            <td><code>admin/assetmanagement/transfer</code></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Select the <strong>Asset</strong> to transfer (must be <span class="label label-success">assigned</span>)</li>
+                                    <li>Select <strong>New Custodian</strong> (staff or place)</li>
+                                    <li>Enter <strong>Transfer Date</strong> and reason</li>
+                                    <li>Submit &mdash; old assignment is closed, new one created</li>
+                                </ol>
+                            </td>
+                            <td>Old assignment closed. New assignment active. Asset register shows new custodian.</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>10</strong></td>
+                            <td><strong>Send Asset for Maintenance</strong></td>
+                            <td><span class="label label-default">Stores Manager</span></td>
+                            <td><code>admin/assetmanagement/maintenance</code></td>
+                            <td>
+                                <ol style="margin:0; padding-left:16px;">
+                                    <li>Click <strong>New Maintenance Log</strong></li>
+                                    <li>Select the <strong>Asset</strong></li>
+                                    <li>Describe the <strong>Issue</strong>, enter <strong>Sent Date</strong> and <strong>Vendor / Service Centre</strong></li>
+                                    <li>Submit &mdash; asset status changes to <span class="label label-warning">under_maintenance</span></li>
+                                    <li>When the asset is returned: open the log and enter <strong>Resolved Date</strong> and <strong>Cost</strong> &mdash; status reverts to <span class="label label-success">assigned</span> or <span class="label label-default">in_stock</span></li>
+                                </ol>
+                            </td>
+                            <td>Asset status &rarr; <span class="label label-warning">under_maintenance</span> until resolved.</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <div class="callout callout-warning">
+                    <strong>Common mistakes to avoid:</strong>
+                    <ul style="margin-bottom:0; padding-left:18px;">
+                        <li>Creating a PO without a prior <em>approved</em> indent &mdash; the indent dropdown will be empty.</li>
+                        <li>Trying to create a GRN when the PO is still <span class="label label-warning">pending_approval</span> &mdash; GRN requires <span class="label label-success">approved</span> or <span class="label label-info">partially_received</span> PO status.</li>
+                        <li>Opening stock via <em>Stock Inward</em> for fixed assets &mdash; this does NOT create asset records. Use the GRN route, or use the bulk <strong>Asset Register import</strong> for onboarding existing assets.</li>
+                        <li>Assigning an asset that is still <span class="label label-warning">under_maintenance</span> &mdash; close the maintenance log first.</li>
+                        <li>Issuing stock from a store where the item has no balance &mdash; select the correct store for that item.</li>
+                    </ul>
+                </div>
+
             </div>
         </div>
 

@@ -1,3 +1,2 @@
-item_name,item_category,supplier_name,store_name,quantity,purchase_price,date,symbol,description
-Dell Latitude Laptop,IT Equipment,ABC Traders,IT Store,5,55000,2026-03-01,+,Opening balance
-A4 Paper Ream,Stationery,ABC Traders,Main Store,100,250,2026-03-01,+,Opening balance
+item_name,item_category,supplier_name,store_name,quantity,purchase_price,date,symbol,unit,description
+Dell Latitude Laptop,IT Equipment,ABC Traders,IT Store,5,55000,2026-03-01,+,Nos,Opening balance

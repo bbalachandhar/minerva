@@ -55,6 +55,7 @@ class Inventoryimport extends Admin_Controller
 
     public function import($module = null)
     {
+        set_time_limit(0); // Large CSVs (e.g. 30k assets) can take several minutes — remove the ceiling.
         $config = $this->getModuleConfig($module);
         if (empty($config)) {
             show_404();
@@ -375,56 +376,37 @@ class Inventoryimport extends Admin_Controller
     private function importItemStocks($rows)
     {
         $summary = $this->newSummary();
+        $summary['notes'] = array();
+        // Track auto-created masters within this import run (case-insensitive keys) to avoid
+        // redundant DB inserts when the same name appears on multiple rows.
+        $autoCategories = array(); // LOWER(name) => id
+        $autoSuppliers  = array(); // LOWER(name) => id
+        $autoStores     = array(); // LOWER(name) => id
+        $autoItems      = array(); // LOWER(name).'-'.$category_id => id
 
         foreach ($rows as $index => $row) {
-            $itemName = $this->getCsvValue($row, array('item_name', 'item'));
-            $categoryName = $this->getCsvValue($row, array('item_category', 'category_name'));
-            $supplierName = $this->getCsvValue($row, array('supplier_name', 'item_supplier'));
-            $storeName = $this->getCsvValue($row, array('store_name', 'item_store'));
+            $itemName      = $this->getCsvValue($row, array('item_name', 'item'));
+            $categoryName  = $this->getCsvValue($row, array('item_category', 'category_name'));
+            $supplierName  = $this->getCsvValue($row, array('supplier_name', 'item_supplier'));
+            $storeName     = $this->getCsvValue($row, array('store_name', 'item_store'));
             $quantityValue = $this->getCsvValue($row, array('quantity'));
             $purchasePrice = $this->getCsvValue($row, array('purchase_price', 'price'));
-            $dateValue = $this->getCsvValue($row, array('date'));
-            $symbol = $this->getCsvValue($row, array('symbol'));
-            $description = $this->getCsvValue($row, array('description'));
-            $licenseKey = $this->getCsvValue($row, array('license_key'));
-            $licenseFrom = $this->getCsvValue($row, array('license_valid_from'));
-            $licenseTill = $this->getCsvValue($row, array('license_valid_till'));
-            $warrantyUpto = $this->getCsvValue($row, array('warranty_upto'));
-            $batchNo = $this->getCsvValue($row, array('batch_no', 'batch_number', 'reg_no', 'registration_no'));
+            $dateValue     = $this->getCsvValue($row, array('date'));
+            $symbol        = $this->getCsvValue($row, array('symbol'));
+            $description   = $this->getCsvValue($row, array('description'));
+            $unit          = $this->getCsvValue($row, array('unit'));
+            $licenseKey    = $this->getCsvValue($row, array('license_key'));
+            $licenseFrom   = $this->getCsvValue($row, array('license_valid_from'));
+            $licenseTill   = $this->getCsvValue($row, array('license_valid_till'));
+            $warrantyUpto  = $this->getCsvValue($row, array('warranty_upto'));
+            $batchNo       = $this->getCsvValue($row, array('batch_no', 'batch_number', 'reg_no', 'registration_no'));
 
             if ($itemName === '' || $categoryName === '' || $supplierName === '' || $quantityValue === '' || $purchasePrice === '' || $dateValue === '') {
                 $summary['errors'][] = 'Row ' . ($index + 2) . ': item_name, item_category, supplier_name, quantity, purchase_price, and date are required.';
                 continue;
             }
 
-            $category = $this->findCategoryByName($categoryName);
-            if (empty($category)) {
-                $summary['errors'][] = 'Row ' . ($index + 2) . ': item category not found - ' . $categoryName . '.';
-                continue;
-            }
-
-            $item = $this->findItemByNameAndCategory($itemName, $category['id']);
-            if (empty($item)) {
-                $summary['errors'][] = 'Row ' . ($index + 2) . ': item not found - ' . $itemName . ' in category ' . $categoryName . '.';
-                continue;
-            }
-
-            $supplier = $this->findSupplierByName($supplierName);
-            if (empty($supplier)) {
-                $summary['errors'][] = 'Row ' . ($index + 2) . ': supplier not found - ' . $supplierName . '.';
-                continue;
-            }
-
-            $storeId = null;
-            if ($storeName !== '') {
-                $store = $this->findStoreByNameOrCode($storeName);
-                if (empty($store)) {
-                    $summary['errors'][] = 'Row ' . ($index + 2) . ': store not found - ' . $storeName . '.';
-                    continue;
-                }
-                $storeId = $store['id'];
-            }
-
+            // ── Validate numeric and date fields before touching master data ──
             if (!is_numeric($quantityValue)) {
                 $summary['errors'][] = 'Row ' . ($index + 2) . ': quantity must be numeric.';
                 continue;
@@ -438,6 +420,105 @@ class Inventoryimport extends Admin_Controller
             $normalizedDate = $this->normalizeDate($dateValue);
             if ($normalizedDate === null) {
                 $summary['errors'][] = 'Row ' . ($index + 2) . ': date must be a valid date. Use YYYY-MM-DD for best results.';
+                continue;
+            }
+
+            // ── Category: find or auto-create (case-insensitive) ──────────────
+            $catKey  = strtolower(trim($categoryName));
+            $category = null;
+            if (isset($autoCategories[$catKey])) {
+                $category = array('id' => $autoCategories[$catKey]);
+            } else {
+                $category = $this->findCategoryByName($categoryName);
+                if (empty($category)) {
+                    $this->itemcategory_model->add(array('item_category' => $categoryName, 'description' => ''));
+                    $category = $this->findCategoryByName($categoryName);
+                    if (!empty($category)) {
+                        $summary['notes'][] = 'Auto-created category: ' . $categoryName;
+                    }
+                }
+                if (!empty($category)) {
+                    $autoCategories[$catKey] = $category['id'];
+                }
+            }
+            if (empty($category)) {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': failed to create category - ' . $categoryName . '.';
+                continue;
+            }
+
+            // ── Supplier: find or auto-create (case-insensitive) ─────────────
+            $supKey   = strtolower(trim($supplierName));
+            $supplier = null;
+            if (isset($autoSuppliers[$supKey])) {
+                $supplier = array('id' => $autoSuppliers[$supKey]);
+            } else {
+                $supplier = $this->findSupplierByName($supplierName);
+                if (empty($supplier)) {
+                    $this->itemsupplier_model->add(array('item_supplier' => $supplierName));
+                    $supplier = $this->findSupplierByName($supplierName);
+                    if (!empty($supplier)) {
+                        $summary['notes'][] = 'Auto-created supplier: ' . $supplierName;
+                    }
+                }
+                if (!empty($supplier)) {
+                    $autoSuppliers[$supKey] = $supplier['id'];
+                }
+            }
+            if (empty($supplier)) {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': failed to create supplier - ' . $supplierName . '.';
+                continue;
+            }
+
+            // ── Store: find or auto-create (case-insensitive, optional) ──────
+            $storeId = null;
+            if ($storeName !== '') {
+                $storeKey = strtolower(trim($storeName));
+                if (isset($autoStores[$storeKey])) {
+                    $storeId = $autoStores[$storeKey];
+                } else {
+                    $store = $this->findStoreByNameOrCode($storeName);
+                    if (empty($store)) {
+                        $this->itemstore_model->add(array('item_store' => $storeName, 'code' => '', 'description' => ''));
+                        $store = $this->findStoreByNameOrCode($storeName);
+                        if (!empty($store)) {
+                            $summary['notes'][] = 'Auto-created store: ' . $storeName;
+                        }
+                    }
+                    if (!empty($store)) {
+                        $storeId = $store['id'];
+                        $autoStores[$storeKey] = $storeId;
+                    } else {
+                        $summary['errors'][] = 'Row ' . ($index + 2) . ': failed to create store - ' . $storeName . '.';
+                        continue;
+                    }
+                }
+            }
+
+            // ── Item: find or auto-create (case-insensitive, within category) ─
+            $itemKey  = strtolower(trim($itemName)) . '-' . $category['id'];
+            $item     = null;
+            if (isset($autoItems[$itemKey])) {
+                $item = array('id' => $autoItems[$itemKey]);
+            } else {
+                $item = $this->findItemByNameAndCategory($itemName, $category['id']);
+                if (empty($item)) {
+                    $this->item_model->add(array(
+                        'name'             => $itemName,
+                        'item_category_id' => $category['id'],
+                        'unit'             => ($unit !== '') ? $unit : 'Nos',
+                        'description'      => '',
+                    ));
+                    $item = $this->findItemByNameAndCategory($itemName, $category['id']);
+                    if (!empty($item)) {
+                        $summary['notes'][] = 'Auto-created item: ' . $itemName . ' (category: ' . $categoryName . ')';
+                    }
+                }
+                if (!empty($item)) {
+                    $autoItems[$itemKey] = $item['id'];
+                }
+            }
+            if (empty($item)) {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': failed to create item - ' . $itemName . '.';
                 continue;
             }
 
@@ -534,6 +615,10 @@ class Inventoryimport extends Admin_Controller
     {
         $summary = $this->newSummary();
         $validStatuses = array('in_stock', 'assigned', 'under_maintenance', 'disposed', 'lost');
+        // In-memory caches — a college buys 500 PCs from the same supplier and puts them all in
+        // the same lab.  Without this, every row re-queries the same supplier/location.
+        $supplierCache = array(); // LOWER(name) => id, or false if not found
+        $locationCache = array(); // LOWER(code) => id, or false if not found
 
         foreach ($rows as $index => $row) {
             $assetTag = $this->getCsvValue($row, array('asset_tag'));
@@ -560,25 +645,31 @@ class Inventoryimport extends Admin_Controller
             $supplierId = null;
             $supplierName = $this->getCsvValue($row, array('supplier_name', 'supplier'));
             if ($supplierName !== '') {
-                $supplier = $this->findSupplierByName($supplierName);
-                if (!empty($supplier)) {
-                    $supplierId = $supplier['id'];
-                } else {
+                $supKey = strtolower(trim($supplierName));
+                if (!array_key_exists($supKey, $supplierCache)) {
+                    $s = $this->findSupplierByName($supplierName);
+                    $supplierCache[$supKey] = !empty($s) ? $s['id'] : false;
+                }
+                if ($supplierCache[$supKey] === false) {
                     $summary['errors'][] = 'Row ' . ($index + 2) . ': supplier not found - ' . $supplierName . '.';
                     continue;
                 }
+                $supplierId = $supplierCache[$supKey];
             }
 
             $locationId = null;
             $locationCode = $this->getCsvValue($row, array('location_code', 'location'));
             if ($locationCode !== '') {
-                $location = $this->findLocationByCode($locationCode);
-                if (!empty($location)) {
-                    $locationId = $location['id'];
-                } else {
+                $locKey = strtolower(trim($locationCode));
+                if (!array_key_exists($locKey, $locationCache)) {
+                    $l = $this->findLocationByCode($locationCode);
+                    $locationCache[$locKey] = !empty($l) ? $l['id'] : false;
+                }
+                if ($locationCache[$locKey] === false) {
                     $summary['errors'][] = 'Row ' . ($index + 2) . ': location not found - ' . $locationCode . '.';
                     continue;
                 }
+                $locationId = $locationCache[$locKey];
             }
 
             $status = $this->getCsvValue($row, array('current_status', 'status'));
@@ -637,6 +728,10 @@ class Inventoryimport extends Admin_Controller
     private function importAssetAssignments($rows)
     {
         $summary = $this->newSummary();
+        // In-memory caches — a lab of 40 PCs assigned to the same location would otherwise
+        // hit the DB 40 times for an identical location_code lookup.
+        $staffCache    = array(); // LOWER(employee_id) => staff_id, or false if not found
+        $locationCache = array(); // LOWER(code) => location_id, or false if not found
 
         foreach ($rows as $index => $row) {
             $assetTag     = $this->getCsvValue($row, array('asset_tag'));
@@ -675,26 +770,34 @@ class Inventoryimport extends Admin_Controller
                     $summary['errors'][] = 'Row ' . ($index + 2) . ': employee_id is required for assignee_type=staff.';
                     continue;
                 }
-                $staffRow = $this->db->query('SELECT id FROM staff WHERE LOWER(employee_id) = ? AND is_active = 1 LIMIT 1', array(strtolower($employeeId)))->row_array();
-                if (empty($staffRow)) {
+                $empKey = strtolower(trim($employeeId));
+                if (!array_key_exists($empKey, $staffCache)) {
+                    $staffRow = $this->db->query('SELECT id FROM staff WHERE LOWER(employee_id) = ? AND is_active = 1 LIMIT 1', array($empKey))->row_array();
+                    $staffCache[$empKey] = !empty($staffRow) ? $staffRow['id'] : false;
+                }
+                if ($staffCache[$empKey] === false) {
                     $summary['errors'][] = 'Row ' . ($index + 2) . ': active staff not found with employee_id - ' . $employeeId . '.';
                     continue;
                 }
-                $assigneeId = $staffRow['id'];
-                $staffId    = $staffRow['id'];
+                $assigneeId = $staffCache[$empKey];
+                $staffId    = $staffCache[$empKey];
             } else {
                 $locationCode = $this->getCsvValue($row, array('location_code', 'place_code'));
                 if ($locationCode === '') {
                     $summary['errors'][] = 'Row ' . ($index + 2) . ': location_code is required for assignee_type=place.';
                     continue;
                 }
-                $locRow = $this->findLocationByCode($locationCode);
-                if (empty($locRow)) {
+                $locKey = strtolower(trim($locationCode));
+                if (!array_key_exists($locKey, $locationCache)) {
+                    $locRow = $this->findLocationByCode($locationCode);
+                    $locationCache[$locKey] = !empty($locRow) ? $locRow['id'] : false;
+                }
+                if ($locationCache[$locKey] === false) {
                     $summary['errors'][] = 'Row ' . ($index + 2) . ': location not found with code - ' . $locationCode . '.';
                     continue;
                 }
-                $assigneeId = $locRow['id'];
-                $locationId = $locRow['id'];
+                $assigneeId = $locationCache[$locKey];
+                $locationId = $locationCache[$locKey];
             }
 
             // Close any existing open assignment for this asset before creating the new one
@@ -738,6 +841,16 @@ class Inventoryimport extends Admin_Controller
         $message .= 'Imported: ' . (int) $summary['imported'] . '<br>';
         $message .= 'Updated: ' . (int) $summary['updated'] . '<br>';
         $message .= 'Skipped: ' . (int) $summary['skipped'];
+
+        if (!empty($summary['notes'])) {
+            $uniqueNotes = array_unique($summary['notes']);
+            $message .= '<hr style="margin:8px 0;">';
+            $message .= '<strong>Auto-created master data:</strong><ul style="margin-bottom:0; padding-left:18px;">';
+            foreach ($uniqueNotes as $note) {
+                $message .= '<li>' . html_escape($note) . '</li>';
+            }
+            $message .= '</ul>';
+        }
 
         if (!empty($summary['errors'])) {
             $message .= '<hr style="margin:8px 0;">';
@@ -811,22 +924,23 @@ class Inventoryimport extends Admin_Controller
 
     private function findCategoryByName($name)
     {
-        return $this->db->query('SELECT * FROM item_category WHERE LOWER(item_category) = ? LIMIT 1', array(strtolower($name)))->row_array();
+        return $this->db->query('SELECT * FROM item_category WHERE LOWER(TRIM(item_category)) = ? LIMIT 1', array(strtolower(trim($name))))->row_array();
     }
 
     private function findSupplierByName($name)
     {
-        return $this->db->query('SELECT * FROM item_supplier WHERE LOWER(item_supplier) = ? LIMIT 1', array(strtolower($name)))->row_array();
+        return $this->db->query('SELECT * FROM item_supplier WHERE LOWER(TRIM(item_supplier)) = ? LIMIT 1', array(strtolower(trim($name))))->row_array();
     }
 
     private function findStoreByNameOrCode($value)
     {
-        return $this->db->query('SELECT * FROM item_store WHERE LOWER(item_store) = ? OR LOWER(code) = ? LIMIT 1', array(strtolower($value), strtolower($value)))->row_array();
+        $v = strtolower(trim($value));
+        return $this->db->query('SELECT * FROM item_store WHERE LOWER(TRIM(item_store)) = ? OR LOWER(TRIM(code)) = ? LIMIT 1', array($v, $v))->row_array();
     }
 
     private function findItemByNameAndCategory($name, $categoryId)
     {
-        return $this->db->query('SELECT * FROM item WHERE LOWER(name) = ? AND item_category_id = ? LIMIT 1', array(strtolower($name), $categoryId))->row_array();
+        return $this->db->query('SELECT * FROM item WHERE LOWER(TRIM(name)) = ? AND item_category_id = ? LIMIT 1', array(strtolower(trim($name)), $categoryId))->row_array();
     }
 
     private function findLocationByCode($code)
@@ -841,7 +955,7 @@ class Inventoryimport extends Admin_Controller
             '2. Upload Item Stores next. These are the physical or virtual stock locations used by stock inward, GRN, and issue flows.',
             '3. Upload Item Suppliers after stores. Purchase Orders and opening stock imports depend on supplier masters.',
             '4. Upload Items only after categories exist, because each item must map to one valid category.',
-            '5. Upload Opening Stock last. Opening stock rows depend on existing items, suppliers, and optionally store names/codes.',
+            '5. Upload Opening Stock (admin/inventoryimport/itemstock). If any category, supplier, store, or item is missing, the importer auto-creates it from the CSV. Steps 1–4 can be skipped for a quick first import.',
             '6. After masters are ready, move to Indents, Purchase Orders, Approval Matrix Rules, and GRNs for live procurement operations.',
             '7. To onboard existing physical assets: upload Asset Locations (labs, rooms, departments) first so location codes are ready.',
             '8. Then upload the Asset Register Snapshot — one CSV row per physical unit with serial number, brand, warranty, and cost.',
@@ -927,11 +1041,13 @@ class Inventoryimport extends Admin_Controller
                 'back_url' => 'admin/itemstock',
                 'page_url' => 'admin/inventoryimport/itemstock',
                 'sample_file' => './backend/import/inventory_itemstock_sample.csv',
-                'headers' => array('item_name', 'item_category', 'supplier_name', 'store_name', 'quantity', 'purchase_price', 'date', 'symbol', 'description'),
-                'sample_row' => array('Dell Latitude Laptop', 'IT Equipment', 'ABC Traders', 'IT Store', '5', '55000', '2026-03-01', '+', 'Opening balance'),
+                'headers' => array('item_name', 'item_category', 'supplier_name', 'store_name', 'quantity', 'purchase_price', 'date', 'symbol', 'unit', 'description'),
+                'sample_row' => array('Dell Latitude Laptop', 'IT Equipment', 'ABC Traders', 'IT Store', '5', '55000', '2026-03-01', '+', 'Nos', 'Opening balance'),
                 'instructions' => array(
                     'Use this for first-time opening balances or controlled bulk stock loads.',
                     'item_name, item_category, supplier_name, quantity, purchase_price, and date are required.',
+                    'If item_category, supplier_name, store_name, or item_name does not exist, it will be auto-created. Matching is case-insensitive to prevent duplicates.',
+                    'Optional: add a unit column (e.g. Nos, Pcs, Kg) — used when auto-creating a new item. Defaults to Nos if blank.',
                     'Recommended date format is YYYY-MM-DD. symbol can be + or -. If blank, + is assumed.',
                     'This import appends stock ledger entries. It does not update prior stock rows.',
                 ),
