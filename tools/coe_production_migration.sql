@@ -611,6 +611,13 @@ UPDATE `sidebar_sub_menus` SET `level` = 19 WHERE `id` = 300;
 UPDATE `sidebar_sub_menus` SET `level` = 20 WHERE `id` = 301;
 UPDATE `sidebar_sub_menus` SET `level` = 21 WHERE `id` = 303;
 
+-- =============================================================================
+-- Fix sidebar active-highlight: set activate_methods='*' for all CoE submenus
+-- so that sub-pages (listing, tabulation, add, manage, etc.) correctly
+-- highlight the parent sidebar item via the wildcard in activate_submenu().
+-- =============================================================================
+UPDATE `sidebar_sub_menus` SET `activate_methods` = '*' WHERE `url` LIKE 'coe/%';
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =============================================================================

@@ -2,6 +2,10 @@
 <div class="content-wrapper">
     <section class="content-header">
         <h1><i class="fa fa-warning"></i> UFM / Malpractice<button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
+        <ol class="breadcrumb">
+            <li><a href="<?php echo site_url('coe/coe_dashboard'); ?>"><i class="fa fa-home"></i> CoE</a></li>
+            <li class="active">UFM / Malpractice</li>
+        </ol>
     </section>
     <section class="content">
         <?php echo $this->session->flashdata('msg'); ?>

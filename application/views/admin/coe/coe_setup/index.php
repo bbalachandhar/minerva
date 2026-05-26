@@ -13,7 +13,7 @@
                     <div class="box box-default">
                         <div class="box-body">
                             <div class="row">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('session'); ?></label>
                                         <select name="session_id" class="form-control" onchange="this.form.submit()">
@@ -23,6 +23,26 @@
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>Regulation Type</label>
+                                        <div class="btn-group" style="display:flex">
+                                            <a href="<?php echo site_url('coe/coe_setup') . '?session_id=' . $selected_session . '&regulation_type=autonomous'; ?>"
+                                               class="btn btn-sm <?php echo $selected_regulation_type === 'autonomous' ? 'btn-primary active' : 'btn-default'; ?>">
+                                                Autonomous
+                                            </a>
+                                            <a href="<?php echo site_url('coe/coe_setup') . '?session_id=' . $selected_session . '&regulation_type=affiliated'; ?>"
+                                               class="btn btn-sm <?php echo $selected_regulation_type === 'affiliated' ? 'btn-warning active' : 'btn-default'; ?>">
+                                                Affiliated
+                                            </a>
+                                            <a href="<?php echo site_url('coe/coe_setup') . '?session_id=' . $selected_session . '&regulation_type='; ?>"
+                                               class="btn btn-sm <?php echo $selected_regulation_type === '' ? 'btn-default active' : 'btn-default'; ?>"
+                                               style="<?php echo $selected_regulation_type === '' ? 'font-weight:600' : 'color:#999'; ?>">
+                                                All
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                                 <?php if ($this->rbac->hasPrivilege('coe_setup', 'can_add')): ?>

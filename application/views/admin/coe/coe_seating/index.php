@@ -93,7 +93,7 @@
 
       <div class="col-md-8">
         <?php if (empty($events)): ?>
-          <div class="alert alert-info"><i class="fa fa-info-circle"></i> No CoE-locked events for this session.</div>
+          <div class="alert alert-info"><i class="fa fa-info-circle"></i> No end-semester exam events found for this session.</div>
         <?php else: ?>
           <?php foreach ($events as $ev):
             $sum = $summaries[$ev->id] ?? ['rooms'=>0,'assigned'=>0,'total_ht'=>0,'unassigned'=>0];

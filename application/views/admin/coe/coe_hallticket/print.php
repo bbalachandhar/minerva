@@ -119,7 +119,7 @@ $is_valid     = (bool)($ht->is_valid ?? true);
         <?php if (is_file($student_photo)): ?>
           <img src="<?php echo $student_photo; ?>" style="width:85px;height:100px;object-fit:cover;border:2px solid #90a4ae;border-radius:4px;" alt="Photo">
         <?php else: ?>
-          <div style="width:85px;height:100px;background:#e0e0e0;border:2px solid #bdbdbd;border-radius:4px;text-align:center;font-size:8pt;color:#757575;padding-top:38px;">No Photo</div>
+          <div style="width:85px;height:100px;background:#e0e0e0;border:2px solid #bdbdbd;border-radius:4px;text-align:center;font-size:8pt;color:#757575;padding-top:38px;"><?php echo ($ht->gender == 'female') ? 'F' : 'M'; ?></div>
         <?php endif; ?>
       </td>
       <!-- Student info -->

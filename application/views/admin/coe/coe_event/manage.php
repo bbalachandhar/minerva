@@ -13,7 +13,7 @@
         </h1>
         <ol class="breadcrumb">
             <li><a href="<?php echo site_url('coe/coe_dashboard'); ?>"><i class="fa fa-home"></i> CoE</a></li>
-            <li><a href="<?php echo site_url('coe/coe_event'); ?>">Exam Events</a></li>
+            <li><a href="<?php echo site_url('coe/coe_event'); ?>"><i class="fa fa-arrow-left"></i> Exam Events</a></li>
             <li class="active"><?php echo htmlspecialchars($event->name); ?></li>
         </ol>
     </section>
@@ -34,6 +34,9 @@
                             <small class="text-muted" style="font-size:12px;font-weight:normal;"> &mdash; Class Batch Exams</small>
                         </h3>
                         <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('coe/coe_event'); ?>" class="btn btn-default btn-sm" style="margin-right:6px">
+                                <i class="fa fa-arrow-left"></i> Back
+                            </a>
                             <?php if ($this->rbac->hasPrivilege('coe_event', 'can_add')): ?>
                             <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#addBatchModal">
                                 <i class="fa fa-plus"></i> Add New

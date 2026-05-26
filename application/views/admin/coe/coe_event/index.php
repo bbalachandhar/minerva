@@ -28,9 +28,9 @@
                                 </select>
                             </div>
                             <?php if ($this->rbac->hasPrivilege('coe_event', 'can_add')): ?>
-                            <a href="<?php echo site_url('coe/coe_event/add?session_id=' . $selected_session); ?>" class="btn btn-primary btn-sm">
+                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addEventModal">
                                 <i class="fa fa-plus-circle"></i> New Exam Event
-                            </a>
+                            </button>
                             <?php endif; ?>
                         </form>
                     </div>
@@ -105,7 +105,7 @@
                                         <td colspan="8" class="text-center text-muted" style="padding:30px;">
                                             No exam events for this session.
                                             <?php if ($this->rbac->hasPrivilege('coe_event', 'can_add')): ?>
-                                                <a href="<?php echo site_url('coe/coe_event/add?session_id=' . $selected_session); ?>">Create one now</a>.
+                                                <a href="#" data-toggle="modal" data-target="#addEventModal">Create one now</a>.
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -204,6 +204,114 @@
         </div>
     </section>
 </div>
+
+<!-- ── Add Exam Event Modal ──────────────────────────────────────────── -->
+<div class="modal fade" id="addEventModal" tabindex="-1" role="dialog" aria-labelledby="addEventModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#3c8dbc;color:#fff;border-radius:3px 3px 0 0;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:0.8;"><span>&times;</span></button>
+                <h4 class="modal-title" id="addEventModalLabel"><i class="fa fa-calendar-plus-o"></i> New Exam Event</h4>
+            </div>
+            <form id="addEventForm">
+                <input type="hidden" name="session_id" id="add_session_id" value="<?php echo $selected_session; ?>">
+                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" id="add_csrf_token"
+                       value="<?php echo $this->security->get_csrf_hash(); ?>">
+                <div class="modal-body">
+
+                    <div class="form-group">
+                        <label for="add_name">Event Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" id="add_name" class="form-control" required maxlength="250"
+                               placeholder="e.g. Nov/Dec 2026 End Semester">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="add_category">Category <span class="text-danger">*</span></label>
+                                <select name="exam_category" id="add_category" class="form-control" required>
+                                    <option value="">— Select —</option>
+                                    <option value="main">Main / Regular</option>
+                                    <option value="arrear">Arrear</option>
+                                    <option value="supplementary">Supplementary</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="add_type">Mode <span class="text-danger">*</span></label>
+                                <select name="exam_type" id="add_type" class="form-control" required>
+                                    <option value="">— Select —</option>
+                                    <option value="theory">Theory</option>
+                                    <option value="practical">Practical</option>
+                                    <option value="project">Project</option>
+                                    <option value="viva">Viva</option>
+                                    <option value="online">Online</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="add_description">Description <span class="text-muted">(optional)</span></label>
+                        <textarea name="description" id="add_description" class="form-control" rows="2"
+                                  placeholder="Any notes about this event…"></textarea>
+                    </div>
+
+                    <div id="addEventError" class="alert alert-danger" style="display:none;"></div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="addEventSaveBtn">
+                        <i class="fa fa-arrow-right"></i> Create &amp; Add Batches
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Reset add form when modal closes
+$('#addEventModal').on('hidden.bs.modal', function () {
+    $('#addEventForm')[0].reset();
+    $('#addEventError').hide().html('');
+    $('#add_csrf_token').val('<?php echo $this->security->get_csrf_hash(); ?>');
+});
+
+// Update hidden session_id if user changes the session filter while modal is open
+$('select[name="session_id"]').on('change', function () {
+    $('#add_session_id').val($(this).val());
+});
+
+$('#addEventForm').on('submit', function (e) {
+    e.preventDefault();
+    var $btn = $('#addEventSaveBtn');
+    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Creating…');
+    $('#addEventError').hide().html('');
+
+    $.ajax({
+        url:  '<?php echo site_url('coe/coe_event/save'); ?>',
+        type: 'POST',
+        data: $(this).serialize(),
+        dataType: 'json',
+        success: function (res) {
+            if (res.success) {
+                $('#addEventModal').modal('hide');
+                window.location.href = res.redirect;
+            } else {
+                $('#addEventError').html('<ul style="margin:0;padding-left:18px;">' + res.message + '</ul>').show();
+                $btn.prop('disabled', false).html('<i class="fa fa-arrow-right"></i> Create &amp; Add Batches');
+            }
+        },
+        error: function () {
+            $('#addEventError').html('Request failed. Please try again.').show();
+            $btn.prop('disabled', false).html('<i class="fa fa-arrow-right"></i> Create &amp; Add Batches');
+        }
+    });
+});
+</script>
 
 <!-- ── Edit Exam Event Modal ──────────────────────────────────────────── -->
 <div class="modal fade" id="editEventModal" tabindex="-1" role="dialog" aria-labelledby="editEventModalLabel">

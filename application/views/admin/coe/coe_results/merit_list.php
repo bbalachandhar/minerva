@@ -20,10 +20,21 @@
             <small><?php echo htmlspecialchars($event->exam_group_name); ?> — <?php echo htmlspecialchars($event->exam); ?></small>
         </h1>
         <ol class="breadcrumb">
-            <li><a href="<?php echo site_url('coe/coe_results/listing/'.$batch_exam_id); ?>"><i class="fa fa-arrow-left"></i> Back to Results</a></li>
-            <li><button class="btn btn-xs btn-default" onclick="window.print()"><i class="fa fa-print"></i> Print</button></li>
-            <li><a href="<?php echo site_url('coe/coe_results/tabulation/'.$batch_exam_id); ?>" class="btn btn-xs btn-default"><i class="fa fa-table"></i> Tabulation Sheet</a></li>
+            <li><a href="<?php echo site_url('coe/coe_dashboard'); ?>"><i class="fa fa-home"></i> CoE</a></li>
+            <li><a href="<?php echo site_url('coe/coe_results/listing/'.$batch_exam_id); ?>">Result Publication</a></li>
+            <li class="active">Merit List</li>
         </ol>
+        <div style="position:absolute;top:15px;right:15px">
+            <a href="<?php echo site_url('coe/coe_results/listing/'.$batch_exam_id); ?>" class="btn btn-default btn-sm">
+                <i class="fa fa-arrow-left"></i> Back to Results
+            </a>
+            &nbsp;
+            <a href="<?php echo site_url('coe/coe_results/tabulation/'.$batch_exam_id); ?>" class="btn btn-default btn-sm">
+                <i class="fa fa-table"></i> Tabulation Sheet
+            </a>
+            &nbsp;
+            <button class="btn btn-default btn-sm" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
+        </div>
     </section>
 
     <section class="content">

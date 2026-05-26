@@ -21,7 +21,8 @@ class Coe_seating_model extends CI_Model
         $this->db->from('exam_group_class_batch_exams ebe');
         $this->db->join('exam_groups eg', 'eg.id = ebe.exam_group_id', 'left');
         $this->db->join('sessions ses', 'ses.id = ebe.session_id', 'left');
-        $this->db->where('ebe.coe_locked', 1);
+        $this->db->where('ebe.is_end_semester', 1);
+        $this->db->where('ebe.is_active', 1);
         if ($session_id) {
             $this->db->where('ebe.session_id', (int)$session_id);
         }
@@ -107,35 +108,48 @@ class Coe_seating_model extends CI_Model
 
         $capacity   = (int)$room->effective_capacity;
         $batch_id   = (int)$room->exam_group_class_batch_exam_id;
+        $subject_id = (int)$room->subject_id;
 
-        // Already assigned students in this room
+        // Students already assigned to THIS room
         $existing = $this->db->query(
             "SELECT student_id FROM coe_seating_assignments WHERE seating_room_id = ?",
             [$room_id]
         )->result_array();
         $existing_ids = array_column($existing, 'student_id');
 
-        // All assigned students in this batch (to avoid double-assigning)
-        $all_assigned = $this->db->query(
+        // Students already assigned to ANY room for this batch + subject (avoid duplicate seat for same subject)
+        $already_seated = $this->db->query(
             "SELECT sa.student_id FROM coe_seating_assignments sa
-             LEFT JOIN coe_seating_rooms sr ON sr.id = sa.seating_room_id
-             WHERE sr.exam_group_class_batch_exam_id = ?",
-            [$batch_id]
+             JOIN coe_seating_rooms sr ON sr.id = sa.seating_room_id
+             WHERE sr.exam_group_class_batch_exam_id = ?
+               AND sr.subject_id = ?",
+            [$batch_id, $subject_id]
         )->result_array();
-        $all_assigned_ids = array_column($all_assigned, 'student_id');
+        $already_seated_ids = array_column($already_seated, 'student_id');
 
-        // Eligible students with hall tickets, not yet assigned, ordered by register_no
+        // Eligible students for this subject from applications (hall tickets optional)
+        $session_id = $this->db->query(
+            "SELECT session_id FROM exam_group_class_batch_exams WHERE id = ? LIMIT 1",
+            [$batch_id]
+        )->row()->session_id ?? 0;
+
         $students = $this->db->query(
-            "SELECT ht.id AS ht_id, ht.student_id, ht.hall_ticket_no,
-                    ss.id AS student_session_id, s.register_no
-             FROM coe_hall_tickets ht
-             LEFT JOIN students s ON s.id = ht.student_id
-             LEFT JOIN student_session ss ON ss.student_id = ht.student_id
-                                        AND ss.session_id = (SELECT session_id FROM exam_group_class_batch_exams WHERE id = ? LIMIT 1)
-             WHERE ht.exam_group_class_batch_exam_id = ?
-               AND ht.is_valid = 1
+            "SELECT app.student_id,
+                    s.register_no,
+                    ss.id AS student_session_id,
+                    ht.id AS ht_id
+             FROM coe_exam_applications app
+             JOIN students s ON s.id = app.student_id
+             LEFT JOIN student_session ss ON ss.student_id = app.student_id
+                                         AND ss.session_id = ?
+             LEFT JOIN coe_hall_tickets ht ON ht.student_id = app.student_id
+                                          AND ht.exam_group_class_batch_exam_id = ?
+                                          AND ht.is_valid = 1
+             WHERE app.exam_group_class_batch_exam_id = ?
+               AND app.subject_id = ?
+               AND app.application_status IN ('eligible','override_eligible')
              ORDER BY s.register_no",
-            [$batch_id, $batch_id]
+            [$session_id, $batch_id, $batch_id, $subject_id]
         )->result_array();
 
         $seats_available = $capacity - count($existing_ids);
@@ -143,25 +157,29 @@ class Coe_seating_model extends CI_Model
             return ['assigned' => 0, 'error' => 'Room is full'];
         }
 
+        if (empty($students)) {
+            return ['assigned' => 0, 'error' => 'No eligible students found for this subject'];
+        }
+
         $assigned = 0;
         $seat_num = count($existing_ids) + 1;
 
         foreach ($students as $st) {
             if ($seats_available <= 0) break;
-            if (in_array($st['student_id'], $all_assigned_ids)) continue;
+            if (in_array($st['student_id'], $already_seated_ids)) continue;
 
             $this->db->insert('coe_seating_assignments', [
                 'seating_room_id'    => $room_id,
                 'student_id'         => (int)$st['student_id'],
                 'student_session_id' => (int)($st['student_session_id'] ?? 0),
-                'hall_ticket_id'     => (int)$st['ht_id'],
+                'hall_ticket_id'     => !empty($st['ht_id']) ? (int)$st['ht_id'] : null,
                 'seat_number'        => 'S' . str_pad($seat_num, 3, '0', STR_PAD_LEFT),
             ]);
 
             $assigned++;
             $seat_num++;
             $seats_available--;
-            $all_assigned_ids[] = $st['student_id'];
+            $already_seated_ids[] = $st['student_id'];
         }
 
         return ['assigned' => $assigned];
@@ -174,12 +192,17 @@ class Coe_seating_model extends CI_Model
     {
         return $this->db->query(
             "SELECT sa.*, s.firstname, s.lastname, s.register_no, s.gender,
-                    ht.hall_ticket_no, c.class AS class_name, d.department_name
+                    COALESCE(ht_direct.hall_ticket_no, ht_lookup.hall_ticket_no) AS hall_ticket_no,
+                    c.class AS class_name, d.department_name
              FROM coe_seating_assignments sa
              LEFT JOIN students s ON s.id = sa.student_id
-             LEFT JOIN coe_hall_tickets ht ON ht.id = sa.hall_ticket_id
+             LEFT JOIN coe_hall_tickets ht_direct  ON ht_direct.id = sa.hall_ticket_id
+             LEFT JOIN coe_seating_rooms sr         ON sr.id = sa.seating_room_id
+             LEFT JOIN coe_hall_tickets ht_lookup   ON ht_lookup.student_id = sa.student_id
+                                                   AND ht_lookup.exam_group_class_batch_exam_id = sr.exam_group_class_batch_exam_id
+                                                   AND ht_lookup.is_valid = 1
              LEFT JOIN student_session ss ON ss.id = sa.student_session_id
-             LEFT JOIN classes c ON c.id = ss.class_id
+             LEFT JOIN classes c    ON c.id = ss.class_id
              LEFT JOIN department d ON d.id = ss.department_id
              WHERE sa.seating_room_id = ?
              ORDER BY sa.seat_number",

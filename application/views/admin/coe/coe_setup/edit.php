@@ -3,7 +3,7 @@
     <section class="content-header">
         <h1><i class="fa fa-university"></i> <?php echo $this->lang->line('coe_edit_regulation'); ?><button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
-            <li><a href="<?php echo site_url('coe/coe_setup'); ?>"><?php echo $this->lang->line('coe_exam_regulations'); ?></a></li>
+            <li><a href="<?php echo site_url('coe/coe_setup'); ?>"><i class="fa fa-arrow-left"></i> <?php echo $this->lang->line('coe_exam_regulations'); ?></a></li>
             <li class="active"><?php echo $this->lang->line('edit'); ?></li>
         </ol>
     </section>
@@ -15,6 +15,11 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><?php echo $this->lang->line('coe_edit_regulation'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('coe/coe_setup'); ?>" class="btn btn-default btn-sm">
+                                <i class="fa fa-arrow-left"></i> Back
+                            </a>
+                        </div>
                     </div>
                     <form method="post" action="<?php echo site_url('coe/coe_setup/save/' . $regulation->id); ?>" id="regulation_form">
                         <div class="box-body">

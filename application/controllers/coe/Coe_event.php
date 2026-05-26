@@ -116,7 +116,13 @@ class Coe_event extends MY_Addon_CoeController
         $this->form_validation->set_rules('exam_category', 'Category',   'trim|required|in_list[main,arrear,supplementary]');
         $this->form_validation->set_rules('exam_type',     'Mode',       'trim|required|in_list[theory,practical,project,viva,online]');
 
+        $is_ajax = $this->input->is_ajax_request();
+
         if ($this->form_validation->run() === false) {
+            if ($is_ajax) {
+                return $this->output->set_content_type('application/json')
+                    ->set_output(json_encode(['success' => false, 'message' => validation_errors('<li>', '</li>')]));
+            }
             $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . validation_errors() . '</div>');
             redirect('coe/coe_event/add');
         }
@@ -136,6 +142,11 @@ class Coe_event extends MY_Addon_CoeController
             'name'          => $this->input->post('name'),
             'exam_category' => $this->input->post('exam_category'),
         ]);
+
+        if ($is_ajax) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['success' => true, 'group_id' => $group_id, 'redirect' => site_url('coe/coe_event/manage/' . $group_id)]));
+        }
 
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Exam event created. Add class batch exams below.</div>');
         redirect('coe/coe_event/manage/' . $group_id);

@@ -244,4 +244,68 @@ class Coe_application extends MY_Addon_CoeController
         $this->load->view('admin/coe/coe_application/view', $data);
         $this->load->view('layout/footer', $data);
     }
+
+    // ------------------------------------------------------------------
+    // Override a single ineligible application → override_eligible
+    // ------------------------------------------------------------------
+    public function override_status($app_id)
+    {
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        if (!$this->rbac->hasPrivilege('coe_application', 'can_edit')) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'Access denied']));
+        }
+
+        $app_id = (int) $app_id;
+        $reason = trim($this->input->post('reason') ?? '');
+        if ($reason === '') {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'Please enter a reason for the override.']));
+        }
+
+        $app = $this->db->where('id', $app_id)->get('coe_exam_applications')->row();
+        if (!$app) {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'Application not found.']));
+        }
+        if ($app->application_status === 'override_eligible') {
+            return $this->output->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'Already marked as override eligible.']));
+        }
+
+        $this->db->where('id', $app_id)
+                 ->update('coe_exam_applications', [
+                     'application_status' => 'override_eligible',
+                     'updated_at'         => date('Y-m-d H:i:s'),
+                 ]);
+
+        // Upsert override log (unique on application_id)
+        $existing = $this->db->where('application_id', $app_id)->get('coe_eligibility_overrides')->row();
+        if ($existing) {
+            $this->db->where('application_id', $app_id)
+                     ->update('coe_eligibility_overrides', [
+                         'override_reason' => $reason,
+                         'override_by'     => $this->session->userdata('id'),
+                         'override_at'     => date('Y-m-d H:i:s'),
+                     ]);
+        } else {
+            $this->db->insert('coe_eligibility_overrides', [
+                'application_id'  => $app_id,
+                'override_reason' => $reason,
+                'override_by'     => $this->session->userdata('id'),
+            ]);
+        }
+
+        if (isset($this->Coe_audit_model)) {
+            $this->Coe_audit_model->log('eligibility_override', 'coe_exam_applications', $app_id, null, [
+                'reason'    => $reason,
+                'prev_status' => $app->application_status,
+            ]);
+        }
+
+        return $this->output->set_content_type('application/json')
+            ->set_output(json_encode(['success' => true, 'message' => 'Marked as override eligible.']));
+    }
 }

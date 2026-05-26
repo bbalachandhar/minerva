@@ -492,11 +492,16 @@ if (!function_exists("activate_submenu")) {
         $class  = strtolower($CI->router->fetch_class());
         $method = $CI->router->fetch_method();
 
-        if (is_array($arg_methods)) {
-            foreach ($arg_methods as $arg_methods_key => $arg_methods_value) {
-                if ($method == $arg_methods_value && $class == strtolower($arg_class)) {
-                    return $class_active;
-                    break;
+        if ($class == strtolower($arg_class)) {
+            // Wildcard: any method of this controller activates the item
+            if (in_array('*', (array) $arg_methods, true)) {
+                return $class_active;
+            }
+            if (is_array($arg_methods)) {
+                foreach ($arg_methods as $arg_methods_value) {
+                    if ($method == $arg_methods_value) {
+                        return $class_active;
+                    }
                 }
             }
         }

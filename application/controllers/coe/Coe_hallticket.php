@@ -146,14 +146,17 @@ class Coe_hallticket extends MY_Addon_CoeController
         // Student photo path (absolute for mPDF)
         $student_photo = FCPATH . 'uploads/student_images/' . ($ht->student_image ?: '');
         if (!$ht->student_image || !is_file($student_photo)) {
-            $student_photo = FCPATH . 'uploads/no_image/no_image.jpg';
+            $gender_placeholder = (strtolower($ht->gender ?? '') === 'female')
+                ? FCPATH . 'uploads/student_images/default_female.jpg'
+                : FCPATH . 'uploads/student_images/default_male.jpg';
+            $student_photo = is_file($gender_placeholder) ? $gender_placeholder : FCPATH . 'uploads/no_image/no_image.jpg';
         }
 
         // School logo: embed as base64 data URI for reliable mPDF rendering
-        $logo_filename = $this->sch_setting_detail->admission_logo_left ?? '';
+        $logo_filename = $this->sch_setting_detail->image ?? '';
         $logo_path     = null;
         if ($logo_filename) {
-            $full = FCPATH . 'uploads/logos/' . $logo_filename;
+            $full = FCPATH . 'uploads/school_content/logo/' . $logo_filename;
             if (is_file($full)) {
                 $mime = mime_content_type($full) ?: 'image/png';
                 if ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {
@@ -221,10 +224,10 @@ class Coe_hallticket extends MY_Addon_CoeController
         ]);
         $qrEngine = new \chillerlan\QRCode\QRCode($qr_options);
 
-        $logo_filename = $this->sch_setting_detail->admission_logo_left ?? '';
+        $logo_filename = $this->sch_setting_detail->image ?? '';
         $logo_path     = null;
         if ($logo_filename) {
-            $full = FCPATH . 'uploads/logos/' . $logo_filename;
+            $full = FCPATH . 'uploads/school_content/logo/' . $logo_filename;
             if (is_file($full)) {
                 $mime = mime_content_type($full) ?: 'image/png';
                 if ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {
@@ -262,7 +265,10 @@ class Coe_hallticket extends MY_Addon_CoeController
 
             $student_photo = FCPATH . 'uploads/student_images/' . ($ht->student_image ?: '');
             if (!$ht->student_image || !is_file($student_photo)) {
-                $student_photo = FCPATH . 'uploads/no_image/no_image.jpg';
+                $gender_placeholder = (strtolower($ht->gender ?? '') === 'female')
+                    ? FCPATH . 'uploads/student_images/default_female.jpg'
+                    : FCPATH . 'uploads/student_images/default_male.jpg';
+                $student_photo = is_file($gender_placeholder) ? $gender_placeholder : FCPATH . 'uploads/no_image/no_image.jpg';
             }
 
             if ($page_num > 0) {

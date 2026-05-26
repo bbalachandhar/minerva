@@ -35,8 +35,12 @@ class Coe_setup extends MY_Addon_CoeController
         $data['department_list'] = $this->department_model->getDepartmentType();
 
         $session_id = $this->input->get('session_id') ?: $this->current_session;
-        $data['selected_session']  = (int) $session_id;
-        $data['regulations']       = $this->Coe_setup_model->getBySession($session_id);
+        $reg_type   = $this->input->get('regulation_type') !== null
+                        ? $this->input->get('regulation_type')
+                        : 'autonomous';   // default: autonomous
+        $data['selected_session']       = (int) $session_id;
+        $data['selected_regulation_type'] = $reg_type;
+        $data['regulations']            = $this->Coe_setup_model->getBySession($session_id, $reg_type);
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_setup/index', $data);

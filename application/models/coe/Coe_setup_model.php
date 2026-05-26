@@ -24,18 +24,20 @@ class Coe_setup_model extends CI_Model
             ->get()->result();
     }
 
-    public function getBySession($session_id)
+    public function getBySession($session_id, $regulation_type = '')
     {
-        return $this->db
+        $this->db
             ->select('cr.*, s.session, c.class AS class_name, d.department_name AS department_name')
             ->from('coe_exam_regulations cr')
             ->join('sessions s', 's.id = cr.session_id', 'left')
             ->join('classes c', 'c.id = cr.class_id', 'left')
             ->join('department d', 'd.id = cr.department_id', 'left')
             ->where('cr.session_id', $session_id)
-            ->where('cr.is_active', 1)
-            ->order_by('c.class ASC')
-            ->get()->result();
+            ->where('cr.is_active', 1);
+        if ($regulation_type !== '') {
+            $this->db->where('cr.regulation_type', $regulation_type);
+        }
+        return $this->db->order_by('c.class ASC')->get()->result();
     }
 
     public function getByClassSession($class_id, $session_id)

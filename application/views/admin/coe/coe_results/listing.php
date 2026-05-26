@@ -6,8 +6,13 @@
             <small><?php echo htmlspecialchars($event->exam_group_name); ?> — <?php echo htmlspecialchars($event->exam); ?></small>
         <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
-            <li><a href="<?php echo site_url('coe/coe_results'); ?>"><i class="fa fa-arrow-left"></i> Back</a></li>
+            <li><a href="<?php echo site_url('coe/coe_dashboard'); ?>"><i class="fa fa-home"></i> CoE</a></li>
+            <li><a href="<?php echo site_url('coe/coe_results'); ?>"><i class="fa fa-bar-chart"></i> Results</a></li>
+            <li class="active">Result Publication</li>
         </ol>
+        <a href="<?php echo site_url('coe/coe_results'); ?>" class="btn btn-default btn-sm" style="position:absolute;top:15px;right:15px">
+            <i class="fa fa-arrow-left"></i> Back to Events
+        </a>
     </section>
     <section class="content">
         <div id="pub-flash"></div>

@@ -312,18 +312,30 @@ class Coe_application_model extends CI_Model
         return $this->db->query(
             "SELECT
                 COUNT(*) AS total,
-                COUNT(DISTINCT student_session_id) AS total_students,
-                SUM(application_status='eligible') AS eligible_count,
-                COUNT(DISTINCT CASE WHEN application_status='eligible' THEN student_session_id END) AS eligible_students,
-                SUM(application_status='ineligible') AS ineligible_count,
-                COUNT(DISTINCT CASE WHEN application_status='ineligible' THEN student_session_id END) AS ineligible_students,
-                SUM(application_status='override_eligible') AS override_count,
-                COUNT(DISTINCT CASE WHEN application_status='override_eligible' THEN student_session_id END) AS override_students,
-                SUM(application_status='pending') AS pending_count,
-                COUNT(DISTINCT CASE WHEN application_status='pending' THEN student_session_id END) AS pending_students,
-                COUNT(DISTINCT CASE WHEN ineligible_reason='both' THEN student_session_id END) AS both_fail_students,
-                SUM(ineligible_reason='both') AS both_fail_count
-             FROM coe_exam_applications
+                COUNT(DISTINCT ea.student_session_id) AS total_students,
+                SUM(ea.application_status='eligible') AS eligible_count,
+                COUNT(DISTINCT CASE WHEN ea.application_status='eligible' THEN ea.student_session_id END) AS eligible_students,
+                SUM(ea.application_status='ineligible') AS ineligible_count,
+                COUNT(DISTINCT CASE WHEN ea.application_status='ineligible' THEN ea.student_session_id END) AS ineligible_students,
+                SUM(ea.application_status='override_eligible') AS override_count,
+                COUNT(DISTINCT CASE WHEN ea.application_status='override_eligible' THEN ea.student_session_id END) AS override_students,
+                SUM(ea.application_status='pending') AS pending_count,
+                COUNT(DISTINCT CASE WHEN ea.application_status='pending' THEN ea.student_session_id END) AS pending_students,
+                COUNT(DISTINCT CASE WHEN ea.ineligible_reason='both' THEN ea.student_session_id END) AS both_fail_students,
+                SUM(ea.ineligible_reason='both') AS both_fail_count,
+                /* Fully clear: student has NO ineligible or pending subjects remaining */
+                COUNT(DISTINCT CASE WHEN ps.ineligible_cnt = 0 AND ps.pending_cnt = 0 THEN ea.student_session_id END) AS fully_clear_students,
+                /* Has ineligible: student still has at least 1 unresolved ineligible subject */
+                COUNT(DISTINCT CASE WHEN ps.ineligible_cnt > 0 THEN ea.student_session_id END) AS has_ineligible_students
+             FROM coe_exam_applications ea
+             JOIN (
+                 SELECT student_session_id,
+                        SUM(application_status='ineligible') AS ineligible_cnt,
+                        SUM(application_status='pending')    AS pending_cnt
+                 FROM coe_exam_applications
+                 WHERE {$where}
+                 GROUP BY student_session_id
+             ) ps ON ps.student_session_id = ea.student_session_id
              WHERE {$where}"
         )->row();
     }

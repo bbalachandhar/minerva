@@ -59,6 +59,13 @@ class Coe_revaluation extends MY_Addon_CoeController
         $data['batch_exam_id'] = $batch_exam_id;
         $data['requests']      = $this->Coe_revaluation_model->getAll($filters);
         $data['subjects']      = $this->Coe_revaluation_model->getSubjectsByBatchExam($batch_exam_id);
+        $data['students']      = $this->db
+            ->select('st.id, CONCAT(st.firstname, " ", st.lastname) AS full_name, st.admission_no')
+            ->from('students st')
+            ->join('coe_hall_tickets ht', 'ht.student_id = st.id', 'inner')
+            ->where('ht.exam_group_class_batch_exam_id', (int) $batch_exam_id)
+            ->order_by('st.firstname ASC')
+            ->get()->result();
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_revaluation/listing', $data);

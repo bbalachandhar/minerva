@@ -40,8 +40,10 @@
 .chart-box { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.07); margin-bottom: 20px; }
 .chart-box h4 { margin-top: 0; font-size: 15px; font-weight: 600; color: #444; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 16px; }
 
-.coe-filter-bar { background: #fff; border-radius: 10px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 20px; }
-.coe-filter-bar label { font-weight: 600; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: .4px; }
+.coe-filter-bar { background: #fff; border-radius: 10px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 20px; }
+.coe-filter-bar form { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.coe-filter-bar .form-group { display: flex; align-items: center; gap: 8px; margin: 0; }
+.coe-filter-bar label { font-weight: 600; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; margin: 0; }
 
 .att-bar { height: 10px; border-radius: 5px; background: #e9ecef; overflow: hidden; margin-top: 4px; }
 .att-bar-fill { height: 100%; border-radius: 5px; transition: width .4s; }
@@ -80,8 +82,8 @@
         <!-- ── Filter Bar ─────────────────────────────────────────── -->
         <div class="coe-filter-bar">
             <form method="GET" action="<?php echo site_url('coe/coe_eligibility'); ?>" class="form-inline" id="eligibility-filter-form">
-                <div class="form-group" style="margin-right:16px;">
-                    <label>Session&nbsp;</label>
+                <div class="form-group">
+                    <label>Session</label>
                     <select name="session_id" class="form-control input-sm" onchange="document.getElementById('eligibility-filter-form').submit()">
                         <?php foreach ($session_list as $sess): ?>
                             <option value="<?php echo $sess["id"]; ?>" <?php echo ($sess["id"] == $selected_session) ? 'selected' : ''; ?>>
@@ -90,8 +92,8 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="form-group" style="margin-right:16px;">
-                    <label>Batch Exam&nbsp;</label>
+                <div class="form-group">
+                    <label>Batch Exam</label>
                     <select name="batch_exam_id" id="batch-exam-select" class="form-control input-sm" style="width:280px;">
                         <option value="">— Select Batch —</option>
                         <?php

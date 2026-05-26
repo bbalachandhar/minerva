@@ -20,6 +20,9 @@
                             <?php echo htmlspecialchars($student->admission_no); ?>
                         </h3>
                         <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('coe/coe_results/listing/' . $batch_exam_id); ?>" class="btn btn-default btn-sm" style="margin-right:8px">
+                                <i class="fa fa-arrow-left"></i> Back to Results
+                            </a>
                             <small class="text-muted"><?php echo htmlspecialchars($event->exam_group_name . ' — ' . $event->exam); ?></small>
                         </div>
                     </div>

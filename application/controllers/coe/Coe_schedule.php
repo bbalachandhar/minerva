@@ -23,6 +23,7 @@ class Coe_schedule extends MY_Addon_CoeController
         $session_id         = $this->input->get('session_id') ?: $this->current_session;
         $data['session_id'] = $session_id;
         $data['events']     = $this->Coe_application_model->getExamEventsBySession($session_id);
+        $data['sessions']   = $this->db->order_by('id', 'DESC')->get('sessions')->result_array();
         $data['title']      = 'Exam Subject Schedule';
 
         $this->load->view('layout/header', $data);
@@ -97,6 +98,64 @@ class Coe_schedule extends MY_Addon_CoeController
             ['batch_exam_id' => $batch_exam_id, 'rows' => $saved]);
 
         echo json_encode(['status' => 'success', 'msg' => "Schedule saved for $saved subject(s)."]);
+    }
+
+    // ------------------------------------------------------------------
+    // print_pdf($batch_exam_id) — Generate schedule PDF
+    // ------------------------------------------------------------------
+    public function print_pdf($batch_exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_schedule', 'can_view')) {
+            access_denied();
+        }
+
+        $batch_exam_id = (int) $batch_exam_id;
+        $event = $this->Coe_application_model->getExamEventByIdRow($batch_exam_id);
+        if (empty($event)) {
+            show_404();
+        }
+
+        $schedule = $this->Coe_schedule_model->getSchedule($batch_exam_id);
+
+        // Build logo base64
+        $sch_setting   = $this->sch_setting_detail;
+        $logo_filename = $sch_setting->image ?? '';
+        $logo_path     = null;
+        if ($logo_filename) {
+            $full = FCPATH . 'uploads/school_content/logo/' . $logo_filename;
+            if (is_file($full)) {
+                $mime = mime_content_type($full) ?: 'image/png';
+                if ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {
+                    $img      = imagecreatefromwebp($full);
+                    ob_start();
+                    imagepng($img);
+                    $raw      = ob_get_clean();
+                    imagedestroy($img);
+                    $logo_path = 'data:image/png;base64,' . base64_encode($raw);
+                } else {
+                    $logo_path = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($full));
+                }
+            }
+        }
+
+        $html = $this->load->view('admin/coe/coe_schedule/print_pdf', [
+            'event'        => $event,
+            'schedule'     => $schedule,
+            'sch_setting'  => $sch_setting,
+            'logo_path'    => $logo_path,
+        ], true);
+
+        $this->load->library('m_pdf');
+        $mpdf = $this->m_pdf->load([
+            'format'        => 'A4-L',
+            'margin_left'   => 15,
+            'margin_right'  => 15,
+            'margin_top'    => 10,
+            'margin_bottom' => 10,
+        ]);
+        $mpdf->WriteHTML($html, 0);
+        $filename = 'ExamSchedule_' . preg_replace('/[^A-Za-z0-9_]/', '_', $event->exam ?? $batch_exam_id) . '.pdf';
+        $mpdf->Output($filename, 'I');
     }
 
     // ------------------------------------------------------------------

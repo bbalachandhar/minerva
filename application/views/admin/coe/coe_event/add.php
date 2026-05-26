@@ -4,7 +4,7 @@
         <h1><i class="fa fa-calendar-plus-o"></i> Create Exam Event</h1>
         <ol class="breadcrumb">
             <li><a href="<?php echo site_url('coe/coe_dashboard'); ?>"><i class="fa fa-home"></i> CoE</a></li>
-            <li><a href="<?php echo site_url('coe/coe_event'); ?>">Exam Events</a></li>
+            <li><a href="<?php echo site_url('coe/coe_event'); ?>"><i class="fa fa-arrow-left"></i> Exam Events</a></li>
             <li class="active">Create</li>
         </ol>
     </section>
@@ -17,6 +17,11 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title">New Exam Event</h3>
+                        <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('coe/coe_event'); ?>" class="btn btn-default btn-sm">
+                                <i class="fa fa-arrow-left"></i> Back
+                            </a>
+                        </div>
                     </div>
                     <form method="post" action="<?php echo site_url('coe/coe_event/save'); ?>" id="event-form">
                         <div class="box-body">

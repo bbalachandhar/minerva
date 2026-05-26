@@ -27,9 +27,17 @@
             <small><?php echo htmlspecialchars($event->exam_group_name); ?> — <?php echo htmlspecialchars($event->exam); ?></small>
         </h1>
         <ol class="breadcrumb">
-            <li><a href="<?php echo site_url('coe/coe_results/listing/'.$batch_exam_id); ?>"><i class="fa fa-arrow-left"></i> Back to Results</a></li>
-            <li><button class="btn btn-xs btn-default" onclick="window.print()"><i class="fa fa-print"></i> Print</button></li>
+            <li><a href="<?php echo site_url('coe/coe_dashboard'); ?>"><i class="fa fa-home"></i> CoE</a></li>
+            <li><a href="<?php echo site_url('coe/coe_results/listing/'.$batch_exam_id); ?>">Result Publication</a></li>
+            <li class="active">Tabulation Sheet</li>
         </ol>
+        <div style="position:absolute;top:15px;right:15px">
+            <a href="<?php echo site_url('coe/coe_results/listing/'.$batch_exam_id); ?>" class="btn btn-default btn-sm">
+                <i class="fa fa-arrow-left"></i> Back to Results
+            </a>
+            &nbsp;
+            <button class="btn btn-default btn-sm" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
+        </div>
     </section>
 
     <section class="content">
@@ -74,11 +82,8 @@
                     <strong style="color:red"><?php echo $fail_total; ?> Fail</strong> &bull;
                     Pass Rate: <strong><?php echo ($pass_total + $fail_total) > 0 ? round($pass_total/($pass_total+$fail_total)*100,1).'%' : '—'; ?></strong>
                     &nbsp;&nbsp;
-                    <button class="btn btn-xs btn-default pull-right" onclick="window.print()">
-                        <i class="fa fa-print"></i> Print / PDF
-                    </button>
                     <a href="<?php echo site_url('coe/coe_results/merit_list/'.$batch_exam_id); ?>"
-                       class="btn btn-xs btn-info pull-right" style="margin-right:5px">
+                       class="btn btn-xs btn-info pull-right">
                         <i class="fa fa-trophy"></i> Merit List
                     </a>
                 </div>

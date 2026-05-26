@@ -3,18 +3,18 @@
 .coe-stat-card { border-radius:12px;color:#fff;padding:18px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 15px rgba(0,0,0,.15);margin-bottom:18px; }
 .coe-stat-card .stat-icon { font-size:2.4rem;opacity:.85;flex-shrink:0; }
 .coe-stat-card .stat-body .stat-num { font-size:2rem;font-weight:700;line-height:1; }
-.coe-stat-card .stat-body .stat-lbl { font-size:.85rem;opacity:.9;margin-top:2px; }
+.coe-stat-card .stat-body .stat-lbl { font-size:.95rem;opacity:.9;margin-top:2px; }
 .card-blue   { background:linear-gradient(135deg,#1565c0,#1976d2); }
 .card-green  { background:linear-gradient(135deg,#2e7d32,#388e3c); }
 .card-purple { background:linear-gradient(135deg,#4527a0,#5c35c5); }
 .card-orange { background:linear-gradient(135deg,#e65100,#f57c00); }
 .roll-card { border-radius:8px;border:1px solid #e0e0e0;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.06); }
 .roll-card .roll-header { padding:10px 16px;background:#f5f5f5;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px; }
-.roll-card .roll-header .sub-name { font-weight:700;color:#37474f;font-size:1rem; }
-.roll-card .roll-header .sub-meta { font-size:.8rem;color:#777; }
+.roll-card .roll-header .sub-name { font-weight:700;color:#37474f;font-size:1.1rem; }
+.roll-card .roll-header .sub-meta { font-size:.9rem;color:#777; }
 .roll-card .roll-body { padding:12px 16px; }
-.final-pill { background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:16px;padding:2px 10px;font-size:.78rem;font-weight:600; }
-.draft-pill  { background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:16px;padding:2px 10px;font-size:.78rem;font-weight:600; }
+.final-pill { background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:16px;padding:3px 12px;font-size:.88rem;font-weight:600; }
+.draft-pill  { background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:16px;padding:3px 12px;font-size:.88rem;font-weight:600; }
 </style>
 
 <div class="content-wrapper">
@@ -101,9 +101,9 @@
           <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
             <div>
               <span style="font-size:1.5rem;font-weight:700;color:#1565c0;"><?php echo (int)$roll->total_students; ?></span>
-              <span style="font-size:.82rem;color:#666;margin-left:4px;">students</span>
+              <span style="font-size:.95rem;color:#666;margin-left:4px;">students</span>
             </div>
-            <div style="font-size:.82rem;color:#777;">
+            <div style="font-size:.92rem;color:#777;">
               Generated: <?php echo $roll->generated_at ? date('d M Y H:i', strtotime($roll->generated_at)) : '—'; ?>
             </div>
             <div style="margin-left:auto;display:flex;gap:8px;">
@@ -126,7 +126,7 @@
           $preview  = array_slice($students, 0, 3);
           ?>
           <?php if (!empty($preview)): ?>
-            <div style="margin-top:10px;font-size:.82rem;color:#555;border-top:1px solid #f0f0f0;padding-top:8px;">
+            <div style="margin-top:10px;font-size:.92rem;color:#555;border-top:1px solid #f0f0f0;padding-top:8px;">
               <strong>Preview:</strong>
               <?php foreach ($preview as $i => $st): ?>
                 <?php echo htmlspecialchars(($st['register_no'] ?? '') . ' — ' . ($st['firstname'] ?? '') . ' ' . ($st['lastname'] ?? '')); ?>

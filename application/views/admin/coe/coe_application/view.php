@@ -76,6 +76,9 @@
     </section>
 
     <section class="content">
+        <a href="<?php echo site_url('coe/coe_application'); ?>" class="btn btn-default btn-sm" style="margin-bottom:14px;">
+            <i class="fa fa-arrow-left"></i> Back to Exam Applications
+        </a>
         <?php echo $this->session->flashdata('msg'); ?>
 
         <?php /* ── MAIN EXAM: subjects not yet assigned warning ──
@@ -102,18 +105,20 @@
         <?php endif; ?>
 
         <?php
-        $total              = (int)($stats->total ?? 0);
-        $total_students     = (int)($stats->total_students ?? 0);
-        $eligible_count     = (int)($stats->eligible_count ?? 0);
-        $eligible_students  = (int)($stats->eligible_students ?? 0);
-        $inelig_count       = (int)($stats->ineligible_count ?? 0);
-        $inelig_students    = (int)($stats->ineligible_students ?? 0);
-        $override_count     = (int)($stats->override_count ?? 0);
-        $override_students  = (int)($stats->override_students ?? 0);
-        $pending_count      = (int)($stats->pending_count ?? 0);
-        $pending_students   = (int)($stats->pending_students ?? 0);
-        $both_count         = (int)($stats->both_fail_count ?? 0);
-        $both_students      = (int)($stats->both_fail_students ?? 0);
+        $total                  = (int)($stats->total ?? 0);
+        $total_students         = (int)($stats->total_students ?? 0);
+        $eligible_count         = (int)($stats->eligible_count ?? 0);
+        $eligible_students      = (int)($stats->eligible_students ?? 0);
+        $inelig_count           = (int)($stats->ineligible_count ?? 0);
+        $inelig_students        = (int)($stats->ineligible_students ?? 0);
+        $override_count         = (int)($stats->override_count ?? 0);
+        $override_students      = (int)($stats->override_students ?? 0);
+        $pending_count          = (int)($stats->pending_count ?? 0);
+        $pending_students       = (int)($stats->pending_students ?? 0);
+        $both_count             = (int)($stats->both_fail_count ?? 0);
+        $both_students          = (int)($stats->both_fail_students ?? 0);
+        $fully_clear_students   = (int)($stats->fully_clear_students ?? 0);
+        $has_ineligible_students = (int)($stats->has_ineligible_students ?? 0);
         $pct = fn($n) => $total_students > 0 ? round(($n / $total_students) * 100, 1) : 0;
         $cbcs_counts   = ['core' => 0, 'elective' => 0, 'open_elective' => 0, 'audit' => 0];
         $cbcs_students = ['core' => [], 'elective' => [], 'open_elective' => [], 'audit' => []];
@@ -371,22 +376,22 @@ if ($is_arrear):
                 </div>
             </div>
             <div class="col-md-2 col-sm-6">
-                <div class="coe-stat-card coe-card-eligible">
+                <div class="coe-stat-card coe-card-eligible" title="All subjects cleared (eligible or overridden)">
                     <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
                     <div>
-                        <div class="stat-num"><?php echo $eligible_students; ?></div>
-                        <div class="stat-lbl">Eligible</div>
-                        <div class="stat-pct"><?php echo $pct($eligible_students); ?>% &middot; <?php echo $eligible_count; ?> apps</div>
+                        <div class="stat-num"><?php echo $fully_clear_students; ?></div>
+                        <div class="stat-lbl">Fully Clear</div>
+                        <div class="stat-pct"><?php echo $pct($fully_clear_students); ?>% &middot; <?php echo $eligible_count + $override_count; ?> apps</div>
                     </div>
                 </div>
             </div>
             <div class="col-md-2 col-sm-6">
-                <div class="coe-stat-card coe-card-inelig">
+                <div class="coe-stat-card coe-card-inelig" title="At least 1 subject still ineligible">
                     <div class="stat-icon"><i class="fa fa-times-circle"></i></div>
                     <div>
-                        <div class="stat-num"><?php echo $inelig_students; ?></div>
-                        <div class="stat-lbl">Ineligible</div>
-                        <div class="stat-pct"><?php echo $pct($inelig_students); ?>% &middot; <?php echo $inelig_count; ?> apps</div>
+                        <div class="stat-num"><?php echo $has_ineligible_students; ?></div>
+                        <div class="stat-lbl">Has Ineligible</div>
+                        <div class="stat-pct"><?php echo $pct($has_ineligible_students); ?>% &middot; <?php echo $inelig_count; ?> apps</div>
                     </div>
                 </div>
             </div>
@@ -488,6 +493,9 @@ if ($is_arrear):
                             <th>Att %</th>
                             <th>Status</th>
                             <th>Reason</th>
+                            <?php if (!($event->coe_locked ?? false) && $this->rbac->hasPrivilege('coe_application', 'can_edit')): ?>
+                            <th style="width:80px;">Action</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
@@ -516,6 +524,21 @@ if ($is_arrear):
                                 echo '<span class="status-pill '.($spMap[$app->application_status]??'sp-pending').'">'.ucfirst(str_replace('_',' ',$app->application_status)).'</span>';
                             ?></td>
                             <td><?php echo $app->ineligible_reason ?? '' ? '<small style="color:#888;">'.ucfirst(str_replace('_',' ',$app->ineligible_reason)).'</small>' : '<span class="text-muted">—</span>'; ?></td>
+                            <?php if (!($event->coe_locked ?? false) && $this->rbac->hasPrivilege('coe_application', 'can_edit')): ?>
+                            <td>
+                                <?php if ($app->application_status === 'ineligible'): ?>
+                                <button type="button" class="btn btn-warning btn-xs btn-override"
+                                    data-id="<?php echo $app->id; ?>"
+                                    data-name="<?php echo htmlspecialchars($app->firstname . ' ' . $app->lastname, ENT_QUOTES); ?>"
+                                    data-subject="<?php echo htmlspecialchars($app->subject_name, ENT_QUOTES); ?>"
+                                    title="Override to eligible">
+                                    <i class="fa fa-unlock-alt"></i> Override
+                                </button>
+                                <?php elseif ($app->application_status === 'override_eligible'): ?>
+                                <span class="text-muted" style="font-size:11px;"><i class="fa fa-check text-warning"></i> Overridden</span>
+                                <?php endif; ?>
+                            </td>
+                            <?php endif; ?>
                         </tr>
                         <?php endforeach; ?>
                         <?php endif; ?>
@@ -580,6 +603,86 @@ if ($is_arrear):
         $('#selNoneSubs').on('click',function(e){
             e.preventDefault();
             $('#subjectsForm input[type=checkbox]').prop('checked',false).each(function(){toggleLbl(this);});
+        });
+    });
+})();
+</script>
+
+<!-- ── Override Eligibility Modal ──────────────────────────────────────── -->
+<div class="modal fade" id="overrideModal" tabindex="-1" role="dialog" aria-labelledby="overrideModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#f39c12;color:#fff;border-radius:3px 3px 0 0;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:0.8;"><span>&times;</span></button>
+                <h4 class="modal-title" id="overrideModalLabel"><i class="fa fa-unlock-alt"></i> Override Eligibility</h4>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:10px;font-size:13px;">
+                    <strong id="override_student_name"></strong><br>
+                    <small class="text-muted" id="override_subject_name"></small>
+                </p>
+                <div class="form-group" style="margin-bottom:6px;">
+                    <label style="font-size:12px;">Reason <span class="text-danger">*</span></label>
+                    <textarea id="override_reason" class="form-control" rows="3"
+                              placeholder="e.g. Medical certificate submitted, Principal approved…"></textarea>
+                </div>
+                <div id="overrideError" class="text-danger" style="font-size:12px;display:none;"></div>
+            </div>
+            <div class="modal-footer" style="padding:10px 15px;">
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning btn-sm" id="overrideConfirmBtn">
+                    <i class="fa fa-unlock-alt"></i> Mark as Eligible
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    var _appId = null;
+
+    $(document).on('click', '.btn-override', function(){
+        _appId = $(this).data('id');
+        $('#override_student_name').text($(this).data('name'));
+        $('#override_subject_name').text($(this).data('subject'));
+        $('#override_reason').val('');
+        $('#overrideError').hide().text('');
+        $('#overrideConfirmBtn').prop('disabled', false).html('<i class="fa fa-unlock-alt"></i> Mark as Eligible');
+        $('#overrideModal').modal('show');
+    });
+
+    $('#overrideConfirmBtn').on('click', function(){
+        var reason = $.trim($('#override_reason').val());
+        if (!reason) {
+            $('#overrideError').text('Please enter a reason.').show();
+            return;
+        }
+        var $btn = $(this);
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving…');
+        $('#overrideError').hide();
+
+        $.ajax({
+            url:  '<?php echo site_url('coe/coe_application/override_status'); ?>/' + _appId,
+            type: 'POST',
+            data: {
+                reason: reason,
+                '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
+            },
+            dataType: 'json',
+            success: function(res){
+                if (res.success) {
+                    $('#overrideModal').modal('hide');
+                    location.reload();
+                } else {
+                    $('#overrideError').text(res.message).show();
+                    $btn.prop('disabled', false).html('<i class="fa fa-unlock-alt"></i> Mark as Eligible');
+                }
+            },
+            error: function(){
+                $('#overrideError').text('Request failed. Please try again.').show();
+                $btn.prop('disabled', false).html('<i class="fa fa-unlock-alt"></i> Mark as Eligible');
+            }
         });
     });
 })();

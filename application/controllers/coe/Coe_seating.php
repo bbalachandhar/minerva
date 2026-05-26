@@ -201,10 +201,10 @@ class Coe_seating extends MY_Addon_CoeController
 
         $assignments = $this->Coe_seating_model->getAssignments($room_id);
         $sch_setting     = $this->sch_setting_detail;
-        $logo_filename   = $sch_setting->admission_logo_left ?? '';
+        $logo_filename   = $sch_setting->image ?? '';
         $logo_path       = null;
         if ($logo_filename) {
-            $full = FCPATH . 'uploads/logos/' . $logo_filename;
+            $full = FCPATH . 'uploads/school_content/logo/' . $logo_filename;
             if (is_file($full)) {
                 $mime = mime_content_type($full) ?: 'image/png';
                 if ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {

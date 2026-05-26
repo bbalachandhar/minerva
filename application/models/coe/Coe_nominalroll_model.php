@@ -192,7 +192,8 @@ class Coe_nominalroll_model extends CI_Model
         $this->db->from('exam_group_class_batch_exams ebe');
         $this->db->join('exam_groups eg', 'eg.id = ebe.exam_group_id', 'left');
         $this->db->join('sessions ses', 'ses.id = ebe.session_id', 'left');
-        $this->db->where('ebe.coe_locked', 1);
+        $this->db->where('ebe.is_end_semester', 1);
+        $this->db->where('ebe.is_active', 1);
         if ($session_id) {
             $this->db->where('ebe.session_id', (int)$session_id);
         }
