@@ -655,6 +655,12 @@ class Student extends Admin_Controller
 
                                                 'medium'            => $this->input->post('medium'),
 
+                                                'allotment_no'      => $this->input->post('allotment_no'),
+
+                                                'consortium_no'     => $this->input->post('consortium_no'),
+
+                                                'application_no'    => $this->input->post('application_no'),
+
 					);
 
 					if ($this->sch_setting_detail->guardian_occupation) {
@@ -1229,7 +1235,7 @@ catch (Exception $e) {
 
         $category = $this->category_model->get();
 
-        $student_fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium');
+        $student_fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium', 'allotment_no', 'consortium_no', 'application_no');
 
         $data["fields"]       = $student_fields;
         $data['categorylist'] = $category;
@@ -1819,6 +1825,9 @@ catch (Exception $e) {
                 'mother_adhar_no'   => $this->input->post('mother_adhar_no'),
                 'migration_cert_num'=> $this->input->post('migration_cert_num'),
                 'medium'            => $this->input->post('medium'),
+                'allotment_no'      => $this->input->post('allotment_no'),
+                'consortium_no'     => $this->input->post('consortium_no'),
+                'application_no'    => $this->input->post('application_no'),
             );
 
 
@@ -3036,7 +3045,7 @@ catch (Exception $e) {
             exit();
         }
 
-        $student_fields = array('admission_no', 'roll_no', 'class', 'section', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium');
+        $student_fields = array('admission_no', 'roll_no', 'class', 'section', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium', 'allotment_no', 'consortium_no', 'application_no');
 
         $file = $_FILES['file']['tmp_name'];
         $valid_records = [];

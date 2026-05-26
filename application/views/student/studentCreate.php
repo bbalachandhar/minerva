@@ -152,6 +152,27 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                                                 <span class="text-danger"><?php echo form_error('medium'); ?></span>
                                                                                             </div>
                                                                                         </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">Allotment No</label>
+                                                                                                <input id="allotment_no" name="allotment_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('allotment_no'); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('allotment_no'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">Consortium No</label>
+                                                                                                <input id="consortium_no" name="consortium_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('consortium_no'); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('consortium_no'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">Application No</label>
+                                                                                                <input id="application_no" name="application_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('application_no'); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('application_no'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
                                                                                     <?php }?>
                                         <div class="col-md-3">
                                             <div class="form-group">
