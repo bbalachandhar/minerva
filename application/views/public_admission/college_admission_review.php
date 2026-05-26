@@ -276,11 +276,13 @@
                     <?php
                     $is_barch_review = (isset($course_name) && stripos($course_name, 'ARCH') !== false);
                     ?>
-                    <?php if (!$is_barch_review): ?>
                     <div class="col-md-6">
+                        <?php if ($is_barch_review): ?>
+                        <p><span class="data-label">Cut Off: NATA + Avg(M+P+C)/3:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
+                        <?php else: ?>
                         <p><span class="data-label">Cut Off Marks (P+C)/2 + M:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
+                        <?php endif; ?>
                     </div>
-                    <?php endif; ?>
                 </div>
             </div>
                 <?php

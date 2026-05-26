@@ -498,7 +498,7 @@
                                     <td colspan="3"><input type="number" step="0.01" min="0" max="100" value="0" class="form-control text-center" name="average_marks" id="average_marks" readonly tabindex="-1"></td>
                                 </tr>
                                 <tr id="cutoff_row">
-                                    <td><strong>Cut Off: (P+C)/2 + M</strong></td>
+                                    <td id="cutoff_label"><strong>Cut Off: (P+C)/2 + M</strong></td>
                                     <td colspan="3"><input type="number" step="0.01" min="0" max="200" value="0" class="form-control text-center" name="cutoff_marks" id="cutoff_marks" readonly tabindex="-1"></td>
                                 </tr>
                             </tbody>
@@ -1016,25 +1016,32 @@
         return null;
     }
 
-    function updateNataVisibility() {
+    function isBarchSelected() {
         const selectedOption = getSelectedCourseOption();
-        const isBarch = selectedOption && selectedOption.data('is-barch') == 1;
-        if (isBarch) {
+        return selectedOption && selectedOption.data('is-barch') == 1;
+    }
+
+    function updateNataVisibility() {
+        const barch = isBarchSelected();
+        if (barch) {
             $("#nata_sec").show();
             $("#nata_score").prop('required', true);
             $("#application_number").prop('required', true);
             $("#nata_year").prop('required', true);
-            // B.Arch uses NATA score — hide the engineering cut-off row
-            $("#cutoff_row").hide();
-            $("#cutoff_marks").val('0');
+            // B.Arch: show cutoff row with NATA formula label
+            $("#cutoff_row").show();
+            $("#cutoff_label").html('<strong>Cut Off: NATA + Avg(M+P+C)/3</strong>');
         } else {
             $("#nata_sec").hide();
             $("#nata_score").prop('required', false);
             $("#application_number").prop('required', false);
             $("#nata_year").prop('required', false);
-            // Show cut-off row for all non-B.Arch courses
+            // Non-B.Arch: standard PCM formula label
             $("#cutoff_row").show();
+            $("#cutoff_label").html('<strong>Cut Off: (P+C)/2 + M</strong>');
         }
+        // Recalculate after label/formula change
+        if (typeof calculateTotal === 'function') { calculateTotal(); }
     }
 
     function updateCourseFee() {
@@ -1255,25 +1262,34 @@
             let mathsMarks     = calculatePercentage("#maths_marks", "#total_maths", "#maths_perc");
             let physicsMarks   = calculatePercentage("#physics_marks", "#total_physics", "#physics_perc");
             let chemistryMarks = calculatePercentage("#chemistry_marks", "#total_chemistry", "#chemistry_perc");
-            
-            // Calculate Cut Off: (P+C)/2 + M
-            // And Average: (P+C+M)/3
+
             setTimeout(function() {
-                let mathsPerc = parseFloat($("#maths_perc").val() || 0);
-                let physicsPerc = parseFloat($("#physics_perc").val() || 0);
+                let mathsPerc     = parseFloat($("#maths_perc").val() || 0);
+                let physicsPerc   = parseFloat($("#physics_perc").val() || 0);
                 let chemistryPerc = parseFloat($("#chemistry_perc").val() || 0);
-                
-                // Cut Off = (P+C)/2 + M
-                let PCAvg = (physicsPerc + chemistryPerc) / 2;
-                let cutoff = PCAvg + mathsPerc;
-                $("#cutoff_marks").val(cutoff.toFixed(2));
-                
-                // Average = (P+C+M)/3
-                let average = (physicsPerc + chemistryPerc + mathsPerc) / 3;
+
+                // Average = (M+P+C)/3  — same for all courses
+                let average = (mathsPerc + physicsPerc + chemistryPerc) / 3;
                 $("#average_marks").val(average.toFixed(2));
+
+                // Cut Off formula depends on course
+                let cutoff;
+                if (typeof isBarchSelected === 'function' && isBarchSelected()) {
+                    // B.Arch: Cut Off = NATA Score % + (M+P+C)/3
+                    let nataScore = parseFloat($("#nata_score").val() || 0);
+                    cutoff = nataScore + average;
+                } else {
+                    // Engineering / others: Cut Off = (P+C)/2 + M
+                    cutoff = (physicsPerc + chemistryPerc) / 2 + mathsPerc;
+                }
+                $("#cutoff_marks").val(cutoff.toFixed(2));
             }, 10);
         }
         $("#maths_marks, #total_maths, #physics_marks, #total_physics, #chemistry_marks, #total_chemistry").on("input", function() {
+            calculateTotal();
+        });
+        // Recalculate cut-off whenever NATA score changes (B.Arch only)
+        $(document).on("input", "#nata_score", function() {
             calculateTotal();
         });
     });

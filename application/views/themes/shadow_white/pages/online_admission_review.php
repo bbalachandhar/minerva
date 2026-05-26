@@ -268,22 +268,12 @@
                 </div>
               </div>
               <?php $is_barch_rev = (!empty($nata_details) && (isset($nata_details['nata_score']) || isset($nata_details['application_number']))); ?>
-              <?php if (!$is_barch_rev): ?>
               <div class="col-md-6 col-lg-6 col-sm-6">
                 <div class="form-group">
-                  <label><b>Cut Off Marks (P+C)/2 + M</b></label>
+                  <label><b><?php echo $is_barch_rev ? 'Cut Off: NATA + Avg(M+P+C)/3' : 'Cut Off Marks (P+C)/2 + M'; ?></b></label>
                   <p><?php echo ($cutoff_marks !== null) ? $cutoff_marks : "--"; ?></p>
                 </div>
               </div>
-              <?php endif; ?>
-              <?php if ($is_barch_rev && !empty($nata_details['nata_score'])): ?>
-              <div class="col-md-6 col-lg-6 col-sm-6">
-                <div class="form-group">
-                  <label><b>NATA Score %</b></label>
-                  <p><?php echo $nata_details['nata_score']; ?></p>
-                </div>
-              </div>
-              <?php endif; ?>
               </div>
             </div>
             <?php }?>
