@@ -553,7 +553,7 @@ if (is_string($field_value->field_value) && is_array(json_decode($field_value->f
           <?php $is_barch_rev = (!empty($nata_details) && (isset($nata_details['nata_score']) || isset($nata_details['application_number']))); ?>
           <div class="col-md-6 col-lg-6 col-sm-6">
             <div class="form-group">
-              <label><b><?php echo $is_barch_rev ? 'Cut Off: NATA + Avg(M+P+C)/3' : 'Cut Off Marks (P+C)/2 + M'; ?></b></label>
+              <label><b><?php echo $is_barch_rev ? 'Cut Off: NATA + (Obtained/Total)×200' : 'Cut Off Marks (P+C)/2 + M'; ?></b></label>
               <p><?php echo ($cutoff_marks !== null) ? $cutoff_marks : "--"; ?></p>
             </div>
           </div>

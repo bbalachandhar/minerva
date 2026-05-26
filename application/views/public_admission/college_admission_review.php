@@ -278,7 +278,7 @@
                     ?>
                     <div class="col-md-6">
                         <?php if ($is_barch_review): ?>
-                        <p><span class="data-label">Cut Off: NATA + Avg(M+P+C)/3:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
+                        <p><span class="data-label">Cut Off: NATA + (Obtained/Total)×200:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
                         <?php else: ?>
                         <p><span class="data-label">Cut Off Marks (P+C)/2 + M:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
                         <?php endif; ?>

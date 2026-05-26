@@ -497,9 +497,15 @@
                                     <td><strong>Average: (P+C+M)/3</strong></td>
                                     <td colspan="3"><input type="number" step="0.01" min="0" max="100" value="0" class="form-control text-center" name="average_marks" id="average_marks" readonly tabindex="-1"></td>
                                 </tr>
+                                <tr id="barch_hsc_total_row" style="display:none;">
+                                    <td><strong>Total Marks (HSC) *</strong><br><small>All subjects combined</small></td>
+                                    <td><input type="number" step="1" min="1" value="" class="form-control text-center" name="hsc_total_marks" id="hsc_total_marks" tabindex="31"></td>
+                                    <td><input type="number" step="1" min="0" value="" class="form-control text-center" name="hsc_marks_obtained" id="hsc_marks_obtained" tabindex="32"></td>
+                                    <td></td>
+                                </tr>
                                 <tr id="cutoff_row">
                                     <td id="cutoff_label"><strong>Cut Off: (P+C)/2 + M</strong></td>
-                                    <td colspan="3"><input type="number" step="0.01" min="0" max="200" value="0" class="form-control text-center" name="cutoff_marks" id="cutoff_marks" readonly tabindex="-1"></td>
+                                    <td colspan="3"><input type="number" step="0.01" min="0" max="400" value="0" class="form-control text-center" name="cutoff_marks" id="cutoff_marks" readonly tabindex="-1"></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1030,7 +1036,8 @@
             $("#nata_year").prop('required', true);
             // B.Arch: show cutoff row with NATA formula label
             $("#cutoff_row").show();
-            $("#cutoff_label").html('<strong>Cut Off: NATA + Avg(M+P+C)/3</strong>');
+            $("#cutoff_label").html('<strong>Cut Off: NATA + (Obtained/Total)\u00D7200</strong>');
+            $("#barch_hsc_total_row").show();
         } else {
             $("#nata_sec").hide();
             $("#nata_score").prop('required', false);
@@ -1275,9 +1282,11 @@
                 // Cut Off formula depends on course
                 let cutoff;
                 if (typeof isBarchSelected === 'function' && isBarchSelected()) {
-                    // B.Arch: Cut Off = NATA Score % + (M+P+C)/3
-                    let nataScore = parseFloat($("#nata_score").val() || 0);
-                    cutoff = nataScore + average;
+                    // B.Arch: Cut Off = NATA Score + ((hsc_marks_obtained / hsc_total_marks) * 200)
+                    let nataScore   = parseFloat($("#nata_score").val() || 0);
+                    let hscTotal    = parseFloat($("#hsc_total_marks").val() || 0);
+                    let hscObtained = parseFloat($("#hsc_marks_obtained").val() || 0);
+                    cutoff = (hscTotal > 0) ? nataScore + ((hscObtained / hscTotal) * 200) : 0;
                 } else {
                     // Engineering / others: Cut Off = (P+C)/2 + M
                     cutoff = (physicsPerc + chemistryPerc) / 2 + mathsPerc;
@@ -1288,8 +1297,8 @@
         $("#maths_marks, #total_maths, #physics_marks, #total_physics, #chemistry_marks, #total_chemistry").on("input", function() {
             calculateTotal();
         });
-        // Recalculate cut-off whenever NATA score changes (B.Arch only)
-        $(document).on("input", "#nata_score", function() {
+        // Recalculate cut-off whenever NATA score or HSC totals change (B.Arch only)
+        $(document).on("input", "#nata_score, #hsc_total_marks, #hsc_marks_obtained", function() {
             calculateTotal();
         });
     });

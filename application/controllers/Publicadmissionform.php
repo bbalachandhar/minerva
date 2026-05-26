@@ -1532,6 +1532,17 @@ class PublicAdmissionForm extends CI_Controller
                 $insert_data_online_admission['school_name_x'] = !empty($data['school_name']) ? $data['school_name'] : null;
                 $insert_data_online_admission['passing_year_x'] = !empty($data['tenth_passing']) ? $data['tenth_passing'] : null;
                 $insert_data_online_admission['tenth_marks_percentage'] = !empty($data['tenth_marks_percentage']) ? $data['tenth_marks_percentage'] : null;
+
+                // B.Arch: save HSC totals and recalculate cutoff with NATA formula
+                if ($this->is_barch_course($data['ug_course'] ?? null)) {
+                    $hsc_total    = isset($data['hsc_total_marks'])    ? (float)$data['hsc_total_marks']    : null;
+                    $hsc_obtained = isset($data['hsc_marks_obtained']) ? (float)$data['hsc_marks_obtained'] : null;
+                    $nata_val     = isset($data['nata_score'])          ? (float)$data['nata_score']         : 0;
+                    $barch_cutoff = ($hsc_total > 0) ? round($nata_val + (($hsc_obtained / $hsc_total) * 200), 2) : null;
+                    $insert_data_online_admission['hsc_total_marks']    = $hsc_total;
+                    $insert_data_online_admission['hsc_marks_obtained'] = $hsc_obtained;
+                    $insert_data_online_admission['cutoff_marks']       = $barch_cutoff;
+                }
             } elseif ($courseLevel == 'lateral') {
                 // For lateral entry, save X std details to main table
                 $insert_data_online_admission['school_name_x'] = !empty($data['lateral_school_name']) ? $data['lateral_school_name'] : null;
@@ -2114,6 +2125,17 @@ class PublicAdmissionForm extends CI_Controller
                 $insert_data_online_admission['school_name_x'] = !empty($data['school_name']) ? $data['school_name'] : null;
                 $insert_data_online_admission['passing_year_x'] = !empty($data['tenth_passing']) ? $data['tenth_passing'] : null;
                 $insert_data_online_admission['tenth_marks_percentage'] = !empty($data['tenth_marks_percentage']) ? $data['tenth_marks_percentage'] : null;
+
+                // B.Arch: save HSC totals and recalculate cutoff with NATA formula
+                if ($this->is_barch_course($data['ug_course'] ?? null)) {
+                    $hsc_total    = isset($data['hsc_total_marks'])    ? (float)$data['hsc_total_marks']    : null;
+                    $hsc_obtained = isset($data['hsc_marks_obtained']) ? (float)$data['hsc_marks_obtained'] : null;
+                    $nata_val     = isset($data['nata_score'])          ? (float)$data['nata_score']         : 0;
+                    $barch_cutoff = ($hsc_total > 0) ? round($nata_val + (($hsc_obtained / $hsc_total) * 200), 2) : null;
+                    $insert_data_online_admission['hsc_total_marks']    = $hsc_total;
+                    $insert_data_online_admission['hsc_marks_obtained'] = $hsc_obtained;
+                    $insert_data_online_admission['cutoff_marks']       = $barch_cutoff;
+                }
             } elseif ($courseLevel == 'lateral') {
                 // For lateral entry, save X std details to main table
                 $insert_data_online_admission['school_name_x'] = !empty($data['lateral_school_name']) ? $data['lateral_school_name'] : null;

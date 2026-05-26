@@ -56,6 +56,7 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                                                 $display    = htmlspecialchars($course['course_name']) . ' (' . $type_label . ')';
                                             ?>
                                             <option value="<?php echo (int)$course['id']; ?>"
+                                                data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>"
                                                 <?php echo (isset($selected_course_id) && (int)$selected_course_id === (int)$course['id']) ? 'selected' : ''; ?>>
                                                 <?php echo $display; ?>
                                             </option>
@@ -331,12 +332,44 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                                             <td><strong>Average: (P+C+M)/3</strong></td>
                                             <td colspan="3"><input type="number" step="0.01" class="form-control text-center" id="average_marks" name="average_marks" value="<?php echo set_value('average_marks', $student['average_marks']); ?>" readonly></td>
                                         </tr>
+                                        <tr id="barch_hsc_row" style="display:none;">
+                                            <td><strong>Total (HSC) <span class="text-danger">*</span></strong><br><small class="text-muted">All subjects combined</small></td>
+                                            <td><input type="number" step="1" min="1" class="form-control text-center" id="hsc_total_marks" name="hsc_total_marks" value="<?php echo set_value('hsc_total_marks', isset($student['hsc_total_marks']) ? $student['hsc_total_marks'] : ''); ?>"></td>
+                                            <td><input type="number" step="1" min="0" class="form-control text-center" id="hsc_marks_obtained" name="hsc_marks_obtained" value="<?php echo set_value('hsc_marks_obtained', isset($student['hsc_marks_obtained']) ? $student['hsc_marks_obtained'] : ''); ?>"></td>
+                                            <td></td>
+                                        </tr>
                                         <tr class="bg-light">
-                                            <td><strong>Cut Off: (P+C)/2 + M</strong></td>
+                                            <td><strong id="cutoff_label_edit">Cut Off: (P+C)/2 + M</strong></td>
                                             <td colspan="3"><input type="number" step="0.01" class="form-control text-center" id="cutoff_marks" name="cutoff_marks" value="<?php echo set_value('cutoff_marks', $student['cutoff_marks']); ?>" readonly></td>
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <!-- B.Arch NATA Details -->
+                            <div id="barch_nata_section" style="display:none;">
+                                <hr>
+                                <h4 style="margin-top: 20px; margin-bottom: 15px;"><strong>NATA Details (B.Arch)</strong></h4>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>NATA Score % <span class="text-danger">*</span></label>
+                                            <input type="number" step="0.01" min="0" max="200" class="form-control" id="nata_score_edit" name="nata_score" placeholder="Enter NATA Score" value="<?php echo isset($nata_details['nata_score']) ? htmlspecialchars($nata_details['nata_score']) : ''; ?>">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>NATA Application Number</label>
+                                            <input type="text" class="form-control" id="nata_application_number" name="nata_application_number" placeholder="Enter Application No." value="<?php echo isset($nata_details['application_number']) ? htmlspecialchars($nata_details['application_number']) : ''; ?>">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>NATA Year</label>
+                                            <input type="text" class="form-control" id="nata_year" name="nata_year" placeholder="e.g. 2025" value="<?php echo isset($nata_details['nata_year']) ? htmlspecialchars($nata_details['nata_year']) : ''; ?>">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Additional Fields -->
@@ -488,21 +521,36 @@ function calculatePercentage(marksId, totalId, percId) {
     return marks;
 }
 
+function isBarchEdit() {
+    var sel = $("#admission_course_id option:selected");
+    return sel.length && sel.data('is-barch') == 1;
+}
+
 function calculateTotal() {
     calculatePercentage("#maths_marks", "#total_maths", "#maths_perc");
     calculatePercentage("#physics_marks", "#total_physics", "#physics_perc");
     calculatePercentage("#chemistry_marks", "#total_chemistry", "#chemistry_perc");
 
     setTimeout(function() {
-        var mathsPerc = parseFloat($("#maths_perc").val() || 0);
-        var physicsPerc = parseFloat($("#physics_perc").val() || 0);
+        var mathsPerc    = parseFloat($("#maths_perc").val() || 0);
+        var physicsPerc  = parseFloat($("#physics_perc").val() || 0);
         var chemistryPerc = parseFloat($("#chemistry_perc").val() || 0);
 
-        var cutoff = ((physicsPerc + chemistryPerc) / 2) + mathsPerc;
-        $("#cutoff_marks").val(cutoff.toFixed(2));
-
-        var average = (physicsPerc + chemistryPerc + mathsPerc) / 3;
+        var average = (mathsPerc + physicsPerc + chemistryPerc) / 3;
         $("#average_marks").val(average.toFixed(2));
+
+        var cutoff;
+        if (isBarchEdit()) {
+            var nataScore    = parseFloat($("#nata_score_edit").val() || 0);
+            var hscTotal     = parseFloat($("#hsc_total_marks").val() || 0);
+            var hscObtained  = parseFloat($("#hsc_marks_obtained").val() || 0);
+            cutoff = (hscTotal > 0) ? nataScore + ((hscObtained / hscTotal) * 200) : 0;
+            $("#cutoff_label_edit").text('Cut Off: NATA + (Obtained/Total)\u00D7200');
+        } else {
+            cutoff = ((physicsPerc + chemistryPerc) / 2) + mathsPerc;
+            $("#cutoff_label_edit").text('Cut Off: (P+C)/2 + M');
+        }
+        $("#cutoff_marks").val(cutoff.toFixed(2));
     }, 10);
 }
 
@@ -534,8 +582,26 @@ $(document).ready(function() {
     $("#maths_marks, #total_maths, #physics_marks, #total_physics, #chemistry_marks, #total_chemistry").on("input", function() {
         calculateTotal();
     });
+    $("#nata_score_edit, #hsc_total_marks, #hsc_marks_obtained").on("input", function() {
+        calculateTotal();
+    });
 
-    calculateTotal();
+    function updateBarchVisibility() {
+        if (isBarchEdit()) {
+            $("#barch_hsc_row").show();
+            $("#barch_nata_section").show();
+        } else {
+            $("#barch_hsc_row").hide();
+            $("#barch_nata_section").hide();
+        }
+        calculateTotal();
+    }
+
+    $("#admission_course_id").on("change", function() {
+        updateBarchVisibility();
+    });
+
+    updateBarchVisibility();
 });
 </script>
 <script>

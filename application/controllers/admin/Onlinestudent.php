@@ -1192,8 +1192,10 @@ class Onlinestudent extends Admin_Controller
         // Load related data
         $this->load->model('Online_admission_ug_details_model');
         $this->load->model('Online_admission_references_model');
+        $this->load->model('Online_admission_nata_details_model');
         $ug_details = $this->Online_admission_ug_details_model->get_by_online_admission_id($id);
         $reference_details = $this->Online_admission_references_model->get_by_online_admission_id($id);
+        $nata_details = $this->Online_admission_nata_details_model->get_by_online_admission_id($id);
         $this->load->model('Onlineadmissioncourses_model');
 
         $selected_course_id = !empty($student['admission_course_id']) ? (int)$student['admission_course_id'] : (!empty($student['ug_course_id']) ? (int)$student['ug_course_id'] : null);
@@ -1227,6 +1229,7 @@ class Onlinestudent extends Admin_Controller
             $data['id'] = $id;
             $data['ug_details'] = $ug_details;
             $data['reference_details'] = $reference_details;
+            $data['nata_details'] = $nata_details;
             $data['course_applied'] = $course_applied;
             $data['selected_course_id'] = $selected_course_id;
             $data['all_courses'] = $all_courses;
@@ -1270,6 +1273,8 @@ class Onlinestudent extends Admin_Controller
                 'chemistry_perc' => $this->input->post('chemistry_perc'),
                 'average_marks' => $this->input->post('average_marks'),
                 'cutoff_marks' => $this->input->post('cutoff_marks'),
+                'hsc_total_marks' => ($this->input->post('hsc_total_marks') !== '' && $this->input->post('hsc_total_marks') !== null) ? (float)$this->input->post('hsc_total_marks') : null,
+                'hsc_marks_obtained' => ($this->input->post('hsc_marks_obtained') !== '' && $this->input->post('hsc_marks_obtained') !== null) ? (float)$this->input->post('hsc_marks_obtained') : null,
                 'school_name_x' => htmlspecialchars($this->input->post('school_name')),
                 'passing_year_x' => $this->input->post('tenth_passing'),
                 'tenth_marks_percentage' => $this->input->post('tenth_marks_percentage'),
@@ -1303,6 +1308,23 @@ class Onlinestudent extends Admin_Controller
 
             // Update online_admissions table
             $this->onlinestudent_model->edit($update_data);
+
+            // Update or insert NATA details if nata_score was submitted
+            $nata_score_post = $this->input->post('nata_score');
+            if ($nata_score_post !== false && $nata_score_post !== null) {
+                $nata_row = $this->Online_admission_nata_details_model->get_by_online_admission_id($id);
+                $nata_payload = array(
+                    'nata_score'         => $nata_score_post,
+                    'application_number' => $this->input->post('nata_application_number') ?: '',
+                    'nata_year'          => $this->input->post('nata_year') ?: '',
+                );
+                if ($nata_row) {
+                    $this->db->where('online_admission_id', $id)->update('online_admission_nata_details', $nata_payload);
+                } else {
+                    $nata_payload['online_admission_id'] = $id;
+                    $this->db->insert('online_admission_nata_details', $nata_payload);
+                }
+            }
 
             // Update UG details if exists, otherwise create a new row
             $school_name = htmlspecialchars($this->input->post('school_name'));
