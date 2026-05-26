@@ -23,11 +23,11 @@
                         <i class="fa fa-eye-slash"></i> Unpublish Results
                     </button>
                     &nbsp;
-                    <a href="<?php echo site_url('coe/coe_results/export/' . $batch_exam_id); ?>" class="btn btn-default">
+                    <a href="<?php echo site_url('coe/coe_results/export/' . $batch_exam_id); ?>" class="btn btn-success">
                         <i class="fa fa-download"></i> Export CSV
                     </a>
                     &nbsp;
-                    <a href="<?php echo site_url('coe/coe_results/tabulation/' . $batch_exam_id); ?>" class="btn btn-default">
+                    <a href="<?php echo site_url('coe/coe_results/tabulation/' . $batch_exam_id); ?>" class="btn btn-primary">
                         <i class="fa fa-table"></i> Tabulation Sheet
                     </a>
                     &nbsp;
@@ -43,11 +43,11 @@
                         <i class="fa fa-bullhorn"></i> Publish Results
                     </button>
                     &nbsp;
-                    <a href="<?php echo site_url('coe/coe_results/export/' . $batch_exam_id); ?>" class="btn btn-default">
+                    <a href="<?php echo site_url('coe/coe_results/export/' . $batch_exam_id); ?>" class="btn btn-success">
                         <i class="fa fa-download"></i> Export CSV
                     </a>
                     &nbsp;
-                    <a href="<?php echo site_url('coe/coe_results/tabulation/' . $batch_exam_id); ?>" class="btn btn-default">
+                    <a href="<?php echo site_url('coe/coe_results/tabulation/' . $batch_exam_id); ?>" class="btn btn-primary">
                         <i class="fa fa-table"></i> Tabulation Sheet
                     </a>
                     &nbsp;
