@@ -188,7 +188,7 @@
                         <div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" style="padding:6px 12px;margin-bottom:5px">
                             <i class="fa <?= htmlspecialchars($alert['icon']) ?> fa-fw"></i>
                             <?= htmlspecialchars($alert['message']) ?>
-                            <a href="<?= htmlspecialchars($alert['link']) ?>" class="btn btn-xs btn-<?= htmlspecialchars($alert['type']) ?> pull-right" style="margin-top:-1px">Act Now &rarr;</a>
+                            <a href="<?= htmlspecialchars($alert['link']) ?>" class="btn btn-xs btn-default pull-right" style="margin-top:-1px;font-weight:600">Act Now &rarr;</a>
                         </div>
                         <?php endforeach; ?>
                     </div>
