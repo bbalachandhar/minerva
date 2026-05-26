@@ -273,9 +273,14 @@
                     <div class="col-md-6">
                         <p><span class="data-label">Average Marks (P+C+M)/3:</span> <span class="data-value"><?php echo isset($hsc_details['average_marks']) ? $hsc_details['average_marks'] : ''; ?></span></p>
                     </div>
+                    <?php
+                    $is_barch_review = (isset($course_name) && stripos($course_name, 'ARCH') !== false);
+                    ?>
+                    <?php if (!$is_barch_review): ?>
                     <div class="col-md-6">
                         <p><span class="data-label">Cut Off Marks (P+C)/2 + M:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
                 <?php
@@ -292,8 +297,8 @@
                 ?>
                 <?php if ($is_barch_course && $has_nata_data): ?>
                 <div class="section-card">
-                    <h5 class="mb-2">NATA Details</h5>
-                    <p><span class="data-label">Score:</span> <span class="data-value"><?php echo $nata_details['nata_score']; ?></span></p>
+                    <h5 class="mb-2">NATA Score</h5>
+                    <p><span class="data-label">NATA Score %:</span> <span class="data-value"><?php echo $nata_details['nata_score']; ?></span></p>
                     <p><span class="data-label">Application Number:</span> <span class="data-value"><?php echo $nata_details['application_number']; ?></span></p>
                     <p><span class="data-label">Year:</span> <span class="data-value"><?php echo $nata_details['nata_year']; ?></span></p>
                 </div>

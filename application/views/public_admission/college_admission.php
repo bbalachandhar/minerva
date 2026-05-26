@@ -497,7 +497,7 @@
                                     <td><strong>Average: (P+C+M)/3</strong></td>
                                     <td colspan="3"><input type="number" step="0.01" min="0" max="100" value="0" class="form-control text-center" name="average_marks" id="average_marks" readonly tabindex="-1"></td>
                                 </tr>
-                                <tr>
+                                <tr id="cutoff_row">
                                     <td><strong>Cut Off: (P+C)/2 + M</strong></td>
                                     <td colspan="3"><input type="number" step="0.01" min="0" max="200" value="0" class="form-control text-center" name="cutoff_marks" id="cutoff_marks" readonly tabindex="-1"></td>
                                 </tr>
@@ -660,10 +660,11 @@
                     
                     <div id="nata_sec" style="display:none">
                         <div class="section-card">
-                            <h5 class="mb-2">NATA/JEE2 (for B.Arch only)</h5>
+                            <h5 class="mb-2">NATA Score (for B.Arch only)</h5>
+                            <p class="text-muted small mb-3">For B.Arch courses, admission eligibility is based on NATA Score % — not cut-off marks.</p>
                             <div class="mb-3">
-                                <label class="form-label">Score</label>
-                                <input class="form-control" placeholder="Enter Score" name="nata_score" id="nata_score" tabindex="68">
+                                <label class="form-label">NATA Score % <span class="text-danger">*</span></label>
+                                <input class="form-control" placeholder="Enter NATA Score %" name="nata_score" id="nata_score" tabindex="68">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Application Form</label>
@@ -1023,11 +1024,16 @@
             $("#nata_score").prop('required', true);
             $("#application_number").prop('required', true);
             $("#nata_year").prop('required', true);
+            // B.Arch uses NATA score — hide the engineering cut-off row
+            $("#cutoff_row").hide();
+            $("#cutoff_marks").val('0');
         } else {
             $("#nata_sec").hide();
             $("#nata_score").prop('required', false);
             $("#application_number").prop('required', false);
             $("#nata_year").prop('required', false);
+            // Show cut-off row for all non-B.Arch courses
+            $("#cutoff_row").show();
         }
     }
 

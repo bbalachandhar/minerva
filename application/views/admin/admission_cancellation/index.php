@@ -91,7 +91,15 @@
                                     <td>
                                         <?php
                                         $rs = $row['refund_status'] ?? 'pending';
-                                        $label_class = $rs === 'processed' ? 'success' : ($rs === 'rejected' ? 'danger' : 'warning');
+                                        if ($rs === 'processed') {
+                                            $label_class = 'success';
+                                        } elseif ($rs === 'rejected') {
+                                            $label_class = 'danger';
+                                        } elseif ($rs === 'voided') {
+                                            $label_class = 'default';
+                                        } else {
+                                            $label_class = 'warning';
+                                        }
                                         echo '<span class="label label-' . $label_class . '">' . ucfirst($rs) . '</span>';
                                         ?>
                                     </td>
@@ -110,6 +118,12 @@
                                             data-toggle="tooltip" title="Update Refund Status"
                                             onclick="openUpdateRefundModal(<?php echo (int) $row['refund_id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>', '<?php echo number_format((float) $row['refund_amount'], 2); ?>')">
                                             <i class="fa fa-pencil"></i>
+                                        </button>
+                                        <!-- Readmit (only when refund still pending) -->
+                                        <button type="button" class="btn btn-warning btn-xs"
+                                            data-toggle="tooltip" title="Readmit (Cancel Revocation)"
+                                            onclick="openReadmitModal(<?php echo (int) $row['admission_id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>', '<?php echo htmlspecialchars(trim($row['firstname'] . ' ' . $row['middlename'] . ' ' . $row['lastname'])); ?>')">
+                                            <i class="fa fa-undo"></i>
                                         </button>
                                         <?php endif; ?>
                                     </td>
@@ -197,6 +211,46 @@
     </div>
 </div>
 
+<!-- =====================================================================
+     READMIT MODAL
+     ===================================================================== -->
+<div class="modal fade" id="readmitModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <form id="readmit_form">
+            <div class="modal-content">
+                <div class="modal-header bg-warning-faint">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-undo text-warning"></i> Readmit Application</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="callout callout-warning">
+                        <p><strong>This will cancel the revocation</strong> — the application will be restored to <em>Active</em> status and the pending refund will be voided.</p>
+                        <p class="mb-0">Only allowed when refund has <strong>not yet been processed</strong>.</p>
+                    </div>
+                    <input type="hidden" name="admission_id" id="readmit_admission_id">
+                    <div class="form-group">
+                        <label>Reference No.</label>
+                        <input type="text" class="form-control" id="readmit_ref_display" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Applicant Name</label>
+                        <input type="text" class="form-control" id="readmit_name_display" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Reason for Readmission <span class="text-danger">*</span></label>
+                        <textarea name="readmit_reason" id="readmit_reason" class="form-control" rows="3"
+                                  placeholder="Enter reason for readmitting this application (mandatory)" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
+                    <button type="submit" class="btn btn-warning"><i class="fa fa-undo"></i> Confirm Readmit</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 (function ($) {
     'use strict';
@@ -256,6 +310,49 @@
         });
     });
 
+    // Open readmit modal
+    window.openReadmitModal = function (admissionId, refNo, name) {
+        $('#readmit_admission_id').val(admissionId);
+        $('#readmit_ref_display').val(refNo);
+        $('#readmit_name_display').val(name);
+        $('#readmit_reason').val('');
+        $('#readmitModal').modal('show');
+    };
+
+    // Submit readmit form
+    $('#readmit_form').on('submit', function (e) {
+        e.preventDefault();
+        var reason = $('#readmit_reason').val().trim();
+        if (!reason) {
+            errorMsg('Reason for readmission is required.');
+            return;
+        }
+        if (!confirm('Are you sure you want to readmit this application? The pending refund will be voided and the application will be restored to Active status.')) {
+            return;
+        }
+        var $btn = $(this).find('[type="submit"]').prop('disabled', true).text('Processing...');
+        $.ajax({
+            url: '<?php echo site_url("admin/admission_cancellation/readmit"); ?>',
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function (res) {
+                $btn.prop('disabled', false).text('Confirm Readmit');
+                if (res.status === 'success') {
+                    successMsg(res.message);
+                    $('#readmitModal').modal('hide');
+                    setTimeout(function () { location.reload(); }, 1200);
+                } else {
+                    errorMsg(res.message || 'Error processing readmit.');
+                }
+            },
+            error: function () {
+                $btn.prop('disabled', false).text('Confirm Readmit');
+                errorMsg('Server error. Please try again.');
+            }
+        });
+    });
+
     // Open update refund modal
     window.openUpdateRefundModal = function (refundId, refNo, amount) {
         $('#update_refund_id').val(refundId);
@@ -279,7 +376,7 @@
         html += '<tr><th>Refund Mode</th><td>' + (row.refund_mode ? row.refund_mode : '—') + '</td>';
         html += '<th>Refund Ref. No.</th><td>' + (row.refund_reference_no || 'Not yet assigned') + '</td></tr>';
         var rs = row.refund_status || 'pending';
-        var lbl = rs === 'processed' ? 'success' : (rs === 'rejected' ? 'danger' : 'warning');
+        var lbl = rs === 'processed' ? 'success' : (rs === 'rejected' ? 'danger' : (rs === 'voided' ? 'default' : 'warning'));
         html += '<tr><th>Refund Status</th><td><span class="label label-' + lbl + '">' + rs.charAt(0).toUpperCase() + rs.slice(1) + '</span></td>';
         html += '<th>Processed By</th><td>' + (row.processed_by_name || '—') + '</td></tr>';
         html += '<tr><th>Cancelled By</th><td>' + (row.cancelled_by_name || '—') + '</td>';

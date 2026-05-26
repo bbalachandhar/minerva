@@ -218,4 +218,43 @@ class Admission_cancellation extends Admin_Controller
             'ref_no'            => $admission['reference_no'],
         ]);
     }
+
+    // ------------------------------------------------------------------
+    // READMIT — reverse a cancellation
+    // ------------------------------------------------------------------
+
+    /**
+     * POST admin/admission_cancellation/readmit/{admission_id}
+     * Restores a cancelled admission to active and voids the pending refund.
+     */
+    public function readmit($admission_id = null)
+    {
+        if (!$this->rbac->hasPrivilege('admission_cancellation', 'can_edit')) {
+            echo json_encode(['status' => 'error', 'message' => $this->lang->line('access_denied')]);
+            return;
+        }
+
+        $admission_id = (int) ($admission_id ?: $this->input->post('admission_id'));
+
+        if (!$admission_id) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid admission ID.']);
+            return;
+        }
+
+        $readmit_reason = trim((string) $this->input->post('readmit_reason'));
+        if ($readmit_reason === '') {
+            echo json_encode(['status' => 'error', 'message' => 'Readmit reason is required.']);
+            return;
+        }
+
+        $result = $this->Admission_cancellation_model->readmit_admission($admission_id, [
+            'readmit_reason' => $readmit_reason,
+            'readmitted_by'  => $this->customlib->getStaffID() ?: null,
+        ]);
+
+        echo json_encode([
+            'status'  => $result['success'] ? 'success' : 'error',
+            'message' => $result['message'],
+        ]);
+    }
 }

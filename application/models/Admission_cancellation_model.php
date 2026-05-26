@@ -324,4 +324,91 @@ class Admission_cancellation_model extends CI_Model
 
         return round($incidental_total + $gateway_total, 2);
     }
+
+    // ------------------------------------------------------------------
+    // READMIT AN ADMISSION
+    // ------------------------------------------------------------------
+
+    /**
+     * Reverse a cancellation — restore admission to active and void the refund.
+     * Only permitted when refund_status is 'pending' (money not yet returned).
+     *
+     * @param  int   $admission_id
+     * @param  array $data {
+     *   readmit_reason  string  (required)
+     *   readmitted_by   int     staff ID
+     * }
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function readmit_admission($admission_id, $data)
+    {
+        $admission_id = (int) $admission_id;
+
+        $admission = $this->db
+            ->select('id, reference_no, admission_status')
+            ->from('online_admissions')
+            ->where('id', $admission_id)
+            ->get()
+            ->row_array();
+
+        if (empty($admission)) {
+            return ['success' => false, 'message' => 'Admission record not found.'];
+        }
+
+        if ($admission['admission_status'] !== 'cancelled') {
+            return ['success' => false, 'message' => 'Admission is not in cancelled status.'];
+        }
+
+        // Check refund status — only allow readmit when refund is still pending
+        $refund = $this->db
+            ->select('id, refund_status')
+            ->from('admission_refunds')
+            ->where('online_admission_id', $admission_id)
+            ->order_by('id', 'DESC')
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        if (!empty($refund) && $refund['refund_status'] !== 'pending') {
+            return ['success' => false, 'message' => 'Cannot readmit: refund has already been ' . $refund['refund_status'] . '. Please contact accounts.'];
+        }
+
+        $readmitted_by = isset($data['readmitted_by']) ? (int) $data['readmitted_by'] : null;
+        $readmit_reason = isset($data['readmit_reason']) ? trim($data['readmit_reason']) : '';
+
+        $this->db->trans_start();
+
+        // 1. Restore admission to active
+        $this->db->where('id', $admission_id);
+        $this->db->update('online_admissions', [
+            'admission_status'    => 'active',
+            'cancelled_at'        => null,
+            'cancelled_by'        => null,
+            'cancellation_reason' => null,
+        ]);
+
+        // 2. Void the pending refund record (record who voided and why)
+        if (!empty($refund)) {
+            $this->db->where('id', $refund['id']);
+            $this->db->update('admission_refunds', [
+                'refund_status'       => 'voided',
+                'processed_by'        => $readmitted_by ?: null,
+                'processed_at'        => date('Y-m-d H:i:s'),
+                'remarks'             => 'Readmitted — ' . $readmit_reason,
+            ]);
+        }
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === false) {
+            log_message('error', 'Admission_cancellation_model::readmit_admission transaction failed for admission_id=' . $admission_id);
+            return ['success' => false, 'message' => 'Database error. Please try again.'];
+        }
+
+        return ['success' => true, 'message' => 'Admission successfully readmitted and refund voided.'];
+    }
+
+    /**
+     * Count refunds by status (includes voided).
+     */
 }
