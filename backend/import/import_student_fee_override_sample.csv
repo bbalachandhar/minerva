@@ -1,0 +1,5 @@
+admission_no,fee_type_code,override_amount,note
+MCE2022CS001,TUTFEE,45000,Management concession
+MCE2022CS001,OTHERFEE,8000,Special case
+MCE2023EC042,TUTFEE,50000,
+MCE2023EC042,OTHERFEE,10000,Scholarship reduction

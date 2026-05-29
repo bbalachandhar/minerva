@@ -54,10 +54,11 @@ class Coe_invigilation_model extends CI_Model
     {
         return $this->db->query(
             "SELECT d.*, st.name AS staff_firstname, st.surname AS staff_surname,
-                    st.designation, h.name AS hall_name, sr.exam_date, sr.session_slot,
+                    sd.designation, h.name AS hall_name, sr.exam_date, sr.session_slot,
                     sr.exam_group_class_batch_exam_id AS batch_exam_id
              FROM coe_invigilation_duties d
              LEFT JOIN staff st ON st.id = d.staff_id
+             LEFT JOIN staff_designation sd ON sd.id = st.designation
              LEFT JOIN coe_seating_rooms sr ON sr.id = d.seating_room_id
              LEFT JOIN halls h ON h.id = sr.hall_id
              WHERE sr.exam_group_class_batch_exam_id = ?
@@ -72,9 +73,10 @@ class Coe_invigilation_model extends CI_Model
     public function getDutiesByRoom($room_id)
     {
         return $this->db->query(
-            "SELECT d.*, st.name AS staff_firstname, st.surname AS staff_surname, st.designation
+            "SELECT d.*, st.name AS staff_firstname, st.surname AS staff_surname, sd.designation
              FROM coe_invigilation_duties d
              LEFT JOIN staff st ON st.id = d.staff_id
+             LEFT JOIN staff_designation sd ON sd.id = st.designation
              WHERE d.seating_room_id = ?
              ORDER BY d.duty_type",
             [(int)$room_id]

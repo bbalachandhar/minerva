@@ -1493,13 +1493,15 @@ class Studentfeemaster_model extends MY_Model
                     fgf.id as fee_groups_feetype_id,
                     fg.name as fee_group_name,
                     ft.type as fee_type_name,
-                    fgf.amount as fee_amount,
+                    COALESCE(sfo.override_amount, fgf.amount) as fee_amount,
                     fgf.due_date
                 FROM student_fees_master sfm
                 JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
                 JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
                 JOIN fee_groups fg ON fg.id = fgf.fee_groups_id
                 JOIN feetype ft ON ft.id = fgf.feetype_id
+                LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = sfm.student_session_id
+                    AND sfo.fee_groups_feetype_id = fgf.id
                 WHERE sfm.student_session_id = " . $this->db->escape($student_session_id);
 
         $query = $this->db->query($sql);

@@ -6,13 +6,18 @@
             <small><?php echo htmlspecialchars($request->student_name); ?></small>
         <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
-            <li><a href="<?php echo site_url('coe/coe_revaluation/listing/' . $request->exam_group_class_batch_exam_id); ?>">
-                <i class="fa fa-arrow-left"></i> Back</a>
-            </li>
+            <li><a href="<?php echo site_url('coe/coe_revaluation'); ?>">Revaluation</a></li>
+            <li><a href="<?php echo site_url('coe/coe_revaluation/listing/' . $request->exam_group_class_batch_exam_id); ?>">Requests</a></li>
+            <li class="active">View Request</li>
         </ol>
     </section>
     <section class="content">
         <div id="rv-flash"></div>
+        <div style="margin-bottom:10px">
+            <a href="<?php echo site_url('coe/coe_revaluation/listing/' . $request->exam_group_class_batch_exam_id); ?>" class="btn btn-default btn-sm">
+                <i class="fa fa-arrow-left"></i> Back to Requests
+            </a>
+        </div>
 
         <div class="row">
             <!-- Request Detail -->

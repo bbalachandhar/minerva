@@ -119,4 +119,33 @@ class Coe_ufm_model extends CI_Model
             ->order_by('sr.exam_date ASC, sr.session_slot ASC, h.name ASC')
             ->get()->result();
     }
+
+    // ------------------------------------------------------------------
+    // All valid hall tickets for a batch exam (for searchable dropdown)
+    // ------------------------------------------------------------------
+    public function getHallTicketsByBatchExam($batch_exam_id)
+    {
+        return $this->db
+            ->select('ht.hall_ticket_no, CONCAT(st.firstname, " ", st.lastname) AS student_name')
+            ->from('coe_hall_tickets ht')
+            ->join('students st', 'st.id = ht.student_id', 'left')
+            ->where('ht.exam_group_class_batch_exam_id', (int) $batch_exam_id)
+            ->where('ht.is_valid', 1)
+            ->order_by('ht.hall_ticket_no ASC')
+            ->get()->result();
+    }
+
+    // ------------------------------------------------------------------
+    // Active staff list for witness dropdown
+    // ------------------------------------------------------------------
+    public function getStaffList()
+    {
+        return $this->db
+            ->select('s.id, s.employee_id, s.name, s.surname, sd.designation AS designation_name')
+            ->from('staff s')
+            ->join('staff_designation sd', 'sd.id = s.designation', 'left')
+            ->where('s.is_active', 1)
+            ->order_by('s.name ASC, s.surname ASC')
+            ->get()->result();
+    }
 }

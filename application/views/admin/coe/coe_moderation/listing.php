@@ -6,10 +6,44 @@
             <small><?php echo htmlspecialchars($event->exam_group_name); ?> — <?php echo htmlspecialchars($event->exam); ?></small>
         <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
-            <li><a href="<?php echo site_url('coe/coe_moderation'); ?>"><i class="fa fa-arrow-left"></i> Back</a></li>
+            <li><a href="<?php echo site_url('coe/coe_moderation'); ?>">Moderation</a></li>
+            <li class="active"><?php echo htmlspecialchars($event->exam_group_name . ' — ' . $event->exam); ?></li>
         </ol>
     </section>
     <section class="content">
+        <a href="<?php echo site_url('coe/coe_moderation'); ?>" class="btn btn-default btn-sm" style="margin-bottom:12px;">
+            <i class="fa fa-arrow-left"></i> Back to Exam List
+        </a>
+
+        <!-- How-to guide -->
+        <div class="callout callout-info" id="mod-guide" style="margin-bottom:14px;">
+            <button type="button" class="close" onclick="document.getElementById('mod-guide').style.display='none'" style="margin-top:-2px;">&times;</button>
+            <h4 style="margin-top:0;"><i class="fa fa-info-circle"></i> How Moderation Works</h4>
+            <div class="row">
+                <div class="col-sm-6">
+                    <strong>Rule Types</strong>
+                    <table class="table table-condensed" style="margin-top:6px;margin-bottom:0;background:transparent;">
+                        <tbody>
+                            <tr><td style="width:110px;"><span class="label label-primary">Grace</span></td><td>Add fixed marks to every student for a subject (e.g. +5 marks). Used for board-mandated grace or when a paper was too tough.</td></tr>
+                            <tr><td><span class="label label-warning">Moderation</span></td><td>Add a percentage of the base score (e.g. 5% of external marks). Used for batch-level score adjustments.</td></tr>
+                            <tr><td><span class="label label-info">Normalisation</span></td><td>Scale marks upward by a percentage when the class average is unusually low.</td></tr>
+                            <tr><td><span class="label label-default">Scaling</span></td><td>Apply a multiplication factor to bring scores in line with a target distribution.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-sm-6">
+                    <strong>How to Apply</strong>
+                    <ol style="margin-top:6px;padding-left:18px;">
+                        <li><strong>For all subjects:</strong> Leave Subject blank in the Add Rule form — the rule applies to every subject in this exam.</li>
+                        <li><strong>For one subject:</strong> Select a specific subject — only that subject's marks are adjusted.</li>
+                        <li><strong>Apply To:</strong> Choose whether the rule adjusts <em>External</em>, <em>Internal</em>, or <em>Total</em> marks.</li>
+                        <li>Once rules are added, click <strong>"Apply All Unapplied Rules"</strong> to commit them to student results. <span class="text-danger"><strong>This is irreversible.</strong></span></li>
+                        <li>Applied rules are locked (cannot be deleted). Only pending (yellow) rules can be removed.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
         <div id="mod-flash"></div>
 
         <div class="row">
@@ -65,6 +99,13 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
+                                        <?php if (!$rule->is_applied && $this->rbac->hasPrivilege('coe_moderation', 'can_edit')): ?>
+                                        <button class="btn btn-xs btn-success btn-apply-rule"
+                                                data-id="<?php echo $rule->id; ?>"
+                                                title="Apply this rule to student results">
+                                            <i class="fa fa-check"></i> Apply
+                                        </button>
+                                        <?php endif; ?>
                                         <?php if (!$rule->is_applied && $this->rbac->hasPrivilege('coe_moderation', 'can_delete')): ?>
                                         <button class="btn btn-xs btn-danger btn-del-rule"
                                                 data-id="<?php echo $rule->id; ?>">
@@ -198,7 +239,24 @@ document.querySelectorAll('.btn-del-rule').forEach(function(btn) {
     });
 });
 
-// Apply rules
+// Apply single rule
+document.querySelectorAll('.btn-apply-rule').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var id = this.dataset.id;
+        if (!confirm('Apply this rule to student results? This cannot be undone.')) return;
+        var me = this;
+        me.disabled = true;
+        var fd = new FormData(); fd.append(csrfName, csrfHash);
+        fetch('<?php echo site_url("coe/coe_moderation/apply_single/"); ?>' + id, {method:'POST', body:fd})
+        .then(r=>r.json()).then(function(res) {
+            flash(res.msg, res.status==='success' ? 'success':'danger');
+            if (res.status==='success') setTimeout(()=>location.reload(), 1200);
+            else me.disabled = false;
+        });
+    });
+});
+
+// Apply all rules
 document.getElementById('btnApply') && document.getElementById('btnApply').addEventListener('click', function() {
     if (!confirm('Apply all unapplied rules to student results? This cannot be undone.')) return;
     var fd = new FormData(); fd.append(csrfName, csrfHash);

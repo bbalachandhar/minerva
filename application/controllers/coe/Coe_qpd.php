@@ -148,6 +148,11 @@ class Coe_qpd extends MY_Addon_CoeController
         // Blob: [IV:16][ENC_KEY:48][CIPHERTEXT:...]
         $blob          = $iv . $encrypted_aes_key . $encrypted;
 
+        // Ensure upload directory exists
+        if (!is_dir($this->upload_path)) {
+            mkdir($this->upload_path, 0775, true);
+        }
+
         $stored_name   = 'qpd_' . bin2hex(random_bytes(16)) . '.enc';
         $stored_path   = $this->upload_path . $stored_name;
 
@@ -174,6 +179,43 @@ class Coe_qpd extends MY_Addon_CoeController
 
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Question paper uploaded and encrypted. It will be available for download after ' . date('d M Y h:i A', strtotime($unlock_at)) . '.</div>');
         redirect('coe/coe_qpd/manage/' . $batch_exam_id);
+    }
+
+    // ------------------------------------------------------------------
+    // EDIT_UNLOCK — change the unlock_at time (admin override / testing)
+    // ------------------------------------------------------------------
+    public function edit_unlock($paper_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_qpd', 'can_add')) {
+            access_denied();
+        }
+
+        $paper = $this->Coe_qpd_model->getPaperById($paper_id);
+        if (empty($paper)) {
+            show_404();
+        }
+
+        if ($paper->is_distributed) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Cannot change unlock time after paper has been distributed.</div>');
+            redirect('coe/coe_qpd/manage/' . $paper->exam_group_class_batch_exam_id);
+        }
+
+        $unlock_at = trim($this->input->post('unlock_at'));
+        if (!$unlock_at || !strtotime($unlock_at)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Invalid date/time provided.</div>');
+            redirect('coe/coe_qpd/manage/' . $paper->exam_group_class_batch_exam_id);
+        }
+
+        $this->Coe_qpd_model->updateUnlockAt($paper_id, date('Y-m-d H:i:s', strtotime($unlock_at)));
+
+        $this->Coe_audit_model->log('qpd_unlock_edited', 'coe_qpd_papers', $paper_id, null, [
+            'old_unlock_at' => $paper->unlock_at,
+            'new_unlock_at' => $unlock_at,
+            'changed_by'    => $this->customlib->getStaffID(),
+        ]);
+
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">Unlock time updated to ' . date('d M Y h:i A', strtotime($unlock_at)) . '.</div>');
+        redirect('coe/coe_qpd/manage/' . $paper->exam_group_class_batch_exam_id);
     }
 
     // ------------------------------------------------------------------
@@ -240,6 +282,65 @@ class Coe_qpd extends MY_Addon_CoeController
 
         header('Content-Type: ' . $mime);
         header('Content-Disposition: attachment; filename="' . addslashes($paper->original_filename) . '"');
+        header('Content-Length: ' . strlen($plaintext));
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        echo $plaintext;
+        exit;
+    }
+
+    // ------------------------------------------------------------------
+    // PREVIEW — decrypt and stream inline (PDF only, only if unlocked)
+    // ------------------------------------------------------------------
+    public function preview($paper_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_qpd', 'can_view')) {
+            access_denied();
+        }
+
+        $paper = $this->Coe_qpd_model->getPaperById($paper_id);
+        if (empty($paper)) {
+            show_404();
+        }
+
+        // Time-lock check
+        if (strtotime($paper->unlock_at) > time()) {
+            show_error('This paper is still time-locked.');
+        }
+
+        // Only PDFs can be previewed inline
+        $ext = strtolower(pathinfo($paper->original_filename, PATHINFO_EXTENSION));
+        if ($ext !== 'pdf') {
+            show_error('Only PDF files can be previewed.');
+        }
+
+        $stored_path = $this->upload_path . $paper->stored_filename;
+        if (!file_exists($stored_path)) {
+            show_error('Encrypted paper file not found on disk.');
+        }
+
+        $blob          = file_get_contents($stored_path);
+        $iv            = substr($blob, 0, 16);
+        $encrypted_key = substr($blob, 16, 48);
+        $ciphertext    = substr($blob, 64);
+
+        $server_secret = $this->config->item('encryption_key');
+        $kek           = hash('sha256', $server_secret . 'qpd_kek', true);
+        $aes_key       = openssl_decrypt($encrypted_key, 'aes-256-cbc', $kek, OPENSSL_RAW_DATA, $iv);
+
+        if ($aes_key === false) {
+            show_error('Failed to unwrap encryption key.');
+        }
+
+        $plaintext = openssl_decrypt($ciphertext, 'aes-256-cbc', $aes_key, OPENSSL_RAW_DATA, $iv);
+
+        if ($plaintext === false) {
+            show_error('Decryption failed.');
+        }
+
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . addslashes($paper->original_filename) . '"');
         header('Content-Length: ' . strlen($plaintext));
         header('Cache-Control: no-cache, no-store, must-revalidate');
         header('Pragma: no-cache');

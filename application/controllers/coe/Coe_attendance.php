@@ -88,6 +88,17 @@ class Coe_attendance extends MY_Addon_CoeController
         $data['batch_exam_id']  = $this->Coe_attendance_model->getBatchExamIdByRoom($room_id);
         $data['students']       = $this->Coe_attendance_model->getSeatedStudentsForRoom($room_id, $exam_date, $session_slot);
         $data['summary']        = $this->Coe_attendance_model->getSummaryByRoom($room_id, $exam_date, $session_slot);
+        $data['room_info']      = $this->Coe_attendance_model->getRoomInfo($room_id, $exam_date, $session_slot);
+
+        // Staff currently marking attendance (for audit header)
+        $staff_id = $this->customlib->getStaffID();
+        $sq = $this->db
+            ->select("CONCAT(s.name, ' ', s.surname) AS full_name, sd.designation, s.employee_id")
+            ->from('staff s')
+            ->join('staff_designation sd', 'sd.id = s.designation', 'left')
+            ->where('s.id', (int) $staff_id)
+            ->get();
+        $data['marking_staff'] = ($sq !== false) ? $sq->row() : null;
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_attendance/sheet', $data);
@@ -109,13 +120,20 @@ class Coe_attendance extends MY_Addon_CoeController
 
         $all_ids     = $this->input->post('all_ids');     // hidden comma-list
         $present_ids = $this->input->post('present_ids'); // checked checkboxes
+        $remarks_raw = $this->input->post('remarks') ?: [];
 
         $all_ids     = array_filter(array_map('intval', explode(',', $all_ids ?? '')));
         $present_ids = array_filter(array_map('intval', (array) $present_ids));
 
+        // Sanitise remarks: key = hall_ticket_id (int), value = plain text
+        $remarks_map = [];
+        foreach ((array) $remarks_raw as $htid => $remark) {
+            $remarks_map[(int) $htid] = substr(strip_tags(trim($remark)), 0, 255);
+        }
+
         $count = $this->Coe_attendance_model->bulkMark(
             $room_id, $exam_date, $session_slot,
-            $present_ids, $all_ids, $this->customlib->getStaffID()
+            $present_ids, $all_ids, $this->customlib->getStaffID(), $remarks_map
         );
 
         $this->Coe_audit_model->log('attendance_saved', 'coe_exam_attendance', $room_id, null, [
@@ -126,6 +144,120 @@ class Coe_attendance extends MY_Addon_CoeController
 
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Attendance saved for ' . $count . ' students.</div>');
         redirect('coe/coe_attendance/sheet/' . $room_id . '/' . $exam_date . '/' . $session_slot);
+    }
+
+    // ------------------------------------------------------------------
+    // UPLOAD_CSV — bulk attendance import from CSV file
+    // POST  coe/coe_attendance/upload_csv/:room_id/:date/:slot
+    // CSV columns: hall_ticket_no, present  (1/0 or P/A/Yes/No)
+    // ------------------------------------------------------------------
+    public function upload_csv($room_id, $exam_date, $session_slot)
+    {
+        if (!$this->rbac->hasPrivilege('coe_attendance', 'can_add')) {
+            access_denied();
+        }
+
+        $room_id      = (int) $room_id;
+        $exam_date    = date('Y-m-d', strtotime($exam_date));
+        $session_slot = in_array($session_slot, ['FN', 'AN']) ? $session_slot : 'FN';
+        $back_url     = 'coe/coe_attendance/sheet/' . $room_id . '/' . $exam_date . '/' . $session_slot;
+
+        $batch_exam_id = $this->Coe_attendance_model->getBatchExamIdByRoom($room_id);
+
+        if (empty($_FILES['attendance_csv']['name'])) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">No file uploaded.</div>');
+            redirect($back_url);
+        }
+
+        $ext = strtolower(pathinfo($_FILES['attendance_csv']['name'], PATHINFO_EXTENSION));
+        if ($ext !== 'csv') {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Only CSV files are accepted.</div>');
+            redirect($back_url);
+        }
+
+        $handle = fopen($_FILES['attendance_csv']['tmp_name'], 'r');
+        if ($handle === false) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Could not read uploaded file.</div>');
+            redirect($back_url);
+        }
+
+        // Skip header row
+        fgetcsv($handle);
+
+        $marked  = 0;
+        $skipped = 0;
+        $errors  = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($row) < 2) { $skipped++; continue; }
+
+            $ht_no   = trim($row[0]);
+            $present = in_array(strtolower(trim($row[1])), ['1', 'p', 'present', 'yes', 'y']) ? 1 : 0;
+
+            if ($ht_no === '') { $skipped++; continue; }
+
+            $ht = $this->Coe_attendance_model->getHallTicketByNumber($ht_no, $batch_exam_id);
+            if (!$ht) {
+                $errors[] = htmlspecialchars($ht_no);
+                $skipped++;
+                continue;
+            }
+
+            $this->Coe_attendance_model->markAttendance(
+                $ht->id, $room_id, $exam_date, $session_slot, $present,
+                $this->customlib->getStaffID()
+            );
+            $marked++;
+        }
+        fclose($handle);
+
+        $msg = '<div class="alert alert-success"><strong>' . $marked . '</strong> student(s) marked from CSV.';
+        if ($skipped) {
+            $msg .= ' <strong>' . $skipped . '</strong> row(s) skipped.';
+        }
+        if (!empty($errors)) {
+            $shown = array_slice($errors, 0, 5);
+            $msg  .= '<br><small>Unknown hall tickets: ' . implode(', ', $shown);
+            if (count($errors) > 5) { $msg .= ' …and ' . (count($errors) - 5) . ' more'; }
+            $msg  .= '</small>';
+        }
+        $msg .= '</div>';
+
+        $this->session->set_flashdata('msg', $msg);
+        redirect($back_url);
+    }
+
+    // ------------------------------------------------------------------
+    // SAMPLE_CSV — download a template CSV for bulk upload
+    // GET  coe/coe_attendance/sample_csv/:batch_exam_id
+    // ------------------------------------------------------------------
+    public function sample_csv($batch_exam_id = null)
+    {
+        if (!$this->rbac->hasPrivilege('coe_attendance', 'can_view')) {
+            access_denied();
+        }
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="attendance_template.csv"');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['hall_ticket_no', 'present']);
+
+        if ($batch_exam_id) {
+            $tickets = $this->Coe_attendance_model->getHallTicketsByBatchExam((int) $batch_exam_id);
+            foreach ($tickets as $t) {
+                fputcsv($out, [$t->hall_ticket_no, '']);
+            }
+        } else {
+            // Generic sample rows when no batch exam provided
+            fputcsv($out, ['HT2026001', '1']);
+            fputcsv($out, ['HT2026002', '0']);
+            fputcsv($out, ['HT2026003', '1']);
+        }
+
+        fclose($out);
+        exit;
     }
 
     // ------------------------------------------------------------------

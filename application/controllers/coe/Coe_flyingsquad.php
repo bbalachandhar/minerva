@@ -49,11 +49,12 @@ class Coe_flyingsquad extends MY_Addon_CoeController
             'severity'   => $this->input->get('severity'),
         ];
 
-        $data['title']         = 'Flying Squad Visits';
-        $data['event']         = $event;
-        $data['batch_exam_id'] = $batch_exam_id;
-        $data['visits']        = $this->Coe_flyingsquad_model->getVisits($batch_exam_id, $filters);
-        $data['staff']         = $this->Coe_flyingsquad_model->getStaff();
+        $data['title']            = 'Flying Squad Visits';
+        $data['event']            = $event;
+        $data['batch_exam_id']    = $batch_exam_id;
+        $data['visits']           = $this->Coe_flyingsquad_model->getVisits($batch_exam_id, $filters);
+        $data['staff']            = $this->Coe_flyingsquad_model->getStaff();
+        $data['halls']            = $this->Coe_flyingsquad_model->getHalls();
         $data['severity_summary'] = $this->Coe_flyingsquad_model->getSeveritySummary($batch_exam_id);
 
         $this->load->view('layout/header', $data);

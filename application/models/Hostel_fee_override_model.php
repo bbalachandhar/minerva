@@ -17,7 +17,7 @@ class Hostel_fee_override_model extends CI_Model {
                 JOIN fee_groups fg ON fg.id = fgft.fee_groups_id
                 JOIN feetype ft ON ft.id = fgft.feetype_id
                 JOIN fee_session_groups fsg ON fsg.id = fgft.fee_session_group_id
-                WHERE ft.id = 3 AND fsg.session_id = " . $this->db->escape($this->customlib->getSchoolCurrentSession());
+                WHERE ft.id = 3 AND fsg.session_id = " . $this->db->escape($this->setting_model->getCurrentSession());
         return $this->db->query($sql)->result();
     }
 
@@ -26,7 +26,7 @@ class Hostel_fee_override_model extends CI_Model {
      * Filters by fee_session_group_id (one hostel fee group).
      */
     public function getStudentsWithHostelFee($fee_session_group_id) {
-        $session_id = $this->customlib->getSchoolCurrentSession();
+        $session_id = $this->setting_model->getCurrentSession();
         $sql = "SELECT
                     ss.id as student_session_id,
                     s.admission_no,

@@ -6,7 +6,8 @@
             <small><?php echo htmlspecialchars($event->exam_group_name); ?> — <?php echo htmlspecialchars($event->exam); ?></small>
         <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
-            <li><a href="<?php echo site_url('coe/coe_osm'); ?>"><i class="fa fa-arrow-left"></i> Back</a></li>
+            <li><a href="<?php echo site_url('coe/coe_osm'); ?>">OSM</a></li>
+            <li class="active"><?php echo htmlspecialchars($event->exam_group_name . ' — ' . $event->exam); ?></li>
             <?php if ($this->rbac->hasPrivilege('coe_osm', 'can_add')): ?>
             <li>
                 <button class="btn btn-xs btn-info" id="btnCreateOsm" data-batch="<?php echo $batch_exam_id; ?>">
@@ -17,6 +18,10 @@
         </ol>
     </section>
     <section class="content">
+        <a href="<?php echo site_url('coe/coe_osm'); ?>" class="btn btn-default btn-sm" style="margin-bottom:12px;">
+            <i class="fa fa-arrow-left"></i> Back to Exam List
+        </a>
+
         <div id="osm-flash"></div>
 
         <!-- Stats -->

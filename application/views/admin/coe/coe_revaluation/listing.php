@@ -6,18 +6,22 @@
             <small><?php echo htmlspecialchars($event->exam_group_name); ?> — <?php echo htmlspecialchars($event->exam); ?></small>
         <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
-            <li><a href="<?php echo site_url('coe/coe_revaluation'); ?>"><i class="fa fa-arrow-left"></i> Back</a></li>
-            <?php if ($this->rbac->hasPrivilege('coe_revaluation', 'can_add')): ?>
-            <li>
-                <button type="button" class="btn btn-xs btn-success" data-toggle="modal" data-target="#rvAddModal">
-                    <i class="fa fa-plus"></i> New Request
-                </button>
-            </li>
-            <?php endif; ?>
+            <li><a href="<?php echo site_url('coe/coe_revaluation'); ?>">Revaluation</a></li>
+            <li class="active"><?php echo htmlspecialchars($event->exam); ?></li>
         </ol>
     </section>
     <section class="content">
         <?php echo $this->session->flashdata('msg'); ?>
+        <div style="margin-bottom:10px">
+            <a href="<?php echo site_url('coe/coe_revaluation'); ?>" class="btn btn-default btn-sm">
+                <i class="fa fa-arrow-left"></i> Back to Events
+            </a>
+            <?php if ($this->rbac->hasPrivilege('coe_revaluation', 'can_add')): ?>
+            <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#rvAddModal" style="margin-left:6px">
+                <i class="fa fa-plus"></i> New Request
+            </button>
+            <?php endif; ?>
+        </div>
 
         <!-- Filters -->
         <div class="row">

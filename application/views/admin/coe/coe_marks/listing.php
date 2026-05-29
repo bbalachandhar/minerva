@@ -6,19 +6,23 @@
             <small><?php echo htmlspecialchars($event->exam_group_name); ?> — <?php echo htmlspecialchars($event->exam); ?></small>
         <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
-            <li><a href="<?php echo site_url('coe/coe_marks'); ?>"><i class="fa fa-arrow-left"></i> Back</a></li>
-            <li>
-                <button class="btn btn-xs btn-primary" id="btnComputeSGPA">
-                    <i class="fa fa-calculator"></i> Compute SGPA/CGPA
-                </button>
-                <button class="btn btn-xs btn-default" id="btnRecomputeGrades">
-                    <i class="fa fa-refresh"></i> Recompute Grades
-                </button>
-            </li>
+            <li><a href="<?php echo site_url('coe/coe_marks'); ?>">Marks</a></li>
+            <li class="active"><?php echo htmlspecialchars($event->exam); ?></li>
         </ol>
     </section>
     <section class="content">
         <div id="marks-flash"></div>
+        <div style="margin-bottom:10px">
+            <a href="<?php echo site_url('coe/coe_marks'); ?>" class="btn btn-default btn-sm">
+                <i class="fa fa-arrow-left"></i> Back to Exam List
+            </a>
+            <button class="btn btn-sm btn-primary" id="btnComputeSGPA" style="margin-left:6px">
+                <i class="fa fa-calculator"></i> Compute SGPA/CGPA
+            </button>
+            <button class="btn btn-sm btn-default" id="btnRecomputeGrades" style="margin-left:4px">
+                <i class="fa fa-refresh"></i> Recompute Grades
+            </button>
+        </div>
 
         <!-- Filters -->
         <div class="row">
@@ -90,10 +94,12 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="<?php echo site_url('coe/coe_marks/student_card/'.$res->student_id.'/'.$batch_exam_id); ?>"
-                                           class="btn btn-xs btn-info" title="Student Card">
+                                        <button class="btn btn-xs btn-info btn-student-card"
+                                                data-sid="<?php echo $res->student_id; ?>"
+                                                data-sname="<?php echo htmlspecialchars($res->student_name, ENT_QUOTES); ?>"
+                                                title="Student Card">
                                             <i class="fa fa-id-card"></i>
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -141,6 +147,24 @@
     </section>
 </div>
 
+<!-- Student Card Modal -->
+<div class="modal fade" id="studentCardModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"><i class="fa fa-id-card"></i> <span id="scModalStudentName">Student Result Card</span></h4>
+                <small class="text-muted" id="scModalExam"><?php echo htmlspecialchars($event->exam_group_name . ' — ' . $event->exam); ?></small>
+            </div>
+            <div class="modal-body" id="scModalBody" style="min-height:120px">
+                <div class="text-center" style="padding:30px">
+                    <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
@@ -167,6 +191,21 @@ document.getElementById('btnRecomputeGrades').addEventListener('click', function
         flash(res.msg, res.status==='success'?'success':'danger');
         if (res.status==='success') setTimeout(()=>location.reload(), 1200);
     });
+});
+
+// Student card modal
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.btn-student-card');
+    if (!btn) return;
+    var sid   = btn.dataset.sid;
+    var sname = btn.dataset.sname;
+    document.getElementById('scModalStudentName').textContent = sname;
+    document.getElementById('scModalBody').innerHTML = '<div class="text-center" style="padding:30px"><i class="fa fa-spinner fa-spin fa-2x text-muted"></i></div>';
+    $('#studentCardModal').modal('show');
+    fetch('<?php echo site_url("coe/coe_marks/student_card_ajax/"); ?>' + sid + '/' + batchId)
+        .then(function(r) { return r.text(); })
+        .then(function(html) { document.getElementById('scModalBody').innerHTML = html; })
+        .catch(function() { document.getElementById('scModalBody').innerHTML = '<p class="text-danger">Failed to load card.</p>'; });
 });
 </script>
 

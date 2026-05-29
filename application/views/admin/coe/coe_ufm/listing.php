@@ -48,8 +48,11 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="box box-danger">
-                    <div class="box-header with-border">
+                    <div class="box-header with-border" style="display:flex;justify-content:space-between;align-items:center;">
                         <h3 class="box-title"><i class="fa fa-exclamation-triangle"></i> Incidents (<?php echo count($incidents); ?>)</h3>
+                        <a href="<?php echo site_url('coe/coe_ufm'); ?>" class="btn btn-default btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back to Events
+                        </a>
                     </div>
                     <div class="box-body">
                         <?php if (empty($incidents)): ?>
@@ -101,9 +104,13 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="<?php echo site_url('coe/coe_ufm/view/' . $inc->id); ?>" class="btn btn-xs btn-info">
+                                        <button type="button" class="btn btn-xs btn-info ufm-view-btn"
+                                            data-id="<?php echo $inc->id; ?>"
+                                            data-url="<?php echo site_url('coe/coe_ufm/modal_content/' . $inc->id); ?>"
+                                            data-view-url="<?php echo site_url('coe/coe_ufm/view/' . $inc->id); ?>"
+                                            title="View Incident">
                                             <i class="fa fa-eye"></i>
-                                        </a>
+                                        </button>
                                         <?php if ($this->rbac->hasPrivilege('coe_ufm', 'can_delete')): ?>
                                         <a href="<?php echo site_url('coe/coe_ufm/delete/' . $inc->id); ?>" class="btn btn-xs btn-danger"
                                            onclick="return confirm('Delete this UFM incident?')">
@@ -124,3 +131,59 @@
 </div>
 
 <?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'ufm']); ?>
+
+<!-- UFM Incident View Modal -->
+<div class="modal fade" id="ufm-view-modal" tabindex="-1" role="dialog" aria-labelledby="ufmModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#c9302c;color:#fff;border-radius:5px 5px 0 0;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:0.9;">&times;</button>
+                <h4 class="modal-title" id="ufmModalLabel">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    UFM Incident <span id="ufm-modal-incident-id"></span>
+                </h4>
+            </div>
+            <div class="modal-body" id="ufm-modal-body" style="padding:20px;">
+                <div class="text-center" style="padding:40px;">
+                    <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="ufm-modal-full-link" target="_blank" class="btn btn-default btn-sm pull-left">
+                    <i class="fa fa-external-link"></i> Open Full Page
+                </a>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).on('click', '.ufm-view-btn', function () {
+    var $btn = $(this);
+    var id      = $btn.data('id');
+    var url     = $btn.data('url');
+    var viewUrl = $btn.data('view-url');
+
+    $('#ufm-modal-incident-id').text('#' + id);
+    $('#ufm-modal-full-link').attr('href', viewUrl);
+    $('#ufm-modal-body').html(
+        '<div class="text-center" style="padding:40px;"><i class="fa fa-spinner fa-spin fa-2x text-muted"></i></div>'
+    );
+    $('#ufm-view-modal').modal('show');
+
+    $.ajax({
+        url: url,
+        type: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        success: function (html) {
+            $('#ufm-modal-body').html(html);
+        },
+        error: function () {
+            $('#ufm-modal-body').html(
+                '<div class="alert alert-danger"><i class="fa fa-times-circle"></i> Failed to load incident details.</div>'
+            );
+        }
+    });
+});
+</script>

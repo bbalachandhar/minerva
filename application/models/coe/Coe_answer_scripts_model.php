@@ -23,14 +23,11 @@ class Coe_answer_scripts_model extends CI_Model
             ->select('ans.*, ht.hall_ticket_no, ht.student_id,
                       CONCAT(st.firstname, " ", st.lastname) AS student_name,
                       sub.name AS subject_name, sub.code AS subject_code,
-                      h.name AS hall_name,
-                      CONCAT(up.name, " ", up.surname) AS uploaded_by_name')
+                      CONCAT(up.name, " ", COALESCE(up.surname,"")) AS uploaded_by_name')
             ->from('coe_answer_scripts ans')
             ->join('coe_hall_tickets ht',     'ht.id = ans.coe_hall_ticket_id', 'left')
             ->join('students st',              'st.id = ht.student_id',         'left')
             ->join('subjects sub',             'sub.id = ans.subject_id',       'left')
-            ->join('coe_seating_rooms sr',     'sr.id = ans.seating_room_id',   'left')
-            ->join('halls h',                  'h.id = sr.hall_id',             'left')
             ->join('staff up',                 'up.id = ans.uploaded_by',       'left');
 
         if (!empty($filters['batch_exam_id'])) {
@@ -58,13 +55,12 @@ class Coe_answer_scripts_model extends CI_Model
             ->select('ans.*, ht.hall_ticket_no, ht.student_id,
                       CONCAT(st.firstname, " ", st.lastname) AS student_name,
                       sub.name AS subject_name, sub.code AS subject_code,
-                      h.name AS hall_name')
+                      CONCAT(up.name, " ", COALESCE(up.surname,"")) AS uploaded_by_name')
             ->from('coe_answer_scripts ans')
             ->join('coe_hall_tickets ht',     'ht.id = ans.coe_hall_ticket_id', 'left')
             ->join('students st',              'st.id = ht.student_id',         'left')
             ->join('subjects sub',             'sub.id = ans.subject_id',       'left')
-            ->join('coe_seating_rooms sr',     'sr.id = ans.seating_room_id',   'left')
-            ->join('halls h',                  'h.id = sr.hall_id',             'left')
+            ->join('staff up',                 'up.id = ans.uploaded_by',       'left')
             ->where('ans.id', (int) $id)
             ->get()->row();
     }
@@ -100,12 +96,45 @@ class Coe_answer_scripts_model extends CI_Model
     public function getSubjectsByBatchExam($batch_exam_id)
     {
         return $this->db
-            ->select('sub.id, sub.name AS subject_name, sub.code AS subject_code, egcbes.date_from AS exam_date')
+            ->select("sub.id, sub.name AS subject_name, sub.code AS subject_code,
+                      egcbes.date_from AS exam_date, egcbes.time_from,
+                      CASE WHEN egcbes.time_from < '12:00:00' THEN 'FN' ELSE 'AN' END AS session_slot")
             ->from('exam_group_class_batch_exam_subjects egcbes')
             ->join('subjects sub', 'sub.id = egcbes.subject_id', 'left')
             ->where('egcbes.exam_group_class_batch_exams_id', (int) $batch_exam_id)
+            ->where('egcbes.is_active', 1)
             ->order_by('egcbes.date_from ASC, sub.name ASC')
             ->get()->result();
+    }
+
+    // ------------------------------------------------------------------
+    // Get hall tickets not yet registered for a subject (for bulk register)
+    // ------------------------------------------------------------------
+    public function getUnregisteredHallTickets($batch_exam_id, $subject_id)
+    {
+        $batch_exam_id = (int) $batch_exam_id;
+        $subject_id    = (int) $subject_id;
+        $sql = "SELECT ht.id, ht.hall_ticket_no,
+                       CONCAT(st.firstname, ' ', st.lastname) AS student_name
+                FROM coe_hall_tickets ht
+                LEFT JOIN students st ON st.id = ht.student_id
+                WHERE ht.exam_group_class_batch_exam_id = ?
+                  AND ht.id NOT IN (
+                      SELECT coe_hall_ticket_id FROM coe_answer_scripts
+                      WHERE subject_id = ? AND exam_group_class_batch_exam_id = ?
+                  )
+                ORDER BY ht.hall_ticket_no ASC";
+        return $this->db->query($sql, [$batch_exam_id, $subject_id, $batch_exam_id])->result();
+    }
+
+    // ------------------------------------------------------------------
+    // Bulk insert multiple script records
+    // ------------------------------------------------------------------
+    public function bulkInsert($rows)
+    {
+        if (empty($rows)) return 0;
+        $this->db->insert_batch('coe_answer_scripts', $rows);
+        return $this->db->affected_rows();
     }
 
     // ------------------------------------------------------------------

@@ -179,7 +179,8 @@ foreach ($duties as $d) {
               <?php foreach ($rooms as $room): ?>
                 <div class="room-section">
                   <div class="rs-header">
-                    <div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span class="label label-primary" style="font-size:.8rem;letter-spacing:.5px;">Room #<?php echo $room->id; ?></span>
                       <strong><?php echo htmlspecialchars($room->hall_name); ?></strong>
                       <?php if ($room->location ?? null): ?>
                         <span style="font-size:.8rem;opacity:.8;margin-left:6px;"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($room->location); ?></span>

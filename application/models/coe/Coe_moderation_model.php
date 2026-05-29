@@ -116,6 +116,58 @@ class Coe_moderation_model extends CI_Model
     }
 
     // ------------------------------------------------------------------
+    // Apply a single rule by its ID
+    // ------------------------------------------------------------------
+    public function applyRule($rule_id)
+    {
+        $rule = $this->db
+            ->where('id', (int) $rule_id)
+            ->where('is_applied', 0)
+            ->get('coe_moderation_rules')->row();
+
+        if (empty($rule)) {
+            return false; // already applied or not found
+        }
+
+        $q = $this->db
+            ->select('sr.id, sr.external_marks, sr.internal_marks, sr.total_marks, sr.moderation_applied')
+            ->from('coe_student_results sr')
+            ->where('sr.exam_group_class_batch_exam_id', (int) $rule->exam_group_class_batch_exam_id)
+            ->where('sr.is_published', 0);
+
+        if (!empty($rule->subject_id)) {
+            $this->db->where('sr.subject_id', (int) $rule->subject_id);
+        }
+
+        $rows = $q->get()->result();
+
+        foreach ($rows as $row) {
+            $added     = $this->_computeAdded($rule, $row);
+            $new_total = min((float) $row->total_marks + $added, 100);
+            $new_ext   = ($rule->applies_to === 'external')
+                ? min((float) $row->external_marks + $added, 70)
+                : $row->external_marks;
+            $new_int   = ($rule->applies_to === 'internal')
+                ? min((float) $row->internal_marks + $added, 30)
+                : $row->internal_marks;
+
+            $this->db->where('id', $row->id)->update('coe_student_results', [
+                'external_marks'     => $new_ext,
+                'internal_marks'     => $new_int,
+                'total_marks'        => $new_total,
+                'moderation_applied' => (float) $row->moderation_applied + $added,
+            ]);
+        }
+
+        $this->db->where('id', (int) $rule_id)->update('coe_moderation_rules', [
+            'is_applied' => 1,
+            'applied_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return count($rows);
+    }
+
+    // ------------------------------------------------------------------
     // Apply all unapplied rules for a batch exam
     // ------------------------------------------------------------------
     public function applyRules($batch_exam_id)

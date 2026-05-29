@@ -14,8 +14,11 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="box box-primary">
-                    <div class="box-header with-border">
+                    <div class="box-header with-border" style="display:flex;justify-content:space-between;align-items:center;">
                         <h3 class="box-title"><i class="fa fa-building-o"></i> Exam Rooms</h3>
+                        <a href="<?php echo site_url('coe/coe_attendance'); ?>" class="btn btn-default btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back to Events
+                        </a>
                     </div>
                     <div class="box-body">
                         <?php if (empty($rooms)): ?>

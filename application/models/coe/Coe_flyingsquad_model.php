@@ -13,11 +13,12 @@ class Coe_flyingsquad_model extends CI_Model
         $this->db
             ->select([
                 'fsv.*',
-                "CONCAT(sf.name) AS observer_name",
-                'sf.designation',
+                "CONCAT(sf.name, ' ', COALESCE(sf.surname,'')) AS observer_name",
+                'sd.designation AS designation',
             ])
             ->from('coe_flying_squad_visits fsv')
             ->join('staff sf', 'sf.id = fsv.observer_staff_id', 'left')
+            ->join('staff_designation sd', 'sd.id = sf.designation', 'left')
             ->where('fsv.exam_group_class_batch_exam_id', (int) $batch_exam_id);
 
         if (!empty($filters['visit_date'])) {
@@ -68,9 +69,20 @@ class Coe_flyingsquad_model extends CI_Model
     public function getStaff()
     {
         return $this->db
-            ->select('id, name, designation')
-            ->where('is_active', 'yes')
+            ->select("s.id, s.employee_id, CONCAT(s.name, ' ', COALESCE(s.surname,'')) AS name, sd.designation AS designation")
+            ->from('staff s')
+            ->join('staff_designation sd', 'sd.id = s.designation', 'left')
+            ->where('s.is_active', 1)
+            ->order_by('s.name ASC')
+            ->get()->result();
+    }
+
+    public function getHalls()
+    {
+        return $this->db
+            ->select('id, name, capacity')
+            ->where('is_active', 1)
             ->order_by('name ASC')
-            ->get('staff')->result();
+            ->get('halls')->result();
     }
 }

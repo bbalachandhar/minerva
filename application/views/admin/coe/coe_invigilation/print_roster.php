@@ -7,10 +7,10 @@ $duty_labels = [
     'deputy'               => 'Deputy',
     'flying_squad'         => 'Flying Squad',
 ];
-// Group by room
+// Group by room (keyed by room ID so each seating room is a separate block)
 $by_room = [];
 foreach ($duties as $d) {
-    $key = $d->hall_name . ' | ' . $d->exam_date . ' | ' . $d->session_slot;
+    $key = $d->seating_room_id . ' | ' . $d->hall_name . ' | ' . $d->exam_date . ' | ' . $d->session_slot;
     $by_room[$key][] = $d;
 }
 ksort($by_room);
@@ -73,10 +73,11 @@ body { font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#1a1a2e;margi
     <p style="text-align:center;color:#777;">No duties assigned.</p>
   <?php else: ?>
     <?php foreach ($by_room as $room_key => $room_duties): ?>
-      <?php list($hall, $date, $slot) = explode(' | ', $room_key); ?>
+      <?php list($room_id, $hall, $date, $slot) = explode(' | ', $room_key); ?>
       <div class="room-block">
         <div class="room-title">
-          <?php echo htmlspecialchars($hall); ?>
+          Room #<?php echo (int)$room_id; ?>
+          &bull; <?php echo htmlspecialchars($hall); ?>
           &bull; <?php echo date('d M Y', strtotime($date)); ?>
           &bull; <?php echo $slot === 'FN' ? 'Forenoon (FN)' : 'Afternoon (AN)'; ?>
         </div>

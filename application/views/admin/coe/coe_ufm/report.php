@@ -11,11 +11,14 @@
         <div class="row">
             <div class="col-md-10 col-md-offset-1">
                 <div class="box box-danger">
-                    <div class="box-header with-border">
+                    <div class="box-header with-border" style="display:flex;justify-content:space-between;align-items:center;">
                         <h3 class="box-title">
                             <i class="fa fa-exclamation-triangle"></i>
                             <?php echo htmlspecialchars($event->exam_group_name); ?> — <?php echo htmlspecialchars($event->exam); ?>
                         </h3>
+                        <a href="<?php echo site_url('coe/coe_ufm/listing/' . $batch_exam_id); ?>" class="btn btn-default btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back to Incidents
+                        </a>
                     </div>
                     <div class="box-body">
                         <form method="post" action="<?php echo site_url('coe/coe_ufm/save/' . $batch_exam_id); ?>">
@@ -23,7 +26,17 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Hall Ticket No <span class="text-red">*</span></label>
-                                        <input type="text" name="hall_ticket_no" class="form-control" placeholder="e.g. MCE/ARR25/001" required>
+                                        <select name="hall_ticket_no" id="hall-ticket-select" class="form-control" required style="width:100%;">
+                                            <option value="">— Search by ticket no. or student name —</option>
+                                            <?php foreach ($hall_tickets as $ht): ?>
+                                            <option value="<?php echo htmlspecialchars($ht->hall_ticket_no); ?>">
+                                                <?php echo htmlspecialchars($ht->hall_ticket_no); ?><?php if ($ht->student_name): ?> — <?php echo htmlspecialchars($ht->student_name); ?><?php endif; ?>
+                                            </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <?php if (empty($hall_tickets)): ?>
+                                        <p class="help-block text-warning"><i class="fa fa-exclamation-triangle"></i> No hall tickets found. Generate hall tickets for this exam first.</p>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -93,8 +106,15 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>Witness Staff ID <small class="text-muted">(optional)</small></label>
-                                        <input type="number" name="witness_staff_id" class="form-control" min="1" placeholder="Staff ID">
+                                        <label>Witness Staff <small class="text-muted">(optional)</small></label>
+                                        <select name="witness_staff_id" id="witness-staff-select" class="form-control" style="width:100%;">
+                                            <option value="">— None / Not applicable —</option>
+                                            <?php foreach ($staff_list as $sf): ?>
+                                            <option value="<?php echo $sf->id; ?>">
+                                                <?php echo htmlspecialchars($sf->employee_id); ?> — <?php echo htmlspecialchars($sf->name . ' ' . $sf->surname); ?><?php if ($sf->designation_name): ?> (<?php echo htmlspecialchars($sf->designation_name); ?>)<?php endif; ?>
+                                            </option>
+                                            <?php endforeach; ?>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -117,3 +137,20 @@
 </div>
 
 <?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'ufm']); ?>
+
+<link rel="stylesheet" href="<?php echo base_url('backend/plugins/select2/select2.min.css'); ?>">
+<script src="<?php echo base_url('backend/plugins/select2/select2.full.min.js'); ?>"></script>
+<script>
+$(function () {
+    $('#hall-ticket-select').select2({
+        placeholder: 'Search by ticket no. or student name',
+        allowClear: true,
+        width: '100%'
+    });
+    $('#witness-staff-select').select2({
+        placeholder: 'Search by employee ID or name',
+        allowClear: true,
+        width: '100%'
+    });
+});
+</script>

@@ -77,6 +77,15 @@ class Coe_qpd_model extends CI_Model
     }
 
     // ------------------------------------------------------------------
+    // Update the unlock_at time (admin override)
+    // ------------------------------------------------------------------
+    public function updateUnlockAt($id, $unlock_at)
+    {
+        $this->db->where('id', (int) $id)->update('coe_qpd_papers', ['unlock_at' => $unlock_at]);
+        return $this->db->affected_rows();
+    }
+
+    // ------------------------------------------------------------------
     // Delete a paper record (by ID, only if not yet distributed)
     // ------------------------------------------------------------------
     public function delete($id)

@@ -57,10 +57,11 @@ class Coe_application_model extends CI_Model
     public function getExamEventByIdRow($batch_exam_id)
     {
         return $this->db
-            ->select('eg.id AS exam_group_id, eg.name AS exam_group_name, eg.exam_category, egcbe.*, s.session')
+            ->select('eg.id AS exam_group_id, eg.name AS exam_group_name, eg.exam_category, egcbe.*, s.session, c.class AS class_name')
             ->from('exam_group_class_batch_exams egcbe')
             ->join('exam_groups eg', 'eg.id = egcbe.exam_group_id')
             ->join('sessions s', 's.id = egcbe.session_id', 'left')
+            ->join('classes c', 'c.id = egcbe.class_id', 'left')
             ->where('egcbe.id', $batch_exam_id)
             ->get()->row();
     }

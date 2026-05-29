@@ -253,6 +253,35 @@ class Coe_marks extends MY_Addon_CoeController
     }
 
     // ------------------------------------------------------------------
+    // student_card_ajax($student_id, $batch_exam_id) — Modal AJAX version
+    // ------------------------------------------------------------------
+    public function student_card_ajax($student_id, $batch_exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_marks', 'can_view')) {
+            http_response_code(403);
+            echo '<p class="text-danger">Access denied.</p>';
+            return;
+        }
+
+        $card  = $this->Coe_marks_model->getStudentCard($student_id, $batch_exam_id);
+        $event = $this->Coe_application_model->getExamEventByIdRow($batch_exam_id);
+
+        $student = $this->db
+            ->select('id, CONCAT(firstname, " ", lastname) AS full_name, admission_no')
+            ->where('id', (int) $student_id)
+            ->get('students')->row();
+
+        $data['student']       = $student;
+        $data['event']         = $event;
+        $data['batch_exam_id'] = $batch_exam_id;
+        $data['results']       = $card['results'];
+        $data['sgpa']          = $card['sgpa'];
+
+        $this->output->set_content_type('text/html');
+        echo $this->load->view('admin/coe/coe_marks/_student_card_partial', $data, TRUE);
+    }
+
+    // ------------------------------------------------------------------
     // import($batch_exam_id) — CSV import of marks
     // GET:  show import form + download sample template
     // POST: process uploaded CSV

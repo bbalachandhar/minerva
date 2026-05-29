@@ -169,7 +169,8 @@ if (!function_exists('main_menu_array')) {
                 'incidental_fee_type' => array('index', 'edit'),
                 'assign_incidental_fee' => array('index'),
                 'collect_incidental_fee' => array('index', 'searchStudent', 'receipt', 'revert', 'findApplicationByReference'),
-                'financereports' => array('incidental_fee_report'),
+                'financereports'          => array('incidental_fee_report'),
+                'student_fee_override'    => array('index', 'save', 'delete', 'bulk_import', 'exportformat', 'handle_csv_upload'),
             ), 
             
             'income' => array(                                 

@@ -113,6 +113,33 @@ class Coe_moderation extends MY_Addon_CoeController
     }
 
     // ------------------------------------------------------------------
+    // apply_single($id) — Apply one rule by ID (AJAX POST, irreversible)
+    // ------------------------------------------------------------------
+    public function apply_single($id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_moderation', 'can_edit')) {
+            echo json_encode(['status' => 'error', 'msg' => 'Access denied']);
+            return;
+        }
+
+        $rule = $this->Coe_moderation_model->getById((int) $id);
+        if (empty($rule)) {
+            echo json_encode(['status' => 'error', 'msg' => 'Rule not found']);
+            return;
+        }
+        if ($rule->is_applied) {
+            echo json_encode(['status' => 'error', 'msg' => 'Rule already applied']);
+            return;
+        }
+
+        $affected = $this->Coe_moderation_model->applyRule((int) $id);
+        $this->Coe_audit_model->log('apply_single_rule', 'coe_moderation_rules', (int) $id, null,
+            ['rule_id' => $id, 'students_affected' => $affected]);
+
+        echo json_encode(['status' => 'success', 'msg' => 'Rule applied. ' . $affected . ' student result(s) updated.']);
+    }
+
+    // ------------------------------------------------------------------
     // apply($batch_exam_id) — Apply all unapplied rules (AJAX POST, irreversible)
     // ------------------------------------------------------------------
     public function apply($batch_exam_id)

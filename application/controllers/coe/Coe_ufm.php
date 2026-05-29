@@ -93,6 +93,8 @@ class Coe_ufm extends MY_Addon_CoeController
         $data['event']         = $event;
         $data['batch_exam_id'] = (int) $batch_exam_id;
         $data['rooms']         = $this->Coe_ufm_model->getRoomsByBatchExam($batch_exam_id);
+        $data['hall_tickets']  = $this->Coe_ufm_model->getHallTicketsByBatchExam($batch_exam_id);
+        $data['staff_list']    = $this->Coe_ufm_model->getStaffList();
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_ufm/report', $data);
@@ -174,6 +176,27 @@ class Coe_ufm extends MY_Addon_CoeController
     }
 
     // ------------------------------------------------------------------
+    // MODAL CONTENT — returns partial HTML for AJAX modal (no layout)
+    // ------------------------------------------------------------------
+    public function modal_content($id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_ufm', 'can_view')) {
+            show_error('Forbidden', 403);
+        }
+
+        if (!$this->input->is_ajax_request()) {
+            redirect('coe/coe_ufm/view/' . (int) $id);
+        }
+
+        $incident = $this->Coe_ufm_model->getById($id);
+        if (!$incident) {
+            show_error('Incident not found', 404);
+        }
+
+        $this->load->view('admin/coe/coe_ufm/_incident_detail', ['incident' => $incident]);
+    }
+
+    // ------------------------------------------------------------------
     // REVIEW — update status and penalty
     // ------------------------------------------------------------------
     public function review($id)
@@ -204,7 +227,7 @@ class Coe_ufm extends MY_Addon_CoeController
         $this->Coe_audit_model->log('ufm_incident_reviewed', 'coe_ufm_incidents', $id, null, ['status' => $status]);
 
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Incident updated.</div>');
-        redirect('coe/coe_ufm/view/' . $id);
+        redirect('coe/coe_ufm/listing/' . $incident->batch_exam_id);
     }
 
     // ------------------------------------------------------------------

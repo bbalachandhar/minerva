@@ -6,14 +6,16 @@
             <small>Barcode: <?php echo htmlspecialchars($script->barcode_token ?? $script->id); ?></small>
         <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
-            <li>
-                <a href="<?php echo site_url('coe/coe_osm/dashboard/' . $script->exam_group_class_batch_exam_id); ?>">
-                    <i class="fa fa-arrow-left"></i> Back to Dashboard
-                </a>
-            </li>
+            <li><a href="<?php echo site_url('coe/coe_osm/dashboard/' . $script->exam_group_class_batch_exam_id); ?>">OSM Dashboard</a></li>
+            <li class="active">Mark Script</li>
         </ol>
     </section>
     <section class="content">
+        <a href="<?php echo site_url('coe/coe_osm/dashboard/' . $script->exam_group_class_batch_exam_id); ?>"
+           class="btn btn-default btn-sm" style="margin-bottom:12px;">
+            <i class="fa fa-arrow-left"></i> Back to OSM Dashboard
+        </a>
+
         <div id="mark-flash"></div>
 
         <div class="row">

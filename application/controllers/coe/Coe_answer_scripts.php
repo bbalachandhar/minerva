@@ -128,13 +128,12 @@ class Coe_answer_scripts extends MY_Addon_CoeController
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0755, true);
             }
-            $config_upload = [
+            $this->upload->initialize([
                 'upload_path'   => $upload_dir,
                 'allowed_types' => 'pdf|jpg|jpeg|png',
                 'max_size'      => 20480, // 20 MB
                 'encrypt_name'  => true,
-            ];
-            $this->load->library('upload', $config_upload);
+            ]);
             if (!$this->upload->do_upload('script_file')) {
                 echo json_encode(['status' => 'error', 'msg' => $this->upload->display_errors('', '')]);
                 return;
@@ -246,5 +245,196 @@ class Coe_answer_scripts extends MY_Addon_CoeController
 
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Script deleted.</div>');
         redirect('coe/coe_answer_scripts/listing/' . $batch_exam_id);
+    }
+
+    // ------------------------------------------------------------------
+    // modal_content($id) — AJAX-only: returns partial for Bootstrap modal
+    // ------------------------------------------------------------------
+    public function modal_content($id)
+    {
+        if (!$this->input->is_ajax_request()) {
+            redirect('coe/coe_answer_scripts/view/' . (int) $id);
+            return;
+        }
+        if (!$this->rbac->hasPrivilege('coe_answer_scripts', 'can_view')) {
+            echo '<p class="text-danger"><i class="fa fa-ban"></i> Access denied.</p>';
+            return;
+        }
+        $script = $this->Coe_answer_scripts_model->getById((int) $id);
+        if (empty($script)) {
+            echo '<p class="text-danger">Record not found.</p>';
+            return;
+        }
+        $this->load->view('admin/coe/coe_answer_scripts/_script_detail', ['script' => $script]);
+    }
+
+    // ------------------------------------------------------------------
+    // upload_file($id) — AJAX POST: upload/replace scanned file for a script
+    // ------------------------------------------------------------------
+    public function upload_file($id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_answer_scripts', 'can_add')) {
+            echo json_encode(['status' => 'error', 'msg' => 'Access denied']);
+            return;
+        }
+
+        $script = $this->Coe_answer_scripts_model->getById((int) $id);
+        if (empty($script)) {
+            echo json_encode(['status' => 'error', 'msg' => 'Record not found']);
+            return;
+        }
+
+        if (empty($_FILES['script_file']['name'])) {
+            echo json_encode(['status' => 'error', 'msg' => 'No file selected.']);
+            return;
+        }
+
+        $upload_dir = FCPATH . 'uploads/answer_scripts/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+
+        $this->upload->initialize([
+            'upload_path'   => $upload_dir,
+            'allowed_types' => 'pdf|jpg|jpeg|png',
+            'max_size'      => 20480,
+            'encrypt_name'  => true,
+        ]);
+
+        if (!$this->upload->do_upload('script_file')) {
+            echo json_encode(['status' => 'error', 'msg' => $this->upload->display_errors('', '')]);
+            return;
+        }
+
+        // Delete old file if exists
+        if (!empty($script->scanned_filename)) {
+            $old = FCPATH . 'uploads/answer_scripts/' . $script->scanned_filename;
+            if (file_exists($old)) {
+                unlink($old);
+            }
+        }
+
+        $filename   = $this->upload->data('file_name');
+        $page_count = (int) $this->input->post('page_count');
+        $now        = date('Y-m-d H:i:s');
+
+        $upd = [
+            'scanned_filename' => $filename,
+            'scan_status'      => 'uploaded',
+            'uploaded_by'      => $this->customlib->getStaffID(),
+            'uploaded_at'      => $now,
+        ];
+        if ($page_count > 0) {
+            $upd['page_count'] = $page_count;
+        }
+
+        $this->Coe_answer_scripts_model->update((int) $id, $upd);
+        $this->Coe_audit_model->log('upload_file', 'coe_answer_scripts', (int) $id,
+            ['scanned_filename' => $script->scanned_filename], $upd);
+
+        echo json_encode(['status' => 'success', 'msg' => 'File uploaded successfully. Status set to <strong>Uploaded</strong>.']);
+    }
+
+    // ------------------------------------------------------------------
+    // bulk_register($batch_exam_id) — Bulk register page (select subject → check students)
+    // ------------------------------------------------------------------
+    public function bulk_register($batch_exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_answer_scripts', 'can_add')) {
+            access_denied();
+        }
+
+        $batch_exam_id = (int) $batch_exam_id;
+        $event = $this->Coe_application_model->getExamEventByIdRow($batch_exam_id);
+        if (empty($event)) {
+            show_404();
+        }
+
+        $data['event']         = $event;
+        $data['batch_exam_id'] = $batch_exam_id;
+        $data['subjects']      = $this->Coe_answer_scripts_model->getSubjectsByBatchExam($batch_exam_id);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/coe/coe_answer_scripts/bulk_register', $data);
+        $this->load->view('layout/footer');
+    }
+
+    // ------------------------------------------------------------------
+    // get_unregistered_tickets($batch_exam_id) — AJAX: unregistered hall tickets for a subject
+    // ------------------------------------------------------------------
+    public function get_unregistered_tickets($batch_exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_answer_scripts', 'can_view')) {
+            echo json_encode(['status' => 'error', 'msg' => 'Access denied']);
+            return;
+        }
+
+        $subject_id = (int) $this->input->get('subject_id');
+        if (!$subject_id) {
+            echo json_encode(['status' => 'error', 'msg' => 'Subject required']);
+            return;
+        }
+
+        $tickets = $this->Coe_answer_scripts_model->getUnregisteredHallTickets((int) $batch_exam_id, $subject_id);
+        echo json_encode(['status' => 'success', 'tickets' => $tickets]);
+    }
+
+    // ------------------------------------------------------------------
+    // bulk_save() — AJAX POST: save bulk-registered scripts
+    // ------------------------------------------------------------------
+    public function bulk_save()
+    {
+        if (!$this->rbac->hasPrivilege('coe_answer_scripts', 'can_add')) {
+            echo json_encode(['status' => 'error', 'msg' => 'Access denied']);
+            return;
+        }
+
+        $batch_exam_id = (int) $this->input->post('batch_exam_id');
+        $subject_id    = (int) $this->input->post('subject_id');
+        $exam_date     = $this->input->post('exam_date');
+        $session_slot  = $this->input->post('session_slot');
+        $ticket_ids    = $this->input->post('ticket_ids');
+
+        if (!$batch_exam_id || !$subject_id || empty($ticket_ids) || !is_array($ticket_ids)) {
+            echo json_encode(['status' => 'error', 'msg' => 'Invalid input. Select a subject and at least one student.']);
+            return;
+        }
+
+        if (!in_array($session_slot, ['FN', 'AN'])) {
+            $session_slot = 'FN';
+        }
+
+        $staff_id = $this->customlib->getStaffID();
+        $now      = date('Y-m-d H:i:s');
+        $rows     = [];
+
+        foreach ($ticket_ids as $ht_id) {
+            $ht_id = (int) $ht_id;
+            if (!$ht_id) continue;
+            if ($this->Coe_answer_scripts_model->existsForHallTicketSubject($ht_id, $subject_id)) {
+                continue; // skip duplicates silently
+            }
+            $rows[] = [
+                'exam_group_class_batch_exam_id' => $batch_exam_id,
+                'coe_hall_ticket_id'             => $ht_id,
+                'subject_id'                     => $subject_id,
+                'exam_date'                      => $exam_date ?: null,
+                'session_slot'                   => $session_slot,
+                'barcode_token'                  => $this->Coe_answer_scripts_model->generateBarcodeToken(),
+                'scan_status'                    => 'pending',
+                'uploaded_by'                    => $staff_id,
+                'uploaded_at'                    => $now,
+            ];
+        }
+
+        if (empty($rows)) {
+            echo json_encode(['status' => 'warning', 'msg' => 'No new scripts to register — all selected students already have scripts for this subject.']);
+            return;
+        }
+
+        $count = $this->Coe_answer_scripts_model->bulkInsert($rows);
+        $this->Coe_audit_model->log('bulk_register', 'coe_answer_scripts', $batch_exam_id, null, ['subject_id' => $subject_id, 'count' => $count]);
+
+        echo json_encode(['status' => 'success', 'msg' => $count . ' script(s) registered successfully.', 'count' => $count]);
     }
 }
