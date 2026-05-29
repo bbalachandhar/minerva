@@ -204,8 +204,8 @@ class Attendencereports extends Admin_Controller
             $centenary              = substr($session_current, 0, 2); //2017-18 to 2017
             $year_first_substring   = substr($session_current, 2, 2); //2017-18 to 2017
             $year_second_substring  = substr($session_current, 5, 2); //2017-18 to 18
-            $month_number           = date("m", strtotime($month));
             $year                   = $this->input->post('year');
+            $month_number           = date("m", strtotime("1 $month 2000"));
             $data['year_selected']  = $year;
             if (!empty($year)) {
 
@@ -496,7 +496,7 @@ class Attendencereports extends Admin_Controller
                 }
             }
 
-            $month_number           = date("m", strtotime($month));
+            $month_number           = date("m", strtotime("1 $month 2000"));
             $num_of_days            = cal_days_in_month(CAL_GREGORIAN, $month_number, $searchyear);
             
             $this->load->model("holiday_model");
@@ -869,7 +869,7 @@ class Attendencereports extends Admin_Controller
             show_error('Month and year are required', 400);
         }
 
-        $month_number = is_numeric($month) ? sprintf('%02d', (int)$month) : date("m", strtotime($month));
+        $month_number = is_numeric($month) ? sprintf('%02d', (int)$month) : date("m", strtotime("1 $month 2000"));
         $num_of_days = cal_days_in_month(CAL_GREGORIAN, (int)$month_number, (int)$searchyear);
 
         $this->load->model("holiday_model");
@@ -1189,7 +1189,7 @@ class Attendencereports extends Admin_Controller
             return;
         }
 
-        $month_number = is_numeric($month) ? sprintf('%02d', (int) $month) : date("m", strtotime($month));
+        $month_number = is_numeric($month) ? sprintf('%02d', (int) $month) : date("m", strtotime("1 $month 2000"));
         $start_date = $year . '-' . $month_number . '-01';
         $end_date = date('Y-m-t', strtotime($start_date));
 
