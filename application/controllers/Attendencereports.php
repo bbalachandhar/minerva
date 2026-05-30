@@ -473,11 +473,14 @@ class Attendencereports extends Admin_Controller
         $data['yearlist']            = $this->staffattendancemodel->attendanceYearCount();
         $data['date']                = "";
         $data["role_selected"]       = "";
+        $data['staff_categories']    = $this->db->select('id, name')->order_by('name')->get('staff_designation_category')->result_array();
         $role                        = $this->input->post("role");
+        $staff_category              = $this->input->post('staff_category');
         $month                       = $this->input->post('month');
         $searchyear                  = $this->input->post('year');
         $data['month_selected']      = !empty($month) ? $month : date('F');
         $data['year_selected']       = !empty($searchyear) ? $searchyear : date('Y');
+        $data['staff_category_selected'] = !empty($staff_category) ? $staff_category : '';
 
         $this->form_validation->set_rules('month', $this->lang->line('month'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('year', $this->lang->line('year'), 'trim|required|xss_clean');
@@ -580,9 +583,10 @@ class Attendencereports extends Admin_Controller
             $data['month_selected'] = $month;
             $data['year_selected']  = $searchyear;
             $data["role_selected"]  = $role;
+            $data['staff_category_selected'] = $staff_category;
             
             $last_day_of_month = $searchyear . "-" . $month_number . "-" . $num_of_days;
-            $stafflist = $this->staffattendancemodel->searchAttendanceReport($role, $last_day_of_month);
+            $stafflist = $this->staffattendancemodel->searchAttendanceReport($role, $last_day_of_month, $staff_category);
 
             $attendence_array   = array();
             $date_result        = array();
@@ -595,7 +599,7 @@ class Attendencereports extends Admin_Controller
             // Single query fetches all attendance for the whole month (replaces 31-query loop)
             $month_start_str = $searchyear . '-' . $month_number . '-01';
             $all_month_rows  = $this->staffattendancemodel->searchAttendanceReportForMonth(
-                $role, $month_start_str, $last_day_of_month
+                $role, $month_start_str, $last_day_of_month, $staff_category
             );
             foreach ($all_month_rows as $result_v) {
                 $att_date = $result_v['date'];
@@ -861,6 +865,7 @@ class Attendencereports extends Admin_Controller
         require_once APPPATH . 'third_party/vendor/autoload.php';
 
         $role = $this->input->get('role');
+        $staff_category = $this->input->get('staff_category');
         $month = $this->input->get('month');
         $searchyear = $this->input->get('year');
         $with_punch_report = (int)$this->input->get('with_punch_report') === 1;
@@ -934,7 +939,7 @@ class Attendencereports extends Admin_Controller
         $holiday_count = count($holiday_dates_for_H);
 
         $last_day_of_month = $searchyear . "-" . $month_number . "-" . $num_of_days;
-        $stafflist = $this->staffattendancemodel->searchAttendanceReport($role, $last_day_of_month);
+        $stafflist = $this->staffattendancemodel->searchAttendanceReport($role, $last_day_of_month, $staff_category);
 
         $attendence_array = [];
         $date_result = [];
@@ -942,7 +947,7 @@ class Attendencereports extends Admin_Controller
             $att_date = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
             $attendence_array[] = $att_date;
 
-            $res = $this->staffattendancemodel->searchAttendanceReport($role, $att_date);
+            $res = $this->staffattendancemodel->searchAttendanceReport($role, $att_date, $staff_category);
             $s = [];
             foreach ($res as $result_v) {
                 $s[$result_v['id']] = $result_v;
