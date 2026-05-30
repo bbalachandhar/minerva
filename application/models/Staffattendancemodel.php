@@ -185,7 +185,7 @@ class Staffattendancemodel extends MY_Model {
         return $query->result_array();
     }
 
-    public function searchAttendanceReport($user_type, $date) {
+    public function searchAttendanceReport($user_type, $date, $staff_category = '') {
 
         if ($this->session->has_userdata('admin')) {
             $getStaffRole     = $this->customlib->getStaffRole();
@@ -197,11 +197,14 @@ class Staffattendancemodel extends MY_Model {
                 $condition = "and staff_roles.role_id != 7";       
             } 
         }
+
+        $category_join   = "LEFT JOIN staff_designation sd ON sd.id = staff.designation LEFT JOIN staff_designation_category sdc ON COALESCE(staff.category_id, sd.category_id) = sdc.id";
+        $category_filter = (!empty($staff_category)) ? " AND sdc.name = " . $this->db->escape($staff_category) : '';
         
         if ($user_type == "select") {
-            $query = $this->db->query("select staff_attendance.staff_attendance_type_id,staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance.remark,staff_attendance.in_time,staff_attendance.out_time,staff_attendance.session_attendance_data,staff_attendance.biometric_attendence,staff_attendance.qrcode_attendance,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,roles.id as role_id,IFNULL(staff_attendance.date, 'xxx') as date, IFNULL(staff_attendance.id, 0) as attendence_id, staff.id as id from staff left join staff_attendance on (staff.id = staff_attendance.staff_id) and staff_attendance.date = " . $this->db->escape($date) . " left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id left join staff_roles on staff_roles.staff_id = staff.id left join roles on staff_roles.role_id = roles.id where staff.is_active = 1 $condition");
+            $query = $this->db->query("select staff_attendance.staff_attendance_type_id,staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance.remark,staff_attendance.in_time,staff_attendance.out_time,staff_attendance.session_attendance_data,staff_attendance.biometric_attendence,staff_attendance.qrcode_attendance,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,roles.id as role_id,IFNULL(staff_attendance.date, 'xxx') as date, IFNULL(staff_attendance.id, 0) as attendence_id, staff.id as id from staff left join staff_attendance on (staff.id = staff_attendance.staff_id) and staff_attendance.date = " . $this->db->escape($date) . " left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id left join staff_roles on staff_roles.staff_id = staff.id left join roles on staff_roles.role_id = roles.id $category_join where staff.is_active = 1 $category_filter $condition");
         } else {
-            $query = $this->db->query("select staff_attendance.staff_attendance_type_id,staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance.remark,staff_attendance.in_time,staff_attendance.out_time,staff_attendance.session_attendance_data,staff_attendance.biometric_attendence,staff_attendance.qrcode_attendance,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,roles.id as role_id,IFNULL(staff_attendance.date, 'xxx') as date, IFNULL(staff_attendance.id, 0) as attendence_id, staff.id as id from staff  left join staff_roles on (staff.id = staff_roles.staff_id) left join roles on (roles.id = staff_roles.role_id) left join staff_attendance on (staff.id = staff_attendance.staff_id) and staff_attendance.date = " . $this->db->escape($date) . " left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id  where roles.name = '" . $user_type . "' and staff.is_active = 1 $condition");
+            $query = $this->db->query("select staff_attendance.staff_attendance_type_id,staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance.remark,staff_attendance.in_time,staff_attendance.out_time,staff_attendance.session_attendance_data,staff_attendance.biometric_attendence,staff_attendance.qrcode_attendance,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,roles.id as role_id,IFNULL(staff_attendance.date, 'xxx') as date, IFNULL(staff_attendance.id, 0) as attendence_id, staff.id as id from staff  left join staff_roles on (staff.id = staff_roles.staff_id) left join roles on (roles.id = staff_roles.role_id) left join staff_attendance on (staff.id = staff_attendance.staff_id) and staff_attendance.date = " . $this->db->escape($date) . " left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id $category_join where roles.name = '" . $user_type . "' and staff.is_active = 1 $category_filter $condition");
         }
 
         return $query->result_array();
@@ -258,7 +261,7 @@ class Staffattendancemodel extends MY_Model {
      *
      * Returns rows indexed by [date][staff_id].
      */
-    public function searchAttendanceReportForMonth($user_type, $start_date, $end_date)
+    public function searchAttendanceReportForMonth($user_type, $start_date, $end_date, $staff_category = '')
     {
         if ($this->session->has_userdata('admin')) {
             $getStaffRole     = $this->customlib->getStaffRole();
@@ -280,6 +283,8 @@ class Staffattendancemodel extends MY_Model {
         } else {
             $role_filter = "AND roles.name = " . $this->db->escape($user_type);
         }
+
+        $category_filter = (!empty($staff_category)) ? "AND sdc.name = " . $this->db->escape($staff_category) : '';
 
         $sql = "SELECT
                     sa.staff_attendance_type_id,
@@ -306,8 +311,11 @@ class Staffattendancemodel extends MY_Model {
                 LEFT JOIN staff_attendance_type sat ON sat.id = sa.staff_attendance_type_id
                 LEFT JOIN staff_roles  ON staff_roles.staff_id = s.id
                 LEFT JOIN roles        ON roles.id = staff_roles.role_id
+                LEFT JOIN staff_designation sd  ON sd.id = s.designation
+                LEFT JOIN staff_designation_category sdc ON COALESCE(s.category_id, sd.category_id) = sdc.id
                 WHERE sa.date BETWEEN $start AND $end
                 $role_filter
+                $category_filter
                 $condition
                 ORDER BY sa.date, s.id";
 
