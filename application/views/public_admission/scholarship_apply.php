@@ -32,7 +32,19 @@
                         </div>
                         <div class="form-group">
                             <label>Supporting Document <small class="text-muted">(JPG, PNG or PDF, max 300 KB)</small></label>
-                            <input type="file" name="document" class="form-control" accept=".jpg,.jpeg,.png,.pdf"/>
+                            <div class="input-group">
+                                <input type="text" id="docFileName" class="form-control" placeholder="No file chosen" readonly
+                                       style="background:#fff; cursor:pointer;"
+                                       onclick="document.getElementById('docFileInput').click();">
+                                <span class="input-group-btn">
+                                    <button type="button" class="btn btn-default"
+                                            onclick="document.getElementById('docFileInput').click();">
+                                        <i class="fa fa-folder-open"></i> Browse&hellip;
+                                    </button>
+                                </span>
+                            </div>
+                            <input type="file" id="docFileInput" name="document" accept=".jpg,.jpeg,.png,.pdf" style="display:none;"
+                                   onchange="document.getElementById('docFileName').value = this.files[0] ? this.files[0].name : '';">
                         </div>
                     </div>
                     <div class="box-footer">

@@ -219,6 +219,32 @@ class Bookissue_model extends MY_Model
                 return false; // Book is not available
     }
 
+    public function checkinCheckoutReport($start_date, $end_date)
+    {
+        $condition = " AND date_format(book_issues.issue_date,'%Y-%m-%d') BETWEEN '" . $start_date . "' AND '" . $end_date . "'";
+        if (isset($_POST['members_type']) && $_POST['members_type'] != '') {
+            $condition .= " AND libarary_members.member_type='" . $_POST['members_type'] . "'";
+        }
+
+        $sql = "SELECT libarary_members.id as members_id, libarary_members.library_card_no, libarary_members.member_type,
+                    book_issues.id, book_issues.issue_date, book_issues.duereturn_date, book_issues.return_date, book_issues.is_returned,
+                    books.book_title, books.book_no,
+                    students.firstname, students.middlename, students.lastname, students.admission_no as admission, students.id as sid,
+                    CONCAT_WS(' ', staff.name, staff.surname) as staff_name, staff.employee_id, staff.id as staff_id
+                FROM book_issues
+                LEFT JOIN books ON books.id = book_issues.book_id
+                LEFT JOIN libarary_members ON libarary_members.id = book_issues.member_id
+                LEFT JOIN staff ON (staff.id = libarary_members.member_id AND libarary_members.member_type = 'teacher')
+                LEFT JOIN students ON (students.id = libarary_members.member_id AND libarary_members.member_type = 'student')
+                WHERE 1=1 " . $condition;
+
+        $this->datatables->query($sql)
+            ->orderable('book_title,book_no,issue_date,duereturn_date,return_date,members_id,library_card_no,students.admission_no,firstname')
+            ->searchable('book_title,book_no,issue_date,duereturn_date,return_date,libarary_members.id,library_card_no,students.admission_no,firstname')
+            ->query_where_enable(true);
+        return $this->datatables->generate('json');
+    }
+
     public function studentBookIssue_report($start_date, $end_date)
     {
         $condition = "";

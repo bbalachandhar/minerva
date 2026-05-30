@@ -59,6 +59,15 @@
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('fees_group_list'); ?></h3>
                         <div class="box-tools pull-right">
+                            <form method="get" action="<?php echo base_url(); ?>admin/feegroup" class="form-inline" style="display:inline-block;margin-right:8px;">
+                                <select name="session_id" class="form-control input-sm" onchange="this.form.submit()">
+                                    <?php foreach ($sessionList as $sess): ?>
+                                        <option value="<?php echo $sess['id']; ?>" <?php echo ($sess['id'] == $selected_session) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($sess['session']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </form>
                             <a href="<?php echo base_url(); ?>admin/feegroup/bulk_import" class="btn btn-primary btn-sm"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_import'); ?></a>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->

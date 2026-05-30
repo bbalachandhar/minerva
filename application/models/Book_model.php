@@ -355,6 +355,48 @@ class Book_model extends MY_Model
         return $query->result_array();
     }
 
+    public function getDeptWiseSummary()
+    {
+        $sql = "SELECT
+                    b.department,
+                    COUNT(DISTINCT b.book_title)                AS no_of_titles,
+                    COUNT(b.id)                                 AS no_of_volumes,
+                    SUM(IFNULL(bi.total_issue, 0))              AS no_of_issued,
+                    COUNT(b.id) - SUM(IFNULL(bi.total_issue, 0)) AS no_of_available
+                FROM books b
+                LEFT JOIN (
+                    SELECT book_id, COUNT(*) AS total_issue
+                    FROM book_issues
+                    WHERE is_returned = 0
+                    GROUP BY book_id
+                ) bi ON bi.book_id = b.id
+                WHERE b.department IS NOT NULL
+                  AND b.department != ''
+                  AND b.is_active = 'yes'
+                GROUP BY b.department
+                ORDER BY b.department ASC";
+        $query = $this->db->query($sql);
+        return $query->result_array();
+    }
+
+    public function getCheckinCheckoutSummary($start_date, $end_date)
+    {
+        $sql = "SELECT
+                    id,
+                    attendance_date,
+                    user_id,
+                    name,
+                    user_type,
+                    in_time,
+                    out_time,
+                    duration
+                FROM library_attendance
+                WHERE attendance_date BETWEEN '" . $start_date . "' AND '" . $end_date . "'
+                ORDER BY attendance_date DESC, in_time ASC";
+        $query = $this->db->query($sql);
+        return $query->result_array();
+    }
+
     public function book_exists_by_bookno_and_title($book_no, $book_title)
     {
         $this->db->where('LOWER(TRIM(book_no))', strtolower(trim($book_no)));

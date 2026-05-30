@@ -599,6 +599,40 @@ class Report extends Admin_Controller
         $this->load->view('layout/footer');
     }
 
+    public function deptWiseSummary()
+    {
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/library');
+        $this->session->set_userdata('subsub_menu', 'Reports/library/dept_wise_summary');
+        $data['resultlist'] = $this->book_model->getDeptWiseSummary();
+        $this->load->view('layout/header', $data);
+        $this->load->view('reports/deptWiseSummary', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function checkinCheckoutReport()
+    {
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/library');
+        $this->session->set_userdata('subsub_menu', 'Reports/library/checkin_checkout');
+        $data['searchlist'] = $this->customlib->get_searchtype();
+        if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
+            $dates               = $this->customlib->get_betweendate($_POST['search_type']);
+            $data['search_type'] = $_POST['search_type'];
+        } else {
+            $dates               = $this->customlib->get_betweendate('this_month');
+            $data['search_type'] = 'this_month';
+        }
+        $start_date         = date('Y-m-d', strtotime($dates['from_date']));
+        $end_date           = date('Y-m-d', strtotime($dates['to_date']));
+        $data['label']      = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . ' ' . $this->lang->line('to') . ' ' . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+        $data['resultlist'] = $this->book_model->getCheckinCheckoutSummary($start_date, $end_date);
+        $data['sch_setting'] = $this->sch_setting_detail;
+        $this->load->view('layout/header', $data);
+        $this->load->view('reports/checkinCheckoutReport', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
     public function inventory()
     {
         $this->session->set_userdata('top_menu', 'Reports');

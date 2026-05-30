@@ -22,8 +22,16 @@
 
                             </a></li>
                         <?php
+                    }                    if ($this->rbac->hasPrivilege('book_dept_wise_summary', 'can_view')) {
+                        ?>
+                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/library/dept_wise_summary'); ?>"><a href="<?php echo base_url() ?>report/deptWiseSummary"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('dept_wise_summary'); ?></a></li>
+                        <?php
                     }
-                    ?>
+                    if ($this->rbac->hasPrivilege('book_checkin_checkout', 'can_view')) {
+                        ?>
+                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/library/checkin_checkout'); ?>"><a href="<?php echo base_url() ?>report/checkinCheckoutReport"><i class="fa fa-exchange"></i> <?php echo $this->lang->line('checkin_checkout_report'); ?></a></li>
+                        <?php
+                    }                    ?>
 
                 </ul>
             </div>
