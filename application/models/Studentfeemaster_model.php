@@ -297,8 +297,14 @@ class Studentfeemaster_model extends MY_Model
 
     public function getStudentFees($student_session_id)
     {
-        $sql    = "SELECT `student_fees_master`.*,fee_groups.name FROM `student_fees_master` INNER JOIN fee_session_groups on student_fees_master.fee_session_group_id=fee_session_groups.id INNER JOIN fee_groups on fee_groups.id=fee_session_groups.fee_groups_id  WHERE `student_session_id` = " . $student_session_id . " ORDER BY `student_fees_master`.`id`";
+        if (empty($student_session_id)) {
+            return [];
+        }
+        $sql    = "SELECT `student_fees_master`.*,fee_groups.name FROM `student_fees_master` INNER JOIN fee_session_groups on student_fees_master.fee_session_group_id=fee_session_groups.id INNER JOIN fee_groups on fee_groups.id=fee_session_groups.fee_groups_id  WHERE `student_session_id` = " . (int)$student_session_id . " ORDER BY `student_fees_master`.`id`";
         $query  = $this->db->query($sql);
+        if (!$query) {
+            return [];
+        }
         $result = $query->result();
         if (!empty($result)) {
             foreach ($result as $result_key => $result_value) {

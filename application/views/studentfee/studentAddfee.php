@@ -92,12 +92,17 @@ foreach ($studentlistbysection as $stkey => $stvalue) {
                             <div class="col-md-12">
                                 <div class="sfborder-top-border">
                                     <div class="col-md-2">
+                                        <?php $is_female = ($student['gender'] == 'Female');
+                                        $ph_style = 'width:115px;height:115px;border-radius:8px;background:' . ($is_female ? '#fce4ec' : '#e3f2fd') . ';text-align:center;line-height:115px;border:1px solid ' . ($is_female ? '#f48fb1' : '#90caf9') . ';';
+                                        $ph_icon  = '<i class="fa ' . ($is_female ? 'fa-female' : 'fa-male') . '" style="color:' . ($is_female ? '#e91e8c' : '#1976d2') . ';font-size:56px;vertical-align:middle;"></i>';
+                                        ?>
                                         <?php if (!empty($student['image'])): ?>
-                                            <img width="115" height="115" class="mt5 mb10 sfborder-img-shadow img-responsive img-rounded" src="<?php echo $this->media_storage->getImageURL($student['image']); ?>" alt="Student Photo">
-                                        <?php else: $is_female = ($student['gender'] == 'Female'); ?>
-                                            <div class="mt5 mb10" style="width:115px;height:115px;border-radius:8px;background:<?php echo $is_female ? '#fce4ec' : '#e3f2fd'; ?>;text-align:center;line-height:115px;display:inline-block;border:1px solid <?php echo $is_female ? '#f48fb1' : '#90caf9'; ?>;">
-                                                <i class="fa <?php echo $is_female ? 'fa-female' : 'fa-male'; ?>" style="color:<?php echo $is_female ? '#e91e8c' : '#1976d2'; ?>;font-size:56px;vertical-align:middle;"></i>
-                                            </div>
+                                            <img width="115" height="115" class="mt5 mb10 sfborder-img-shadow img-responsive img-rounded"
+                                                 src="<?php echo $this->media_storage->getImageURL($student['image']); ?>" alt="Student Photo"
+                                                 onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';">
+                                            <div class="mt5 mb10" style="display:none;<?php echo $ph_style; ?>"><?php echo $ph_icon; ?></div>
+                                        <?php else: ?>
+                                            <div class="mt5 mb10" style="display:inline-block;<?php echo $ph_style; ?>"><?php echo $ph_icon; ?></div>
                                         <?php endif; ?>
                                     </div>
                                     <div class="col-md-10">

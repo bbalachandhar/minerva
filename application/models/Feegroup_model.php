@@ -31,6 +31,17 @@ class Feegroup_model extends MY_Model
         }
     }
 
+    public function getBySession($session_id) {
+        $this->db->select('fee_groups.*')
+                 ->from('fee_groups')
+                 ->join('fee_session_groups', 'fee_groups.id = fee_session_groups.fee_groups_id', 'inner')
+                 ->where('fee_groups.is_system', 0)
+                 ->where('fee_groups.nature !=', 'custom')
+                 ->where('fee_session_groups.session_id', (int)$session_id)
+                 ->order_by('fee_groups.id');
+        return $this->db->get()->result_array();
+    }
+
     /**
      * This function will delete the record based on the id
      * @param $id

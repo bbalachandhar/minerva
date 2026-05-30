@@ -160,6 +160,7 @@
                             <th>Amount</th>
                             <th>Applied On</th>
                             <th>Status</th>
+                            <th class="noExport">Doc</th>
                             <th class="noExport text-right">Action</th>
                         </tr>
                     </thead>
@@ -188,24 +189,138 @@
                             <td><?php
                                 $badges = ['pending'=>'warning','verified'=>'info','approved'=>'success','rejected'=>'danger'];
                                 $b = $badges[$app['status']] ?? 'default';
-                            ?><span class="label label-<?php echo $b; ?>"><?php echo ucfirst($app['status']); ?></span></td>
+                            ?><span class="label label-<?php echo $b; ?> status-badge"><?php echo ucfirst($app['status']); ?></span></td>
+                            <td>
+                                <?php
+                                    $doc_ext    = !empty($app['document']) ? strtolower(pathinfo($app['document'], PATHINFO_EXTENSION)) : '';
+                                    $doc_is_img = in_array($doc_ext, ['jpg','jpeg','png']);
+                                    $_dattrs    = 'data-id="' . $app['id'] . '" '
+                                                . 'data-ref="'  . htmlspecialchars($app['reference_no'] ?? '') . '" '
+                                                . 'data-name="' . htmlspecialchars(trim(($app['firstname'] ?? '') . ' ' . ($app['lastname'] ?? ''))) . '"';
+                                ?>
+                                <?php if (!empty($app['document'])): ?>
+                                    <div class="btn-group btn-group-xs" role="group">
+                                        <a href="<?php echo site_url('admin/scholarshipapplication/view_doc/' . $app['id']); ?>"
+                                           target="_blank"
+                                           class="btn btn-xs btn-default"
+                                           title="<?php echo htmlspecialchars($app['document']); ?>">
+                                            <i class="fa <?php echo $doc_is_img ? 'fa-picture-o' : 'fa-file-pdf-o'; ?>"></i>
+                                            <?php echo $doc_is_img ? 'Preview' : 'View PDF'; ?>
+                                        </a>
+                                        <button type="button" class="btn btn-xs btn-warning btn-upload-doc"
+                                                <?php echo $_dattrs; ?> title="Replace document">
+                                            <i class="fa fa-refresh"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-danger btn-remove-doc"
+                                                <?php echo $_dattrs; ?> title="Remove document">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-xs btn-warning btn-upload-doc"
+                                            <?php echo $_dattrs; ?>>
+                                        <i class="fa fa-upload"></i> Upload
+                                    </button>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-right">
                                 <button type="button" class="btn btn-xs btn-primary btn-view-app"
                                         data-url="<?php echo site_url('admin/scholarshipapplication/view/' . $app['id']); ?>"
                                         data-ref="<?php echo htmlspecialchars($app['reference_no'] ?? ''); ?>">
                                     <i class="fa fa-eye"></i> View
                                 </button>
+                                <?php if ($app['status'] !== 'rejected'): ?>
+                                <button type="button" class="btn btn-xs btn-danger btn-reject-app"
+                                        data-id="<?php echo $app['id']; ?>"
+                                        data-ref="<?php echo htmlspecialchars($app['reference_no'] ?? ''); ?>"
+                                        data-name="<?php echo htmlspecialchars(trim(($app['firstname'] ?? '') . ' ' . ($app['lastname'] ?? ''))); ?>">
+                                    <i class="fa fa-ban"></i> Reject
+                                </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                         <?php if (empty($applications)): ?>
-                        <tr><td colspan="8" class="text-center text-muted">No applications found.</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted">No applications found.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
         </div>
     </section>
+</div>
+
+<!-- ── Upload Doc Modal ─────────────────────────────────────────────── -->
+<div class="modal fade" id="uploadDocModal" tabindex="-1" role="dialog" aria-labelledby="uploadDocModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title" id="uploadDocModalLabel"><i class="fa fa-upload"></i> Upload Scholarship Document</h4>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted" id="uploadDocApplicantName" style="margin-bottom:12px;"></p>
+                <div id="uploadDocMsg"></div>
+                <div class="form-group">
+                    <label>Select File <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="text" id="uploadDocFileName" class="form-control"
+                               placeholder="No file chosen" readonly
+                               style="background:#fff; cursor:pointer;"
+                               onclick="document.getElementById('uploadDocFile').click();">
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-default"
+                                    onclick="document.getElementById('uploadDocFile').click();">
+                                <i class="fa fa-folder-open"></i> Browse&hellip;
+                            </button>
+                        </span>
+                    </div>
+                    <input type="file" id="uploadDocFile" accept=".pdf,.jpg,.jpeg,.png" style="display:none;">
+                    <small class="text-muted">Allowed: PDF, JPG, PNG &mdash; Max size: 600 KB</small>
+                </div>
+                <div id="uploadDocPreviewWrap" style="display:none; margin-top:10px; text-align:center;">
+                    <img id="uploadDocPreviewImg" src="" alt="Preview"
+                         style="max-height:150px; max-width:100%; border:1px solid #ddd; border-radius:4px; padding:4px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="uploadDocSubmitBtn">
+                    <i class="fa fa-upload"></i> Upload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Reject Application Modal ──────────────────────────────────────── -->
+<div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#d9534f; color:#fff; border-radius:3px 3px 0 0;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff; opacity:.8;">&times;</button>
+                <h4 class="modal-title" id="rejectModalLabel"><i class="fa fa-ban"></i> Reject Scholarship Application</h4>
+            </div>
+            <div class="modal-body">
+                <div class="callout callout-danger" style="margin-bottom:12px;">
+                    <p><i class="fa fa-warning"></i> This will mark the application as <strong>Rejected</strong> regardless of current status. You can still revert it from the detail view.</p>
+                </div>
+                <p class="text-muted" id="rejectApplicantName" style="margin-bottom:12px; font-weight:600;"></p>
+                <div id="rejectMsg"></div>
+                <div class="form-group">
+                    <label>Rejection Reason <span class="text-danger">*</span></label>
+                    <textarea id="rejectRemarks" class="form-control" rows="3"
+                              placeholder="Enter reason for rejection..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="rejectSubmitBtn">
+                    <i class="fa fa-ban"></i> Confirm Reject
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- ── Application Detail Modal ──────────────────────────────────────── -->
@@ -311,6 +426,173 @@ $(function () {
         if (statusVal) url += 'status=' + statusVal + '&';
         if (typeId)    url += 'type_id=' + typeId;
         window.location.href = url;
+    });
+
+    // ── Upload Doc Modal ──────────────────────────────────────────────────
+    var _uploadDocAppId  = null;
+    var _uploadDocRef    = '';
+    var _uploadDocName   = '';
+
+    function _escAttr(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    $(document).on('click', '.btn-upload-doc', function () {
+        _uploadDocAppId = $(this).data('id');
+        var name = $(this).data('name') || '';
+        var ref  = $(this).data('ref')  || '';
+        _uploadDocRef   = name;
+        _uploadDocName  = ref;
+        $('#uploadDocApplicantName').text((name || 'Applicant') + (ref ? '  (' + ref + ')' : ''));
+        $('#uploadDocMsg').html('');
+        $('#uploadDocFile').val('');
+        $('#uploadDocFileName').val('');
+        $('#uploadDocPreviewWrap').hide();
+        $('#uploadDocSubmitBtn').prop('disabled', false).html('<i class="fa fa-upload"></i> Upload');
+        $('#uploadDocModal').modal('show');
+    });
+
+    $('#uploadDocFile').on('change', function () {
+        var file = this.files[0];
+        if (!file) { $('#uploadDocPreviewWrap').hide(); $('#uploadDocFileName').val(''); return; }
+        $('#uploadDocFileName').val(file.name);
+        var maxSize  = 614400; // 600 KB
+        var allowed  = ['image/jpeg', 'image/png', 'application/pdf'];
+        if (allowed.indexOf(file.type) === -1) {
+            $('#uploadDocMsg').html('<div class="alert alert-danger">Only JPG, PNG, or PDF files are allowed.</div>');
+            this.value = '';
+            $('#uploadDocPreviewWrap').hide();
+            return;
+        }
+        if (file.size > maxSize) {
+            $('#uploadDocMsg').html('<div class="alert alert-danger">File must be 600 KB or smaller. Selected: ' + (file.size / 1024).toFixed(1) + ' KB.</div>');
+            this.value = '';
+            $('#uploadDocPreviewWrap').hide();
+            return;
+        }
+        $('#uploadDocMsg').html('');
+        if (file.type.indexOf('image/') === 0) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                $('#uploadDocPreviewImg').attr('src', e.target.result);
+                $('#uploadDocPreviewWrap').show();
+            };
+            reader.readAsDataURL(file);
+        } else {
+            $('#uploadDocPreviewWrap').hide();
+        }
+    });
+
+    $('#uploadDocSubmitBtn').on('click', function () {
+        var file = $('#uploadDocFile')[0].files[0];
+        if (!file) {
+            $('#uploadDocMsg').html('<div class="alert alert-danger">Please select a file.</div>');
+            return;
+        }
+        var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Uploading...');
+        var formData = new FormData();
+        formData.append('doc_file', file);
+        $.ajax({
+            url: '<?php echo site_url('admin/scholarshipapplication/upload_doc'); ?>/' + _uploadDocAppId,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function (res) {
+                if (res.success) {
+                    $('#uploadDocMsg').html('<div class="alert alert-success">' + res.msg + '</div>');
+                    var iconClass = res.is_image ? 'fa-picture-o' : 'fa-file-pdf-o';
+                    var btnLabel  = res.is_image ? 'Preview'      : 'View PDF';
+                    var _id       = _uploadDocAppId;
+                    var _ref      = _escAttr(_uploadDocRef);
+                    var _nm       = _escAttr(_uploadDocName);
+                    var newHtml   = '<div class="btn-group btn-group-xs" role="group">'
+                                  + '<a href="' + res.view_url + '" target="_blank" class="btn btn-xs btn-default">'
+                                  + '<i class="fa ' + iconClass + '"></i> ' + btnLabel + '</a>'
+                                  + '<button type="button" class="btn btn-xs btn-warning btn-upload-doc"'
+                                  + ' data-id="' + _id + '" data-ref="' + _ref + '" data-name="' + _nm + '"'
+                                  + ' title="Replace document"><i class="fa fa-refresh"></i></button>'
+                                  + '<button type="button" class="btn btn-xs btn-danger btn-remove-doc"'
+                                  + ' data-id="' + _id + '" data-ref="' + _ref + '" data-name="' + _nm + '"'
+                                  + ' title="Remove document"><i class="fa fa-trash"></i></button>'
+                                  + '</div>';
+                    $('[data-id="' + _uploadDocAppId + '"].btn-upload-doc').closest('td').html(newHtml);
+                    setTimeout(function () { $('#uploadDocModal').modal('hide'); }, 1000);
+                } else {
+                    $('#uploadDocMsg').html('<div class="alert alert-danger">' + res.msg + '</div>');
+                    $btn.prop('disabled', false).html('<i class="fa fa-upload"></i> Upload');
+                }
+            },
+            error: function () {
+                $('#uploadDocMsg').html('<div class="alert alert-danger">Upload failed. Please try again.</div>');
+                $btn.prop('disabled', false).html('<i class="fa fa-upload"></i> Upload');
+            }
+        });
+    });
+
+    // ── Reject application ────────────────────────────────────────────────────
+    var _rejectAppId = null;
+
+    $(document).on('click', '.btn-reject-app', function () {
+        _rejectAppId = $(this).data('id');
+        var name = $(this).data('name') || '';
+        var ref  = $(this).data('ref')  || '';
+        $('#rejectApplicantName').text((name ? name : '') + (ref ? ' (' + ref + ')' : ''));
+        $('#rejectMsg').html('');
+        $('#rejectRemarks').val('');
+        $('#rejectSubmitBtn').prop('disabled', false).html('<i class="fa fa-ban"></i> Confirm Reject');
+        $('#rejectModal').modal('show');
+    });
+
+    $('#rejectSubmitBtn').on('click', function () {
+        var remarks = $.trim($('#rejectRemarks').val());
+        if (!remarks) {
+            $('#rejectMsg').html('<div class="alert alert-danger">Please enter a rejection reason.</div>');
+            return;
+        }
+        var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Rejecting...');
+        $.post('<?php echo site_url('admin/scholarshipapplication/reject_ajax'); ?>/' + _rejectAppId,
+               { remarks: remarks },
+        function (res) {
+            if (res.success) {
+                $('#rejectMsg').html('<div class="alert alert-success">' + res.msg + '</div>');
+                $('[data-id="' + _rejectAppId + '"].btn-reject-app').closest('tr')
+                    .find('.status-badge')
+                    .removeClass().addClass('label label-danger status-badge').text('Rejected');
+                $('[data-id="' + _rejectAppId + '"].btn-reject-app').remove();
+                setTimeout(function () { $('#rejectModal').modal('hide'); }, 900);
+            } else {
+                $('#rejectMsg').html('<div class="alert alert-danger">' + res.msg + '</div>');
+                $btn.prop('disabled', false).html('<i class="fa fa-ban"></i> Confirm Reject');
+            }
+        }, 'json').fail(function () {
+            $('#rejectMsg').html('<div class="alert alert-danger">An error occurred. Please try again.</div>');
+            $btn.prop('disabled', false).html('<i class="fa fa-ban"></i> Confirm Reject');
+        });
+    });
+
+    // Remove document
+    $(document).on('click', '.btn-remove-doc', function () {
+        var id   = $(this).data('id');
+        var ref  = $(this).data('ref')  || '';
+        var name = $(this).data('name') || '';
+        if (!confirm('Remove the uploaded document for this application? This cannot be undone.')) return;
+        var $td  = $(this).closest('td');
+        $.post('<?php echo site_url('admin/scholarshipapplication/remove_doc'); ?>/' + id, {}, function (res) {
+            if (res.success) {
+                var _r = _escAttr(ref);
+                var _n = _escAttr(name);
+                var uploadBtn = '<button type="button" class="btn btn-xs btn-warning btn-upload-doc"'
+                              + ' data-id="' + id + '" data-ref="' + _r + '" data-name="' + _n + '">'
+                              + '<i class="fa fa-upload"></i> Upload</button>';
+                $td.html(uploadBtn);
+            } else {
+                alert(res.msg || 'Could not remove document.');
+            }
+        }, 'json').fail(function () {
+            alert('Error removing document. Please try again.');
+        });
     });
 
     // Application detail modal — AJAX load

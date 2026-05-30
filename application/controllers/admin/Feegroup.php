@@ -37,8 +37,11 @@ class FeeGroup extends Admin_Controller
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
             redirect('admin/feegroup/index');
         }
-        $feegroup_result      = $this->feegroup_model->get();
-        $data['feegroupList'] = $feegroup_result;
+        $current_session            = $this->setting_model->getCurrentSession();
+        $selected_session           = (int)($this->input->get('session_id') ?: $current_session);
+        $data['sessionList']        = $this->session_model->getAllSession();
+        $data['selected_session']   = $selected_session;
+        $data['feegroupList']       = $this->feegroup_model->getBySession($selected_session);
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/feegroup/feegroupList', $data);

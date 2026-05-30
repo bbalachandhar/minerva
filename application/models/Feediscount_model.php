@@ -35,6 +35,19 @@ class Feediscount_model extends MY_Model
         }
     }
 
+    public function getBySession($session_id = null)
+    {
+        $session_id = $session_id ?? $this->current_session;
+        $this->db->select()->from('fees_discounts');
+        $this->db->group_start();
+        $this->db->where('session_id', $session_id);
+        $this->db->or_where('session_id IS NULL', null, false);
+        $this->db->group_end();
+        $this->db->order_by('id');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
     public function getbyasc($id = null)
     {
         $this->db->select()->from('fees_discounts');

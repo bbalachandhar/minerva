@@ -81,6 +81,19 @@ class Department_model extends MY_model
         }
     }
 
+    public function getDepartmentsWithStudents()
+    {
+        $this->db->select('department.*');
+        $this->db->from('department');
+        $this->db->join('classes', 'classes.department_id = department.id');
+        $this->db->join('student_session', 'student_session.class_id = classes.id');
+        $this->db->where('department.is_active', 1);
+        $this->db->group_by('department.id');
+        $this->db->order_by('department.department_name');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
     public function addDepartmentType($data)
     {
         $this->db->trans_start(); # Starting Transaction

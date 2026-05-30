@@ -98,9 +98,9 @@ class Student extends Admin_Controller
 
         $data['adm_auto_insert']      = $this->sch_setting_detail->adm_auto_insert;
         $data['student_timeline']     = $this->sch_setting_detail->student_timeline;
-        $data["session"]              = $studentSession["session"];
-        $student_due_fee              = $this->studentfeemaster_model->getStudentFees($student['student_session_id']);
-        $student_discount_fee         = $this->feediscount_model->getStudentFeesDiscount($student['student_session_id']);
+        $data["session"]              = !empty($studentSession) ? $studentSession["session"] : '';
+        $student_due_fee              = !empty($student['student_session_id']) ? $this->studentfeemaster_model->getStudentFees($student['student_session_id']) : [];
+        $student_discount_fee         = !empty($student['student_session_id']) ? $this->feediscount_model->getStudentFeesDiscount($student['student_session_id']) : [];
         $data['student_discount_fee'] = $student_discount_fee;
         $data['student_due_fee']      = $student_due_fee;
         $data['siblings']             = $this->student_model->getMySiblings($student['parent_id'], $student['id']);
@@ -468,7 +468,7 @@ class Student extends Admin_Controller
         $data['department_list'] = $department_result;
 
         //fees discount
-        $feesdiscount_result     = $this->feediscount_model->get();
+        $feesdiscount_result     = $this->feediscount_model->getBySession();
         $data['feediscountList'] = $feesdiscount_result;
         //fees discount
 
@@ -1639,7 +1639,7 @@ catch (Exception $e) {
 
         //***fees discount***//
         $data['student_fees_discount']  = $this->feediscount_model->getStudentFeesDiscount($student['student_session_id']); //edit
-        $feesdiscount_result            = $this->feediscount_model->get();
+        $feesdiscount_result            = $this->feediscount_model->getBySession();
         $data['feediscountList']        = $feesdiscount_result;
         //***fees discount***//
 
@@ -2172,7 +2172,7 @@ catch (Exception $e) {
         $data['fields']          = $this->customfield_model->get_custom_fields('students', 1);
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
-        $data['department_list'] = $this->Department_model->getDepartmentType();
+        $data['department_list'] = $this->Department_model->getDepartmentsWithStudents();
 
         $this->load->view('layout/header', $data);
         $this->load->view('student/studentSearch', $data);
