@@ -31,7 +31,7 @@ class Onlinestudent extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'onlinestudent');
         $data['title']       = 'Student List';
         $data['sch_setting'] = $this->sch_setting_detail;
-        $this->db->select('id, course_name, course_level')->from('online_admission_courses')->where('is_active', 1)->order_by('sort_order, course_name');
+        $this->db->select('id, course_name, course_level, admission_type')->from('online_admission_courses')->where('is_active', 1)->order_by('sort_order, course_name');
         $data['courseList'] = $this->db->get()->result_array();
         $this->load->view('layout/header', $data);
         $this->load->view('admin/onlinestudent/studentList', $data);

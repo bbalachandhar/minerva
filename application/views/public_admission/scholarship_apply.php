@@ -33,18 +33,16 @@
                         <div class="form-group">
                             <label>Supporting Document <small class="text-muted">(JPG, PNG or PDF, max 300 KB)</small></label>
                             <div class="input-group">
-                                <input type="text" id="docFileName" class="form-control" placeholder="No file chosen" readonly
-                                       style="background:#fff; cursor:pointer;"
-                                       onclick="document.getElementById('docFileInput').click();">
+                                <input type="text" id="docFileName" class="form-control" placeholder="No file chosen" readonly style="background:#fff;">
                                 <span class="input-group-btn">
-                                    <button type="button" class="btn btn-default"
-                                            onclick="document.getElementById('docFileInput').click();">
+                                    <span class="btn btn-default" style="position:relative; overflow:hidden;">
                                         <i class="fa fa-folder-open"></i> Browse&hellip;
-                                    </button>
+                                        <input type="file" id="docFileInput" name="document" accept=".jpg,.jpeg,.png,.pdf"
+                                               style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:100px;"
+                                               onchange="document.getElementById('docFileName').value = this.files[0] ? this.files[0].name : '';">
+                                    </span>
                                 </span>
                             </div>
-                            <input type="file" id="docFileInput" name="document" accept=".jpg,.jpeg,.png,.pdf" style="display:none;"
-                                   onchange="document.getElementById('docFileName').value = this.files[0] ? this.files[0].name : '';">
                         </div>
                     </div>
                     <div class="box-footer">
