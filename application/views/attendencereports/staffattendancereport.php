@@ -428,6 +428,19 @@ $report_heading = !empty($report_heading) ? $report_heading : $this->lang->line(
 </div>
 
 <script type="text/javascript">
+    $(document).ready(function () {
+        if ($('.staff-attendance-report tbody tr').length > 0) {
+            $('.staff-attendance-report').DataTable({
+                paging: false,
+                searching: true,
+                ordering: false,
+                scrollX: true,
+                info: false,
+                dom: 'ft',
+            });
+        }
+    });
+
     $('.detail_popover').popover({
         placement: 'right',
         title: '',
