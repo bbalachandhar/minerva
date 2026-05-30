@@ -19,8 +19,10 @@
                                 <label class="filter-label">Course</label>
                                 <select id="filter_course" class="form-control input-sm">
                                     <option value="">All Courses</option>
-                                    <?php foreach ($courseList as $c): ?>
-                                    <option value="<?php echo $c['id']; ?>"><?php echo htmlspecialchars($c['course_name']); ?></option>
+                                    <?php foreach ($courseList as $c):
+                                        $adm_label = ($c['admission_type'] === 'lateral') ? 'Lateral' : 'First Year';
+                                    ?>
+                                    <option value="<?php echo $c['id']; ?>"><?php echo htmlspecialchars($c['course_name']) . ' (' . $adm_label . ')'; ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
