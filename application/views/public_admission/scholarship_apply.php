@@ -38,8 +38,7 @@
                                     <span class="btn btn-default" style="position:relative; overflow:hidden;">
                                         <i class="fa fa-folder-open"></i> Browse&hellip;
                                         <input type="file" id="docFileInput" name="document" accept=".jpg,.jpeg,.png,.pdf"
-                                               style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:100px;"
-                                               onchange="document.getElementById('docFileName').value = this.files[0] ? this.files[0].name : '';">
+                                               style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:100px;">
                                     </span>
                                 </span>
                             </div>
@@ -104,3 +103,9 @@
         </div>
     </div>
 </section>
+<script>
+document.getElementById('docFileInput').addEventListener('change', function () {
+    var nameBox = document.getElementById('docFileName');
+    nameBox.value = this.files.length > 0 ? this.files[0].name : '';
+});
+</script>
