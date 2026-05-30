@@ -1153,6 +1153,7 @@ $currency_symbol = $admin_session['currency_symbol'];
 														$feetype_balance = $fee_paid; // The balance is the credit amount.
 														$fee_paid = 0; // The 'paid' amount for a credit fee is conceptually zero.
 													continue; // Don't show rows with zero amount (e.g. subsidies not yet assigned)
+												}
                                             ?>
                                                     <?php if($fee_value->due_date){
                                                     if ($feetype_balance > 0 && strtotime($fee_value->due_date) < strtotime(date('Y-m-d'))) {
