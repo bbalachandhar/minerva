@@ -670,7 +670,7 @@ class Staff_model extends MY_Model
         return $query->result_array();
     }
 
-    public function getEmployee($role, $active = 1, $class_id = null)
+    public function getEmployee($role, $active = 1, $class_id = null, $department = '')
     {
         $i             = 1;
         $custom_fields = $this->customfield_model->get_custom_fields('staff', 1);
@@ -710,6 +710,9 @@ class Staff_model extends MY_Model
         if($role != ""){
         $this->db->where("roles.id", $role);
           }
+        if (!empty($department)) {
+            $this->db->where("staff.department", $department);
+        }
         $query = $this->db->get();
 
         $result = $query->result_array();

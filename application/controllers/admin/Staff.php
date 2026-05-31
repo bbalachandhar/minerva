@@ -67,31 +67,32 @@ class Staff extends Admin_Controller
         $this->db->select('id, name, color, icon');
         $categories = $this->db->get('staff_designation_category')->result_array();
         $data['categories'] = $categories;
+
+        // Get departments for filter
+        $data['departments'] = $this->db->select('id, department_name')->order_by('department_name')->get('department')->result_array();
+        $data['department_selected'] = '';
         
         $search_text        = $this->input->post('search_text');
         if (isset($search)) {
             if ($search == 'search_filter') {
-                $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
-                if ($this->form_validation->run() == false) {
-                    $data["resultlist"] = array();
-                } else {
-                    $data['searchby']    = "filter";
-                    $role                = $this->input->post('role');
-                    $category            = $this->input->post('category');
-                    $data['employee_id'] = $this->input->post('empid');
-                    $data["role_id"]     = $role;
-                    $data['search_text'] = $this->input->post('search_text');
-                    $resultlist          = $this->staff_model->getEmployee($role, 1);
-                    
-                    // Filter by category if provided
-                    if (!empty($category)) {
-                        $resultlist = array_filter($resultlist, function($staff) use ($category) {
-                            return isset($staff['category_id']) && $staff['category_id'] == $category;
-                        });
-                    }
-                    
-                    $data['resultlist']  = $resultlist;
+                $data['searchby']    = "filter";
+                $role                = $this->input->post('role');
+                $category            = $this->input->post('category');
+                $department          = $this->input->post('department');
+                $data['employee_id'] = $this->input->post('empid');
+                $data["role_id"]     = $role;
+                $data['department_selected'] = !empty($department) ? $department : '';
+                $data['search_text'] = $this->input->post('search_text');
+                $resultlist          = $this->staff_model->getEmployee($role, 1, null, $department);
+                
+                // Filter by category if provided
+                if (!empty($category)) {
+                    $resultlist = array_filter($resultlist, function($staff) use ($category) {
+                        return isset($staff['category_id']) && $staff['category_id'] == $category;
+                    });
                 }
+                
+                $data['resultlist']  = $resultlist;
             } else if ($search == 'search_full') {
                 $data['searchby']    = "text";
                 $data['search_text'] = trim($this->input->post('search_text'));
