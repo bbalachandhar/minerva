@@ -71,6 +71,18 @@ if (!$staffid_auto_insert) {
                                             <?php
 }
 ?>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="au_fin_no">AU FIN No.</label>
+                                                    <input id="au_fin_no" name="au_fin_no" type="text" class="form-control" value="<?php echo set_value('au_fin_no'); ?>" />
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="aicte_coa_id">AICTE / COA ID</label>
+                                                    <input id="aicte_coa_id" name="aicte_coa_id" type="text" class="form-control" value="<?php echo set_value('aicte_coa_id'); ?>" />
+                                                </div>
+                                            </div>
                                         <div class="col-md-3">
                                             <div class="form-group">
                                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('role'); ?></label><small class="req"> *</small>
