@@ -84,6 +84,15 @@
             <span style="color:#ccc;">|</span>
             <a href="<?php echo site_url('site/applicantlogin'); ?>"><i class="fa fa-graduation-cap"></i> Applicant Login</a>
         </div>
+
+        <div class="divider"></div>
+        <div style="text-align:center;">
+            <a href="#" onclick="document.getElementById('qr-section').style.display=(document.getElementById('qr-section').style.display=='none'?'block':'none');return false;" style="color:#1F4E79;font-size:13px;"><i class="fa fa-mobile" style="font-size:16px;"></i> &nbsp;Scan to set up Minerva mobile app</a>
+            <div id="qr-section" style="display:none;margin-top:12px;">
+                <img src="<?php echo site_url('site/app_qr_png'); ?>" alt="App Setup QR Code" style="width:160px;height:160px;border:1px solid #e0e0e0;border-radius:6px;padding:4px;">
+                <div style="font-size:11px;color:#888;margin-top:6px;">Open Minerva app &rarr; Scan this code to connect to <strong><?php echo htmlspecialchars($name); ?></strong></div>
+            </div>
+        </div>
     </div>
 </div>
 <script src="<?php echo base_url(); ?>backend/usertemplate/assets/js/jquery-1.11.1.min.js"></script>

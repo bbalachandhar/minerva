@@ -688,4 +688,35 @@ class Site extends Public_Controller
         echo $captcha['image'];
     }
 
+    /**
+     * Generates a QR code PNG encoding the institution's API endpoint + name.
+     * Used on login pages so mobile app users can scan once to configure the app.
+     * Output: image/png  (no auth required — it is on the public login page)
+     */
+    public function app_qr_png()
+    {
+        require_once APPPATH . 'third_party/vendor/autoload.php';
+
+        $settings    = $this->setting_model->get();
+        $school_name = isset($settings[0]['name']) ? $settings[0]['name'] : '';
+        $api_url     = rtrim(base_url(), '/') . '/api/';
+
+        $payload = json_encode([
+            'api_url' => $api_url,
+            'school'  => $school_name,
+        ], JSON_UNESCAPED_SLASHES);
+
+        $options = new \chillerlan\QRCode\QROptions([
+            'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
+            'eccLevel'   => \chillerlan\QRCode\QRCode::ECC_M,
+            'scale'      => 6,
+            'imageBase64'=> false,
+        ]);
+
+        header('Content-Type: image/png');
+        header('Cache-Control: public, max-age=86400');
+        echo (new \chillerlan\QRCode\QRCode($options))->render($payload);
+        exit;
+    }
+
 }
