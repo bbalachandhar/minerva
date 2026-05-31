@@ -763,7 +763,9 @@ class Payroll_model extends MY_Model
             COALESCE(staff.category_id, staff_designation.category_id) as category_id,
             sdc.name as staff_type,
             sdc.color as staff_type_color,
-            sdc.icon as staff_type_icon');
+            sdc.icon as staff_type_icon,
+            staff_designation.designation as designation,
+            department.department_name as department_name');
         $this->db->join("staff_payslip", "staff_payslip.staff_id = staff.id", "inner");
         $this->db->join("staff_designation", "staff.designation = staff_designation.id", "left");
         $this->db->join("staff_designation_category sdc", "COALESCE(staff.category_id, staff_designation.category_id) = sdc.id", "left");

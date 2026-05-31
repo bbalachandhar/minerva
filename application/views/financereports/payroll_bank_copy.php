@@ -111,6 +111,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
+                                        <th>Department</th>
+                                        <th>Designation</th>
                                         <th><?php echo $this->lang->line('employee_id'); ?></th>
                                         <th><?php echo $this->lang->line('bank_name'); ?></th>
                                         <th><?php echo $this->lang->line('bank_branch_name'); ?></th>
@@ -129,6 +131,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             ?>
                                             <tr>
                                                 <td style="text-transform: capitalize;"><?php echo htmlspecialchars(trim(($row['name'] ?? '') . ' ' . ($row['surname'] ?? ''))); ?></td>
+                                                <td><?php echo htmlspecialchars((string) ($row['department_name'] ?? '-')); ?></td>
+                                                <td><?php echo htmlspecialchars((string) ($row['designation'] ?? '-')); ?></td>
                                                 <td><?php echo htmlspecialchars((string) ($row['employee_id'] ?? '')); ?></td>
                                                 <td><?php echo htmlspecialchars((string) ($row['bank_name'] ?? '')); ?></td>
                                                 <td><?php echo htmlspecialchars((string) ($row['bank_branch'] ?? '')); ?></td>
@@ -143,7 +147,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </tbody>
                                 <tfoot>
                                     <tr class="box box-solid total-bg">
-                                        <td colspan="6" class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
+                                        <td colspan="8" class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
                                         <td class="text text-right"><?php echo $currency_symbol . amountFormat($total_net_salary); ?></td>
                                     </tr>
                                 </tfoot>

@@ -155,6 +155,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
+                                        <th>Department</th>
+                                        <th>Designation</th>
                                         <th>DOJ</th>
                                         <th><?php echo $this->lang->line('month_year'); ?></th>
                                         <th>Category</th>
@@ -297,8 +299,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <td style="text-transform: capitalize;">
                                                     <span data-toggle="popover" class="detail_popover" data-original-title="" title=""><a href="<?php echo base_url() ?>admin/staff/profile/<?php echo $value['staff_id']; ?>"><?php echo $value['name'] . " " . $value['surname']." (".$value['employee_id'].")"; ?></a></span>
                                                    
-                                                </td>
-                                                <td>
+                                                </td>                                                <td><?php echo htmlspecialchars($value['department_name'] ?? '-'); ?></td>
+                                                <td><?php echo htmlspecialchars($value['designation'] ?? '-'); ?></td>                                                <td>
                                                     <?php
                                                     if (!empty($value['date_of_joining'])) {
                                                         echo date($this->customlib->getSchoolDateFormat(), strtotime($value['date_of_joining']));
@@ -409,6 +411,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </tbody>
                                 <tfoot>
 									<tr class="box box-solid total-bg">
+                                        <td></td>
+                                        <td></td>
                                         <td></td>
                                         <td></td>
                                         <td></td>
