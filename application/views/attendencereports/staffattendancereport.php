@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="<?php echo base_url('backend/plugins/select2/select2.min.css'); ?>">
 <style type="text/css">
     @media print {
 
@@ -101,6 +102,20 @@ $report_heading = !empty($report_heading) ? $report_heading : $this->lang->line(
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
+                                        <label>Department</label>
+                                        <select id="staff_department" name="staff_department" class="form-control">
+                                            <option value="">All Departments</option>
+                                            <?php foreach ($departments as $dept) { ?>
+                                                <option value="<?php echo $dept['id']; ?>"
+                                                    <?php echo (isset($department_selected) && $department_selected == $dept['id']) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($dept['department_name']); ?>
+                                                </option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('month'); ?></label><small class="req"> *</small>
                                         <select id="month" name="month" class="form-control">
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
@@ -162,7 +177,7 @@ $report_heading = !empty($report_heading) ? $report_heading : $this->lang->line(
                                     <div class="col-md-8 col-sm-8">
                                         <div class="pull-right">
                                             <?php if (!empty($month_selected) && !empty($year_selected)) { ?>
-                                                <a class="btn btn-xs btn-colored-excel" href="<?php echo site_url('attendencereports/staffattendancereport_export_excel?role=' . urlencode($role_selected) . '&staff_category=' . urlencode($staff_category_selected ?? '') . '&month=' . urlencode($month_selected) . '&year=' . urlencode($year_selected) . '&with_punch_report=' . ($is_punch_report ? '1' : '0')); ?>" title="Export in Excel(Colored)"><i class="fa fa-file-excel-o"></i> Export in Excel(Colored)</a>
+                                                <a class="btn btn-xs btn-colored-excel" href="<?php echo site_url('attendencereports/staffattendancereport_export_excel?role=' . urlencode($role_selected) . '&staff_category=' . urlencode($staff_category_selected ?? '') . '&staff_department=' . urlencode($department_selected ?? '') . '&month=' . urlencode($month_selected) . '&year=' . urlencode($year_selected) . '&with_punch_report=' . ($is_punch_report ? '1' : '0')); ?>" title="Export in Excel(Colored)"><i class="fa fa-file-excel-o"></i> Export in Excel(Colored)</a>
                                             <?php } ?>
                                             <span class="label att-present" style="padding: 4px 8px; margin-right: 6px;">Present</span>
                                             <span class="label att-half-day" style="padding: 4px 8px; margin-right: 6px;">Half Day</span>
@@ -553,4 +568,14 @@ $report_heading = !empty($report_heading) ? $report_heading : $this->lang->line(
             }
         });
     }
+</script>
+<script src="<?php echo base_url('backend/plugins/select2/js/select2.min.js'); ?>"></script>
+<script>
+$(document).ready(function() {
+    $('#role, #staff_category, #staff_department, #month, #year').select2({
+        placeholder: 'Select...',
+        allowClear: true,
+        width: '100%'
+    });
+});
 </script>
