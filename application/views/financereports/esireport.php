@@ -21,12 +21,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <div class="col-sm-6 col-md-3">
                                 <div class="form-group">
                                     <label>Category</label>
-                                    <select class="form-control" name="filter_category[]" multiple="multiple" size="4">
+                                    <select class="form-control select2" id="filter_category" name="filter_category[]" multiple="multiple">
                                         <?php foreach ($categories as $cat): ?>
                                         <option value="<?php echo $cat['id']; ?>" <?php echo (isset($filter_category) && is_array($filter_category) && in_array($cat['id'], $filter_category)) ? 'selected' : ''; ?>><?php echo htmlspecialchars($cat['name']); ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
                                 </div>
                             </div>
                             <div class="col-sm-6 col-md-2" >
@@ -227,8 +226,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         </div>
     </div>
 </div>
+<link rel="stylesheet" href="<?php echo base_url('backend/plugins/select2/css/select2.min.css'); ?>">
+<script src="<?php echo base_url('backend/plugins/select2/js/select2.min.js'); ?>"></script>
 <script type="text/javascript">
     $(document).ready(function () {
+        $('#filter_category').select2({ placeholder: 'All Categories', allowClear: true });
         var schoolName = "<?php echo addslashes($this->sch_setting_detail->name);?>";
         var schoolAddr = "<?php echo addslashes($this->sch_setting_detail->address);?>";
         var filterMonth = "<?php echo addslashes(!empty($filter_month) ? $filter_month : ''); ?>";
