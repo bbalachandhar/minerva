@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="<?php echo base_url('backend/plugins/select2/select2.min.css'); ?>">
 <?php
 $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
@@ -41,8 +42,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <?php echo $this->customlib->getCSRF(); ?>
                                         <div class="col-sm-12">
                                             <div class="form-group">
-                                                <label><?php echo $this->lang->line("role"); ?></label><small class="req"> *</small>
-                                                <select name="role" class="form-control">
+                                                <label><?php echo $this->lang->line("role"); ?></label>
+                                                <select id="role" name="role" class="form-control">
                                                     <option value=""><?php echo $this->lang->line("select"); ?></option>
                                                     <?php foreach ($role as $key => $role_value) {
     ?>
@@ -60,7 +61,7 @@ if ($role_id == $role_value["id"]) {
                                         <div class="col-sm-12">
                                             <div class="form-group">
                                                 <label>Staff Type / Category</label>
-                                                <select name="category" class="form-control">
+                                                <select id="category" name="category" class="form-control">
                                                     <option value=""><?php echo $this->lang->line("select"); ?></option>
                                                     <?php if (!empty($categories)): ?>
                                                         <?php foreach ($categories as $category): ?>
@@ -69,6 +70,21 @@ if ($role_id == $role_value["id"]) {
                                                             </option>
                                                         <?php endforeach; ?>
                                                     <?php endif; ?>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Department</label>
+                                                <select id="department" name="department" class="form-control">
+                                                    <option value="">All Departments</option>
+                                                    <?php foreach ($departments as $dept): ?>
+                                                        <option value="<?php echo $dept['id']; ?>"
+                                                            <?php echo (isset($department_selected) && $department_selected == $dept['id']) ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($dept['department_name']); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
                                                 </select>
                                             </div>
                                         </div>
@@ -354,4 +370,14 @@ $userdata = $this->customlib->getUserData();
             });
         });
     });
+</script>
+<script src="<?php echo base_url('backend/plugins/select2/js/select2.min.js'); ?>"></script>
+<script>
+$(document).ready(function() {
+    $('#role, #category, #department').select2({
+        placeholder: 'Select...',
+        allowClear: true,
+        width: '100%'
+    });
+});
 </script>
