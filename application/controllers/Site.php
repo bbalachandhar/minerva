@@ -697,14 +697,7 @@ class Site extends Public_Controller
     {
         require_once APPPATH . 'third_party/vendor/autoload.php';
 
-        $settings    = $this->setting_model->get();
-        $school_name = isset($settings[0]['name']) ? $settings[0]['name'] : '';
-        $api_url     = rtrim(base_url(), '/') . '/api/';
-
-        $payload = json_encode([
-            'api_url' => $api_url,
-            'school'  => $school_name,
-        ], JSON_UNESCAPED_SLASHES);
+        $payload = rtrim(base_url(), '/') . '/api/';
 
         $options = new \chillerlan\QRCode\QROptions([
             'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
