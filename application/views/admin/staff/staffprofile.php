@@ -152,6 +152,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <li class="list-group-item listnoback">
                                 <b><?php echo $this->lang->line('biometric_id'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['biometric_id']; ?></a>
                             </li>
+                            <?php if (!empty($staff['au_fin_no'])): ?>
+                            <li class="list-group-item listnoback">
+                                <b>AU FIN No.</b> <a class="pull-right text-aqua"><?php echo htmlspecialchars($staff['au_fin_no']); ?></a>
+                            </li>
+                            <?php endif; ?>
+                            <?php if (!empty($staff['aicte_coa_id'])): ?>
+                            <li class="list-group-item listnoback">
+                                <b>AICTE / COA ID</b> <a class="pull-right text-aqua"><?php echo htmlspecialchars($staff['aicte_coa_id']); ?></a>
+                            </li>
+                            <?php endif; ?>
                             <li class="list-group-item listnoback">
                                 <b><?php echo $this->lang->line('prefix'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['prefix']; ?></a>
                             </li>

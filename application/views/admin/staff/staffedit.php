@@ -39,7 +39,20 @@
                                                                                         <input id="biometric_id" name="biometric_id" placeholder="" type="text" class="form-control"  value="<?php echo set_value('biometric_id', $staff['biometric_id']); ?>" />
                                                                                         <span class="text-danger"><?php echo form_error('biometric_id'); ?></span>
                                                                                     </div>
-                                                                                </div>                                        <div class="col-md-3">
+                                                                                </div>
+                                                                                <div class="col-md-3">
+                                                                                    <div class="form-group">
+                                                                                        <label for="au_fin_no">AU FIN No.</label>
+                                                                                        <input id="au_fin_no" name="au_fin_no" type="text" class="form-control" value="<?php echo htmlspecialchars($staff['au_fin_no'] ?? ''); ?>" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-md-3">
+                                                                                    <div class="form-group">
+                                                                                        <label for="aicte_coa_id">AICTE / COA ID</label>
+                                                                                        <input id="aicte_coa_id" name="aicte_coa_id" type="text" class="form-control" value="<?php echo htmlspecialchars($staff['aicte_coa_id'] ?? ''); ?>" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-md-3">
                                             <div class="form-group">
                                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('role'); ?></label><small class="req"> *</small>
                                                 <input type="hidden" name="editid" value="<?php echo $staff['id']; ?>">

@@ -1988,11 +1988,15 @@ class Staff extends Admin_Controller
             $previous_institution = $this->input->post("previous_institution");
             $subject_expertise = $this->input->post("subject_expertise");
             $category_id = empty2null($this->input->post("category_id"));
+            $au_fin_no = $this->input->post("au_fin_no");
+            $aicte_coa_id = $this->input->post("aicte_coa_id");
             
             $data_update = array(
                 'id' => $id,
                 'employee_id' => $employee_id,
                 'biometric_id'           => ($biometric_id == "") ? NULL : $biometric_id,
+                'au_fin_no'              => ($au_fin_no === '' || $au_fin_no === false) ? NULL : $au_fin_no,
+                'aicte_coa_id'           => ($aicte_coa_id === '' || $aicte_coa_id === false) ? NULL : $aicte_coa_id,
                 'name' => $name,
                 'email' => $email,
                 'dob' => date('Y-m-d', $this->customlib->datetostrtotime($dob)),
