@@ -1516,6 +1516,8 @@ class Staff extends Admin_Controller
             $uan_no = $this->input->post('uan_no');
             $pan_no = $this->input->post('pan_no');
             $category_id = empty2null($this->input->post("category_id"));
+            $au_fin_no_create = $this->input->post('au_fin_no');
+            $aicte_coa_id_create = $this->input->post('aicte_coa_id');
 
             $password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
 
@@ -1551,6 +1553,8 @@ class Staff extends Admin_Controller
                 'previous_institution' => $this->input->post('previous_institution'),
                 'subject_expertise' => $this->input->post('subject_expertise'),
                 'category_id' => $category_id,
+                'au_fin_no'    => ($au_fin_no_create === '' || $au_fin_no_create === false) ? NULL : $au_fin_no_create,
+                'aicte_coa_id' => ($aicte_coa_id_create === '' || $aicte_coa_id_create === false) ? NULL : $aicte_coa_id_create,
             );
 
             if (isset($surname)) {
