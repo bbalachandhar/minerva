@@ -168,8 +168,11 @@ $_esi_employer_rate  = isset($_esi_cfg['employer_contribution_rate'])  ? $_esi_c
     $(document).ready(function () {
         var schoolName = "<?php echo addslashes($this->sch_setting_detail->name);?>";
         var schoolAddr = "<?php echo addslashes($this->sch_setting_detail->address);?>";
-        var reportName = 'Salary Abstract Report';
-        var headerMsg = schoolName + "\n" + schoolAddr + "\n" + reportName + "\n";
+        var filterMonth = "<?php echo addslashes(!empty($filter_month) ? $filter_month : ''); ?>";
+        var filterYear  = "<?php echo (int)(!empty($filter_year) ? $filter_year : date('Y')); ?>";
+        var reportBase  = 'Salary Abstract Report';
+        var reportName  = (filterMonth && filterYear) ? reportBase + '_' + filterMonth + '_' + filterYear : reportBase;
+        var headerMsg = schoolName + "\n" + schoolAddr + "\n" + reportBase + "\n";
         $('.example').DataTable({
             dom: 'Bfrtip',
             buttons: [
