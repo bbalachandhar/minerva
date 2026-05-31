@@ -1051,7 +1051,7 @@ class Attendencereports extends Admin_Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Staff Attendance');
 
-        $headers = ['Staff / Date', '(%)', 'WD', 'A*', 'P*', 'H', 'HD', 'WE'];
+        $headers = ['Staff / Date', 'Emp No', 'Department', 'Designation', '(%)', 'WD', 'A*', 'P*', 'H', 'HD', 'WE'];
         foreach ($attendence_array as $att_date) {
             $headers[] = date('d', strtotime($att_date)) . "\n" . date('D', strtotime($att_date));
         }
@@ -1091,6 +1091,9 @@ class Attendencereports extends Admin_Controller
 
             $row = [
                 $staff_row['name'] . ' ' . $staff_row['surname'],
+                $staff_row['employee_id'] ?? '',
+                $staff_row['department_name'] ?? '',
+                $staff_row['designation_name'] ?? '',
                 $print_percentage,
                 $working_days,
                 rtrim(rtrim(number_format((float)$total_absent, 1, '.', ''), '0'), '.'),
