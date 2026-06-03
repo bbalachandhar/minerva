@@ -30,13 +30,13 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/student_receipt/<?php echo $result[1]['header_image'] ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/student_receipt/<?php echo ($result['student_receipt']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="student_receipt" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
                                         <div class="form-group"><label><?php echo $this->lang->line('footer_content'); ?> </label>
                                             <textarea id="student_textarea" name="message1" class="form-control" style="height: 250px">
-                                                <?php echo set_value('message1', $result[1]['footer_content']); ?>
+                                                <?php echo set_value('message1', $result['student_receipt']['footer_content'] ?? ''); ?>
                                             </textarea>
                                             <span class="text-danger"><?php echo form_error('message1'); ?></span>
                                         </div>
@@ -56,13 +56,13 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/staff_payslip/<?php echo $result[0]['header_image'] ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/staff_payslip/<?php echo ($result['staff_payslip']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="staff_payslip" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
                                         <div class="form-group"><label><?php echo $this->lang->line('footer_content'); ?> </label>
                                             <textarea id="staff_textarea" name="message" class="form-control" style="height: 250px">
-                                                <?php echo set_value('message', $result[0]['footer_content']); ?>
+                                                <?php echo set_value('message', $result['staff_payslip']['footer_content'] ?? ''); ?>
                                             </textarea>
                                             <span class="text-danger"><?php echo form_error('message'); ?></span>
                                         </div>
@@ -83,13 +83,13 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="admission_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/online_admission_receipt/<?php echo $result[2]['header_image'] ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="admission_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/online_admission_receipt/<?php echo ($result['online_admission_receipt']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="online_admission_receipt" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
                                         <div class="form-group"><label><?php echo $this->lang->line('footer_content'); ?> </label>
                                             <textarea id="online_admission_textarea" name="admission_message" class="form-control" style="height: 250px">
-                                                <?php echo set_value('admission_message', $result[2]['footer_content']); ?>
+                                                <?php echo set_value('admission_message', $result['online_admission_receipt']['footer_content'] ?? ''); ?>
                                             </textarea>
                                             <span class="text-danger"><?php echo form_error('admission_message'); ?></span>
                                         </div>
@@ -111,13 +111,13 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="admission_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/online_exam/<?php echo $result[3]['header_image'] ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="admission_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/online_exam/<?php echo ($result['online_exam']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="online_exam" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
                                         <div class="form-group"><label><?php echo $this->lang->line('footer_content'); ?></label>
                                             <textarea id="online_exam_textarea" name="online_exam_message" class="form-control" style="height: 250px">
-                                                <?php echo set_value('online_exam_message', $result[3]['footer_content']); ?>
+                                                <?php echo set_value('online_exam_message', $result['online_exam']['footer_content'] ?? ''); ?>
                                             </textarea>
                                             <span class="text-danger"><?php echo form_error('online_exam_message'); ?></span>
                                         </div>
@@ -139,13 +139,13 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="general_purpose_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/general_purpose/<?php echo $result[4]['header_image'] ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="general_purpose_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/general_purpose/<?php echo ($result['general_purpose']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="general_purpose" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
                                         <div class="form-group"><label><?php echo $this->lang->line('footer_content'); ?></label>
                                             <textarea id="general_purpose_textarea" name="general_purpose_message" class="form-control" style="height: 250px">
-                                                <?php echo set_value('general_purpose_message', $result[4]['footer_content']); ?>
+                                                <?php echo set_value('general_purpose_message', $result['general_purpose']['footer_content'] ?? ''); ?>
                                             </textarea>
                                             <span class="text-danger"><?php echo form_error('general_purpose_message'); ?></span>
                                         </div>
