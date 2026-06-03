@@ -351,13 +351,22 @@ class Setting_model extends MY_Model {
     }
 
     public function add_printheader($data) {
-        $this->db->where('print_type', $data['print_type']);
-        $this->db->update('print_headerfooter', $data);       
+        $existing = $this->db->select('id')->from('print_headerfooter')->where('print_type', $data['print_type'])->get()->row_array();
+        if (!empty($existing)) {
+            $this->db->where('print_type', $data['print_type']);
+            $this->db->update('print_headerfooter', $data);
+        } else {
+            $this->db->insert('print_headerfooter', $data);
+        }
     }
 
     public function get_printheader() {
-      
-        return $this->db->select('*')->from('print_headerfooter')->get()->result_array();
+        $rows = $this->db->select('*')->from('print_headerfooter')->get()->result_array();
+        $keyed = [];
+        foreach ($rows as $row) {
+            $keyed[$row['print_type']] = $row;
+        }
+        return $keyed;
     }
 
     public function get_receiptheader() {
