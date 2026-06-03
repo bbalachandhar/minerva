@@ -1447,6 +1447,27 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                             strpos($action_type, 'CREDIT') !== false
                                                                             || in_array($action_type, ['PAYROLL_OD_SYNC', 'CREDIT_APPLIED'], true)
                                                                         );
+                                                                        // Human-readable labels for transaction types
+                                                                        $action_labels = [
+                                                                            'MONTHLY_CREDIT'          => 'Monthly Credit',
+                                                                            'LOP_CASCADE'             => 'Payroll Carry-forward',
+                                                                            'LOP_ADJUSTMENT'          => 'LOP Deduction',
+                                                                            'PAYROLL_OD_SYNC'         => 'OD Sync',
+                                                                            'LEAVE_APPROVED_DEBIT'    => 'Leave Taken',
+                                                                            'LEAVE_APPROVED_CREDIT'   => 'Leave Restored',
+                                                                            'LEAVE_APPROVED_AUDIT'    => 'Leave Applied',
+                                                                            'LEAVE_APPLICATION_DEBIT' => 'Leave Applied',
+                                                                            'LEAVE_APPROVAL_REVERTED' => 'Leave Reverted',
+                                                                            'HOD_CPL_CREDIT'          => 'CPL Earned',
+                                                                            'HOD_CPL_CREDIT_REVERSED' => 'CPL Reversed',
+                                                                            'CREDIT_APPLIED'          => 'Credit Applied',
+                                                                            'CREDIT_POOL_DEBIT'       => 'Pool Debit',
+                                                                            'ADMIN_ADJUSTMENT'        => 'Admin Adjustment',
+                                                                            'PAYROLL_DEBIT'           => 'Payroll Debit',
+                                                                        ];
+                                                                        $action_label = isset($action_labels[$action_type])
+                                                                            ? $action_labels[$action_type]
+                                                                            : ucwords(strtolower(str_replace('_', ' ', $action_type)));
                                                                         $amount_color = $is_credit ? '#1e8449' : '#c0392b';
                                                                         $amount_prefix = $is_credit ? '+' : '-';
                                                                         $created_at = isset($txn['created_at']) ? (string) $txn['created_at'] : '';
@@ -1458,7 +1479,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                         ?>
                                                                         <tr>
                                                                             <td class="white-space-nowrap" style="font-size:11px;"><?php echo $date_display; ?></td>
-                                                                            <td style="font-size:11px;"><span class="label <?php echo $is_credit ? 'label-success' : 'label-danger'; ?>" style="font-size:10px;"><?php echo htmlspecialchars($action_type, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                                                            <td style="font-size:11px;"><span class="label <?php echo $is_credit ? 'label-success' : 'label-danger'; ?>" style="font-size:10px;"><?php echo htmlspecialchars($action_label, ENT_QUOTES, 'UTF-8'); ?></span></td>
                                                                             <td class="text-right" style="font-size:11px;color: <?php echo $amount_color; ?>;font-weight:700;"><?php echo $amount_prefix . $format_leave_count((float) ($txn['amount'] ?? 0)); ?></td>
                                                                             <td class="text-right" style="font-size:11px;"><?php echo $format_leave_count((float) ($txn['balance_after'] ?? 0)); ?></td>
                                                                             <td style="font-size:11px;"><?php echo htmlspecialchars($reason_display, ENT_QUOTES, 'UTF-8'); ?></td>
