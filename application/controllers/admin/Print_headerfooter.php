@@ -165,7 +165,7 @@ class Print_headerfooter extends Admin_Controller
                 return false;
             }
 
-            if ($file_size > $result->image_size) {
+            if ($result->image_size > 0 && $file_size > $result->image_size) {
                 $this->form_validation->set_message('handle_upload', $this->lang->line('file_size_shoud_be_less_than') . number_format($result->image_size / 1048576, 2) . " MB");
                 return false;
             }
