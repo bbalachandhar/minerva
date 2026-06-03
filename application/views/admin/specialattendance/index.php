@@ -228,6 +228,17 @@ $months = array(
                 Example (Saturday+Sunday weekend): Fri Present + Mon Present ⇒ Sat/Sun payable (not added to LOP).<br>
                 Allowed values are half-step only: <strong>0, 0.5, 1, 1.5, ...</strong>
             </div>
+            <div class="row" style="margin-bottom:8px;">
+                <div class="col-md-4 col-sm-6">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                        <input type="text" class="form-control" id="table_search" placeholder="Search staff...">
+                    </div>
+                </div>
+                <div class="col-md-8 col-sm-6 text-right">
+                    <span id="table_search_count" class="text-muted small"></span>
+                </div>
+            </div>
             <div class="table-responsive">
             <table class="table table-bordered table-striped" id="employees-table">
                 <thead>
@@ -235,6 +246,7 @@ $months = array(
                         <th><?php echo htmlspecialchars($staff_id_label); ?></th>
                         <th><?php echo htmlspecialchars($name_label); ?></th>
                         <th><?php echo htmlspecialchars($department_label); ?></th>
+                        <th>Role</th>
                         <th style="width:120px;" class="text-center">Attendance %</th>
                         <th style="width:140px;" class="text-center"><?php echo htmlspecialchars($days_absent_label); ?></th>
                     </tr>
@@ -451,6 +463,7 @@ $months = array(
                 '   <td>' + (emp.code ? emp.code : '-') + '</td>\n' +
                 '   <td>' + (emp.name ? emp.name : '-') + '</td>\n' +
                 '   <td>' + (emp.department ? emp.department : '-') + '</td>\n' +
+                '   <td>' + (emp.role_name ? emp.role_name : '-') + '</td>\n' +
                 '   <td class="text-center">' + attendancePercentage.toFixed(2) + '%</td>\n' +
                 '   <td class="text-center"><input type="number" class="form-control input-sm days-absent" min="0" step="0.5"' +
                 (lopTooltip ? ' title="' + String(lopTooltip).replace(/"/g, '&quot;') + '"' : '') +
@@ -463,7 +476,27 @@ $months = array(
         var roleText = $role.val() ? $role.find('option:selected').text() : 'All Roles';
         showMessage('info', employees.length + ' staff member(s) loaded (' + deptText + ' / ' + roleText + ').');
         updateButtonsState();
+        // reset search after reload
+        $('#table_search').val('');
+        filterTable('');
     }
+
+    function filterTable(query) {
+        var q = query.toLowerCase().trim();
+        var visible = 0;
+        $tableBody.find('tr').each(function() {
+            var text = $(this).find('td:not(:last-child)').text().toLowerCase();
+            var show = !q || text.indexOf(q) !== -1;
+            $(this).toggle(show);
+            if (show) { visible++; }
+        });
+        var total = $tableBody.find('tr').length;
+        $('#table_search_count').text(q ? (visible + ' of ' + total + ' shown') : (total + ' staff loaded'));
+    }
+
+    $(document).on('input', '#table_search', function() {
+        filterTable($(this).val());
+    });
 
     function fetchWorkingDays(callback) {
         var data = formDataValid(false);

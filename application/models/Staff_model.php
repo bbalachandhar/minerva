@@ -1409,7 +1409,8 @@ class Staff_model extends MY_Model
 
     public function getByDepartment($department_id = null, $role_id = null)
     {
-        $this->db->select('staff.id, staff.name, staff.employee_id as code, department.department_name as department');
+        $this->db->select("staff.id, staff.name, staff.employee_id as code, department.department_name as department,
+            (SELECT r.name FROM staff_roles sr INNER JOIN roles r ON r.id = sr.role_id WHERE sr.staff_id = staff.id ORDER BY sr.id ASC LIMIT 1) as role_name");
         $this->db->from('staff');
         $this->db->join('department', 'department.id = staff.department', 'left');
         if (!empty($role_id)) {
