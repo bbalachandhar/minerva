@@ -1,4 +1,4 @@
-<?php $is_school_k12 = in_array(strtolower(trim($sch_setting_detail->institution_type)), ['school', 'school (k-12)']); ?>
+<?php $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) != 'college'); ?>
 <div class="content-wrapper">
     <section class="content-header">
         <h1><i class="fa fa-mortar-board"></i> <?php echo $this->lang->line('academics'); ?> <small><?php echo $this->lang->line('student_fees'); ?></small></h1>
