@@ -1,4 +1,7 @@
-<?php $currency_symbol = $this->customlib->getCurrency(); ?>
+<?php
+$currency_symbol = $this->customlib->getCurrency();
+$is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) == 'school (k-12)');
+?>
 <div class="row">
     <?php if ($this->rbac->hasPrivilege('online_admission_admission_courses', 'can_add')) { ?>
         <div class="col-md-4">
@@ -27,6 +30,11 @@
                             <input id="course_code" name="course_code" placeholder="" type="text" class="form-control" value="<?php echo set_value('course_code'); ?>" />
                             <span class="text-danger"><?php echo form_error('course_code'); ?></span>
                         </div>
+                        <?php if ($is_school_k12): ?>
+                            <input type="hidden" name="course_level" value="ug">
+                            <input type="hidden" name="admission_type" value="first_year">
+                            <input type="hidden" name="govt_fee" value="0">
+                        <?php else: ?>
                         <div class="form-group">
                             <label>Course Level</label><small class="req"> *</small>
                             <select class="form-control" name="course_level">
@@ -48,6 +56,7 @@
                             <input id="govt_fee" name="govt_fee" type="number" step="0.01" min="0" class="form-control" value="<?php echo set_value('govt_fee'); ?>" />
                             <span class="text-danger"><?php echo form_error('govt_fee'); ?></span>
                         </div>
+                        <?php endif; ?>
                         <div class="form-group">
                             <label>Management Fee (<?php echo $currency_symbol; ?>)</label><small class="req"> *</small>
                             <input id="mgt_fee" name="mgt_fee" type="number" step="0.01" min="0" class="form-control" value="<?php echo set_value('mgt_fee'); ?>" />
@@ -110,9 +119,11 @@
                             <tr>
                                 <th><?php echo $this->lang->line('course_name'); ?></th>
                                 <th><?php echo $this->lang->line('course_code'); ?></th>
+                                <?php if (!$is_school_k12): ?>
                                 <th>Level</th>
                                 <th>Admission Type</th>
                                 <th>Govt. Fee</th>
+                                <?php endif; ?>
                                 <th>Mgt. Fee</th>
                                 <th>Sort</th>
                                 <th><?php echo $this->lang->line('description'); ?></th>
@@ -135,9 +146,11 @@
                                     <tr>
                                         <td class="mailbox-name"><?php echo $course['course_name'] ?></td>
                                         <td class="mailbox-name"><?php echo $course['course_code'] ?></td>
+                                        <?php if (!$is_school_k12): ?>
                                         <td class="mailbox-name"><?php echo strtoupper($course['course_level']); ?></td>
                                         <td class="mailbox-name"><?php echo ($course['admission_type'] == 'lateral') ? 'Lateral' : 'First Year'; ?></td>
                                         <td class="mailbox-name"><?php echo $currency_symbol . ' ' . number_format((float)$course['govt_fee'], 2); ?></td>
+                                        <?php endif; ?>
                                         <td class="mailbox-name"><?php echo $currency_symbol . ' ' . number_format((float)$course['mgt_fee'], 2); ?></td>
                                         <td class="mailbox-name"><?php echo (int)$course['sort_order']; ?></td>
                                         <td class="mailbox-name"><?php echo $course['description'] ?></td>

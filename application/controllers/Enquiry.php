@@ -56,6 +56,8 @@ class Enquiry extends CI_Controller
             $data['ug_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'first_year');
             $data['ug_lateral_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'lateral');
             $data['pg_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('pg', 'first_year');
+            $data['all_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses();
+            $data['sch_setting_detail'] = $this->sch_setting_detail;
             $data['sourcelist'] = $this->enquiry_model->getComplaintSource();
             $data['references'] = $this->enquiry_model->get_reference();
             $data['prefill_source'] = $this->input->get('source', TRUE);
