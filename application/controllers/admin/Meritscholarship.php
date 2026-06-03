@@ -35,7 +35,7 @@ class Meritscholarship extends Admin_Controller
                 'msg',
                 '<div class="alert alert-warning"><i class="fa fa-exclamation-triangle"></i> The Merit Scholarship module is only available for college-type institutions.</div>'
             );
-            redirect('admin/dashboard');
+            redirect('admin/unauthorized');
             exit;
         }
         $this->load->model('Scholarship_application_model');
