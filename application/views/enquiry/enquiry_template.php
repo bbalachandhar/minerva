@@ -43,7 +43,7 @@
         <div class="enquiry-container">
             <div class="enquiry-header text-center">
                 <?php if (!empty($header_image)): ?>
-                    <img src="<?php echo base_url('uploads/print_headerfooter/general_purpose/' . $header_image); ?>" alt="Header">
+                    <img src="<?php echo base_url('uploads/print_headerfooter/online_admission_receipt/' . $header_image); ?>" alt="Header">
                 <?php endif; ?>
             </div>
             <?php $this->load->view($main_content); ?>
