@@ -465,9 +465,11 @@ $months = array(
                 '   <td>' + (emp.department ? emp.department : '-') + '</td>\n' +
                 '   <td>' + (emp.category_name ? emp.category_name : '-') + '</td>\n' +
                 '   <td class="text-center">' + attendancePercentage.toFixed(2) + '%</td>\n' +
-                '   <td class="text-center"><input type="number" class="form-control input-sm days-absent" min="0" step="0.5"' +
+                '   <td class="text-center" style="white-space:nowrap;"><input type="number" class="form-control input-sm days-absent" style="display:inline-block;width:calc(100% - 38px);vertical-align:middle;" min="0" step="0.5"' +
                 (lopTooltip ? ' title="' + String(lopTooltip).replace(/"/g, '&quot;') + '"' : '') +
-                (maxLopDays !== null ? ' max="' + maxLopDays + '"' : '') + ' placeholder="e.g. 1 or 1.5" value="' + (lopDays === '' ? '' : lopDays) + '"></td>\n' +
+                (maxLopDays !== null ? ' max="' + maxLopDays + '"' : '') + ' placeholder="e.g. 1 or 1.5" value="' + (lopDays === '' ? '' : lopDays) + '">' +
+                '<button type="button" class="btn btn-xs btn-default clear-entry-btn" style="margin-left:4px;vertical-align:middle;" title="Clear this entry"><i class="fa fa-times"></i></button>' +
+                '</td>\n' +
                 '</tr>');
         });
         $tableBody.html(rows.join('\n'));
@@ -496,6 +498,32 @@ $months = array(
 
     $(document).on('input', '#table_search', function() {
         filterTable($(this).val());
+    });
+
+    function collectClearIds() {
+        var ids = [];
+        $tableBody.find('tr[data-clear-entry="1"]').each(function() {
+            ids.push($(this).data('employee-id'));
+        });
+        return ids;
+    }
+
+    $tableBody.on('click', '.clear-entry-btn', function(){
+        var $row = $(this).closest('tr');
+        var isClear = $row.attr('data-clear-entry') === '1';
+        if (isClear) {
+            $row.attr('data-clear-entry', '');
+            $row.find('.days-absent').prop('disabled', false);
+            $row.css({'opacity': '', 'text-decoration': ''});
+            $row.find('td:nth-child(2)').css('text-decoration', '');
+            $(this).removeClass('btn-danger').addClass('btn-default').attr('title', 'Clear this entry');
+        } else {
+            $row.attr('data-clear-entry', '1');
+            $row.find('.days-absent').prop('disabled', true).val('');
+            $row.css('opacity', '0.55');
+            $row.find('td:nth-child(2)').css('text-decoration', 'line-through');
+            $(this).removeClass('btn-default').addClass('btn-danger').attr('title', 'Undo clear');
+        }
     });
 
     function fetchWorkingDays(callback) {
@@ -729,11 +757,20 @@ $months = array(
             return;
         }
         var selection = collectSelectedStaff(true, true);
-        if (!selection.ids.length) {
+        var clearIds = collectClearIds();
+        if (!selection.ids.length && !clearIds.length) {
             showToast('warning', '<?php echo addslashes($positive_days_warning); ?>');
             return;
         }
-        if (!window.confirm('<?php echo addslashes($confirm_generate_text); ?>')) {
+        var confirmMsg = 'Generate special attendance for ' + data.month + ' ' + data.year + '?\n\n';
+        if (selection.ids.length) {
+            confirmMsg += '\u2022 ' + selection.ids.length + ' staff will have punches generated/replaced.\n';
+        }
+        if (clearIds.length) {
+            confirmMsg += '\u2022 ' + clearIds.length + ' staff marked with \u00d7 will have their special attendance CLEARED.\n';
+        }
+        confirmMsg += '\nThis cannot be undone. Continue?';
+        if (!window.confirm(confirmMsg)) {
             showMessage('info', '<?php echo addslashes($cancelled_text); ?>');
             return;
         }
@@ -744,6 +781,7 @@ $months = array(
         postAction(baseurl + 'admin/specialattendance/generate_attendance', {
             employee_ids: selection.ids,
             days_absent: selection.days,
+            clear_ids: clearIds,
             month: data.month,
             year: data.year,
             reason: $reason.val()

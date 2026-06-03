@@ -250,6 +250,7 @@ class Specialattendance extends Admin_Controller
         $month = $this->input->post('month');
         $year = $this->input->post('year');
         $reason = $this->input->post('reason');
+        $clear_ids = $this->input->post('clear_ids');
         $admin_user_id = $this->session->userdata('id');
 
         $valid_entries = 0;
@@ -266,8 +267,10 @@ class Specialattendance extends Admin_Controller
             }
         }
 
-        if ($valid_entries === 0) {
-            echo json_encode(['status' => 'error', 'message' => 'Please enter LOP Days (0 or more) for at least one staff member.']);
+        $has_clear_ids = !empty($clear_ids) && is_array($clear_ids);
+
+        if ($valid_entries === 0 && !$has_clear_ids) {
+            echo json_encode(['status' => 'error', 'message' => 'Please enter LOP Days (0 or more) for at least one staff member, or mark staff to clear.']);
             return;
         }
         
@@ -275,23 +278,61 @@ class Specialattendance extends Admin_Controller
         $this->load->model('SpecialAttendance_model');
         $this->load->model('StaffAttendanceSchedule_model');
         $this->load->model('StaffBiometricPunchesManual_model');
-        
-        foreach ($employee_ids as $index => $emp_id) {
-            $raw_days = isset($days_absent[$emp_id]) ? trim((string)$days_absent[$emp_id]) : '';
-            if ($raw_days !== '' && is_numeric($raw_days) && (float)$raw_days >= 0) {
-                $days = (float)$raw_days;
-                $is_half_step = abs(($days * 2) - round($days * 2)) < 0.000001;
-                if (!$is_half_step) {
-                    continue;
+
+        if (!empty($employee_ids)) {
+            foreach ($employee_ids as $index => $emp_id) {
+                $raw_days = isset($days_absent[$emp_id]) ? trim((string)$days_absent[$emp_id]) : '';
+                if ($raw_days !== '' && is_numeric($raw_days) && (float)$raw_days >= 0) {
+                    $days = (float)$raw_days;
+                    $is_half_step = abs(($days * 2) - round($days * 2)) < 0.000001;
+                    if (!$is_half_step) {
+                        continue;
+                    }
+                    $schedule = $this->StaffAttendanceSchedule_model->getByStaffId($emp_id);
+                    $punches = $this->SpecialAttendance_model->generatePunchesFromLop($emp_id, $month, $year, $days, $schedule);
+                    $this->StaffBiometricPunchesManual_model->replacePunches($emp_id, $month, $year, $punches, $admin_user_id, $reason);
+                    $this->StaffBiometricPunchesManual_model->saveSpecialAttendanceInput($emp_id, $month, $year, $days, $reason, $admin_user_id);
                 }
-                $schedule = $this->StaffAttendanceSchedule_model->getByStaffId($emp_id);
-                $punches = $this->SpecialAttendance_model->generatePunchesFromLop($emp_id, $month, $year, $days, $schedule);
-                $this->StaffBiometricPunchesManual_model->replacePunches($emp_id, $month, $year, $punches, $admin_user_id, $reason);
-                $this->StaffBiometricPunchesManual_model->saveSpecialAttendanceInput($emp_id, $month, $year, $days, $reason, $admin_user_id);
             }
         }
-        
-        echo json_encode(['status' => 'success', 'message' => 'Attendance generated successfully']);
+
+        // Process clear_ids — erase all special attendance data for these staff in this month
+        if ($has_clear_ids) {
+            $monthDate = DateTime::createFromFormat('F Y', $month . ' ' . $year);
+            if ($monthDate) {
+                $monthNum = (int)$monthDate->format('n');
+                $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $monthNum, (int)$year);
+                $startDate = sprintf('%04d-%02d-01 00:00:00', $year, $monthNum);
+                $endDate   = sprintf('%04d-%02d-%02d 23:59:59', $year, $monthNum, $daysInMonth);
+                foreach ($clear_ids as $clear_id) {
+                    $clear_id = (int)$clear_id;
+                    if ($clear_id <= 0) {
+                        continue;
+                    }
+                    // Delete manual punches
+                    $this->db->where('staff_id', $clear_id);
+                    $this->db->where('punch_time >=', $startDate);
+                    $this->db->where('punch_time <=', $endDate);
+                    $this->db->where('source', 'special_attendance');
+                    $this->db->delete('staff_biometric_punches_manual');
+                    // Delete saved input record
+                    $this->db->where('staff_id', $clear_id);
+                    $this->db->where('month', $monthNum);
+                    $this->db->where('year', (int)$year);
+                    $this->db->delete('special_attendance_inputs');
+                }
+            }
+        }
+
+        $cleared = $has_clear_ids ? count($clear_ids) : 0;
+        $generated = $valid_entries;
+        $msg = 'Attendance generated successfully';
+        if ($generated > 0 && $cleared > 0) {
+            $msg = $generated . ' staff generated, ' . $cleared . ' staff cleared successfully';
+        } elseif ($cleared > 0) {
+            $msg = $cleared . ' staff special attendance cleared successfully';
+        }
+        echo json_encode(['status' => 'success', 'message' => $msg]);
     }
 
     public function process_attendance()
