@@ -48,34 +48,7 @@ if ($this->session->flashdata('msg')) {
  <div class="printcontent">
     <div class="row">
     <h4 class="pagetitleh2"><?php echo $this->lang->line('basic_details'); ?></h4>
-        <div class="col-md-3">
-            <div class="form-group">
-                <label><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                <select  id="class_id" name="class_id" class="form-control" tabindex="1">
-                    <option value=""><?php echo $this->lang->line('select'); ?></option>
-                    <?php
-foreach ($classlist as $class) {
-    ?>
-                        <option value="<?php echo $class['id'] ?>"<?php if (set_value('class_id') == $class['id']) {
-        echo "selected=selected";
-    }
-    ?>><?php echo $class['class'] ?></option>
-                        <?php
-}
-?>
-                </select>
-                <span class="text-danger"><?php echo form_error('class_id'); ?></span>
-            </div>
-        </div>
-        <div class="col-md-3 displaynone">
-            <div class="form-group">
-                <label><?php echo $this->lang->line('section'); ?></label><small class="req"> *</small>
-                <select  id="section_id" name="section_id" class="form-control" tabindex="2">
-                    <option value=""><?php echo $this->lang->line('select'); ?></option>
-                </select>
-                <span class="text-danger"><?php echo form_error('section_id'); ?></span>
-            </div>
-        </div>
+
         <div class="col-md-3">
             <div class="form-group">
                 <label for="course_id"><?php echo $this->lang->line('course'); ?></label><small class="req"> *</small>
@@ -94,17 +67,7 @@ foreach ($classlist as $class) {
                 <span class="text-danger"><?php echo form_error('course_id'); ?></span>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="form-group">
-                <label>Admission Type</label><small class="req"> *</small>
-                <select id="admission_type" name="admission_type" class="form-control" tabindex="4">
-                    <option value="">-- Select --</option>
-                    <option value="first_year" <?php echo set_select('admission_type', 'first_year'); ?>>First Year</option>
-                    <option value="lateral" <?php echo set_select('admission_type', 'lateral'); ?>>Lateral</option>
-                </select>
-                <span class="text-danger"><?php echo form_error('admission_type'); ?></span>
-            </div>
-        </div>
+
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('first_name'); ?></label><small class="req"> *</small>

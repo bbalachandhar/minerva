@@ -147,12 +147,13 @@ class PublicAdmissionForm extends CI_Controller
             );
         }
 
-        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|xss_clean');
+        $this->form_validation->set_rules('course_id', 'Course', 'trim|required|xss_clean');
         $this->form_validation->set_rules('firstname', $this->lang->line('first_name'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('dob', $this->lang->line('date_of_birth'), 'trim|required|xss_clean');          
-        $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|xss_clean');
         $this->form_validation->set_rules('gender', $this->lang->line('gender'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('community', 'Community', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('community', 'Community', 'trim|xss_clean');
 
         //remove script from other fields (these are just form validation rules)
             $this->form_validation->set_rules('middlename', $this->lang->line('middlename'), 'trim|xss_clean');
@@ -162,7 +163,7 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('category_id', $this->lang->line('category_id'), 'trim|xss_clean');
             $this->form_validation->set_rules('religion', $this->lang->line('religion'), 'trim|xss_clean');
             $this->form_validation->set_rules('cast', $this->lang->line('cast'), 'trim|xss_clean');;
-            $this->form_validation->set_rules('community', 'Community', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('community', 'Community', 'trim|xss_clean');
             $this->form_validation->set_rules('house', $this->lang->line('house'), 'trim|xss_clean');
             $this->form_validation->set_rules('blood_group', $this->lang->line('blood_group'), 'trim|xss_clean');
             $this->form_validation->set_rules('height', $this->lang->line('height'), 'trim|xss_clean');
@@ -281,10 +282,11 @@ class PublicAdmissionForm extends CI_Controller
                             $section_id = $this->input->post('section_id');
         
                             $data_db = array( // Renamed to avoid conflict with $data property
-                                'firstname'        => $this->input->post('firstname'),
-                                'class_section_id' => $this->input->post('section_id'),
-                                'dob'              => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('dob'))),
-                                'gender'           => $this->input->post('gender'),
+                                'firstname'           => $this->input->post('firstname'),
+                                'class_section_id'    => $this->input->post('section_id'),
+                                'admission_course_id' => $this->input->post('course_id'),
+                                'dob'                 => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('dob'))),
+                                'gender'              => $this->input->post('gender'),
                             );
                             // for inserting system fields
         
