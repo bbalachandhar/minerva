@@ -138,7 +138,7 @@ $months = array(
                     </div>
                     <div class="box-body">
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="department_id"><?php echo htmlspecialchars($department_label); ?></label>
                                     <select class="form-control" id="department_id">
@@ -150,6 +150,17 @@ $months = array(
                                 </div>
                             </div>
                             <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="role_id">Role</label>
+                                    <select class="form-control" id="role_id">
+                                        <option value="">-- All Roles --</option>
+                                        <?php foreach ($roles as $role): ?>
+                                            <option value="<?php echo (int)$role['id']; ?>"><?php echo htmlspecialchars($role['name']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="attendance_month"><?php echo htmlspecialchars($month_label); ?><small class="req"> *</small></label>
                                     <select class="form-control" id="attendance_month">
@@ -166,7 +177,7 @@ $months = array(
                                     <input type="number" class="form-control" id="attendance_year" value="<?php echo $current_year; ?>" min="2000" max="2100">
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
                                     <label for="working_days"><?php echo htmlspecialchars($working_days_label); ?></label>
                                     <div class="input-group">
@@ -248,6 +259,7 @@ $months = array(
 <script type="text/javascript">
 (function($){
     var $department = $('#department_id');
+    var $role = $('#role_id');
     var $month = $('#attendance_month');
     var $year = $('#attendance_year');
     var $workingDays = $('#working_days');
@@ -342,9 +354,10 @@ $months = array(
 
     function getPrefillStorageKey() {
         var departmentId = $department.val() || 'all';
+        var roleId = $role.val() || 'all';
         var month = $month.val() || '';
         var year = $.trim($year.val()) || '';
-        return 'special_attendance_lop_' + departmentId + '_' + month + '_' + year;
+        return 'special_attendance_lop_' + departmentId + '_' + roleId + '_' + month + '_' + year;
     }
 
     function getStoredLopValues() {
@@ -447,7 +460,8 @@ $months = array(
         $tableBody.html(rows.join('\n'));
         $wrapper.show();
         var deptText = $department.val() ? $department.find('option:selected').text() : '<?php echo addslashes($all_departments_label); ?>';
-        showMessage('info', employees.length + ' staff member(s) loaded (' + deptText + ').');
+        var roleText = $role.val() ? $role.find('option:selected').text() : 'All Roles';
+        showMessage('info', employees.length + ' staff member(s) loaded (' + deptText + ' / ' + roleText + ').');
         updateButtonsState();
     }
 
@@ -524,6 +538,7 @@ $months = array(
                 dataType: 'json',
                 data: {
                     department_id: data.department,
+                    role_id: $role.val(),
                     month: data.month,
                     year: data.year
                 },

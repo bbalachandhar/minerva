@@ -24,6 +24,8 @@ class Specialattendance extends Admin_Controller
         
         $data['title'] = $this->lang->line('special_attendance');
         $data['departments'] = $this->Department_model->getDepartmentType();
+        $this->load->model('Role_model');
+        $data['roles'] = $this->Role_model->get();
         
         $this->load->view('layout/header', $data);
         $this->load->view('admin/specialattendance/index', $data);
@@ -35,7 +37,8 @@ class Specialattendance extends Admin_Controller
         $department_id = $this->input->post('department_id');
         $month = $this->input->post('month');
         $year = $this->input->post('year');
-        $employees = $this->Staff_model->getByDepartment($department_id);
+        $role_id = $this->input->post('role_id');
+        $employees = $this->Staff_model->getByDepartment($department_id, $role_id);
 
         $presentCounts = [];
         $presentEquivalent = [];
