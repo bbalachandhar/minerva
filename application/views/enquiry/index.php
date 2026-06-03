@@ -78,7 +78,7 @@ if (validation_errors()) {
         </div>
     </div>
     */ ?>
-    <?php $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) == 'school (k-12)'); ?>
+    <?php $is_school_k12 = in_array(strtolower(trim($sch_setting_detail->institution_type)), ['school', 'school (k-12)']); ?>
     <?php if (!$is_school_k12): ?>
     <div class="row">
         <div class="col-md-12">
