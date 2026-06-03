@@ -24,7 +24,7 @@ if ($this->session->flashdata('msg')) {
         <div class="col-md-12">
             <div class="enquiry-header text-center">
                 <?php if (!empty($header_image)): ?>
-                    <img src="<?php echo base_url('uploads/print_headerfooter/general_purpose/' . $header_image); ?>" alt="Header" style="width: 100%;">
+                    <img src="<?php echo base_url('uploads/print_headerfooter/online_admission_receipt/' . $header_image); ?>" alt="Header" style="width: 100%;">
                 <?php endif; ?>
             </div>
         </div>
