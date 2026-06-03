@@ -48,6 +48,50 @@ class Onlineadmission extends Admin_Controller
             ? (int) $data['result']->online_admission_session_id
             : $this->setting_model->getOnlineAdmissionSessionId();
 
+        $data['fields'] = array(
+            'middlename'                 => $this->lang->line('middle_name'),
+            'lastname'                   => $this->lang->line('last_name'),
+            'category'                   => $this->lang->line('category'),
+            'religion'                   => $this->lang->line('religion'),
+            'cast'                       => $this->lang->line('cast'),
+            'mobile_no'                  => $this->lang->line('mobile_no'),
+            'admission_date'             => $this->lang->line('admission_date'),
+            'student_photo'              => $this->lang->line('student_photo'),
+            'is_student_house'           => $this->lang->line('house'),
+            'is_blood_group'             => $this->lang->line('blood_group'),
+            'student_height'             => $this->lang->line('height'),
+            'student_weight'             => $this->lang->line('weight'),
+            'measurement_date'           => $this->lang->line('measurement_date'),
+            'father_name'                => $this->lang->line('father_name'),
+            'father_phone'               => $this->lang->line('father_phone'),
+            'father_occupation'          => $this->lang->line('father_occupation'),
+            'father_pic'                 => $this->lang->line('father_photo'),
+            'mother_name'                => $this->lang->line('mother_name'),
+            'mother_phone'               => $this->lang->line('mother_phone'),
+            'mother_occupation'          => $this->lang->line('mother_occupation'),
+            'mother_pic'                 => $this->lang->line('mother_photo'),
+            'guardian_name'              => $this->lang->line('guardian_name'),
+            'guardian_phone'             => $this->lang->line('guardian_phone'),
+            'if_guardian_is'             => $this->lang->line('if_guardian_is'),
+            'guardian_relation'          => $this->lang->line('guardian_relation'),
+            'guardian_email'             => $this->lang->line('guardian_email'),
+            'guardian_occupation'        => $this->lang->line('guardian_occupation'),
+            'guardian_address'           => $this->lang->line('guardian_address'),
+            'guardian_photo'             => $this->lang->line('guardian_photo'),
+            'student_email'              => $this->lang->line('email'),
+            'current_address'            => $this->lang->line('current_address'),
+            'permanent_address'          => $this->lang->line('permanent_address'),
+            'bank_account_no'            => $this->lang->line('bank_account_no'),
+            'bank_name'                  => $this->lang->line('bank_name'),
+            'ifsc_code'                  => $this->lang->line('ifsc_code'),
+            'national_identification_no' => $this->lang->line('national_identification_no'),
+            'local_identification_no'    => $this->lang->line('local_identification_no'),
+            'rte'                        => $this->lang->line('rte'),
+            'previous_school_details'    => $this->lang->line('previous_school_details'),
+            'student_note'               => $this->lang->line('note'),
+            'upload_documents'           => $this->lang->line('upload_documents'),
+        );
+
         if (!empty($this->input->post('submitbtn'))) {
 
             $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_upload');

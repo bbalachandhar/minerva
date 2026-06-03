@@ -27,6 +27,17 @@ class Meritscholarship extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
+        // This module requires the college-specific MAT exam columns.
+        // Guard against non-college institutions to prevent a DB error.
+        if (!isset($this->sch_setting_detail->institution_type) ||
+            $this->sch_setting_detail->institution_type !== 'college') {
+            $this->session->set_flashdata(
+                'msg',
+                '<div class="alert alert-warning"><i class="fa fa-exclamation-triangle"></i> The Merit Scholarship module is only available for college-type institutions.</div>'
+            );
+            redirect('admin/dashboard');
+            exit;
+        }
         $this->load->model('Scholarship_application_model');
     }
 

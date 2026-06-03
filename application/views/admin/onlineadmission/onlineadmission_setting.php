@@ -17,7 +17,9 @@ $currency_symbol = $admin_session['currency_symbol'];
                     </div>
                     <ul class="nav nav-tabs">
                         <li class="active"><a href="#tab_1" data-toggle="tab"><?php echo $this->lang->line('online_admission_form_setting'); ?></a></li>
+                        <?php if ($sch_setting_detail->institution_type != 'college'): ?>
                         <li><a href="#tab_2" data-toggle="tab"><?php echo $this->lang->line('online_admission_fields_setting'); ?></a></li>
+                        <?php endif; ?>
                         <li><a href="#tab_3" data-toggle="tab"><?php echo $this->lang->line('admission_courses'); ?></a></li>
                         <li><a href="#tab_4" data-toggle="tab">Universities</a></li>
                     </ul>
