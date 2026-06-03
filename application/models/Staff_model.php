@@ -1407,11 +1407,15 @@ class Staff_model extends MY_Model
         return $query->row();
     }
 
-    public function getByDepartment($department_id = null)
+    public function getByDepartment($department_id = null, $role_id = null)
     {
         $this->db->select('staff.id, staff.name, staff.employee_id as code, department.department_name as department');
         $this->db->from('staff');
         $this->db->join('department', 'department.id = staff.department', 'left');
+        if (!empty($role_id)) {
+            $this->db->join('staff_roles', 'staff_roles.staff_id = staff.id', 'inner');
+            $this->db->where('staff_roles.role_id', (int)$role_id);
+        }
         if (!empty($department_id)) {
             $this->db->where('staff.department', $department_id);
         }
