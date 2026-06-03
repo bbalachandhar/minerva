@@ -21,13 +21,6 @@ if ($this->session->flashdata('msg')) {
 ?>
     <div class="row justify-content-center align-items-center flex-wrap d-flex pt20">
 
-        <div class="col-md-12">
-            <div class="enquiry-header text-center">
-                <?php if (!empty($header_image)): ?>
-                    <img src="<?php echo base_url('uploads/print_headerfooter/online_admission_receipt/' . $header_image); ?>" alt="Header" style="width: 100%;">
-                <?php endif; ?>
-            </div>
-        </div>
         <div class="col-md-6 col-lg-5 col-sm-5">
             <h3 class="entered mt0"><?php echo $this->lang->line('online_admission'); ?></h3>
         </div>
