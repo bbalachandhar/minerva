@@ -1407,15 +1407,15 @@ class Staff_model extends MY_Model
         return $query->row();
     }
 
-    public function getByDepartment($department_id = null, $role_id = null)
+    public function getByDepartment($department_id = null, $category_id = null)
     {
-        $this->db->select("staff.id, staff.name, staff.employee_id as code, department.department_name as department,
-            (SELECT r.name FROM staff_roles sr INNER JOIN roles r ON r.id = sr.role_id WHERE sr.staff_id = staff.id ORDER BY sr.id ASC LIMIT 1) as role_name");
+        $this->db->select("staff.id, staff.name, staff.employee_id as code, department.department_name as department, sdc.name as category_name");
         $this->db->from('staff');
         $this->db->join('department', 'department.id = staff.department', 'left');
-        if (!empty($role_id)) {
-            $this->db->join('staff_roles', 'staff_roles.staff_id = staff.id', 'inner');
-            $this->db->where('staff_roles.role_id', (int)$role_id);
+        $this->db->join('staff_designation sd', 'sd.id = staff.designation', 'left');
+        $this->db->join('staff_designation_category sdc', 'COALESCE(staff.category_id, sd.category_id) = sdc.id', 'left');
+        if (!empty($category_id)) {
+            $this->db->where("COALESCE(staff.category_id, sd.category_id) = " . (int)$category_id, NULL, FALSE);
         }
         if (!empty($department_id)) {
             $this->db->where('staff.department', $department_id);
