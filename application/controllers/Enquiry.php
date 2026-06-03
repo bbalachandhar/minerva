@@ -36,13 +36,8 @@ class Enquiry extends CI_Controller
         // Get header image
         $header_footer = $this->setting_model->get_printheader();
         $data['header_image'] = '';
-        if ($header_footer) {
-            foreach($header_footer as $head_foot){
-                if($head_foot['print_type'] == 'general_purpose'){
-                    $data['header_image'] = $head_foot['header_image'];
-                    break;
-                }
-            }
+        if ($header_footer && isset($header_footer['online_admission_receipt'])) {
+            $data['header_image'] = $header_footer['online_admission_receipt']['header_image'];
         }
 
         // Form validation rules
