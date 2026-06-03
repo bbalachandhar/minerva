@@ -151,11 +151,11 @@ $months = array(
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
-                                    <label for="role_id">Role</label>
-                                    <select class="form-control" id="role_id">
-                                        <option value="">-- All Roles --</option>
-                                        <?php foreach ($roles as $role): ?>
-                                            <option value="<?php echo (int)$role['id']; ?>"><?php echo htmlspecialchars($role['name']); ?></option>
+                                    <label for="category_id">Category</label>
+                                    <select class="form-control" id="category_id">
+                                        <option value="">-- All Categories --</option>
+                                        <?php foreach ($categories as $cat): ?>
+                                            <option value="<?php echo (int)$cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -246,7 +246,7 @@ $months = array(
                         <th><?php echo htmlspecialchars($staff_id_label); ?></th>
                         <th><?php echo htmlspecialchars($name_label); ?></th>
                         <th><?php echo htmlspecialchars($department_label); ?></th>
-                        <th>Role</th>
+                        <th>Category</th>
                         <th style="width:120px;" class="text-center">Attendance %</th>
                         <th style="width:140px;" class="text-center"><?php echo htmlspecialchars($days_absent_label); ?></th>
                     </tr>
@@ -271,7 +271,7 @@ $months = array(
 <script type="text/javascript">
 (function($){
     var $department = $('#department_id');
-    var $role = $('#role_id');
+    var $category = $('#category_id');
     var $month = $('#attendance_month');
     var $year = $('#attendance_year');
     var $workingDays = $('#working_days');
@@ -366,10 +366,10 @@ $months = array(
 
     function getPrefillStorageKey() {
         var departmentId = $department.val() || 'all';
-        var roleId = $role.val() || 'all';
+        var categoryId = $category.val() || 'all';
         var month = $month.val() || '';
         var year = $.trim($year.val()) || '';
-        return 'special_attendance_lop_' + departmentId + '_' + roleId + '_' + month + '_' + year;
+        return 'special_attendance_lop_' + departmentId + '_' + categoryId + '_' + month + '_' + year;
     }
 
     function getStoredLopValues() {
@@ -463,7 +463,7 @@ $months = array(
                 '   <td>' + (emp.code ? emp.code : '-') + '</td>\n' +
                 '   <td>' + (emp.name ? emp.name : '-') + '</td>\n' +
                 '   <td>' + (emp.department ? emp.department : '-') + '</td>\n' +
-                '   <td>' + (emp.role_name ? emp.role_name : '-') + '</td>\n' +
+                '   <td>' + (emp.category_name ? emp.category_name : '-') + '</td>\n' +
                 '   <td class="text-center">' + attendancePercentage.toFixed(2) + '%</td>\n' +
                 '   <td class="text-center"><input type="number" class="form-control input-sm days-absent" min="0" step="0.5"' +
                 (lopTooltip ? ' title="' + String(lopTooltip).replace(/"/g, '&quot;') + '"' : '') +
@@ -473,8 +473,8 @@ $months = array(
         $tableBody.html(rows.join('\n'));
         $wrapper.show();
         var deptText = $department.val() ? $department.find('option:selected').text() : '<?php echo addslashes($all_departments_label); ?>';
-        var roleText = $role.val() ? $role.find('option:selected').text() : 'All Roles';
-        showMessage('info', employees.length + ' staff member(s) loaded (' + deptText + ' / ' + roleText + ').');
+        var categoryText = $category.val() ? $category.find('option:selected').text() : 'All Categories';
+        showMessage('info', employees.length + ' staff member(s) loaded (' + deptText + ' / ' + categoryText + ').');
         updateButtonsState();
         // reset search after reload
         $('#table_search').val('');
@@ -571,7 +571,7 @@ $months = array(
                 dataType: 'json',
                 data: {
                     department_id: data.department,
-                    role_id: $role.val(),
+                    category_id: $category.val(),
                     month: data.month,
                     year: data.year
                 },
