@@ -78,6 +78,8 @@ if (validation_errors()) {
         </div>
     </div>
     */ ?>
+    <?php $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) == 'school (k-12)'); ?>
+    <?php if (!$is_school_k12): ?>
     <div class="row">
         <div class="col-md-12">
             <div class="form-group">
@@ -96,12 +98,20 @@ if (validation_errors()) {
             </div>
         </div>
     </div>
+    <?php endif; ?>
     <div class="row">
         <div class="col-md-12">
             <div class="form-group">
                 <label for="admission_course_id">Course <span class="text-danger">*</span></label>
                 <select name="admission_course_id" id="admission_course_id" class="form-control" required>
-                    <option value="">Select Course Type First</option>
+                    <?php if ($is_school_k12): ?>
+                        <option value="">Select Course</option>
+                        <?php foreach ($all_courses as $c): ?>
+                            <option value="<?php echo $c['id']; ?>" <?php echo set_select('admission_course_id', $c['id']); ?>><?php echo htmlspecialchars($c['course_name']); ?></option>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <option value="">Select Course Type First</option>
+                    <?php endif; ?>
                 </select>
             </div>
         </div>
@@ -134,6 +144,7 @@ if (validation_errors()) {
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script>
 $(document).ready(function() {
+    <?php if (!$is_school_k12): ?>
     // Course data from PHP
     const coursesData = {
         ug_first_year: <?php echo json_encode($ug_first_year_courses); ?>,
@@ -158,6 +169,7 @@ $(document).ready(function() {
             });
         }
     });
+    <?php endif; ?>
     
     // Load India states and cities
     let statesData = {};

@@ -1,3 +1,4 @@
+<?php $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) == 'school (k-12)'); ?>
 <div class="content-wrapper">
     <section class="content-header">
         <h1><i class="fa fa-mortar-board"></i> <?php echo $this->lang->line('academics'); ?> <small><?php echo $this->lang->line('student_fees'); ?></small></h1>
@@ -33,6 +34,11 @@
                                 <input id="course_code" name="course_code" placeholder="" type="text" class="form-control"  value="<?php echo set_value('course_code', $course['course_code']); ?>" />
                                 <span class="text-danger"><?php echo form_error('course_code'); ?></span>
                             </div>
+                            <?php if ($is_school_k12): ?>
+                                <input type="hidden" name="course_level" value="<?php echo htmlspecialchars($course['course_level']); ?>">
+                                <input type="hidden" name="admission_type" value="<?php echo htmlspecialchars($course['admission_type']); ?>">
+                                <input type="hidden" name="govt_fee" value="<?php echo htmlspecialchars($course['govt_fee']); ?>">
+                            <?php else: ?>
                             <div class="form-group">
                                 <label>Course Level</label><small class="req"> *</small>
                                 <select class="form-control" name="course_level">
@@ -54,6 +60,7 @@
                                 <input id="govt_fee" name="govt_fee" type="number" step="0.01" min="0" class="form-control"  value="<?php echo set_value('govt_fee', isset($course['govt_fee']) ? $course['govt_fee'] : '0'); ?>" />
                                 <span class="text-danger"><?php echo form_error('govt_fee'); ?></span>
                             </div>
+                            <?php endif; ?>
                             <div class="form-group">
                                 <label>Management Fee</label><small class="req"> *</small>
                                 <input id="mgt_fee" name="mgt_fee" type="number" step="0.01" min="0" class="form-control"  value="<?php echo set_value('mgt_fee', isset($course['mgt_fee']) ? $course['mgt_fee'] : '0'); ?>" />
@@ -110,9 +117,11 @@
                                     <tr>
                                         <th><?php echo $this->lang->line('course_name'); ?></th>
                                         <th><?php echo $this->lang->line('course_code'); ?></th>
+                                        <?php if (!$is_school_k12): ?>
                                         <th>Level</th>
                                         <th>Admission Type</th>
                                         <th>Govt Fee</th>
+                                        <?php endif; ?>
                                         <th>Mgt Fee</th>
                                         <th>Sort</th>
                                         <th><?php echo $this->lang->line('description'); ?></th>
@@ -135,9 +144,11 @@
                                             <tr>
                                                 <td class="mailbox-name"><?php echo $course_item['course_name'] ?></td>
                                                 <td class="mailbox-name"><?php echo $course_item['course_code'] ?></td>
+                                                <?php if (!$is_school_k12): ?>
                                                 <td class="mailbox-name"><?php echo strtoupper($course_item['course_level']); ?></td>
                                                 <td class="mailbox-name"><?php echo ($course_item['admission_type'] == 'lateral') ? 'Lateral' : 'First Year'; ?></td>
                                                 <td class="mailbox-name"><?php echo number_format((float)$course_item['govt_fee'], 2); ?></td>
+                                                <?php endif; ?>
                                                 <td class="mailbox-name"><?php echo number_format((float)$course_item['mgt_fee'], 2); ?></td>
                                                 <td class="mailbox-name"><?php echo (int)$course_item['sort_order']; ?></td>
                                                 <td class="mailbox-name"><?php echo $course_item['description'] ?></td>

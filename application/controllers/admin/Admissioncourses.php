@@ -53,8 +53,9 @@ class Admissioncourses extends Admin_Controller
             access_denied();
         }
 
-        $data['course']      = $this->Onlineadmissioncourses_model->get($id);
-        $data['course_list'] = $this->Onlineadmissioncourses_model->get();
+        $data['course']           = $this->Onlineadmissioncourses_model->get($id);
+        $data['course_list']      = $this->Onlineadmissioncourses_model->get();
+        $data['sch_setting_detail'] = $this->sch_setting_detail;
 
         $this->form_validation->set_rules('course_name', $this->lang->line('course_name'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('is_active', $this->lang->line('status'), 'trim|required|xss_clean');
