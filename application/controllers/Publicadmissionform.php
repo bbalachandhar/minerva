@@ -90,13 +90,8 @@ class PublicAdmissionForm extends CI_Controller
 
         $header_footer = $this->setting_model->get_printheader();
         $this->data['header_image'] = '';
-        if ($header_footer) {
-            foreach($header_footer as $head_foot){
-                if($head_foot['print_type'] == 'general_purpose'){ // Fixed array access
-                    $this->data['header_image'] = $head_foot['header_image']; // Fixed array access
-                    break;
-                }
-            }
+        if ($header_footer && isset($header_footer['online_admission_receipt'])) {
+            $this->data['header_image'] = $header_footer['online_admission_receipt']['header_image'];
         }
         
         ///============
