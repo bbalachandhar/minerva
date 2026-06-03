@@ -1,6 +1,6 @@
 <?php
 $currency_symbol = $this->customlib->getCurrency();
-$is_school_k12 = in_array(strtolower(trim($sch_setting_detail->institution_type)), ['school', 'school (k-12)']);
+$is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) != 'college');
 ?>
 <div class="row">
     <?php if ($this->rbac->hasPrivilege('online_admission_admission_courses', 'can_add')) { ?>
