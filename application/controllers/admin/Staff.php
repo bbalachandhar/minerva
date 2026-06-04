@@ -304,10 +304,10 @@ class Staff extends Admin_Controller
                          OR b.used_for_leave_application > 0
                       )
                     ORDER BY
-                        -- Prefer the last payroll-processed row so Consumed/Opening
-                        -- reflect the most recent payroll run, not a newer cron-only row.
-                        (CASE WHEN b.last_processed_date IS NOT NULL
-                                OR b.used_for_lop_adjustment   > 0
+                        -- Prefer rows where something was actually consumed so that
+                        -- cron-only rows (earned only, no LOP/leave) do not hide the
+                        -- most recent payroll-processed month.
+                        (CASE WHEN b.used_for_lop_adjustment   > 0
                                 OR b.used_for_leave_application > 0
                               THEN 0 ELSE 1 END) ASC,
                         b.year DESC, b.month DESC, b.id DESC
@@ -363,6 +363,36 @@ class Staff extends Admin_Controller
                 'year'          => $row['year'],
                 'month'         => $row['month'],
             );
+        }
+
+        // Monthly breakdown per leave type — used by the simplified Leaves tab history table.
+        // One row per month showing opening, earned, LOP used, leave used, and closing balance.
+        $leave_monthly_breakdown = [];
+        if ($this->db->table_exists('staff_monthly_leave_balance')) {
+            $breakdown_rows = $this->db
+                ->select('smlb.leave_type_id, lt.type as leave_type_name,
+                          smlb.month, smlb.year,
+                          smlb.opening_balance, smlb.admin_adjustment, smlb.earned_in_month,
+                          smlb.used_for_lop_adjustment, smlb.used_for_leave_application,
+                          smlb.closing_balance')
+                ->from('staff_monthly_leave_balance smlb')
+                ->join('leave_types lt', 'lt.id = smlb.leave_type_id', 'left')
+                ->where('smlb.staff_id', (int) $id)
+                ->where('(smlb.opening_balance > 0 OR smlb.earned_in_month > 0 OR smlb.admin_adjustment != 0
+                          OR smlb.used_for_lop_adjustment > 0 OR smlb.used_for_leave_application > 0
+                          OR smlb.closing_balance > 0)', null, false)
+                ->order_by('smlb.leave_type_id', 'ASC')
+                ->order_by('smlb.year', 'DESC')
+                ->order_by('smlb.month', 'DESC')
+                ->get()->result_array();
+
+            foreach ($breakdown_rows as $br) {
+                $lt_id = (int) ($br['leave_type_id'] ?? 0);
+                if (!isset($leave_monthly_breakdown[$lt_id])) {
+                    $leave_monthly_breakdown[$lt_id] = [];
+                }
+                $leave_monthly_breakdown[$lt_id][] = $br;
+            }
         }
 
         $leave_transactions = [];
@@ -611,6 +641,7 @@ class Staff extends Admin_Controller
 
         $data["leavedetails"]  = $leaveDetail;
         $data["leave_transactions"] = $leave_transactions;
+        $data["leave_monthly_breakdown"] = $leave_monthly_breakdown;
         $data["staff_leaves"]  = $staff_leaves;
         $data['staffLeaveDetails'] = (array) $leaveDetail; // Ensure it's an array
         $data['staff_doc_id']  = $id;

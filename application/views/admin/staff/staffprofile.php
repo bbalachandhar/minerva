@@ -1396,104 +1396,64 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </div>
 
                                                 <div style="margin-top:10px;border-top:1px solid #d9e7ff;padding-top:8px;">
-                                                    <div style="font-weight:700;color:#1f3f75;margin-bottom:6px;font-size:12px;">Transaction History</div>
-                                                    <div style="max-height:190px;overflow:auto;">
-                                                        <table class="table table-condensed" style="margin-bottom:0;background:#fff;">
-                                                            <thead>
+                                                    <div style="font-weight:700;color:#1f3f75;margin-bottom:6px;font-size:12px;">Month-wise Summary</div>
+                                                    <div style="max-height:220px;overflow:auto;">
+                                                        <?php
+                                                        $monthly_rows = isset($leave_monthly_breakdown[$leave_type_id])
+                                                            ? $leave_monthly_breakdown[$leave_type_id] : [];
+                                                        $month_names = ['','Jan','Feb','Mar','Apr','May','Jun',
+                                                                        'Jul','Aug','Sep','Oct','Nov','Dec'];
+                                                        ?>
+                                                        <table class="table table-condensed" style="margin-bottom:0;background:#fff;font-size:11px;">
+                                                            <thead style="background:#eef6ff;">
                                                                 <tr>
-                                                                    <?php if ($request_style_history) { ?>
-                                                                        <th style="font-size:11px;">Entry</th>
-                                                                        <th style="font-size:11px;">Applied For</th>
-                                                                        <th style="font-size:11px;">Processed On</th>
-                                                                        <th class="text-right" style="font-size:11px;">Days</th>
-                                                                    <?php } else { ?>
-                                                                        <th style="font-size:11px;">Date</th>
-                                                                        <th style="font-size:11px;">Type</th>
-                                                                        <th class="text-right" style="font-size:11px;">Amount</th>
-                                                                        <th class="text-right" style="font-size:11px;">After</th>
-                                                                        <th style="font-size:11px;">Reason</th>
-                                                                    <?php } ?>
+                                                                    <th style="font-size:11px;white-space:nowrap;">Month</th>
+                                                                    <th class="text-right" style="font-size:11px;" title="Balance carried from previous month">Opening</th>
+                                                                    <th class="text-right" style="font-size:11px;color:#1e8449;" title="Leave credited this month">Credit</th>
+                                                                    <th class="text-right" style="font-size:11px;color:#c0392b;" title="Days used for LOP adjustment">LOP Adj</th>
+                                                                    <th class="text-right" style="font-size:11px;color:#c0392b;" title="Days used for approved leave">Leave Used</th>
+                                                                    <th class="text-right" style="font-size:11px;font-weight:700;" title="Closing balance = Opening + Credit − LOP − Leave">Balance</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
-                                                                <?php
-                                                                if (!empty($type_transactions)) {
-                                                                    foreach ($type_transactions as $txn) {
-                                                                        if ($request_style_history) {
-                                                                            $history_action = strtoupper(trim((string) ($txn['action_type'] ?? '')));
-                                                                            $is_payroll_debit = ($history_action === 'PAYROLL_DEBIT');
-                                                                            $applied_for_date = isset($txn['applied_for_date']) ? (string) $txn['applied_for_date'] : '';
-                                                                            $applied_for_label = isset($txn['applied_for_label']) ? (string) $txn['applied_for_label'] : '';
-                                                                            $approved_on_date = isset($txn['approved_on_date']) ? (string) $txn['approved_on_date'] : '';
-                                                                            $applied_for_display = $is_payroll_debit
-                                                                                ? ($applied_for_label !== '' ? $applied_for_label : '-')
-                                                                                : ($applied_for_date !== '' ? date($this->customlib->getSchoolDateFormat(), strtotime($applied_for_date)) : '-');
-                                                                            $approved_on_display = $approved_on_date !== '' ? date($this->customlib->getSchoolDateFormat() . ' H:i', strtotime($approved_on_date)) : '-';
-                                                                            $entry_label = $is_payroll_debit ? 'Used in Payroll' : 'Approved';
-                                                                            $days_color = $is_payroll_debit ? '#c0392b' : '#1e8449';
-                                                                            $days_prefix = $is_payroll_debit ? '-' : '';
-                                                                            ?>
-                                                                            <tr>
-                                                                                <td style="font-size:11px;"><?php echo $entry_label; ?></td>
-                                                                                <td class="white-space-nowrap" style="font-size:11px;"><?php echo $applied_for_display; ?></td>
-                                                                                <td class="white-space-nowrap" style="font-size:11px;"><?php echo $approved_on_display; ?></td>
-                                                                                <td class="text-right" style="font-size:11px;font-weight:700;color:<?php echo $days_color; ?>;"><?php echo $days_prefix . $format_leave_count((float) ($txn['amount'] ?? 0)); ?></td>
-                                                                            </tr>
-                                                                            <?php
-                                                                            continue;
-                                                                        }
-                                                                        $action_type = strtoupper(trim((string) ($txn['action_type'] ?? '')));
-                                                                        $is_credit = (
-                                                                            strpos($action_type, 'CREDIT') !== false
-                                                                            || in_array($action_type, ['PAYROLL_OD_SYNC', 'CREDIT_APPLIED'], true)
-                                                                        );
-                                                                        // Human-readable labels for transaction types
-                                                                        $action_labels = [
-                                                                            'MONTHLY_CREDIT'          => 'Monthly Credit',
-                                                                            'LOP_CASCADE'             => 'Payroll Carry-forward',
-                                                                            'LOP_ADJUSTMENT'          => 'LOP Deduction',
-                                                                            'PAYROLL_OD_SYNC'         => 'OD Sync',
-                                                                            'LEAVE_APPROVED_DEBIT'    => 'Leave Taken',
-                                                                            'LEAVE_APPROVED_CREDIT'   => 'Leave Restored',
-                                                                            'LEAVE_APPROVED_AUDIT'    => 'Leave Applied',
-                                                                            'LEAVE_APPLICATION_DEBIT' => 'Leave Applied',
-                                                                            'LEAVE_APPROVAL_REVERTED' => 'Leave Reverted',
-                                                                            'HOD_CPL_CREDIT'          => 'CPL Earned',
-                                                                            'HOD_CPL_CREDIT_REVERSED' => 'CPL Reversed',
-                                                                            'CREDIT_APPLIED'          => 'Credit Applied',
-                                                                            'CREDIT_POOL_DEBIT'       => 'Pool Debit',
-                                                                            'ADMIN_ADJUSTMENT'        => 'Admin Adjustment',
-                                                                            'PAYROLL_DEBIT'           => 'Payroll Debit',
-                                                                        ];
-                                                                        $action_label = isset($action_labels[$action_type])
-                                                                            ? $action_labels[$action_type]
-                                                                            : ucwords(strtolower(str_replace('_', ' ', $action_type)));
-                                                                        $amount_color = $is_credit ? '#1e8449' : '#c0392b';
-                                                                        $amount_prefix = $is_credit ? '+' : '-';
-                                                                        $created_at = isset($txn['created_at']) ? (string) $txn['created_at'] : '';
-                                                                        $date_display = $created_at !== '' ? date($this->customlib->getSchoolDateFormat() . ' H:i', strtotime($created_at)) : '-';
-                                                                        $reason_display = trim((string) ($txn['reason'] ?? ''));
-                                                                        if ($reason_display === '') {
-                                                                            $reason_display = '-';
-                                                                        }
-                                                                        ?>
-                                                                        <tr>
-                                                                            <td class="white-space-nowrap" style="font-size:11px;"><?php echo $date_display; ?></td>
-                                                                            <td style="font-size:11px;"><span class="label <?php echo $is_credit ? 'label-success' : 'label-danger'; ?>" style="font-size:10px;"><?php echo htmlspecialchars($action_label, ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                                                            <td class="text-right" style="font-size:11px;color: <?php echo $amount_color; ?>;font-weight:700;"><?php echo $amount_prefix . $format_leave_count((float) ($txn['amount'] ?? 0)); ?></td>
-                                                                            <td class="text-right" style="font-size:11px;"><?php echo $format_leave_count((float) ($txn['balance_after'] ?? 0)); ?></td>
-                                                                            <td style="font-size:11px;"><?php echo htmlspecialchars($reason_display, ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                        </tr>
-                                                                        <?php
-                                                                    }
-                                                                } else {
+                                                                <?php if (!empty($monthly_rows)): ?>
+                                                                    <?php foreach ($monthly_rows as $mr):
+                                                                        $mr_month  = (int) ($mr['month'] ?? 0);
+                                                                        $mr_year   = (int) ($mr['year']  ?? 0);
+                                                                        $mr_open   = (float) ($mr['opening_balance'] ?? 0);
+                                                                        $mr_admin  = (float) ($mr['admin_adjustment'] ?? 0);
+                                                                        $mr_earned = (float) ($mr['earned_in_month'] ?? 0);
+                                                                        $mr_lop    = (float) ($mr['used_for_lop_adjustment'] ?? 0);
+                                                                        $mr_leave  = (float) ($mr['used_for_leave_application'] ?? 0);
+                                                                        $mr_close  = (float) ($mr['closing_balance'] ?? 0);
+                                                                        // Total credit = earned + positive admin adjustment
+                                                                        $mr_credit = $mr_earned + max(0, $mr_admin);
+                                                                        $mr_debit_admin = min(0, $mr_admin); // negative admin adj
+                                                                        $month_label = ($mr_month >= 1 && $mr_month <= 12)
+                                                                            ? $month_names[$mr_month] . ' ' . $mr_year : '-';
                                                                     ?>
                                                                     <tr>
-                                                                        <td colspan="5" class="text-center text-muted" style="font-size:11px;">No transactions for this leave type.</td>
+                                                                        <td style="white-space:nowrap;font-weight:600;"><?php echo $month_label; ?></td>
+                                                                        <td class="text-right"><?php echo $format_leave_count($mr_open); ?></td>
+                                                                        <td class="text-right" style="color:#1e8449;font-weight:<?php echo $mr_credit > 0 ? '700' : 'normal'; ?>;">
+                                                                            <?php echo $mr_credit > 0 ? '+' . $format_leave_count($mr_credit) : '—'; ?>
+                                                                        </td>
+                                                                        <td class="text-right" style="color:#c0392b;font-weight:<?php echo $mr_lop > 0 ? '700' : 'normal'; ?>;">
+                                                                            <?php echo $mr_lop > 0 ? '−' . $format_leave_count($mr_lop) : '—'; ?>
+                                                                        </td>
+                                                                        <td class="text-right" style="color:#c0392b;font-weight:<?php echo $mr_leave > 0 ? '700' : 'normal'; ?>;">
+                                                                            <?php echo $mr_leave > 0 ? '−' . $format_leave_count($mr_leave) : '—'; ?>
+                                                                        </td>
+                                                                        <td class="text-right" style="font-weight:700;color:<?php echo $mr_close > 0 ? '#1e8449' : ($mr_close < 0 ? '#c0392b' : '#666'); ?>;">
+                                                                            <?php echo $format_leave_count($mr_close); ?>
+                                                                        </td>
                                                                     </tr>
-                                                                    <?php
-                                                                }
-                                                                ?>
+                                                                    <?php endforeach; ?>
+                                                                <?php else: ?>
+                                                                    <tr>
+                                                                        <td colspan="6" class="text-center text-muted" style="font-size:11px;">No history for this leave type.</td>
+                                                                    </tr>
+                                                                <?php endif; ?>
                                                             </tbody>
                                                         </table>
                                                     </div>
