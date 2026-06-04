@@ -228,20 +228,22 @@ class Staff extends Admin_Controller
                 COALESCE(smlb.used_for_leave_application, 0) AS used_for_leave_application,
                 -- Total balance available at the start of the selected payroll period
                 COALESCE(smlb.opening_balance, 0) + COALESCE(smlb.earned_in_month, 0) + COALESCE(smlb.admin_adjustment, 0) AS period_balance,
-                -- Sum of closing balances from later months that have not yet been
-                -- payroll-processed (e.g. cron-credited months after last payroll run).
+                -- Closing balance of the most recent month after the selected
+                -- (consumed) row. Months carry forward so the latest closing IS
+                -- the current available balance — do NOT sum consecutive months.
                 COALESCE((
-                    SELECT SUM(b2.closing_balance)
+                    SELECT b2.closing_balance
                     FROM staff_monthly_leave_balance b2
                     WHERE b2.staff_id = ?
                       AND b2.leave_type_id = lt.id
-                      AND b2.last_processed_date IS NULL
                       AND b2.used_for_lop_adjustment   = 0
                       AND b2.used_for_leave_application = 0
                       AND (
                             b2.year  > COALESCE(smlb.year, 0)
                          OR (b2.year = COALESCE(smlb.year, 0) AND b2.month > COALESCE(smlb.month, 0))
                           )
+                    ORDER BY b2.year DESC, b2.month DESC
+                    LIMIT 1
                 ), 0) AS unprocessed_balance,
                 COALESCE((
                     SELECT b.used_for_lop_adjustment + b.used_for_leave_application
@@ -331,16 +333,19 @@ class Staff extends Admin_Controller
                 $consumed_balance  = max(0.0, (float) $approve_leave);
                 $opening_balance   = max(0.0, $available_balance + $consumed_balance);
             } elseif (!empty($row['year']) || !empty($row['month'])) {
-                // Row is the last payroll-processed month (or most recent non-zero if none
-                // processed yet). Consumed = LOP + leave used in that period.
-                // Available = that period's closing + any later cron-only months not yet
-                // touched by payroll (unprocessed_balance).
-                // Opening = opening + earned + admin of the selected period row — what the
-                // employee had available at the start of that payroll period.
+                // Row is the last payroll-processed month (or most recent non-zero if none).
+                // Consumed  = LOP + leave used in that payroll period.
+                // Opening   = opening + earned + admin of that row (balance at period start).
+                // Available = closing of the MOST RECENT month (unprocessed_balance holds
+                //             the latest row's closing after the consumed row; months carry
+                //             forward so only the final closing is the true current balance —
+                //             summing consecutive months would double-count the carry).
+                //             Falls back to the consumed row's own closing if no later row.
                 $approve_leave     = (float) ($row['used_for_lop_adjustment'] ?? 0)
                                    + (float) ($row['used_for_leave_application'] ?? 0);
                 $unprocessed       = (float) ($row['unprocessed_balance'] ?? 0);
-                $available_balance = max(0.0, (float) $display_balance + $unprocessed);
+                $base              = (float) $display_balance;
+                $available_balance = max(0.0, $unprocessed > 0 ? $unprocessed : $base);
                 $consumed_balance  = max(0.0, $approve_leave);
                 $opening_balance   = max(0.0, (float) ($row['period_balance'] ?? 0));
             } else {
