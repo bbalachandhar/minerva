@@ -1931,6 +1931,7 @@ class Payroll_model extends MY_Model
             return 0;
         }
 
+        // Delete LOP_ADJUSTMENT and PAYROLL_OD_SYNC entries on the current month's rows.
         $sql = "
             DELETE a
             FROM staff_leave_balance_audit a
@@ -1940,8 +1941,30 @@ class Payroll_model extends MY_Model
               AND b.year = ?
               AND a.action_type IN ('LOP_ADJUSTMENT', 'PAYROLL_OD_SYNC')
         ";
-
         $this->db->query($sql, [$staff_id, $month, $year]);
+
+        // Also delete LOP_CASCADE entries that this month's payroll wrote onto the
+        // NEXT month's rows. When a payroll is overwritten the prior cascade is stale
+        // and a fresh cascade will be written after recalculation. Leaving the old
+        // entry causes ghost carry-forward entries in the transaction history and
+        // corrupts the next month's visible opening balance.
+        $next_month = $month + 1;
+        $next_year  = $year;
+        if ($next_month > 12) { $next_month = 1; $next_year++; }
+
+        $sql2 = "
+            DELETE a
+            FROM staff_leave_balance_audit a
+            INNER JOIN staff_monthly_leave_balance b ON b.id = a.balance_id
+            WHERE b.staff_id = ?
+              AND b.month = ?
+              AND b.year = ?
+              AND a.action_type = 'LOP_CASCADE'
+              AND a.reason LIKE ?
+        ";
+        $reason_pattern = 'LOP cascade from ' . sprintf('%04d-%02d', $year, $month) . ' payroll';
+        $this->db->query($sql2, [$staff_id, $next_month, $next_year, $reason_pattern]);
+
         return (int) $this->db->affected_rows();
     }
 
