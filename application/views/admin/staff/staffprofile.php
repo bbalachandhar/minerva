@@ -667,43 +667,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="tab-pane" id="payroll">
                             <div class="row row-flex">
                                 <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-                                        <h5><?php echo $this->lang->line('total_net_salary_paid'); ?></h5>
-                                        <h4><?php
-                                            if (!empty($salary["net_salary"])) {
-                                                echo $currency_symbol . amountFormat($salary["net_salary"]);
-                                            } else {
-                                                echo $currency_symbol . "0.00";
-                                            }
-                                            ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-money"></i>
-                                        </div>
-                                    </div>
-                                </div><!--./col-md-3-->
-                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
                                     <div class="staffprofile" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
                                         <h5><?php echo $this->lang->line('total_gross_salary'); ?></h5>
                                         <h4><?php
                                             if (!empty($salary["earnings"]) || !empty($salary["basic_salary"])) {
-                                                // Gross Salary = Basic + Allowances (same as payroll edit screen)
                                                 $gross_salary = (float) $salary["basic_salary"] + (float) $salary["earnings"];
                                                 echo $currency_symbol . amountFormat($gross_salary);
-                                            } else {
-                                                echo $currency_symbol . "0.00";
-                                            }
-                                            ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-money"></i>
-                                        </div>
-                                    </div>
-                                </div><!--./col-md-3-->
-                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #3498db, #2980b9);">
-                                        <h5><?php echo $this->lang->line('total_earning'); ?></h5>
-                                        <h4><?php
-                                            if (!empty($salary["earnings"])) {
-                                                echo $currency_symbol . amountFormat($salary["earnings"]);
                                             } else {
                                                 echo $currency_symbol . "0.00";
                                             }
