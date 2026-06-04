@@ -396,7 +396,12 @@ class Payroll extends Admin_Controller
         $has_committed_payslip = !empty($existing_payslip)
             && in_array($existing_status, $this->getCommittedPayrollStatuses(), true);
 
-        if ($has_committed_payslip) {
+        // Only use stored payslip LOP values when actually persisting (bulk calculate).
+        // On the edit page (persist_adjustment = false), always compute a fresh preview
+        // so the admin sees current CPL/CL/OD balance-based adjustments even when the
+        // payslip was originally calculated without them (e.g. setting was off, or balance
+        // was zero at calculation time).
+        if ($has_committed_payslip && $persist_adjustment) {
             $actual_lop_days = (float) ($existing_payslip['actual_lop_days'] ?? $actual_lop_days);
             $adjusted_lop_days = (float) ($existing_payslip['adjusted_lop_days'] ?? 0);
             if ($adjusted_lop_days < 0) {
@@ -2982,11 +2987,14 @@ class Payroll extends Admin_Controller
             $adjusted_lop_days = (float) ($lop_values['adjusted_lop_days'] ?? 0);
             $net_lop_days = (float) ($lop_values['net_lop_days'] ?? $actual_lop_days);
 
-            // When no LOP was adjusted against leave balances (LOP=0 or auto-adjust
-            // disabled), processLOPWithMonthlyBalance returns early without cascading.
-            // Explicitly cascade all leave type closings to next month here so that
-            // next month's opening_balance stays current regardless of LOP amount.
-            if (!$use_committed_lop && $adjusted_lop_days == 0) {
+            // Always cascade all leave type closings to next month after payroll runs.
+            // processLOPWithMonthlyBalance only cascades leave types it actually adjusts.
+            // Leave types with balance that were NOT used for LOP (e.g. CL when CPL already
+            // covered the full LOP) would be silently skipped, breaking the next month's
+            // opening balance. Calling cascadeAllBalancesForMonth unconditionally is safe:
+            // types already cascaded inside processLOPWithMonthlyBalance will produce a
+            // delta of 0 (same closing value) and write nothing.
+            if (!$use_committed_lop) {
                 $this->payroll_model->cascadeAllBalancesForMonth(
                     (int) $staff['id'], (int) $month_numeric, (int) $year
                 );
