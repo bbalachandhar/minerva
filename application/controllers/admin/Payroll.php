@@ -2810,9 +2810,21 @@ class Payroll extends Admin_Controller
             $previous_month_name = $previous_month_date->format('F');
             $previous_month_year = $previous_month_date->format('Y');
 
-            $previous_month_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff['id'], $previous_month_name, $previous_month_year);
-            if (!empty($previous_month_payslip) && !empty($previous_month_payslip->id)) {
-                $source_payslip = $this->payroll_model->getPayslip($previous_month_payslip->id);
+            // When overwriting an existing payslip, use the current month's allowances as the
+            // source to preserve any manually added earnings (e.g., DA increments). The previous
+            // month is only used as a template for brand-new payslips.
+            if (!empty($staff['payslip_id']) && $overwrite) {
+                $current_payslip = $this->payroll_model->getPayslip((int) $staff['payslip_id']);
+                if (!empty($current_payslip)) {
+                    $source_payslip = $current_payslip;
+                }
+            }
+
+            if (empty($source_payslip)) {
+                $previous_month_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff['id'], $previous_month_name, $previous_month_year);
+                if (!empty($previous_month_payslip) && !empty($previous_month_payslip->id)) {
+                    $source_payslip = $this->payroll_model->getPayslip($previous_month_payslip->id);
+                }
             }
 
             if (empty($source_payslip)) {

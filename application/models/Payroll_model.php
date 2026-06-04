@@ -1239,7 +1239,10 @@ class Payroll_model extends MY_Model
 
             $opening_balance = (float) ($balance['opening_balance'] ?? 0);
             $admin_adjustment = (float) ($balance['admin_adjustment'] ?? 0);
-            $used_for_lop_adjustment = (float) ($balance['used_for_lop_adjustment'] ?? 0);
+            // OD credits are already consumed via PAID_PRESENT attendance day-lock.
+            // used_for_lop_adjustment must always be 0 for OD types; reset any stale value
+            // from a previous buggy payroll run that incorrectly used OD as LOP adjustment.
+            $used_for_lop_adjustment = 0.0;
             $used_for_leave_application = (float) ($balance['used_for_leave_application'] ?? 0);
             $other_deductions = (float) ($balance['other_deductions'] ?? 0);
             $closing_balance = $opening_balance + $admin_adjustment + $approved_days - $used_for_lop_adjustment - $used_for_leave_application - $other_deductions;
@@ -1247,12 +1250,14 @@ class Payroll_model extends MY_Model
             $old_earned = (float) ($balance['earned_in_month'] ?? 0);
             $old_closing = (float) ($balance['closing_balance'] ?? 0);
             $balance['earned_in_month'] = $approved_days;
+            $balance['used_for_lop_adjustment'] = 0;
             $balance['closing_balance'] = $closing_balance;
 
             if (!$simulate && !empty($balance['id'])) {
                 $this->db->where('id', $balance['id']);
                 $this->db->update('staff_monthly_leave_balance', [
                     'earned_in_month' => $approved_days,
+                    'used_for_lop_adjustment' => 0,
                     'closing_balance' => $closing_balance,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
@@ -1711,7 +1716,14 @@ class Payroll_model extends MY_Model
 
             $leave_type_id = (int) ($leave['leave_type_id'] ?? 0);
             $is_od_leave = in_array($leave_type_id, $od_type_ids, true);
-            
+
+            // OD days are already excluded from the absent count via PAID_PRESENT day-lock
+            // in getAbsentWorkingDayCount(). Using OD balance here would double-count the
+            // same days — once as 'not absent' in attendance and again as LOP adjustment.
+            if ($is_od_leave) {
+                continue;
+            }
+
             // Get or create monthly balance
             if ($simulate && isset($od_balances[$leave_type_id])) {
                 $balance = $od_balances[$leave_type_id];
