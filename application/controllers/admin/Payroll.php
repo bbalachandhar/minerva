@@ -396,12 +396,7 @@ class Payroll extends Admin_Controller
         $has_committed_payslip = !empty($existing_payslip)
             && in_array($existing_status, $this->getCommittedPayrollStatuses(), true);
 
-        // Only use stored payslip LOP values when actually persisting (bulk calculate).
-        // On the edit page (persist_adjustment = false), always compute a fresh preview
-        // so the admin sees current CPL/CL/OD balance-based adjustments even when the
-        // payslip was originally calculated without them (e.g. setting was off, or balance
-        // was zero at calculation time).
-        if ($has_committed_payslip && $persist_adjustment) {
+        if ($has_committed_payslip) {
             $actual_lop_days = (float) ($existing_payslip['actual_lop_days'] ?? $actual_lop_days);
             $adjusted_lop_days = (float) ($existing_payslip['adjusted_lop_days'] ?? 0);
             if ($adjusted_lop_days < 0) {
