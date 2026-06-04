@@ -2496,23 +2496,11 @@ class Payroll extends Admin_Controller
                 $basic = 0;  
         }
         
-        if($this->input->post("net_salary")){
-            $net_salary = $this->roundPayrollAmount(convertCurrencyFormatToBaseAmount($this->input->post("net_salary")));
-        }else{
-                $net_salary = 0;  
-        }
-        
         if($this->input->post("tax")){
             $tax = convertCurrencyFormatToBaseAmount($this->input->post("tax"));
         }else{
             $tax = 0;  
         }      
-
-        if($leave_deduction){
-            $leave_deduction = convertCurrencyFormatToBaseAmount($leave_deduction);
-        }else{
-            $leave_deduction = 0;
-        }
  
         $status          = $this->input->post("status");
         $staff_id        = $this->input->post("staff_id");
@@ -2523,6 +2511,11 @@ class Payroll extends Admin_Controller
         $basic = $this->resolvePayrollBasicAmount($basic, null, (int) $staff_id);
         
         $leave_deduction = $this->input->post("leave_deduction");
+        if ($leave_deduction !== null && $leave_deduction !== '') {
+            $leave_deduction = convertCurrencyFormatToBaseAmount($leave_deduction);
+        } else {
+            $leave_deduction = 0;
+        }
         
         $this->form_validation->set_rules('net_salary', $this->lang->line('net_salary'), 'trim|required|xss_clean');       
         
@@ -2561,6 +2554,23 @@ class Payroll extends Admin_Controller
                 }
             }
 
+            $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
+            $statutory_deductions = $this->payroll_model->calculateStatutoryDeductions($staff_data, 0.13, 0.0075, $total_allowance);
+            $employee_epf_deduction = (float) ($statutory_deductions['epf_deduction'] ?? 0);
+            $employee_esi_deduction = (float) ($statutory_deductions['esi_deduction'] ?? 0);
+            $net_salary = $this->roundPayrollAmount(
+                max(
+                    0,
+                    (float) $basic
+                    + (float) $total_allowance
+                    - (float) $leave_deduction
+                    - (float) $total_deduction
+                    - (float) $tax
+                    - $employee_epf_deduction
+                    - $employee_esi_deduction
+                )
+            );
+
             $data = array('staff_id' => $staff_id,
                 'basic'                  => $basic,
                 'total_allowance'        => $total_allowance,
@@ -2572,6 +2582,8 @@ class Payroll extends Admin_Controller
                 'year'                   => $year,
                 'tax'                    => $tax,
                 'leave_deduction'        => $leave_deduction,
+                'employee_epf'           => round($employee_epf_deduction, 2),
+                'employee_esi'           => round($employee_esi_deduction, 2),
             );
 
             $existing_month_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff_id, $month, $year);
@@ -2585,11 +2597,6 @@ class Payroll extends Admin_Controller
             $insert_id        = $this->payroll_model->createPayslip($data);
             $payslipid        = $insert_id;
                 
-                // Get staff data to calculate EPF/ESI based on dual checkpoints
-                $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
-                // include allowances in EPF/ESI rules
-                $statutory_deductions = $this->payroll_model->calculateStatutoryDeductions($staff_data, 0.13, 0.0075, $total_allowance);
-                
                 // Load allowance type mapping to convert IDs to codes
                 $allowance_types = $this->payroll_model->getAllowanceTypes(null, false);
                 $allowance_type_map = [];
@@ -2602,6 +2609,11 @@ class Payroll extends Admin_Controller
                 $deduction_type_id = $this->input->post("deduction_type_id");
                 $allowance_amount = $this->input->post("allowance_amount");
                 $deduction_amount = $this->input->post("deduction_amount");
+
+                $this->db->where('payslip_id', $payslipid)
+                    ->where('cal_type', 'positive')
+                    ->delete('payslip_allowance');
+
                 if (!empty($allowance_type_id)) {
 
                     $i = 0;
@@ -2627,6 +2639,11 @@ class Payroll extends Admin_Controller
                     }
                 }
 
+                // Remove existing negative rows first so the posted deduction set replaces them.
+                $this->db->where('payslip_id', $payslipid)
+                    ->where('cal_type', 'negative')
+                    ->delete('payslip_allowance');
+
                 if (!empty($deduction_type_id)) {
                     $j = 0;
                     foreach ($deduction_type_id as $key => $type_id) {
@@ -2649,12 +2666,6 @@ class Payroll extends Admin_Controller
                         $j++;
                     }
                 }
-                
-                // Delete existing ALL deductions before adding new ones to prevent duplicates
-                // This ensures no orphaned rows with empty allowance_type values remain
-                $this->db->where('payslip_id', $payslipid)
-                    ->where('cal_type', 'negative')
-                    ->delete('payslip_allowance');
                 
                 // Add automatic EPF/ESI deductions based on dual checkpoint validation
                 if ($statutory_deductions['epf_deduction'] > 0) {
