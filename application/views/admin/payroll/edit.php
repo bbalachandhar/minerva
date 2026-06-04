@@ -885,6 +885,29 @@ $deduction_count++;
                                                         <input type="text" name="gross_salary" id="gross_salary" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['basic'] + $employee_payroll['total_allowance']); ?>" />
                                                     </span>
                                                 </div>
+                                                <?php
+                                                $gross_salary_display = (float) $employee_payroll['basic'] + (float) $employee_payroll['total_allowance'];
+                                                $doj_prorata_note = '';
+                                                $doj_date_value = $result['date_of_joining'] ?? null;
+                                                if (!empty($doj_date_value)) {
+                                                    $month_num_for_doj = (int) date('n', strtotime($year . '-' . $month . '-01'));
+                                                    $month_start_for_doj = sprintf('%04d-%02d-01', (int) $year, $month_num_for_doj);
+                                                    $month_end_for_doj = date('Y-m-t', strtotime($month_start_for_doj));
+                                                    $doj_ts_for_note = strtotime($doj_date_value);
+                                                    if ($doj_ts_for_note !== false) {
+                                                        $doj_date_for_note = date('Y-m-d', $doj_ts_for_note);
+                                                        if ($doj_date_for_note > $month_start_for_doj && $doj_date_for_note <= $month_end_for_doj) {
+                                                            $total_days_for_doj = (int) date('t', strtotime($month_start_for_doj));
+                                                            $payable_days_for_doj = (int) ((new DateTime($doj_date_for_note))->diff(new DateTime($month_end_for_doj))->days + 1);
+                                                            $prorated_gross_for_doj = $total_days_for_doj > 0 ? (($gross_salary_display / $total_days_for_doj) * $payable_days_for_doj) : $gross_salary_display;
+                                                            $doj_prorata_note = 'DOJ-prorated gross: ' . number_format($gross_salary_display, 2, '.', '') . ' x ' . $payable_days_for_doj . ' / ' . $total_days_for_doj . ' = ' . number_format($prorated_gross_for_doj, 2, '.', '');
+                                                        }
+                                                    }
+                                                }
+                                                ?>
+                                                <div id="doj_prorata_note" style="display: <?php echo $doj_prorata_note === '' ? 'none' : 'block'; ?>; margin-top: 6px; padding: 8px 10px; background: #fff8e1; border-left: 3px solid #ffb300; color: #8a6d3b; font-size: 12px; line-height: 1.5;">
+                                                    <?php echo $doj_prorata_note; ?>
+                                                </div>
                                             </div>
 
                                             <!-- DEDUCTIONS SECTION -->
@@ -1100,6 +1123,30 @@ $deduction_count++;
         }
     }
 
+    function updateDojProrataNote(fullGross, payableDays, totalDays, isApplied) {
+        var note = $("#doj_prorata_note");
+        if (!note.length) {
+            return;
+        }
+
+        if (!isApplied || !totalDays || !payableDays || payableDays >= totalDays) {
+            note.hide().text("");
+            return;
+        }
+
+        var proratedGross = totalDays > 0 ? ((fullGross / totalDays) * payableDays) : fullGross;
+        note.text(
+            "DOJ-prorated gross: "
+            + fullGross.toFixed(2)
+            + " x "
+            + payableDays
+            + " / "
+            + totalDays
+            + " = "
+            + proratedGross.toFixed(2)
+        ).show();
+    }
+
     function add_allowance() {
         var calcButton = $(".plusign");
         calcButton.prop('disabled', true);
@@ -1130,11 +1177,13 @@ $deduction_count++;
             }
 
             syncEarningsFromBasic();
+            var fullGross = parseAmount($("#basic").val()) + parseAmount($("#total_allowance").val());
             $("#total_allowance").val(parseAmount(response.total_allowance).toFixed(2));
             $("#total_deduction").val(parseAmount(response.total_deduction).toFixed(2));
             $("#gross_salary").val(parseAmount(response.gross_salary).toFixed(2));
             $("#lop_deduction").val(parseAmount(response.leave_deduction).toFixed(2));
             $("#net_salary").val(parseAmount(response.net_salary).toFixed(2));
+            updateDojProrataNote(fullGross, parseInt(response.payable_days || 0, 10), parseInt(response.total_days || 0, 10), !!response.is_prorata_applied);
 
             if ($("#tax_percent").length) {
                 $("#tax_percent").val(parseAmount(response.tds).toFixed(2));
