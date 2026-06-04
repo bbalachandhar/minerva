@@ -1459,6 +1459,23 @@ class Payroll_model extends MY_Model
                 if ($leave_query->num_rows() > 0) {
                     $leave_data = $leave_query->row_array();
                     $opening_balance = floatval($leave_data['alloted_leave']);
+
+                    // The cron increments alloted_leave each month it runs for staff
+                    // who have no monthly row for that month yet. If the cron ran for
+                    // months AFTER the target month (e.g. June cron ran before May
+                    // payroll was processed), those future increments are already
+                    // embedded in alloted_leave. Subtract earned_in_month from any
+                    // existing future-month rows so May's opening does not
+                    // double-count June's cron credit.
+                    $future_row = $this->db
+                        ->select('COALESCE(SUM(earned_in_month), 0) AS total', false)
+                        ->where('staff_id', (int) $staff_id)
+                        ->where('leave_type_id', (int) $leave_type_id)
+                        ->where("(year > $year OR (year = $year AND month > $month))")
+                        ->get('staff_monthly_leave_balance')
+                        ->row_array();
+                    $future_earned = isset($future_row['total']) ? (float) $future_row['total'] : 0.0;
+                    $opening_balance = max(0.0, $opening_balance - $future_earned);
                 }
             }
         }
@@ -1554,6 +1571,18 @@ class Payroll_model extends MY_Model
                 if ($leave_query->num_rows() > 0) {
                     $leave_data = $leave_query->row_array();
                     $opening_balance = floatval($leave_data['alloted_leave']);
+
+                    // Same future-earned deduction as getOrCreateMonthlyBalance:
+                    // subtract cron credits already assigned to months after target.
+                    $future_row_snap = $this->db
+                        ->select('COALESCE(SUM(earned_in_month), 0) AS total', false)
+                        ->where('staff_id', (int) $staff_id)
+                        ->where('leave_type_id', (int) $leave_type_id)
+                        ->where("(year > $year OR (year = $year AND month > $month))")
+                        ->get('staff_monthly_leave_balance')
+                        ->row_array();
+                    $future_earned_snap = isset($future_row_snap['total']) ? (float) $future_row_snap['total'] : 0.0;
+                    $opening_balance = max(0.0, $opening_balance - $future_earned_snap);
                 }
             }
         }
