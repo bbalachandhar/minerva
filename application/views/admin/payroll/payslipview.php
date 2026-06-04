@@ -298,6 +298,32 @@ echo amountFormat($basic);?></td>
                             <td class="text-right"><?php $gross_salary = $result["basic"] + $result["total_allowance"];
 echo amountFormat($gross_salary);?></td>
                         </tr>
+                        <?php
+                        $doj_note = '';
+                        $doj_date_value = $result['date_of_joining'] ?? null;
+                        if (!empty($doj_date_value) && !empty($result['month']) && !empty($result['year'])) {
+                            $month_num_for_doj = (int) date('n', strtotime($result['year'] . '-' . $result['month'] . '-01'));
+                            $month_start_for_doj = sprintf('%04d-%02d-01', (int) $result['year'], $month_num_for_doj);
+                            $month_end_for_doj = date('Y-m-t', strtotime($month_start_for_doj));
+                            $doj_ts_for_note = strtotime($doj_date_value);
+                            if ($doj_ts_for_note !== false) {
+                                $doj_date_for_note = date('Y-m-d', $doj_ts_for_note);
+                                if ($doj_date_for_note > $month_start_for_doj && $doj_date_for_note <= $month_end_for_doj) {
+                                    $total_days_for_doj = (int) date('t', strtotime($month_start_for_doj));
+                                    $payable_days_for_doj = (int) ((new DateTime($doj_date_for_note))->diff(new DateTime($month_end_for_doj))->days + 1);
+                                    $prorated_gross_for_doj = $total_days_for_doj > 0 ? (($gross_salary / $total_days_for_doj) * $payable_days_for_doj) : $gross_salary;
+                                    $doj_note = 'DOJ-prorated gross: ' . number_format($gross_salary, 2, '.', '') . ' x ' . $payable_days_for_doj . ' / ' . $total_days_for_doj . ' = ' . number_format($prorated_gross_for_doj, 2, '.', '');
+                                }
+                            }
+                        }
+                        ?>
+                        <?php if ($doj_note !== '') { ?>
+                        <tr>
+                            <td colspan="2" style="font-size: 12px; color: #8a6d3b; background: #fff8e1; border-left: 3px solid #ffb300;">
+                                <?php echo $doj_note; ?>
+                            </td>
+                        </tr>
+                        <?php } ?>
                         
                         <!-- EPF Deduction Breakdown -->
                         <?php if (!empty($result["epf_wage"])) { ?>

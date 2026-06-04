@@ -3849,6 +3849,10 @@ class Payroll extends Admin_Controller
         $data['sch_setting'] = $this->sch_setting_detail;
         $data['staffid_auto_insert'] = $this->sch_setting_detail->staffid_auto_insert;
         if (!empty($result)) {
+            $staff_profile = $this->payroll_model->searchEmployeeById((int) ($result['staff_id'] ?? 0));
+            if (!empty($staff_profile['date_of_joining']) && empty($result['date_of_joining'])) {
+                $result['date_of_joining'] = $staff_profile['date_of_joining'];
+            }
             $allowance                  = $this->payroll_model->getAllowance($result["id"]);
             $data["allowance"]          = $allowance;
             $positive_allowance         = $this->payroll_model->getAllowance($result["id"], "positive");
