@@ -226,6 +226,23 @@ class Staff extends Admin_Controller
                 COALESCE(smlb.closing_balance, sld.alloted_leave, 0) AS base_balance,
                 COALESCE(smlb.used_for_lop_adjustment, 0) AS used_for_lop_adjustment,
                 COALESCE(smlb.used_for_leave_application, 0) AS used_for_leave_application,
+                -- Total balance available at the start of the selected payroll period
+                COALESCE(smlb.opening_balance, 0) + COALESCE(smlb.earned_in_month, 0) + COALESCE(smlb.admin_adjustment, 0) AS period_balance,
+                -- Sum of closing balances from later months that have not yet been
+                -- payroll-processed (e.g. cron-credited months after last payroll run).
+                COALESCE((
+                    SELECT SUM(b2.closing_balance)
+                    FROM staff_monthly_leave_balance b2
+                    WHERE b2.staff_id = ?
+                      AND b2.leave_type_id = lt.id
+                      AND b2.last_processed_date IS NULL
+                      AND b2.used_for_lop_adjustment   = 0
+                      AND b2.used_for_leave_application = 0
+                      AND (
+                            b2.year  > COALESCE(smlb.year, 0)
+                         OR (b2.year = COALESCE(smlb.year, 0) AND b2.month > COALESCE(smlb.month, 0))
+                          )
+                ), 0) AS unprocessed_balance,
                 COALESCE((
                     SELECT b.used_for_lop_adjustment + b.used_for_leave_application
                     FROM staff_monthly_leave_balance b
@@ -286,12 +303,19 @@ class Staff extends Admin_Controller
                          OR b.used_for_lop_adjustment   > 0
                          OR b.used_for_leave_application > 0
                       )
-                    ORDER BY b.year DESC, b.month DESC, b.id DESC
+                    ORDER BY
+                        -- Prefer the last payroll-processed row so Consumed/Opening
+                        -- reflect the most recent payroll run, not a newer cron-only row.
+                        (CASE WHEN b.last_processed_date IS NOT NULL
+                                OR b.used_for_lop_adjustment   > 0
+                                OR b.used_for_leave_application > 0
+                              THEN 0 ELSE 1 END) ASC,
+                        b.year DESC, b.month DESC, b.id DESC
                     LIMIT 1
                 )
             WHERE lt.is_active = 'yes'
             ORDER BY lt.type ASC
-        ", array($id, $id, $id, $id, $id))->result_array();
+        ", array($id, $id, $id, $id, $id, $id))->result_array();
 
         foreach ($leave_rows as $row) {
             $leave_type_id    = (int) ($row['leave_type_id'] ?? 0);
@@ -303,19 +327,29 @@ class Staff extends Admin_Controller
                 $approve_leave = (float) ($row['used_for_lop_adjustment'] ?? 0)
                     + (float) ($row['used_for_leave_application'] ?? 0)
                     + (float) ($row['extra_debit'] ?? 0);
+                $available_balance = max(0.0, (float) $display_balance);
+                $consumed_balance  = max(0.0, (float) $approve_leave);
+                $opening_balance   = max(0.0, $available_balance + $consumed_balance);
             } elseif (!empty($row['year']) || !empty($row['month'])) {
-                // Use consumed directly from the current month's row (not last_consumed
-                // which incorrectly bleeds in older months' LOP when current month has none).
-                $approve_leave = (float) ($row['used_for_lop_adjustment'] ?? 0)
-                    + (float) ($row['used_for_leave_application'] ?? 0);
+                // Row is the last payroll-processed month (or most recent non-zero if none
+                // processed yet). Consumed = LOP + leave used in that period.
+                // Available = that period's closing + any later cron-only months not yet
+                // touched by payroll (unprocessed_balance).
+                // Opening = opening + earned + admin of the selected period row — what the
+                // employee had available at the start of that payroll period.
+                $approve_leave     = (float) ($row['used_for_lop_adjustment'] ?? 0)
+                                   + (float) ($row['used_for_leave_application'] ?? 0);
+                $unprocessed       = (float) ($row['unprocessed_balance'] ?? 0);
+                $available_balance = max(0.0, (float) $display_balance + $unprocessed);
+                $consumed_balance  = max(0.0, $approve_leave);
+                $opening_balance   = max(0.0, (float) ($row['period_balance'] ?? 0));
             } else {
                 $count_leave_row = $this->leaverequest_model->countLeavesData($id, $leave_type_id);
                 $approve_leave = isset($count_leave_row['approve_leave']) ? (float) $count_leave_row['approve_leave'] : 0.0;
+                $available_balance = max(0.0, (float) $display_balance);
+                $consumed_balance  = max(0.0, (float) $approve_leave);
+                $opening_balance   = max(0.0, $available_balance + $consumed_balance);
             }
-
-            $available_balance = max(0.0, (float) $display_balance);
-            $consumed_balance = max(0.0, (float) $approve_leave);
-            $opening_balance = max(0.0, $available_balance + $consumed_balance);
 
             $leaveDetail[] = array(
                 'id'            => $leave_type_id,
