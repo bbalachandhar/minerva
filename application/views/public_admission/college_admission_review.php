@@ -234,6 +234,7 @@
                 <div class="row">
                     <div class="col-md-12">
                         <p><span class="data-label">Name of the school of X std:</span> <span class="data-value"><?php echo !empty($school_name_x) ? $school_name_x : 'N/A'; ?></span></p>
+                        <p><span class="data-label">Name of the school of XII std:</span> <span class="data-value"><?php echo !empty($school_name_xii) ? $school_name_xii : 'N/A'; ?></span></p>
                         <p><span class="data-label">Year of passing of X std:</span> <span class="data-value"><?php echo !empty($passing_year_x) ? $passing_year_x : 'N/A'; ?></span></p>
                         <p><span class="data-label">X marks (in %):</span> <span class="data-value"><?php echo ($tenth_marks_percentage !== null && $tenth_marks_percentage !== '') ? $tenth_marks_percentage : 'N/A'; ?></span></p>
                     </div>
@@ -376,7 +377,8 @@
                  <p><span class="data-label">TANCET/PGETA App No:</span> <span class="data-value"><?php echo $pg_details['tancet_pgeta_app_no']; ?></span></p>
                  <p><span class="data-label">TANCET/PGETA Year:</span> <span class="data-value"><?php echo $pg_details['tancet_pgeta_year']; ?></span></p>
                  <p><span class="data-label">TANCET/PGETA Score:</span> <span class="data-value"><?php echo $pg_details['tancet_pgeta_score']; ?></span></p>
-                 
+                 <p><span class="data-label">UG Degree Score / Percentage:</span> <span class="data-value"><?php echo !empty($pg_details['ug_degree_score']) ? $pg_details['ug_degree_score'] : 'N/A'; ?></span></p>
+
             </div>
             <?php endif; ?>
             

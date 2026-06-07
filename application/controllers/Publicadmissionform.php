@@ -1366,6 +1366,7 @@ class PublicAdmissionForm extends CI_Controller
         if ($courseLevel == 'ug') {
             $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
             $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('school_name_xii', 'Name of the school of XII std', 'trim|required|xss_clean');
             $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('tenth_marks_percentage', 'X marks (in %)', 'trim|required|numeric|greater_than[0]|less_than_equal_to[100]|xss_clean');
             
@@ -1402,6 +1403,7 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('pg_app_num', 'TANCET / PGETA Exam Application Number', 'trim|required|xss_clean');
             $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('exam_score', 'TANCET / PGETA Exam Score', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('ug_degree_score', 'UG Degree Score / Percentage', 'trim|required|xss_clean');
             if (!empty($_FILES['bonafide']['name'])) {
                 $this->form_validation->set_rules('bonafide', 'Bonafide Certificate', 'callback_document_handle_upload[bonafide]');
             }
@@ -1527,6 +1529,7 @@ class PublicAdmissionForm extends CI_Controller
                 );
                 $insert_data_online_admission['ug_course_id'] = $data['ug_course'];
                 $insert_data_online_admission['school_name_x'] = !empty($data['school_name']) ? $data['school_name'] : null;
+                $insert_data_online_admission['school_name_xii'] = !empty($data['school_name_xii']) ? $data['school_name_xii'] : null;
                 $insert_data_online_admission['passing_year_x'] = !empty($data['tenth_passing']) ? $data['tenth_passing'] : null;
                 $insert_data_online_admission['tenth_marks_percentage'] = !empty($data['tenth_marks_percentage']) ? $data['tenth_marks_percentage'] : null;
 
@@ -1670,6 +1673,7 @@ class PublicAdmissionForm extends CI_Controller
                     'tancet_pgeta_app_no' => $data['pg_app_num'],
                     'tancet_pgeta_year' => $data['exam_year'],
                     'tancet_pgeta_score' => $data['exam_score'],
+                    'ug_degree_score' => !empty($data['ug_degree_score']) ? $data['ug_degree_score'] : null,
                     'is_alumni' => isset($data['alumni_check']) ? 1 : 0,
                     'bonafide_cert_path' => $bonafide_cert_path,
                     'is_sports_person' => $data['sports'] == 'Yes' ? 1 : 0,
@@ -2023,6 +2027,7 @@ class PublicAdmissionForm extends CI_Controller
         if ($courseLevel == 'ug') {
             $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
             $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('school_name_xii', 'Name of the school of XII std', 'trim|required|xss_clean');
             $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('tenth_marks_percentage', 'X marks (in %)', 'trim|required|numeric|greater_than[0]|less_than_equal_to[100]|xss_clean');
             // Check if selected course is B.ARCH by checking course name
@@ -2058,6 +2063,7 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('pg_app_num', 'TANCET / PGETA Exam Application Number', 'trim|required|xss_clean');
             $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('exam_score', 'TANCET / PGETA Exam Score', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('ug_degree_score', 'UG Degree Score / Percentage', 'trim|required|xss_clean');
             if (!empty($_FILES['bonafide']['name'])) {
                 $this->form_validation->set_rules('bonafide', 'Bonafide Certificate', 'callback_document_handle_upload[bonafide]');
             }
@@ -2120,6 +2126,7 @@ class PublicAdmissionForm extends CI_Controller
                 );
                 $insert_data_online_admission['ug_course_id'] = $data['ug_course'];
                 $insert_data_online_admission['school_name_x'] = !empty($data['school_name']) ? $data['school_name'] : null;
+                $insert_data_online_admission['school_name_xii'] = !empty($data['school_name_xii']) ? $data['school_name_xii'] : null;
                 $insert_data_online_admission['passing_year_x'] = !empty($data['tenth_passing']) ? $data['tenth_passing'] : null;
                 $insert_data_online_admission['tenth_marks_percentage'] = !empty($data['tenth_marks_percentage']) ? $data['tenth_marks_percentage'] : null;
 
@@ -2292,6 +2299,7 @@ class PublicAdmissionForm extends CI_Controller
                     'tancet_pgeta_app_no' => $data['pg_app_num'],
                     'tancet_pgeta_year' => $data['exam_year'],
                     'tancet_pgeta_score' => $data['exam_score'],
+                    'ug_degree_score' => !empty($data['ug_degree_score']) ? $data['ug_degree_score'] : null,
                     'is_alumni' => isset($data['alumni_check']) ? 1 : 0,
                     'bonafide_cert_path' => $bonafide_cert_path,
                     'is_sports_person' => $data['sports'] == 'Yes' ? 1 : 0,

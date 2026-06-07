@@ -1191,9 +1191,11 @@ class Onlinestudent extends Admin_Controller
 
         // Load related data
         $this->load->model('Online_admission_ug_details_model');
+        $this->load->model('Online_admission_pg_details_model');
         $this->load->model('Online_admission_references_model');
         $this->load->model('Online_admission_nata_details_model');
         $ug_details = $this->Online_admission_ug_details_model->get_by_online_admission_id($id);
+        $pg_details = $this->Online_admission_pg_details_model->get_by_online_admission_id($id);
         $reference_details = $this->Online_admission_references_model->get_by_online_admission_id($id);
         $nata_details = $this->Online_admission_nata_details_model->get_by_online_admission_id($id);
         $this->load->model('Onlineadmissioncourses_model');
@@ -1228,6 +1230,7 @@ class Onlinestudent extends Admin_Controller
             $data['student'] = $student;
             $data['id'] = $id;
             $data['ug_details'] = $ug_details;
+            $data['pg_details'] = $pg_details;
             $data['reference_details'] = $reference_details;
             $data['nata_details'] = $nata_details;
             $data['course_applied'] = $course_applied;
@@ -1276,6 +1279,7 @@ class Onlinestudent extends Admin_Controller
                 'hsc_total_marks' => ($this->input->post('hsc_total_marks') !== '' && $this->input->post('hsc_total_marks') !== null) ? (float)$this->input->post('hsc_total_marks') : null,
                 'hsc_marks_obtained' => ($this->input->post('hsc_marks_obtained') !== '' && $this->input->post('hsc_marks_obtained') !== null) ? (float)$this->input->post('hsc_marks_obtained') : null,
                 'school_name_x' => htmlspecialchars($this->input->post('school_name')),
+                'school_name_xii' => htmlspecialchars($this->input->post('school_name_xii')),
                 'passing_year_x' => $this->input->post('tenth_passing'),
                 'tenth_marks_percentage' => $this->input->post('tenth_marks_percentage'),
                 'updated_at' => date('Y-m-d H:i:s'),
@@ -1345,6 +1349,17 @@ class Onlinestudent extends Admin_Controller
                     'passing_year_x' => $tenth_passing,
                 );
                 $this->db->insert('online_admission_ug_details', $ug_data);
+            }
+
+            // Update ug_degree_score in pg_details if submitted
+            $ug_degree_score_post = $this->input->post('ug_degree_score');
+            if ($ug_degree_score_post !== false && $ug_degree_score_post !== null) {
+                $this->load->model('Online_admission_pg_details_model');
+                $pg_row = $this->Online_admission_pg_details_model->get_by_online_admission_id($id);
+                if ($pg_row) {
+                    $this->db->where('online_admission_id', $id)
+                             ->update('online_admission_pg_details', ['ug_degree_score' => htmlspecialchars($ug_degree_score_post)]);
+                }
             }
 
             // Update reference details if provided
