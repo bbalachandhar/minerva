@@ -741,9 +741,8 @@
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">UG Degree Score / Percentage*</label>
                                     <div class="input-group">
-                                        <input type="text" inputmode="decimal" class="form-control" placeholder="0 – 100" name="ug_degree_score" id="ug_degree_score" tabindex="80" maxlength="6" autocomplete="off"
-                                            onkeypress="return ugScoreKeypress(event, this)"
-                                            onpaste="setTimeout(function(){ ugScoreClamp(document.getElementById('ug_degree_score')); }, 0)">
+                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="0 – 100" name="ug_degree_score" id="ug_degree_score" tabindex="80"
+                                            oninput="if(parseFloat(this.value)>100){this.value=100;} if(parseFloat(this.value)<0){this.value=0;}">
                                         <span class="input-group-text">%</span>
                                     </div>
                                     <small id="ug_degree_score_error" class="text-danger" style="display:none;">Value must be between 0 and 100.</small>
@@ -1463,76 +1462,10 @@ $(document).ready(function() {
     $('#lateral_course').on('change', function() { checkCourseRestriction($(this)); });
     $('#pg_course').on('change', function() { checkCourseRestriction($(this)); });
 
-    // Only allow digits and a single decimal point
-    function ugScoreKeypress(e, input) {
-        var char = e.key !== undefined ? e.key : String.fromCharCode(e.which || e.keyCode);
-        // Always allow control keys
-        if (char === 'Backspace' || char === 'Delete' || char === 'Tab' ||
-            char === 'ArrowLeft' || char === 'ArrowRight' || char === 'Home' || char === 'End') {
-            return true;
-        }
-        // Block non-numeric, non-decimal characters
-        if (!/[\d.]/.test(char)) {
-            e.preventDefault(); return false;
-        }
-        // Block a second decimal point
-        if (char === '.' && input.value.indexOf('.') !== -1) {
-            e.preventDefault(); return false;
-        }
-        // Build what the value would look like after this keypress
-        var start = input.selectionStart;
-        var end   = input.selectionEnd;
-        var future = input.value.substring(0, start) + char + input.value.substring(end);
-        var num = parseFloat(future);
-        if (!isNaN(num) && num > 100) {
-            ugScoreShowError(input, true);
-            e.preventDefault(); return false;
-        }
-        ugScoreShowError(input, false);
-        return true;
-    }
-
-    // Clamp & validate after paste
-    function ugScoreClamp(input) {
-        var val = parseFloat(input.value);
-        if (!isNaN(val) && val > 100) {
-            input.value = '100';
-        } else if (!isNaN(val) && val < 0) {
-            input.value = '0';
-        }
-        ugScoreShowError(input, false);
-    }
-
-    function ugScoreShowError(input, show) {
-        var err = document.getElementById('ug_degree_score_error');
-        if (show) {
-            input.classList.add('is-invalid');
-            err.style.display = 'block';
-        } else {
-            input.classList.remove('is-invalid');
-            err.style.display = 'none';
-        }
-    }
-
-    function validateUgDegreeScore(input) {
-        ugScoreClamp(input);
-    }
-
     // Handler for the main submit button, which now just opens the modal
     $('#submit_application_btn').on('click', function(e) {
         e.preventDefault();
         console.log('Submit Application button clicked.');
-
-        // Extra check for ug_degree_score since max= isn't enforced on AJAX forms
-        var ugScoreInput = document.getElementById('ug_degree_score');
-        if (ugScoreInput && ugScoreInput.offsetParent !== null) {
-            validateUgDegreeScore(ugScoreInput);
-            if (ugScoreInput.classList.contains('is-invalid')) {
-                ugScoreInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                ugScoreInput.focus();
-                return;
-            }
-        }
 
         const form = document.getElementById('admission_form');
         if (!form.checkValidity()) {
