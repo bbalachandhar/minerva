@@ -741,9 +741,10 @@
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">UG Degree Score / Percentage*</label>
                                     <div class="input-group">
-                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="0 – 100" name="ug_degree_score" id="ug_degree_score" tabindex="80">
+                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="0 – 100" name="ug_degree_score" id="ug_degree_score" tabindex="80" oninput="validateUgDegreeScore(this)">
                                         <span class="input-group-text">%</span>
                                     </div>
+                                    <small id="ug_degree_score_error" class="text-danger" style="display:none;">Please enter a value between 0 and 100.</small>
                                 </div>
                             </div>
                         </div>
@@ -1460,10 +1461,33 @@ $(document).ready(function() {
     $('#lateral_course').on('change', function() { checkCourseRestriction($(this)); });
     $('#pg_course').on('change', function() { checkCourseRestriction($(this)); });
 
+    function validateUgDegreeScore(input) {
+        var val = parseFloat(input.value);
+        var err = document.getElementById('ug_degree_score_error');
+        if (input.value !== '' && (isNaN(val) || val < 0 || val > 100)) {
+            input.classList.add('is-invalid');
+            err.style.display = 'block';
+        } else {
+            input.classList.remove('is-invalid');
+            err.style.display = 'none';
+        }
+    }
+
     // Handler for the main submit button, which now just opens the modal
     $('#submit_application_btn').on('click', function(e) {
         e.preventDefault();
         console.log('Submit Application button clicked.');
+
+        // Extra check for ug_degree_score since max= isn't enforced on AJAX forms
+        var ugScoreInput = document.getElementById('ug_degree_score');
+        if (ugScoreInput && ugScoreInput.offsetParent !== null) {
+            validateUgDegreeScore(ugScoreInput);
+            if (ugScoreInput.classList.contains('is-invalid')) {
+                ugScoreInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                ugScoreInput.focus();
+                return;
+            }
+        }
 
         const form = document.getElementById('admission_form');
         if (!form.checkValidity()) {
