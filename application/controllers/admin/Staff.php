@@ -3465,4 +3465,56 @@ class Staff extends Admin_Controller
             return 'A';
         }
     }
+
+    /**
+     * AJAX: Recascade all CPL/leave monthly balances for a staff member from a
+     * given month forward.  Fixes stale opening_balance values caused by
+     * out-of-order HOD credit approvals or missing intermediate month rows.
+     *
+     * POST: staff_id, from_year, from_month
+     */
+    public function ajax_recascade_leave_balances()
+    {
+        if (!$this->rbac->hasPrivilege('staff', 'can_edit')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Access denied']);
+            return;
+        }
+
+        $staff_id   = (int) $this->input->post('staff_id');
+        $from_year  = (int) $this->input->post('from_year');
+        $from_month = (int) $this->input->post('from_month');
+
+        if (!$staff_id || !$from_year || !$from_month) {
+            echo json_encode(['status' => 'fail', 'message' => 'Missing parameters']);
+            return;
+        }
+
+        $this->load->model('Payroll_model');
+
+        // Get all leave type rows for this staff in the given month.
+        $rows = $this->db
+            ->select('leave_type_id, closing_balance')
+            ->where('staff_id', $staff_id)
+            ->where('year', $from_year)
+            ->where('month', $from_month)
+            ->get('staff_monthly_leave_balance')
+            ->result_array();
+
+        if (empty($rows)) {
+            echo json_encode(['status' => 'fail', 'message' => 'No balance rows found for the specified month']);
+            return;
+        }
+
+        foreach ($rows as $row) {
+            $this->payroll_model->cascadeClosingToNextMonth(
+                $staff_id,
+                (int) $row['leave_type_id'],
+                $from_year,
+                $from_month,
+                (float) $row['closing_balance']
+            );
+        }
+
+        echo json_encode(['status' => 'success', 'message' => 'Balances recascaded from ' . $from_year . '-' . str_pad($from_month, 2, '0', STR_PAD_LEFT)]);
+    }
 }

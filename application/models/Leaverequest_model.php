@@ -929,6 +929,7 @@ class Leaverequest_model extends MY_model
             $prev = $this->db
                 ->where('staff_id', $staff_id)
                 ->where('leave_type_id', $cpl_type_id)
+                ->where("(year < $year OR (year = $year AND month < $month))", null, false)
                 ->order_by('year', 'DESC')->order_by('month', 'DESC')
                 ->limit(1)
                 ->get('staff_monthly_leave_balance')
