@@ -395,6 +395,20 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="school_name_xii">Name of School (XII Std)</label>
+                                        <input type="text" class="form-control" id="school_name_xii" name="school_name_xii" placeholder="Enter 12th school name" value="<?php echo set_value('school_name_xii', (isset($student['school_name_xii']) ? $student['school_name_xii'] : '')); ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="ug_degree_score">UG Degree Score / Percentage</label>
+                                        <input type="text" class="form-control" id="ug_degree_score" name="ug_degree_score" placeholder="Enter UG degree score or %" value="<?php echo set_value('ug_degree_score', (isset($pg_details['ug_degree_score']) ? $pg_details['ug_degree_score'] : '')); ?>">
+                                    </div>
+                                </div>
+                            </div>
 
                         </div>
                         <!-- /.box-body -->

@@ -541,6 +541,14 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Name of the school of XII std*</label>
+                                        <input type="text" class="form-control" placeholder="Enter 12th school name" name="school_name_xii" id="school_name_xii" onkeydown="return allowAlphabets(event)" tabindex="25">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -727,6 +735,12 @@
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">TANCET / PGETA Exam Score</label>
                                     <input type="number" step="any" class="form-control" placeholder="Enter your Score" name="exam_score" id="exam_score" tabindex="79">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="mb-3 col-md-6">
+                                    <label class="form-label">UG Degree Score / Percentage*</label>
+                                    <input type="text" class="form-control" placeholder="Enter UG degree score or %" name="ug_degree_score" id="ug_degree_score" tabindex="80">
                                 </div>
                             </div>
                         </div>
@@ -945,6 +959,7 @@
         $("#school_name").prop("required", ugRequired);
         $("#tenth_passing").prop("required", ugRequired);
         $("#tenth_marks_percentage").prop("required", ugRequired);
+        $("#school_name_xii").prop("required", ugRequired);
         
         // Lateral fields
         $("#lateral_course").prop("required", lateralRequired);
@@ -970,6 +985,7 @@
         $("#exam_score").prop("required", pgRequired);
         $("#exam_year").prop("required", pgRequired);
         $("#pg_app_num").prop("required", pgRequired);
+        $("#ug_degree_score").prop("required", pgRequired);
     }
 
     function setHscRequired(isRequired) {
