@@ -1358,7 +1358,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                     </div>
                                                     <div style="display:flex;gap:6px;align-items:center;">
                                                         <span class="label label-primary" style="font-size:11px;padding:4px 8px;">Employee History</span>
-                                                        <?php $earliest_month_row = !empty($leave_monthly_breakdown[$leave_type_id]) ? end($leave_monthly_breakdown[$leave_type_id]) : null; reset($leave_monthly_breakdown[$leave_type_id] ?? []); ?>
+                                                        <?php $tmp_breakdown = isset($leave_monthly_breakdown[$leave_type_id]) ? $leave_monthly_breakdown[$leave_type_id] : []; $earliest_month_row = !empty($tmp_breakdown) ? end($tmp_breakdown) : null; ?>
                                                         <?php if (!empty($earliest_month_row)): ?>
                                                         <button type="button" class="btn btn-xs btn-default recascade-balance-btn"
                                                             data-staff="<?php echo (int) $staff['id']; ?>"
