@@ -1464,13 +1464,20 @@ $(document).ready(function() {
     function validateUgDegreeScore(input) {
         var val = parseFloat(input.value);
         var err = document.getElementById('ug_degree_score_error');
-        if (input.value !== '' && (isNaN(val) || val < 0 || val > 100)) {
-            input.classList.add('is-invalid');
-            err.style.display = 'block';
-        } else {
+        if (input.value === '' || isNaN(val)) {
             input.classList.remove('is-invalid');
             err.style.display = 'none';
+            return;
         }
+        if (val > 100) {
+            input.value = 100;
+            val = 100;
+        } else if (val < 0) {
+            input.value = 0;
+            val = 0;
+        }
+        input.classList.remove('is-invalid');
+        err.style.display = 'none';
     }
 
     // Handler for the main submit button, which now just opens the modal
