@@ -1356,7 +1356,21 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                         <h5 style="color:#1f3f75;font-weight:700;margin:0;"><?php echo htmlspecialchars((string) ($ldvalue["type"] ?? ''), ENT_QUOTES, 'UTF-8'); ?></h5>
                                                         <p style="margin:6px 0 0 0;color:#1e8449;font-size:14px;"><strong>Available:</strong> <?php echo $format_leave_count(isset($ldvalue["available"]) ? $ldvalue["available"] : 0); ?></p>
                                                     </div>
-                                                    <span class="label label-primary" style="font-size:11px;padding:4px 8px;">Employee History</span>
+                                                    <div style="display:flex;gap:6px;align-items:center;">
+                                                        <span class="label label-primary" style="font-size:11px;padding:4px 8px;">Employee History</span>
+                                                        <?php $earliest_month_row = !empty($leave_monthly_breakdown[$leave_type_id]) ? end($leave_monthly_breakdown[$leave_type_id]) : null; reset($leave_monthly_breakdown[$leave_type_id] ?? []); ?>
+                                                        <?php if (!empty($earliest_month_row)): ?>
+                                                        <button type="button" class="btn btn-xs btn-default recascade-balance-btn"
+                                                            data-staff="<?php echo (int) $staff['id']; ?>"
+                                                            data-type="<?php echo $leave_type_id; ?>"
+                                                            data-year="<?php echo (int) ($earliest_month_row['year'] ?? 0); ?>"
+                                                            data-month="<?php echo (int) ($earliest_month_row['month'] ?? 0); ?>"
+                                                            title="Recalculate carry-forward opening balances from the earliest recorded month"
+                                                            style="font-size:10px;padding:2px 6px;">
+                                                            &#8635; Recalculate
+                                                        </button>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
 
                                                 <div style="margin-top:8px;font-size:12px;line-height:1.6;">
@@ -2419,3 +2433,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         </div>
     </div>
 </div>
+<script>
+$(document).on('click', '.recascade-balance-btn', function () {
+    var btn     = $(this);
+    var staffId = btn.data('staff');
+    var year    = btn.data('year');
+    var month   = btn.data('month');
+    if (!confirm('Recalculate carry-forward balances from ' + year + '-' + ('0' + month).slice(-2) + ' onwards?\nThis will fix incorrect opening balances in subsequent months.')) return;
+    btn.prop('disabled', true).text('Recalculating…');
+    $.post('<?php echo site_url("admin/staff/ajax_recascade_leave_balances"); ?>', {
+        staff_id:   staffId,
+        from_year:  year,
+        from_month: month
+    }, function (res) {
+        if (res && res.status === 'success') {
+            alert('Done. Reload the page to see updated balances.');
+        } else {
+            alert('Error: ' + (res && res.message ? res.message : 'Unknown error'));
+        }
+        btn.prop('disabled', false).html('&#8635; Recalculate');
+    }, 'json').fail(function () {
+        alert('Request failed.');
+        btn.prop('disabled', false).html('&#8635; Recalculate');
+    });
+});
+</script>

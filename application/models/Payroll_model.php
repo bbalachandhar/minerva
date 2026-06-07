@@ -1326,7 +1326,21 @@ class Payroll_model extends MY_Model
             ->row_array();
 
         if (empty($next_row)) {
-            return; // Next month row not yet created — no cascade needed.
+            // No row for the immediately next month — look for the nearest future row
+            // so gaps (e.g. months with no payroll) don't silently orphan the carry-forward.
+            $next_row = $this->db
+                ->where('staff_id', (int) $staff_id)
+                ->where('leave_type_id', (int) $leave_type_id)
+                ->where("(year > $year OR (year = $year AND month > $month))", null, false)
+                ->order_by('year', 'ASC')
+                ->order_by('month', 'ASC')
+                ->limit(1)
+                ->get('staff_monthly_leave_balance')
+                ->row_array();
+
+            if (empty($next_row)) {
+                return;
+            }
         }
 
         $earned           = floatval($next_row['earned_in_month']            ?? 0);
@@ -1369,6 +1383,13 @@ class Payroll_model extends MY_Model
                 'created_at'     => date('Y-m-d H:i:s'),
             ]);
         }
+
+        // Continue cascading forward so all subsequent rows stay in sync.
+        $this->cascadeClosingToNextMonth(
+            $staff_id, $leave_type_id,
+            (int) $next_row['year'], (int) $next_row['month'],
+            $new_next_closing
+        );
     }
 
     /**
