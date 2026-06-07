@@ -741,10 +741,12 @@
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">UG Degree Score / Percentage*</label>
                                     <div class="input-group">
-                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="0 – 100" name="ug_degree_score" id="ug_degree_score" tabindex="80" oninput="validateUgDegreeScore(this)">
+                                        <input type="text" inputmode="decimal" class="form-control" placeholder="0 – 100" name="ug_degree_score" id="ug_degree_score" tabindex="80" maxlength="6" autocomplete="off"
+                                            onkeypress="return ugScoreKeypress(event, this)"
+                                            onpaste="setTimeout(function(){ ugScoreClamp(document.getElementById('ug_degree_score')); }, 0)">
                                         <span class="input-group-text">%</span>
                                     </div>
-                                    <small id="ug_degree_score_error" class="text-danger" style="display:none;">Please enter a value between 0 and 100.</small>
+                                    <small id="ug_degree_score_error" class="text-danger" style="display:none;">Value must be between 0 and 100.</small>
                                 </div>
                             </div>
                         </div>
@@ -1461,23 +1463,59 @@ $(document).ready(function() {
     $('#lateral_course').on('change', function() { checkCourseRestriction($(this)); });
     $('#pg_course').on('change', function() { checkCourseRestriction($(this)); });
 
-    function validateUgDegreeScore(input) {
+    // Only allow digits and a single decimal point
+    function ugScoreKeypress(e, input) {
+        var char = e.key !== undefined ? e.key : String.fromCharCode(e.which || e.keyCode);
+        // Always allow control keys
+        if (char === 'Backspace' || char === 'Delete' || char === 'Tab' ||
+            char === 'ArrowLeft' || char === 'ArrowRight' || char === 'Home' || char === 'End') {
+            return true;
+        }
+        // Block non-numeric, non-decimal characters
+        if (!/[\d.]/.test(char)) {
+            e.preventDefault(); return false;
+        }
+        // Block a second decimal point
+        if (char === '.' && input.value.indexOf('.') !== -1) {
+            e.preventDefault(); return false;
+        }
+        // Build what the value would look like after this keypress
+        var start = input.selectionStart;
+        var end   = input.selectionEnd;
+        var future = input.value.substring(0, start) + char + input.value.substring(end);
+        var num = parseFloat(future);
+        if (!isNaN(num) && num > 100) {
+            ugScoreShowError(input, true);
+            e.preventDefault(); return false;
+        }
+        ugScoreShowError(input, false);
+        return true;
+    }
+
+    // Clamp & validate after paste
+    function ugScoreClamp(input) {
         var val = parseFloat(input.value);
+        if (!isNaN(val) && val > 100) {
+            input.value = '100';
+        } else if (!isNaN(val) && val < 0) {
+            input.value = '0';
+        }
+        ugScoreShowError(input, false);
+    }
+
+    function ugScoreShowError(input, show) {
         var err = document.getElementById('ug_degree_score_error');
-        if (input.value === '' || isNaN(val)) {
+        if (show) {
+            input.classList.add('is-invalid');
+            err.style.display = 'block';
+        } else {
             input.classList.remove('is-invalid');
             err.style.display = 'none';
-            return;
         }
-        if (val > 100) {
-            input.value = 100;
-            val = 100;
-        } else if (val < 0) {
-            input.value = 0;
-            val = 0;
-        }
-        input.classList.remove('is-invalid');
-        err.style.display = 'none';
+    }
+
+    function validateUgDegreeScore(input) {
+        ugScoreClamp(input);
     }
 
     // Handler for the main submit button, which now just opens the modal
