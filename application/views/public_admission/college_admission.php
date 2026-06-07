@@ -740,7 +740,10 @@
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">UG Degree Score / Percentage*</label>
-                                    <input type="text" class="form-control" placeholder="Enter UG degree score or %" name="ug_degree_score" id="ug_degree_score" tabindex="80">
+                                    <div class="input-group">
+                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="0 – 100" name="ug_degree_score" id="ug_degree_score" tabindex="80">
+                                        <span class="input-group-text">%</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -405,7 +405,10 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="ug_degree_score">UG Degree Score / Percentage</label>
-                                        <input type="text" class="form-control" id="ug_degree_score" name="ug_degree_score" placeholder="Enter UG degree score or %" value="<?php echo set_value('ug_degree_score', (isset($pg_details['ug_degree_score']) ? $pg_details['ug_degree_score'] : '')); ?>">
+                                        <div class="input-group">
+                                            <input type="number" step="0.01" min="0" max="100" class="form-control" id="ug_degree_score" name="ug_degree_score" placeholder="0 – 100" value="<?php echo set_value('ug_degree_score', (isset($pg_details['ug_degree_score']) ? $pg_details['ug_degree_score'] : '')); ?>">
+                                            <span class="input-group-addon">%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

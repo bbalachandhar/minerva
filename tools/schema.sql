@@ -4377,7 +4377,7 @@ CREATE TABLE `online_admission_pg_details` (
   `tancet_pgeta_app_no` varchar(255) DEFAULT NULL,
   `tancet_pgeta_year` varchar(255) DEFAULT NULL,
   `tancet_pgeta_score` varchar(255) DEFAULT NULL,
-  `ug_degree_score` varchar(50) DEFAULT NULL COMMENT 'UG degree score or percentage (for PG applicants)',
+  `ug_degree_score` decimal(5,2) DEFAULT NULL COMMENT 'UG degree percentage 0-100 (for PG applicants)',
   `is_alumni` tinyint(1) DEFAULT '0',
   `bonafide_cert_path` varchar(255) DEFAULT NULL,
   `is_sports_person` tinyint(1) DEFAULT '0',

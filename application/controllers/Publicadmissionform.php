@@ -1403,7 +1403,7 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('pg_app_num', 'TANCET / PGETA Exam Application Number', 'trim|required|xss_clean');
             $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('exam_score', 'TANCET / PGETA Exam Score', 'trim|required|numeric|xss_clean');
-            $this->form_validation->set_rules('ug_degree_score', 'UG Degree Score / Percentage', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('ug_degree_score', 'UG Degree Score / Percentage', 'trim|required|numeric|greater_than_equal_to[0]|less_than_equal_to[100]|xss_clean');
             if (!empty($_FILES['bonafide']['name'])) {
                 $this->form_validation->set_rules('bonafide', 'Bonafide Certificate', 'callback_document_handle_upload[bonafide]');
             }
@@ -2063,7 +2063,7 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('pg_app_num', 'TANCET / PGETA Exam Application Number', 'trim|required|xss_clean');
             $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('exam_score', 'TANCET / PGETA Exam Score', 'trim|required|numeric|xss_clean');
-            $this->form_validation->set_rules('ug_degree_score', 'UG Degree Score / Percentage', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('ug_degree_score', 'UG Degree Score / Percentage', 'trim|required|numeric|greater_than_equal_to[0]|less_than_equal_to[100]|xss_clean');
             if (!empty($_FILES['bonafide']['name'])) {
                 $this->form_validation->set_rules('bonafide', 'Bonafide Certificate', 'callback_document_handle_upload[bonafide]');
             }
