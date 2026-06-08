@@ -4564,7 +4564,7 @@ CREATE TABLE `online_admissions` (
   `quota_type` varchar(20) DEFAULT NULL,
   `course_fee_total` decimal(12,2) DEFAULT NULL,
   `first_login` tinyint(1) NOT NULL DEFAULT '1',
-  `admission_status` enum('active','cancelled') NOT NULL DEFAULT 'active' COMMENT 'active=normal, cancelled=revoked by staff',
+  `admission_status` enum('active','cancelled','waiting_list') NOT NULL DEFAULT 'active' COMMENT 'active=normal, cancelled=revoked by staff, waiting_list=on hold pending decision',
   `cancelled_at` datetime DEFAULT NULL COMMENT 'Timestamp when admission was cancelled',
   `cancelled_by` int DEFAULT NULL COMMENT 'Staff ID who cancelled the admission',
   `cancellation_reason` text COMMENT 'Reason provided by staff for cancellation',

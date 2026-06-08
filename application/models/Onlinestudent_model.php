@@ -77,7 +77,7 @@ class Onlinestudent_model extends MY_Model
         }
     }
 
-    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null, $submitted_by_filter = null, $submit_date_from = null, $submit_date_to = null, $last_payment_date = null, $course_id_filter = null, $course_level_filter = null, $admission_type_filter = null, $cutoff_from = null, $cutoff_to = null, $community_filter = null)
+    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null, $submitted_by_filter = null, $submit_date_from = null, $submit_date_to = null, $last_payment_date = null, $course_id_filter = null, $course_level_filter = null, $admission_type_filter = null, $cutoff_from = null, $cutoff_to = null, $community_filter = null, $admission_status_filter = null)
     {
         $class_section_array=$this->customlib->get_myClassSection();        
 
@@ -202,6 +202,9 @@ class Onlinestudent_model extends MY_Model
             $this->datatables->sort('online_admissions.id','desc');
             // Exclude cancelled admissions from this list — they appear on the Revoked Admissions page
             $this->datatables->where("COALESCE(online_admissions.admission_status, 'active') != 'cancelled'", null, false);
+            if ($admission_status_filter === 'waiting_list') {
+                $this->datatables->where("online_admissions.admission_status = 'waiting_list'", null, false);
+            }
 
         if ($cutoff_from !== null && $cutoff_from !== '') {
             $this->datatables->where('online_admissions.cutoff_marks >=', (float) $cutoff_from);
