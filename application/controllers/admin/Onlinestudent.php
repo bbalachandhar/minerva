@@ -525,43 +525,36 @@ class Onlinestudent extends Admin_Controller
 
         if (!empty($m->data)) {
             foreach ($m->data as $key => $value) {
-                $editbtn   = '';
-                $deletebtn = '';
-                $document  = '';
                 $last_name = "";
                 $mobileno  = "";
-                $printbtn  = "";
                 $status    = 'admin';
+
+                // Collect action items for dropdown
+                $action_items   = [];
+                $action_revoked = false;
 
                 if ($this->rbac->hasPrivilege('online_admission', 'can_edit')) {
                     if (!$value->is_enroll) {
-                        // Edit Application Only button
-                        $editbtn = "<a href='" . base_url() . 'admin/onlinestudent/edit_application/' . $value->id . "' class='btn btn-info btn-xs mt-5 pull-right' data-toggle='tooltip' title='Edit Application Details'><i class='fa fa-edit'></i></a>";
-                        
-                        // Edit & Enroll button
-                        $editbtn .= " <a class='btn btn-warning btn-xs mt-5 pull-right' data-toggle='tooltip' title='Edit & Enroll' onclick='return checkpaymentstatus(" . '"' . $value->id . '"' . ")'><i class='fa fa-graduation-cap'></i></a>";
+                        $action_items[] = "<li><a href='" . base_url() . 'admin/onlinestudent/edit_application/' . $value->id . "'><i class='fa fa-edit fa-fw'></i> Edit Application</a></li>";
+                        $action_items[] = "<li><a href='#' onclick='return checkpaymentstatus(" . '"' . $value->id . '"' . ")'><i class='fa fa-graduation-cap fa-fw'></i> Edit &amp; Enroll</a></li>";
                     }
                 }
 
                 if ($this->rbac->hasPrivilege('online_admission', 'can_delete')) {
-                    $deletebtn = '';
-
-                    $deletebtn = "<a href='" . base_url() . 'admin/onlinestudent/delete/' . $value->id . "' class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('delete') . "' onclick='return confirm(" . '"' . $this->lang->line('delete_confirm') . '"' . "  )'><i class='fa fa-remove'></i></a>";
+                    $action_items[] = "<li><a href='" . base_url() . 'admin/onlinestudent/delete/' . $value->id . "' onclick='return confirm(" . '"' . $this->lang->line('delete_confirm') . '"' . ")' class='text-danger'><i class='fa fa-remove fa-fw'></i> Delete</a></li>";
                 }
 
-                // Revoke/Cancel admission button — only for non-enrolled, non-cancelled admissions
-                $revokebtn = '';
+                // Revoke/Cancel — only for non-enrolled, non-cancelled
                 $admission_status_val = isset($value->admission_status) ? $value->admission_status : 'active';
                 if ($admission_status_val === 'cancelled') {
-                    $revokebtn = "<span class='label label-danger' style='display:inline-block;margin-top:4px;'><i class='fa fa-ban'></i> Revoked</span>";
+                    $action_revoked = true;
                 } elseif (!$value->is_enroll && $this->rbac->hasPrivilege('admission_cancellation', 'can_add')) {
-                    $revokebtn = "<a class='btn btn-danger btn-xs mt-5 pull-right' data-toggle='tooltip' title='Cancel / Revoke Admission' onclick='openRevokeModal(" . $value->id . ")'><i class='fa fa-ban'></i></a>";
+                    $action_items[] = "<li><a href='#' onclick='openRevokeModal(" . $value->id . ")' class='text-danger'><i class='fa fa-ban fa-fw'></i> Revoke Admission</a></li>";
                 }
 
                 if (!empty($value->reference_no)) {
-                    $printbtn = "<a target='_blank' href='" . $this->customlib->getBaseUrl() . 'welcome/online_admission_review/' . $value->reference_no . "'  class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('print') . "' ><i class='fa fa-print'></i></a>";
-                } else {
-                    $printbtn = "";
+                    $printbtn = $this->customlib->getBaseUrl() . 'welcome/online_admission_review/' . $value->reference_no;
+                    $action_items[] = "<li><a href='" . $printbtn . "' target='_blank'><i class='fa fa-print fa-fw'></i> Print Application</a></li>";
                 }
 
                 if (!empty($value->created_at)) {
@@ -577,8 +570,7 @@ class Onlinestudent extends Admin_Controller
                 }
 
                 if ($value->document) {
-                    $document = "<a href='" . site_url("admin/onlinestudent/onlineadmission_download/" . $value->id) . "' class='btn btn-default btn-xs mt5'  data-toggle='tooltip' title='" . $this->lang->line('download') . "'>
-                         <i class='fa fa-download'></i> </a>";
+                    $action_items[] = "<li><a href='" . site_url("admin/onlinestudent/onlineadmission_download/" . $value->id) . "'><i class='fa fa-download fa-fw'></i> Download Documents</a></li>";
                 }
 
                 if ($sch_setting->lastname) {
@@ -641,26 +633,33 @@ class Onlinestudent extends Admin_Controller
                     $row[] = '<span class="label label-warning">Partially Paid</span>';
                 }
 
-                // Eye icon for paid / partially-paid records
-                $eyebtn = "";
                 if ($paid_amount > 0 && !empty($application_ref_no)) {
-                    $eyebtn = "<a class='btn btn-primary btn-xs mt-5 pull-right' data-toggle='tooltip' title='View Fee Receipt' onclick='viewFeeReceipt(" . json_encode($application_ref_no) . ")'><i class='fa fa-eye'></i></a>";
+                    $action_items[] = "<li><a href='#' onclick='viewFeeReceipt(" . json_encode($application_ref_no) . ")'><i class='fa fa-eye fa-fw'></i> View Fee Receipt</a></li>";
                 }
 
-                $paybtn = "";
-                if ($sch_setting->online_admission_payment == 'yes') {
-                    if (!$app_fee_is_paid && $value->paid_status != 2) {
-                        $paybtn = "<a class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('add_payment') . "' onclick='addpayment(" . '"' . $value->id . '","' . $value->reference_no . '"' . "  )'><i class='fa fa-usd'></i></a>";
-                    }
-                    if ($app_fee_is_paid) {
-                        $paybtn = '';
-                    }
+                if ($sch_setting->online_admission_payment == 'yes' && !$app_fee_is_paid && $value->paid_status != 2) {
+                    $applicant_name_esc2 = addslashes($value->firstname . ' ' . trim($value->middlename . ' ' . $last_name));
+                    $action_items[] = "<li><a href='#' onclick='addpayment(" . '"' . $value->id . '","' . $value->reference_no . '"' . ")'><i class='fa fa-usd fa-fw'></i> Add Payment</a></li>";
                 }
 
                 $applicant_name_esc = addslashes($value->firstname . ' ' . trim($value->middlename . ' ' . $last_name));
-                $followupbtn = "<a class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='Follow-Up Notes' onclick='openFollowup(" . $value->id . ",\"" . $applicant_name_esc . "\")'><i class='fa fa-comments-o'></i></a>";
+                $action_items[] = "<li><a href='#' onclick='openFollowup(" . $value->id . ",\"" . $applicant_name_esc . "\")'><i class='fa fa-comments-o fa-fw'></i> Follow-Up Notes</a></li>";
 
-                $row[]     = $document . ' ' . $printbtn . ' ' . $eyebtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn . ' ' . $revokebtn . ' ' . $followupbtn;
+                // Build the action cell
+                if ($action_revoked) {
+                    $action_cell = "<span class='label label-danger' style='display:inline-block;margin-top:2px;'><i class='fa fa-ban'></i> Revoked</span>";
+                } elseif (!empty($action_items)) {
+                    $action_cell = "<div class='btn-group'>"
+                        . "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>"
+                        . "Actions <span class='caret'></span></button>"
+                        . "<ul class='dropdown-menu dropdown-menu-right'>"
+                        . implode('', $action_items)
+                        . "</ul></div>";
+                } else {
+                    $action_cell = '';
+                }
+
+                $row[]     = $action_cell;
                 $dt_data[] = $row;
             }
         }
