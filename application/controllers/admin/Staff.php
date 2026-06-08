@@ -325,13 +325,22 @@ class Staff extends Admin_Controller
             $approve_leave    = 0.0;
 
             if ((int) ($row['credit_source_type_id'] ?? 0) > 0) {
-                $display_balance += (float) ($row['extra_credit'] ?? 0) - (float) ($row['extra_debit'] ?? 0);
+                $extra_credit    = (float) ($row['extra_credit'] ?? 0);
+                $extra_debit     = (float) ($row['extra_debit'] ?? 0);
+                $unprocessed     = (float) ($row['unprocessed_balance'] ?? 0);
+                $display_balance += $extra_credit - $extra_debit;
                 $approve_leave = (float) ($row['used_for_lop_adjustment'] ?? 0)
                     + (float) ($row['used_for_leave_application'] ?? 0)
-                    + (float) ($row['extra_debit'] ?? 0);
-                $available_balance = max(0.0, (float) $display_balance);
+                    + $extra_debit;
+                // When an admin_adjustment in a later month credits CPL outside of leave
+                // requests, unprocessed_balance holds the authoritative closing. Use the
+                // max so neither the request-based estimate nor the monthly balance under-counts.
+                $effective_balance = max((float) $display_balance, $unprocessed);
+                $available_balance = max(0.0, $effective_balance);
                 $consumed_balance  = max(0.0, (float) $approve_leave);
-                $opening_balance   = max(0.0, $available_balance + $consumed_balance);
+                $opening_balance   = $unprocessed > 0
+                    ? max(0.0, (float) ($row['period_balance'] ?? 0))
+                    : max(0.0, $available_balance + $consumed_balance);
             } elseif (!empty($row['year']) || !empty($row['month'])) {
                 // Row is the last payroll-processed month (or most recent non-zero if none).
                 // Consumed  = LOP + leave used in that payroll period.
