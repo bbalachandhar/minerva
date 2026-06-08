@@ -1272,6 +1272,15 @@ class Onlinestudent extends Admin_Controller
         $this->form_validation->set_rules('tenth_marks_percentage', 'X marks (in %)', 'trim|xss_clean');
         $this->form_validation->set_rules('applicant_photo', 'Applicant Photo', 'callback_validate_applicant_photo');
 
+        // All scholarship applications for this admission
+        $scholarships = $this->db
+            ->select('sa.id, sa.status, sa.override_amount, sa.override_comment, sa.approved_at, sa.created_at, st.name AS scholarship_name, st.amount AS default_amount')
+            ->from('scholarship_applications sa')
+            ->join('scholarship_types st', 'st.id = sa.scholarship_type_id', 'inner')
+            ->where('sa.online_admission_id', $id)
+            ->order_by('sa.created_at', 'DESC')
+            ->get()->result_array();
+
         if ($this->form_validation->run() == false) {
             // Show edit form with validation errors
             $data['student'] = $student;
@@ -1283,6 +1292,7 @@ class Onlinestudent extends Admin_Controller
             $data['course_applied'] = $course_applied;
             $data['selected_course_id'] = $selected_course_id;
             $data['all_courses'] = $all_courses;
+            $data['scholarships'] = $scholarships;
             $data['title'] = 'Edit Application';
             
             $this->session->set_userdata('top_menu', 'Student Information');
