@@ -58,9 +58,37 @@ class Onlinestudent extends Admin_Controller
     }
 
     public function onlineadmission_download($id)
-    {        
-		$doc   = $this->onlinestudent_model->get($id);		
+    {
+		$doc   = $this->onlinestudent_model->get($id);
 		$this->media_storage->filedownload($doc['document'], "uploads/student_documents/online_admission_doc");
+    }
+
+    public function ajax_toggle_waiting_list()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+            echo json_encode(['status' => 'error', 'message' => 'Access denied']);
+            return;
+        }
+        $id  = (int) $this->input->post('id');
+        $row = $this->db->select('id, admission_status, is_enroll')
+                        ->where('id', $id)
+                        ->get('online_admissions')
+                        ->row();
+        if (!$row) {
+            echo json_encode(['status' => 'error', 'message' => 'Record not found']);
+            return;
+        }
+        if ($row->is_enroll) {
+            echo json_encode(['status' => 'error', 'message' => 'Enrolled students cannot be moved to waiting list']);
+            return;
+        }
+        if (($row->admission_status ?? 'active') === 'cancelled') {
+            echo json_encode(['status' => 'error', 'message' => 'Revoked admissions cannot be changed']);
+            return;
+        }
+        $new_status = (($row->admission_status ?? 'active') === 'waiting_list') ? 'active' : 'waiting_list';
+        $this->db->where('id', $id)->update('online_admissions', ['admission_status' => $new_status]);
+        echo json_encode(['status' => 'success', 'new_status' => $new_status]);
     }
 
     public function edit($id)
@@ -498,14 +526,15 @@ class Onlinestudent extends Admin_Controller
             if ($dt) { $last_payment_date = $dt->format('Y-m-d'); }
         }
 
-        $course_id_filter      = $this->input->post('course_id_filter')      ?: null;
-        $course_level_filter   = $this->input->post('course_level_filter')   ?: null;
-        $admission_type_filter = $this->input->post('admission_type_filter') ?: null;
-        $cutoff_from           = $this->input->post('cutoff_from')           ?: null;
-        $cutoff_to             = $this->input->post('cutoff_to')             ?: null;
-        $community_filter      = $this->input->post('community_filter')      ?: null;
+        $course_id_filter        = $this->input->post('course_id_filter')        ?: null;
+        $course_level_filter     = $this->input->post('course_level_filter')     ?: null;
+        $admission_type_filter   = $this->input->post('admission_type_filter')   ?: null;
+        $cutoff_from             = $this->input->post('cutoff_from')             ?: null;
+        $cutoff_to               = $this->input->post('cutoff_to')               ?: null;
+        $community_filter        = $this->input->post('community_filter')        ?: null;
+        $admission_status_filter = $this->input->post('admission_status_filter') ?: null;
 
-        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter, $submit_date_from, $submit_date_to, $last_payment_date, $course_id_filter, $course_level_filter, $admission_type_filter, $cutoff_from, $cutoff_to, $community_filter);
+        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter, $submit_date_from, $submit_date_to, $last_payment_date, $course_id_filter, $course_level_filter, $admission_type_filter, $cutoff_from, $cutoff_to, $community_filter, $admission_status_filter);
 
         $m               = json_decode($student_result);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
@@ -533,10 +562,16 @@ class Onlinestudent extends Admin_Controller
                 $action_items   = [];
                 $action_revoked = false;
 
+                $admission_status_val = isset($value->admission_status) ? $value->admission_status : 'active';
+                $is_waiting_list      = ($admission_status_val === 'waiting_list');
+
                 if ($this->rbac->hasPrivilege('online_admission', 'can_edit')) {
                     if (!$value->is_enroll) {
                         $action_items[] = "<li><a href='" . base_url() . 'admin/onlinestudent/edit_application/' . $value->id . "'><i class='fa fa-edit fa-fw'></i> Edit Application</a></li>";
-                        $action_items[] = "<li><a href='#' onclick='return checkpaymentstatus(" . '"' . $value->id . '"' . ")'><i class='fa fa-graduation-cap fa-fw'></i> Edit &amp; Enroll</a></li>";
+                        // Enroll is blocked for waiting-list applicants
+                        if (!$is_waiting_list) {
+                            $action_items[] = "<li><a href='#' onclick='return checkpaymentstatus(" . '"' . $value->id . '"' . ")'><i class='fa fa-graduation-cap fa-fw'></i> Edit &amp; Enroll</a></li>";
+                        }
                     }
                 }
 
@@ -545,7 +580,6 @@ class Onlinestudent extends Admin_Controller
                 }
 
                 // Revoke/Cancel — only for non-enrolled, non-cancelled
-                $admission_status_val = isset($value->admission_status) ? $value->admission_status : 'active';
                 if ($admission_status_val === 'cancelled') {
                     $action_revoked = true;
                 } elseif (!$value->is_enroll && $this->rbac->hasPrivilege('admission_cancellation', 'can_add')) {
@@ -555,6 +589,16 @@ class Onlinestudent extends Admin_Controller
                 if (!empty($value->reference_no)) {
                     $printbtn = $this->customlib->getBaseUrl() . 'welcome/online_admission_review/' . $value->reference_no;
                     $action_items[] = "<li><a href='" . $printbtn . "' target='_blank'><i class='fa fa-print fa-fw'></i> Print Application</a></li>";
+                }
+
+                // Waiting list toggle
+                if ($admission_status_val !== 'cancelled' && $this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+                    $action_items[] = "<li class='divider'></li>";
+                    if ($is_waiting_list) {
+                        $action_items[] = "<li><a href='#' onclick='toggleWaitingList(" . $value->id . ")'><i class='fa fa-check-circle fa-fw' style='color:#27ae60'></i> Remove from Waiting List</a></li>";
+                    } else {
+                        $action_items[] = "<li><a href='#' onclick='toggleWaitingList(" . $value->id . ")'><i class='fa fa-clock-o fa-fw' style='color:#f39c12'></i> Move to Waiting List</a></li>";
+                    }
                 }
 
                 if (!empty($value->created_at)) {
@@ -649,7 +693,11 @@ class Onlinestudent extends Admin_Controller
                 if ($action_revoked) {
                     $action_cell = "<span class='label label-danger' style='display:inline-block;margin-top:2px;'><i class='fa fa-ban'></i> Revoked</span>";
                 } elseif (!empty($action_items)) {
-                    $action_cell = "<div class='btn-group'>"
+                    $waiting_badge = $is_waiting_list
+                        ? "<span class='label label-warning' style='display:inline-block;margin-bottom:3px;'><i class='fa fa-clock-o'></i> Waiting</span><br>"
+                        : "";
+                    $action_cell = $waiting_badge
+                        . "<div class='btn-group'>"
                         . "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>"
                         . "Actions <span class='caret'></span></button>"
                         . "<ul class='dropdown-menu dropdown-menu-right'>"

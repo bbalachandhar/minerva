@@ -535,6 +535,12 @@ foreach ($notifications as $notice_key => $notice_value) {
                                                 <a href="<?php echo site_url('admin/admission_cancellation'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;" title="View Revoked Admissions"><i class="fa fa-list"></i></a>
                                             </span>
                                         </p>
+                                        <p class="text-uppercase mt10 clearfix">
+                                            <span class="eo-waiting-list-count fo-skeleton">0</span> <span style="color:#f39c12;">Waiting List</span>
+                                            <span class="pull-right">
+                                                <a href="<?php echo site_url('admin/onlinestudent?admission_status_filter=waiting_list'); ?>" class="btn btn-xs btn-warning" style="font-size:10px;padding:1px 5px;" title="View Waiting List"><i class="fa fa-list"></i></a>
+                                            </span>
+                                        </p>
                                     </div><!--./topprograssstart-->
                                 </div><!--./col-md-2-->
                     <?php
@@ -2143,8 +2149,9 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $enquiryOverview.find('.eo-applied-percent').text(aplp + '%');
                     $enquiryOverview.find('.eo-applied-bar').css('width', aplp + '%');
 
-                    // Revoked count
+                    // Revoked and waiting list counts
                     $enquiryOverview.find('.eo-revoked-count').text(d.revoked || 0);
+                    $enquiryOverview.find('.eo-waiting-list-count').text(d.waiting_list || 0);
 
                     $enquiryOverview.find('.fo-skeleton').removeClass('fo-skeleton');
                 }).fail(function() {

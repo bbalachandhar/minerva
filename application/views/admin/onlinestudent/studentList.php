@@ -86,6 +86,14 @@
                                     </ul>
                                 </div>
                             </div>
+                            <!-- Admission Status -->
+                            <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
+                                <label class="filter-label">Admission Status</label>
+                                <select id="filter_admission_status" class="form-control input-sm">
+                                    <option value="">All (Active + Waiting List)</option>
+                                    <option value="waiting_list">Waiting List Only</option>
+                                </select>
+                            </div>
                             <!-- Submitted By -->
                             <div class="col-sm-6 col-md-3" style="margin-bottom:8px;">
                                 <label class="filter-label">Submitted By</label>
@@ -289,19 +297,21 @@
         var courseId        = $('#filter_course').val();
         var courseLevel     = $('#filter_course_level').val();
         var admissionType   = $('#filter_admission_type').val();
-        var community       = $('#filter_community').val();
+        var community            = $('#filter_community').val();
+        var admissionStatusFilter = $('#filter_admission_status').val();
         if (quota.length   > 0) params.quota_type_filter  = quota;
         if (status.length  > 0) params.paid_status_filter = status;
-        if (submittedBy     !== '') params.submitted_by_filter    = submittedBy;
-        if (submitFrom      !== '') params.submit_date_from       = submitFrom;
-        if (submitTo        !== '') params.submit_date_to         = submitTo;
-        if (lastPaymentDate !== '') params.last_payment_date      = lastPaymentDate;
-        if (courseId        !== '') params.course_id_filter       = courseId;
-        if (courseLevel     !== '') params.course_level_filter    = courseLevel;
-        if (admissionType   !== '') params.admission_type_filter  = admissionType;
-        if (community       !== '') params.community_filter        = community;
-        if (cutoffFrom      !== '') params.cutoff_from             = cutoffFrom;
-        if (cutoffTo        !== '') params.cutoff_to               = cutoffTo;
+        if (submittedBy     !== '') params.submitted_by_filter      = submittedBy;
+        if (submitFrom      !== '') params.submit_date_from         = submitFrom;
+        if (submitTo        !== '') params.submit_date_to           = submitTo;
+        if (lastPaymentDate !== '') params.last_payment_date        = lastPaymentDate;
+        if (courseId        !== '') params.course_id_filter         = courseId;
+        if (courseLevel     !== '') params.course_level_filter      = courseLevel;
+        if (admissionType   !== '') params.admission_type_filter    = admissionType;
+        if (community       !== '') params.community_filter         = community;
+        if (cutoffFrom      !== '') params.cutoff_from              = cutoffFrom;
+        if (cutoffTo        !== '') params.cutoff_to                = cutoffTo;
+        if (admissionStatusFilter !== '') params.admission_status_filter = admissionStatusFilter;
         return params;
     }
 
@@ -422,7 +432,7 @@
         });
 
         // Single-select change
-        $('#filter_submitted_by, #filter_course, #filter_course_level, #filter_admission_type, #filter_community').on('change', function () {
+        $('#filter_submitted_by, #filter_course, #filter_course_level, #filter_admission_type, #filter_community, #filter_admission_status').on('change', function () {
             studentTable.ajax.reload();
         });
 
@@ -497,6 +507,25 @@
 </script>
 
 <script>
+    function toggleWaitingList(id) {
+        $.post('<?php echo site_url("admin/onlinestudent/ajax_toggle_waiting_list"); ?>', {
+            id: id,
+            <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
+        }, function (res) {
+            if (res && res.status === 'success') {
+                if (typeof studentTable !== 'undefined') {
+                    studentTable.ajax.reload(null, false);
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert(res && res.message ? res.message : 'Could not update status. Please try again.');
+            }
+        }, 'json').fail(function () {
+            alert('Request failed. Please try again.');
+        });
+    }
+
     function checkpaymentstatus(id){
        $.ajax({
             url: '<?php echo base_url(); ?>admin/onlinestudent/checkpaymentstatus',

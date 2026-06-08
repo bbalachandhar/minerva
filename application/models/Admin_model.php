@@ -253,14 +253,19 @@ class Admin_model extends CI_Model
         $students = $this->db->select('reference_no, course_fee_total, paid_status')
             ->from('online_admissions')
             ->where('session_id', $session_id)
-            ->where("COALESCE(admission_status, 'active') = 'active'", null, false)   // exclude revoked
+            ->where("COALESCE(admission_status, 'active') IN ('active', 'waiting_list')", null, false)
             ->get()
             ->result_array();
 
-        // Count revoked separately
+        // Count revoked and waiting_list separately
         $revoked_count = (int) $this->db
             ->where('session_id', $session_id)
             ->where("COALESCE(admission_status, 'active') = 'cancelled'", null, false)
+            ->count_all_results('online_admissions');
+
+        $waiting_list_count = (int) $this->db
+            ->where('session_id', $session_id)
+            ->where("admission_status = 'waiting_list'", null, false)
             ->count_all_results('online_admissions');
 
         if (empty($students)) {
@@ -273,6 +278,7 @@ class Admin_model extends CI_Model
                 'partially_paid_progress' => 0,
                 'not_paid_progress'       => 0,
                 'revoked'                 => $revoked_count,
+                'waiting_list'            => $waiting_list_count,
             );
         }
 
@@ -363,6 +369,7 @@ class Admin_model extends CI_Model
             'applied'                 => $applied,
             'not_paid'                => $not_paid,
             'revoked'                 => $revoked_count,
+            'waiting_list'            => $waiting_list_count,
             'fully_paid_progress'     => $applications_total > 0 ? round(($fully_paid * 100) / $applications_total, 2) : 0,
             'partially_paid_progress' => $applications_total > 0 ? round(($partially_paid * 100) / $applications_total, 2) : 0,
             'applied_progress'        => $applications_total > 0 ? round(($applied * 100) / $applications_total, 2) : 0,
