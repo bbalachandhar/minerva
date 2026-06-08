@@ -863,6 +863,15 @@ class Welcome extends Front_Controller
             $this->load->model('Online_admission_references_model');
             $this->load->model('Online_admission_nata_details_model');
 
+            // All scholarship applications for this admission
+            $this->data['scholarships'] = $this->db
+                ->select('sa.id, sa.status, sa.override_amount, sa.override_comment, sa.approved_at, sa.created_at, st.name AS scholarship_name, st.amount AS default_amount')
+                ->from('scholarship_applications sa')
+                ->join('scholarship_types st', 'st.id = sa.scholarship_type_id', 'inner')
+                ->where('sa.online_admission_id', $id)
+                ->order_by('sa.created_at', 'DESC')
+                ->get()->result_array();
+
             $this->data['ug_details'] = $this->Online_admission_ug_details_model->get_by_online_admission_id($id);
             $this->data['pg_details'] = $this->Online_admission_pg_details_model->get_by_online_admission_id($id);
             $this->data['lateral_details'] = $this->Online_admission_lateral_details_model->get_by_online_admission_id($id);

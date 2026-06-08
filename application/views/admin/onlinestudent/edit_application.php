@@ -428,6 +428,63 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                 </div>
                 <!-- /.box -->
 
+                <!-- Scholarship Details Panel -->
+                <?php if (!empty($scholarships)): ?>
+                <div class="box box-warning">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-graduation-cap"></i> Scholarship Applications</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body no-padding">
+                        <table class="table table-bordered table-striped" style="margin-bottom:0;">
+                            <thead>
+                                <tr>
+                                    <th>Scholarship Name</th>
+                                    <th style="width:140px;">Status</th>
+                                    <th style="width:160px;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($scholarships as $sch):
+                                    $effective = (isset($sch['override_amount']) && $sch['override_amount'] !== null)
+                                        ? $sch['override_amount'] : $sch['default_amount'];
+                                    $is_not_eligible = ((float)($effective ?? 0) === 0.0 && !empty($sch['override_comment']));
+                                    $status_labels = ['pending'=>'warning','verified'=>'info','approved'=>'success','rejected'=>'danger'];
+                                    $status_class  = isset($status_labels[$sch['status']]) ? $status_labels[$sch['status']] : 'default';
+                                ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($sch['scholarship_name']); ?></td>
+                                    <td>
+                                        <span class="label label-<?php echo $status_class; ?>"><?php echo ucfirst($sch['status']); ?></span>
+                                    </td>
+                                    <td>
+                                        <?php if ($is_not_eligible): ?>
+                                            <span class="text-danger"><i class="fa fa-times-circle"></i> Not Eligible</span>
+                                            <?php if (!empty($sch['override_comment'])): ?>
+                                                <small class="text-muted"> — <?php echo htmlspecialchars($sch['override_comment']); ?></small>
+                                            <?php endif; ?>
+                                        <?php elseif ($effective !== null && $effective !== ''): ?>
+                                            <strong>&#8377; <?php echo number_format((float)$effective, 2); ?></strong>
+                                            <?php if (isset($sch['override_amount']) && $sch['override_amount'] !== null && $sch['override_amount'] != $sch['default_amount'] && !empty($sch['default_amount'])): ?>
+                                                <small class="text-muted">(default: &#8377; <?php echo number_format((float)$sch['default_amount'], 2); ?>)</small>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">Amount TBD</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <div style="padding:8px 12px;">
+                            <a href="<?php echo site_url('admin/scholarshipapplication'); ?>" class="btn btn-xs btn-default" target="_blank"><i class="fa fa-external-link"></i> Manage Scholarship Applications</a>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Follow-Up Notes Panel -->
                 <div class="box box-default" id="followup-panel">
                     <div class="box-header with-border">

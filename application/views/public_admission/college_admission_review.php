@@ -382,6 +382,47 @@
             </div>
             <?php endif; ?>
             
+            <?php if (!empty($scholarships)): ?>
+            <!-- Scholarship Section -->
+            <div class="section-card">
+                <h5 class="mb-3">SCHOLARSHIP DETAILS</h5>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead>
+                        <tr style="background:#f5f5f5;">
+                            <th style="padding:6px 10px;border:1px solid #ddd;text-align:left;">Scholarship Name</th>
+                            <th style="padding:6px 10px;border:1px solid #ddd;text-align:center;width:110px;">Status</th>
+                            <th style="padding:6px 10px;border:1px solid #ddd;text-align:right;width:150px;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($scholarships as $sch):
+                            $effective = (isset($sch['override_amount']) && $sch['override_amount'] !== null)
+                                ? $sch['override_amount'] : $sch['default_amount'];
+                            $is_not_eligible = ((float)($effective ?? 0) === 0.0 && !empty($sch['override_comment']));
+                            $status_colors = ['approved'=>'#27ae60','rejected'=>'#e74c3c','verified'=>'#2980b9','pending'=>'#f39c12'];
+                            $status_color  = isset($status_colors[$sch['status']]) ? $status_colors[$sch['status']] : '#888';
+                        ?>
+                        <tr>
+                            <td style="padding:6px 10px;border:1px solid #ddd;"><?php echo htmlspecialchars($sch['scholarship_name']); ?></td>
+                            <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;">
+                                <span style="color:<?php echo $status_color; ?>;font-weight:600;"><?php echo ucfirst($sch['status']); ?></span>
+                            </td>
+                            <td style="padding:6px 10px;border:1px solid #ddd;text-align:right;">
+                                <?php if ($is_not_eligible): ?>
+                                    <span style="color:#e74c3c;">Not Eligible<?php echo !empty($sch['override_comment']) ? ' — ' . htmlspecialchars($sch['override_comment']) : ''; ?></span>
+                                <?php elseif ($effective !== null && $effective !== ''): ?>
+                                    <strong>&#8377; <?php echo number_format((float)$effective, 2); ?></strong>
+                                <?php else: ?>
+                                    <span style="color:#999;">Amount TBD</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+
             <!-- Declaration and Signature Section -->
             <div class="section-card" style="margin-top: 30px;">
                 <div style="border: 2px solid #ddd; padding: 20px;">
