@@ -44,6 +44,7 @@ class Specialattendance extends Admin_Controller
         $enteredLopMap = [];
         $enteredLopDetailsMap = [];
         $workingDays = null;
+        $tillDayMap = [];
         if (!empty($month) && !empty($year) && !empty($employees)) {
             $this->load->model('StaffBiometricPunchesManual_model');
             $this->load->model('SpecialAttendance_model');
@@ -54,6 +55,7 @@ class Specialattendance extends Admin_Controller
             $presentEquivalent = $this->StaffBiometricPunchesManual_model->getSpecialAttendancePresentEquivalent($staffIds, $month, $year);
             $enteredLopMap = $this->StaffBiometricPunchesManual_model->getSpecialAttendanceInputMap($staffIds, $month, $year);
             $enteredLopDetailsMap = $this->StaffBiometricPunchesManual_model->getSpecialAttendanceInputDetailsMap($staffIds, $month, $year);
+            $tillDayMap = $this->StaffBiometricPunchesManual_model->getSpecialAttendanceTillDayMap($staffIds, $month, $year);
             $workingDays = $this->SpecialAttendance_model->getWorkingDaysCount($month, $year);
         }
 
@@ -91,6 +93,8 @@ class Specialattendance extends Admin_Controller
             $emp['entered_lop_reason'] = is_array($details) ? ($details['reason'] ?? '') : '';
             $emp['entered_lop_admin_user_id'] = is_array($details) ? ($details['admin_user_id'] ?? null) : null;
             $emp['entered_lop_updated_at'] = is_array($details) ? ($details['updated_at'] ?? '') : '';
+            // Derive till_day from the latest special-attendance punch date — no DB column needed
+            $emp['entered_till_day'] = isset($tillDayMap[(int)$emp['id']]) ? (int)$tillDayMap[(int)$emp['id']] : null;
 
             $listedEmployees[] = $emp;
         }
@@ -306,16 +310,8 @@ class Specialattendance extends Admin_Controller
                         $emp_id, $month, $year, $days, $schedule, $till_day, $day_cursors
                     );
                     $this->StaffBiometricPunchesManual_model->replacePunches($emp_id, $month, $year, $punches, $admin_user_id, $reason);
-
-                    // When a till_day is set, auto-calculate LOP as working days after that day
-                    if ($till_day !== null) {
-                        $total_wd = $this->SpecialAttendance_model->getWorkingDaysCount($month, $year);
-                        $covered_wd = $this->SpecialAttendance_model->getWorkingDaysUpToDay($month, $year, $till_day);
-                        $effective_lop = max(0, $total_wd - $covered_wd);
-                    } else {
-                        $effective_lop = $days;
-                    }
-                    $this->StaffBiometricPunchesManual_model->saveSpecialAttendanceInput($emp_id, $month, $year, $effective_lop, $reason, $admin_user_id);
+                    // Save the user-entered LOP value (not an auto-calculated full-month absence count)
+                    $this->StaffBiometricPunchesManual_model->saveSpecialAttendanceInput($emp_id, $month, $year, $days, $reason, $admin_user_id);
                 }
             }
         }

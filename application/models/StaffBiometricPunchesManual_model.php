@@ -252,6 +252,38 @@ class StaffBiometricPunchesManual_model extends CI_Model {
         return $result;
     }
 
+    /**
+     * Returns the latest punch day-of-month per staff for special_attendance in a given month.
+     * Used to restore the "Till Day" column in the UI without storing it in the DB.
+     */
+    public function getSpecialAttendanceTillDayMap($staffIds, $month, $year) {
+        if (empty($staffIds) || !$this->db->table_exists('staff_biometric_punches_manual')) {
+            return [];
+        }
+        $monthNum = $this->getMonthNumber($month, $year);
+        if ($monthNum === null) {
+            return [];
+        }
+        $rows = $this->db
+            ->select('staff_id, MAX(DATE(punch_time)) AS max_date')
+            ->from('staff_biometric_punches_manual')
+            ->where_in('staff_id', $staffIds)
+            ->where('source', 'special_attendance')
+            ->where('MONTH(punch_time)', (int)$monthNum)
+            ->where('YEAR(punch_time)', (int)$year)
+            ->group_by('staff_id')
+            ->get()
+            ->result_array();
+
+        $result = [];
+        foreach ($rows as $row) {
+            if (!empty($row['max_date'])) {
+                $result[(int)$row['staff_id']] = (int)date('j', strtotime($row['max_date']));
+            }
+        }
+        return $result;
+    }
+
     private function getMonthNumber($month, $year) {
         if (is_numeric($month)) {
             $monthNum = (int)$month;
