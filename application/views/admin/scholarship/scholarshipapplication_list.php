@@ -160,8 +160,7 @@
                             <th>Amount</th>
                             <th>Applied On</th>
                             <th>Status</th>
-                            <th class="noExport">Doc</th>
-                            <th class="noExport text-right">Action</th>
+                            <th class="noExport text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -190,58 +189,68 @@
                                 $badges = ['pending'=>'warning','verified'=>'info','approved'=>'success','rejected'=>'danger'];
                                 $b = $badges[$app['status']] ?? 'default';
                             ?><span class="label label-<?php echo $b; ?> status-badge"><?php echo ucfirst($app['status']); ?></span></td>
-                            <td>
-                                <?php
-                                    $doc_ext    = !empty($app['document']) ? strtolower(pathinfo($app['document'], PATHINFO_EXTENSION)) : '';
-                                    $doc_is_img = in_array($doc_ext, ['jpg','jpeg','png']);
-                                    $_dattrs    = 'data-id="' . $app['id'] . '" '
-                                                . 'data-ref="'  . htmlspecialchars($app['reference_no'] ?? '') . '" '
-                                                . 'data-name="' . htmlspecialchars(trim(($app['firstname'] ?? '') . ' ' . ($app['lastname'] ?? ''))) . '"';
-                                ?>
-                                <?php if (!empty($app['document'])): ?>
-                                    <div class="btn-group btn-group-xs" role="group">
-                                        <a href="<?php echo site_url('admin/scholarshipapplication/view_doc/' . $app['id']); ?>"
-                                           target="_blank"
-                                           class="btn btn-xs btn-default"
-                                           title="<?php echo htmlspecialchars($app['document']); ?>">
-                                            <i class="fa <?php echo $doc_is_img ? 'fa-picture-o' : 'fa-file-pdf-o'; ?>"></i>
-                                            <?php echo $doc_is_img ? 'Preview' : 'View PDF'; ?>
-                                        </a>
-                                        <button type="button" class="btn btn-xs btn-warning btn-upload-doc"
-                                                <?php echo $_dattrs; ?> title="Replace document">
-                                            <i class="fa fa-refresh"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-xs btn-danger btn-remove-doc"
-                                                <?php echo $_dattrs; ?> title="Remove document">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </div>
-                                <?php else: ?>
-                                    <button type="button" class="btn btn-xs btn-warning btn-upload-doc"
-                                            <?php echo $_dattrs; ?>>
-                                        <i class="fa fa-upload"></i> Upload
-                                    </button>
-                                <?php endif; ?>
-                            </td>
+                            <?php
+                                $doc_ext    = !empty($app['document']) ? strtolower(pathinfo($app['document'], PATHINFO_EXTENSION)) : '';
+                                $doc_is_img = in_array($doc_ext, ['jpg','jpeg','png']);
+                                $_dattrs    = 'data-id="' . $app['id'] . '" '
+                                            . 'data-ref="'  . htmlspecialchars($app['reference_no'] ?? '') . '" '
+                                            . 'data-name="' . htmlspecialchars(trim(($app['firstname'] ?? '') . ' ' . ($app['lastname'] ?? ''))) . '"';
+                            ?>
                             <td class="text-right">
-                                <button type="button" class="btn btn-xs btn-primary btn-view-app"
-                                        data-url="<?php echo site_url('admin/scholarshipapplication/view/' . $app['id']); ?>"
-                                        data-ref="<?php echo htmlspecialchars($app['reference_no'] ?? ''); ?>">
-                                    <i class="fa fa-eye"></i> View
-                                </button>
-                                <?php if ($app['status'] !== 'rejected'): ?>
-                                <button type="button" class="btn btn-xs btn-danger btn-reject-app"
-                                        data-id="<?php echo $app['id']; ?>"
-                                        data-ref="<?php echo htmlspecialchars($app['reference_no'] ?? ''); ?>"
-                                        data-name="<?php echo htmlspecialchars(trim(($app['firstname'] ?? '') . ' ' . ($app['lastname'] ?? ''))); ?>">
-                                    <i class="fa fa-ban"></i> Reject
-                                </button>
-                                <?php endif; ?>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-xs btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                        Actions <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-right">
+                                        <li>
+                                            <a href="#" class="btn-view-app"
+                                               data-url="<?php echo site_url('admin/scholarshipapplication/view/' . $app['id']); ?>"
+                                               data-ref="<?php echo htmlspecialchars($app['reference_no'] ?? ''); ?>">
+                                                <i class="fa fa-eye"></i> View Application
+                                            </a>
+                                        </li>
+                                        <?php if (!empty($app['document'])): ?>
+                                        <li class="divider doc-item"></li>
+                                        <li class="doc-item">
+                                            <a href="<?php echo site_url('admin/scholarshipapplication/view_doc/' . $app['id']); ?>"
+                                               target="_blank" title="<?php echo htmlspecialchars($app['document']); ?>">
+                                                <i class="fa <?php echo $doc_is_img ? 'fa-picture-o' : 'fa-file-pdf-o'; ?>"></i>
+                                                <?php echo $doc_is_img ? 'Preview Image' : 'View PDF'; ?>
+                                            </a>
+                                        </li>
+                                        <li class="doc-item">
+                                            <a href="#" class="btn-upload-doc" <?php echo $_dattrs; ?> title="Replace document">
+                                                <i class="fa fa-refresh"></i> Replace Document
+                                            </a>
+                                        </li>
+                                        <li class="doc-item">
+                                            <a href="#" class="btn-remove-doc" <?php echo $_dattrs; ?> title="Remove document">
+                                                <i class="fa fa-trash text-danger"></i> Remove Document
+                                            </a>
+                                        </li>
+                                        <?php else: ?>
+                                        <li class="divider doc-item"></li>
+                                        <li class="doc-item">
+                                            <a href="#" class="btn-upload-doc" <?php echo $_dattrs; ?>>
+                                                <i class="fa fa-upload"></i> Upload Document
+                                            </a>
+                                        </li>
+                                        <?php endif; ?>
+                                        <?php if ($app['status'] !== 'rejected'): ?>
+                                        <li class="divider"></li>
+                                        <li>
+                                            <a href="#" class="btn-reject-app text-danger" <?php echo $_dattrs; ?>>
+                                                <i class="fa fa-ban"></i> Reject Application
+                                            </a>
+                                        </li>
+                                        <?php endif; ?>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                         <?php if (empty($applications)): ?>
-                        <tr><td colspan="9" class="text-center text-muted">No applications found.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted">No applications found.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -504,20 +513,21 @@ $(function () {
                     $('#uploadDocMsg').html('<div class="alert alert-success">' + res.msg + '</div>');
                     var iconClass = res.is_image ? 'fa-picture-o' : 'fa-file-pdf-o';
                     var btnLabel  = res.is_image ? 'Preview'      : 'View PDF';
-                    var _id       = _uploadDocAppId;
-                    var _ref      = _escAttr(_uploadDocRef);
-                    var _nm       = _escAttr(_uploadDocName);
-                    var newHtml   = '<div class="btn-group btn-group-xs" role="group">'
-                                  + '<a href="' + res.view_url + '" target="_blank" class="btn btn-xs btn-default">'
-                                  + '<i class="fa ' + iconClass + '"></i> ' + btnLabel + '</a>'
-                                  + '<button type="button" class="btn btn-xs btn-warning btn-upload-doc"'
-                                  + ' data-id="' + _id + '" data-ref="' + _ref + '" data-name="' + _nm + '"'
-                                  + ' title="Replace document"><i class="fa fa-refresh"></i></button>'
-                                  + '<button type="button" class="btn btn-xs btn-danger btn-remove-doc"'
-                                  + ' data-id="' + _id + '" data-ref="' + _ref + '" data-name="' + _nm + '"'
-                                  + ' title="Remove document"><i class="fa fa-trash"></i></button>'
-                                  + '</div>';
-                    $('[data-id="' + _uploadDocAppId + '"].btn-upload-doc').closest('td').html(newHtml);
+                    var _id  = _uploadDocAppId;
+                    var _ref = _escAttr(_uploadDocRef);
+                    var _nm  = _escAttr(_uploadDocName);
+                    var $ul  = $('[data-id="' + _id + '"].btn-upload-doc').closest('ul.dropdown-menu');
+                    $ul.find('.doc-item').remove();
+                    var docHtml = '<li class="divider doc-item"></li>'
+                                + '<li class="doc-item"><a href="' + res.view_url + '" target="_blank">'
+                                + '<i class="fa ' + iconClass + '"></i> ' + btnLabel + '</a></li>'
+                                + '<li class="doc-item"><a href="#" class="btn-upload-doc"'
+                                + ' data-id="' + _id + '" data-ref="' + _ref + '" data-name="' + _nm + '"'
+                                + ' title="Replace document"><i class="fa fa-refresh"></i> Replace Document</a></li>'
+                                + '<li class="doc-item"><a href="#" class="btn-remove-doc"'
+                                + ' data-id="' + _id + '" data-ref="' + _ref + '" data-name="' + _nm + '"'
+                                + ' title="Remove document"><i class="fa fa-trash text-danger"></i> Remove Document</a></li>';
+                    $ul.find('li:first').after(docHtml);
                     setTimeout(function () { $('#uploadDocModal').modal('hide'); }, 1000);
                 } else {
                     $('#uploadDocMsg').html('<div class="alert alert-danger">' + res.msg + '</div>');
@@ -560,7 +570,9 @@ $(function () {
                 $('[data-id="' + _rejectAppId + '"].btn-reject-app').closest('tr')
                     .find('.status-badge')
                     .removeClass().addClass('label label-danger status-badge').text('Rejected');
-                $('[data-id="' + _rejectAppId + '"].btn-reject-app').remove();
+                var $rejectLi = $('[data-id="' + _rejectAppId + '"].btn-reject-app').closest('li');
+                $rejectLi.prev('li.divider').remove();
+                $rejectLi.remove();
                 setTimeout(function () { $('#rejectModal').modal('hide'); }, 900);
             } else {
                 $('#rejectMsg').html('<div class="alert alert-danger">' + res.msg + '</div>');
@@ -578,15 +590,17 @@ $(function () {
         var ref  = $(this).data('ref')  || '';
         var name = $(this).data('name') || '';
         if (!confirm('Remove the uploaded document for this application? This cannot be undone.')) return;
-        var $td  = $(this).closest('td');
+        var $ul  = $(this).closest('ul.dropdown-menu');
         $.post('<?php echo site_url('admin/scholarshipapplication/remove_doc'); ?>/' + id, {}, function (res) {
             if (res.success) {
                 var _r = _escAttr(ref);
                 var _n = _escAttr(name);
-                var uploadBtn = '<button type="button" class="btn btn-xs btn-warning btn-upload-doc"'
-                              + ' data-id="' + id + '" data-ref="' + _r + '" data-name="' + _n + '">'
-                              + '<i class="fa fa-upload"></i> Upload</button>';
-                $td.html(uploadBtn);
+                $ul.find('.doc-item').remove();
+                var uploadHtml = '<li class="divider doc-item"></li>'
+                               + '<li class="doc-item"><a href="#" class="btn-upload-doc"'
+                               + ' data-id="' + id + '" data-ref="' + _r + '" data-name="' + _n + '">'
+                               + '<i class="fa fa-upload"></i> Upload Document</a></li>';
+                $ul.find('li:first').after(uploadHtml);
             } else {
                 alert(res.msg || 'Could not remove document.');
             }

@@ -2745,25 +2745,18 @@ catch (Exception $e) {
         if (!empty($students->data)) {
             foreach ($students->data as $student_key => $student) {
 
-                $editbtn    = '';
-                $deletebtn  = '';
-                $viewbtn    = '';
-                $collectbtn = '';
-                $print_button="";
-
-                $viewbtn = "<div class='white-space-nowrap'><a href='" . base_url() . "student/view/" . $student->id . "'   class='btn btn-default btn-xs'  data-toggle='tooltip' title='" . $this->lang->line('view') . "'><i class='fa fa-reorder'></i></a>";
+                $action_items = [];
+                $action_items[] = "<li><a href='" . base_url() . "student/view/" . $student->id . "'><i class='fa fa-reorder'></i> " . $this->lang->line('view') . "</a></li>";
 
                 if ($this->rbac->hasPrivilege('student', 'can_edit')) {
-                    $editbtn = "<a href='" . base_url() . "student/edit/" . $student->id . "'   class='btn btn-default btn-xs'  data-toggle='tooltip' title='" . $this->lang->line('edit') . "'><i class='fa fa-pencil'></i></a>";
+                    $action_items[] = "<li><a href='" . base_url() . "student/edit/" . $student->id . "'><i class='fa fa-pencil'></i> " . $this->lang->line('edit') . "</a></li>";
                 }
                 if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('collect_fees', 'can_add')) {
-
-                    $collectbtn = "<a href='" . base_url() . "studentfee/addfee/" . $student->student_session_id . "'   class='btn btn-default btn-xs'  data-toggle='tooltip' title='" . $this->lang->line('add_fees') . "'><span >" . $currency_symbol . "</a>";
+                    $action_items[] = "<li><a href='" . base_url() . "studentfee/addfee/" . $student->student_session_id . "'><i class='fa fa-money'></i> " . $this->lang->line('add_fees') . "</a></li>";
                 }
 
-                $loading="<i class='fa fa-circle-o-notch fa-spin'></i>";
-                $print_button='<a type="button" class="btn btn-default btn-xs print_student_details shadow-none" data-student_id="'.$student->id.'" data-student_name="'.$this->customlib->getFullName($student->firstname, $student->middlename, $student->lastname, $sch_setting->middlename, $sch_setting->lastname).'" data-admission_no="'.$student->admission_no.'" data-action="download" data-placement="bottom" data-toggle="tooltip" 
-                        data-original-title="print"  data-loading-text="'.$loading.'" ><i class="fa fa-print"></i></a></div>';
+                $loading = "<i class='fa fa-circle-o-notch fa-spin'></i>";
+                $action_items[] = "<li><a href='#' class='print_student_details' data-student_id='" . $student->id . "' data-student_name='" . htmlspecialchars($this->customlib->getFullName($student->firstname, $student->middlename, $student->lastname, $sch_setting->middlename, $sch_setting->lastname), ENT_QUOTES) . "' data-admission_no='" . $student->admission_no . "' data-action='download' data-loading-text='" . $loading . "'><i class='fa fa-print'></i> Print</a></li>";
 
                 $row   = array();
                 $row[] = $student->admission_no;
@@ -2799,7 +2792,10 @@ catch (Exception $e) {
                     $row[] = $display_field;
                 }
 
-                $row[] = $viewbtn . '' . $editbtn . '' . $collectbtn.''.$print_button;
+                $row[] = "<div class='btn-group'>"
+                       . "<button type='button' class='btn btn-xs btn-default dropdown-toggle' data-toggle='dropdown'>Actions <span class='caret'></span></button>"
+                       . "<ul class='dropdown-menu dropdown-menu-right'>" . implode('', $action_items) . "</ul>"
+                       . "</div>";
 
                 $dt_data[] = $row;
             }
