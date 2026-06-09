@@ -279,6 +279,13 @@ class Specialattendance extends Admin_Controller
         $this->load->model('StaffAttendanceSchedule_model');
         $this->load->model('StaffBiometricPunchesManual_model');
 
+        // Optional per-staff "till day" (day-of-month up to which punches are generated)
+        $till_days_input = $this->input->post('till_days');
+        $till_days = (is_array($till_days_input)) ? $till_days_input : [];
+
+        // Shared cursor per date so consecutive staff in the same loop get staggered IN times (3-5 s apart)
+        $day_cursors = [];
+
         if (!empty($employee_ids)) {
             foreach ($employee_ids as $index => $emp_id) {
                 $raw_days = isset($days_absent[$emp_id]) ? trim((string)$days_absent[$emp_id]) : '';
@@ -288,10 +295,27 @@ class Specialattendance extends Admin_Controller
                     if (!$is_half_step) {
                         continue;
                     }
+
+                    $till_day = isset($till_days[$emp_id]) ? (int)$till_days[$emp_id] : null;
+                    if ($till_day !== null && ($till_day < 1 || $till_day > 31)) {
+                        $till_day = null;
+                    }
+
                     $schedule = $this->StaffAttendanceSchedule_model->getByStaffId($emp_id);
-                    $punches = $this->SpecialAttendance_model->generatePunchesFromLop($emp_id, $month, $year, $days, $schedule);
+                    $punches = $this->SpecialAttendance_model->generatePunchesFromLop(
+                        $emp_id, $month, $year, $days, $schedule, $till_day, $day_cursors
+                    );
                     $this->StaffBiometricPunchesManual_model->replacePunches($emp_id, $month, $year, $punches, $admin_user_id, $reason);
-                    $this->StaffBiometricPunchesManual_model->saveSpecialAttendanceInput($emp_id, $month, $year, $days, $reason, $admin_user_id);
+
+                    // When a till_day is set, auto-calculate LOP as working days after that day
+                    if ($till_day !== null) {
+                        $total_wd = $this->SpecialAttendance_model->getWorkingDaysCount($month, $year);
+                        $covered_wd = $this->SpecialAttendance_model->getWorkingDaysUpToDay($month, $year, $till_day);
+                        $effective_lop = max(0, $total_wd - $covered_wd);
+                    } else {
+                        $effective_lop = $days;
+                    }
+                    $this->StaffBiometricPunchesManual_model->saveSpecialAttendanceInput($emp_id, $month, $year, $effective_lop, $reason, $admin_user_id);
                 }
             }
         }

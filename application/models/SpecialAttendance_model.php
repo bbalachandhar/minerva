@@ -37,14 +37,32 @@ class SpecialAttendance_model extends CI_Model {
         return count($working_days);
     }
 
-    public function generatePunchesFromLop($staff_id, $month, $year, $lop_days, $schedule) {
+    public function generatePunchesFromLop($staff_id, $month, $year, $lop_days, $schedule, $till_day = null, &$day_cursors = null) {
+        if (!is_array($day_cursors)) {
+            $day_cursors = [];
+        }
+
         $this->load->model('setting_model');
         $settings = $this->setting_model->getSetting();
         $attendanceWindows = $this->getStaffAttendanceWindows($staff_id, $schedule, $settings);
 
-        $working_days = $this->getWorkingDays($month, $year, $settings);
+        $all_working_days = $this->getWorkingDays($month, $year, $settings);
         $monthNum = $this->getMonthNumber($month, $year);
-        if ($monthNum === null || empty($working_days)) {
+        if ($monthNum === null || empty($all_working_days)) {
+            return [];
+        }
+
+        // If till_day is set, restrict punches to working days on or before that day of month
+        $till_day = ($till_day !== null && $till_day >= 1 && $till_day <= 31) ? (int)$till_day : null;
+        if ($till_day !== null) {
+            $working_days = array_values(array_filter($all_working_days, function ($d) use ($till_day) {
+                return (int)substr($d, 8, 2) <= $till_day;
+            }));
+        } else {
+            $working_days = $all_working_days;
+        }
+
+        if (empty($working_days)) {
             return [];
         }
 
@@ -74,7 +92,13 @@ class SpecialAttendance_model extends CI_Model {
                 $entryFrom = $attendanceWindows['half_day_entry_from'];
                 $entryTo = $attendanceWindows['half_day_entry_to'];
             }
-            $in_time = $this->randomizeTime($entryFrom, $entryTo);
+
+            // Stagger: use cursor so consecutive staff on the same day are 3-5s apart
+            $cursor = isset($day_cursors[$date]) ? (int)$day_cursors[$date] : null;
+            $in_time = $this->randomizeTimeFrom($entryFrom, $entryTo, $cursor);
+            // Advance cursor by 3-5 seconds so the next staff starts after this one
+            $in_secs = $this->timeToSeconds($in_time);
+            $day_cursors[$date] = $in_secs + mt_rand(3, 5);
 
             if ($is_half_day) {
                 $out_time = $this->calculateOutTime($in_time, 4, 5);
@@ -90,6 +114,16 @@ class SpecialAttendance_model extends CI_Model {
         }
 
         return $punches;
+    }
+
+    public function getWorkingDaysUpToDay($month, $year, $till_day) {
+        $this->load->model('setting_model');
+        $settings = $this->setting_model->getSetting();
+        $all_days = $this->getWorkingDays($month, $year, $settings);
+        $till_day = (int)$till_day;
+        return count(array_filter($all_days, function ($d) use ($till_day) {
+            return (int)substr($d, 8, 2) <= $till_day;
+        }));
     }
 
     private function planStatusesForTargetLop(array $working_days, array $weekend_days, $target_lop)
@@ -523,6 +557,24 @@ class SpecialAttendance_model extends CI_Model {
         $end_ts = strtotime($end);
         $rand_ts = rand($start_ts, $end_ts);
         return date('H:i:s', $rand_ts);
+    }
+
+    private function timeToSeconds($t) {
+        $parts = explode(':', $t);
+        return (int)$parts[0] * 3600 + (int)($parts[1] ?? 0) * 60 + (int)($parts[2] ?? 0);
+    }
+
+    // Like randomizeTime but respects a minimum seconds-since-midnight cursor for stagger.
+    private function randomizeTimeFrom($from, $to, $min_secs = null) {
+        $fromS = $this->timeToSeconds($from);
+        $toS   = $this->timeToSeconds($to);
+        $startS = ($min_secs !== null && $min_secs > $fromS) ? (int)$min_secs : $fromS;
+        if ($startS > $toS) {
+            $startS = $fromS;  // cursor overflowed window — wrap back to start
+        }
+        $endS = min($toS, $startS + 10);
+        $picked = mt_rand($startS, $endS);
+        return sprintf('%02d:%02d:%02d', intdiv($picked, 3600), intdiv($picked % 3600, 60), $picked % 60);
     }
     
     private function calculateOutTime($in_time, $minHours, $maxHours) {
