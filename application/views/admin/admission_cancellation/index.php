@@ -105,27 +105,32 @@
                                     </td>
                                     <td><?php echo htmlspecialchars($row['cancelled_by_name'] ?: '—'); ?></td>
                                     <td><?php echo $row['cancelled_at'] ? date($this->customlib->getSchoolDateFormat(), strtotime($row['cancelled_at'])) : '—'; ?></td>
-                                    <td>
-                                        <!-- View Details -->
-                                        <button type="button" class="btn btn-info btn-xs"
-                                            data-toggle="tooltip" title="View Details"
-                                            onclick="viewRevocationDetail(<?php echo htmlspecialchars(json_encode($row)); ?>)">
-                                            <i class="fa fa-eye"></i>
-                                        </button>
-                                        <!-- Update Refund (only for pending) -->
-                                        <?php if (($row['refund_status'] ?? 'pending') === 'pending' && $this->rbac->hasPrivilege('admission_cancellation', 'can_edit')): ?>
-                                        <button type="button" class="btn btn-success btn-xs"
-                                            data-toggle="tooltip" title="Update Refund Status"
-                                            onclick="openUpdateRefundModal(<?php echo (int) $row['refund_id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>', '<?php echo number_format((float) $row['refund_amount'], 2); ?>')">
-                                            <i class="fa fa-pencil"></i>
-                                        </button>
-                                        <!-- Readmit (only when refund still pending) -->
-                                        <button type="button" class="btn btn-warning btn-xs"
-                                            data-toggle="tooltip" title="Readmit (Cancel Revocation)"
-                                            onclick="openReadmitModal(<?php echo (int) $row['admission_id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>', '<?php echo htmlspecialchars(trim($row['firstname'] . ' ' . $row['middlename'] . ' ' . $row['lastname'])); ?>')">
-                                            <i class="fa fa-undo"></i>
-                                        </button>
-                                        <?php endif; ?>
+                                    <td class="text-right">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-xs btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                                Actions <span class="caret"></span>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-right">
+                                                <li>
+                                                    <a href="#" onclick="viewRevocationDetail(<?php echo htmlspecialchars(json_encode($row)); ?>); return false;">
+                                                        <i class="fa fa-eye"></i> View Details
+                                                    </a>
+                                                </li>
+                                                <?php if (($row['refund_status'] ?? 'pending') === 'pending' && $this->rbac->hasPrivilege('admission_cancellation', 'can_edit')): ?>
+                                                <li class="divider"></li>
+                                                <li>
+                                                    <a href="#" onclick="openUpdateRefundModal(<?php echo (int) $row['refund_id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>', '<?php echo number_format((float) $row['refund_amount'], 2); ?>'); return false;">
+                                                        <i class="fa fa-pencil"></i> Update Refund
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" onclick="openReadmitModal(<?php echo (int) $row['admission_id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>', '<?php echo htmlspecialchars(trim($row['firstname'] . ' ' . $row['middlename'] . ' ' . $row['lastname'])); ?>'); return false;">
+                                                        <i class="fa fa-undo"></i> Readmit
+                                                    </a>
+                                                </li>
+                                                <?php endif; ?>
+                                            </ul>
+                                        </div>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

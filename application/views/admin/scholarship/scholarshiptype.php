@@ -118,18 +118,28 @@
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-right">
-                                        <?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_edit')): ?>
-                                        <a href="<?php echo site_url('admin/scholarshiptype/edit/' . $t['id']); ?>" class="btn btn-xs btn-warning">
-                                            <i class="fa fa-edit"></i> Edit
-                                        </a>
-                                        <?php endif; ?>
-                                        <?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_delete')): ?>
-                                        <a href="<?php echo site_url('admin/scholarshiptype/delete/' . $t['id']); ?>"
-                                           class="btn btn-xs btn-danger"
-                                           onclick="return confirm('Delete this scholarship type?')">
-                                            <i class="fa fa-trash"></i> Delete
-                                        </a>
-                                        <?php endif; ?>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-xs btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                                Actions <span class="caret"></span>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-right">
+                                                <?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_edit')): ?>
+                                                <li>
+                                                    <a href="<?php echo site_url('admin/scholarshiptype/edit/' . $t['id']); ?>">
+                                                        <i class="fa fa-edit"></i> Edit
+                                                    </a>
+                                                </li>
+                                                <?php endif; ?>
+                                                <?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_delete')): ?>
+                                                <li>
+                                                    <a href="<?php echo site_url('admin/scholarshiptype/delete/' . $t['id']); ?>"
+                                                       onclick="return confirm('Delete this scholarship type?')">
+                                                        <i class="fa fa-trash text-danger"></i> Delete
+                                                    </a>
+                                                </li>
+                                                <?php endif; ?>
+                                            </ul>
+                                        </div>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
