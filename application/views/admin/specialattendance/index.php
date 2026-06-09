@@ -471,7 +471,7 @@ $months = array(
                 (maxLopDays !== null ? ' max="' + maxLopDays + '"' : '') + ' placeholder="e.g. 1 or 1.5" value="' + (lopDays === '' ? '' : lopDays) + '">' +
                 '<button type="button" class="btn btn-xs btn-default clear-entry-btn" style="margin-left:4px;vertical-align:middle;" title="Clear this entry"><i class="fa fa-times"></i></button>' +
                 '</td>\n' +
-                '   <td class="text-center"><input type="number" class="form-control input-sm till-day" min="1" max="31" placeholder="—" style="width:56px;margin:auto;" title="Optional: generate punches only up to this day of the month (1–31). Leave blank for full month."></td>\n' +
+                '   <td class="text-center"><input type="number" class="form-control input-sm till-day" min="1" max="31" placeholder="—" style="width:56px;margin:auto;" title="Optional: generate punches only up to this day of the month (1–31). Leave blank for full month." value="' + (emp.entered_till_day !== null && typeof emp.entered_till_day !== 'undefined' ? emp.entered_till_day : '') + '"></td>\n' +
                 '</tr>');
         });
         $tableBody.html(rows.join('\n'));
