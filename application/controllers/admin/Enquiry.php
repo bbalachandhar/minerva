@@ -535,33 +535,40 @@ class Enquiry extends Admin_Controller
     {
         $staff_id = (int) $this->customlib->getStaffID();
         $s        = addslashes($status);
-        $html     = "<div class='white-space-nowrap'>";
+        $items    = [];
 
         if ($this->rbac->hasPrivilege('follow_up_admission_enquiry', 'can_view')) {
-            $html .= "<a class='btn btn-default btn-xs' onclick=\"follow_up($id,'$s',$created_by);\" "
-                   . "data-target='#follow_up' data-toggle='modal' title='Follow Up'>"
-                   . "<i class='fa fa-phone'></i></a>";
+            $items[] = "<li><a href='#' onclick=\"follow_up($id,'$s',$created_by);\" "
+                     . "data-target='#follow_up' data-toggle='modal'>"
+                     . "<i class='fa fa-phone'></i> Follow Up</a></li>";
             $conv_url = base_url('publicadmissionform?email=' . rawurlencode($email)
                 . '&name=' . rawurlencode($name)
                 . '&mobileno=' . rawurlencode($contact)
                 . '&enquiry_id=' . $id
                 . '&employee_id=' . $staff_id);
-            $html .= "<a href='$conv_url' class='btn btn-default btn-xs' "
-                   . "data-toggle='tooltip' title='Create Admission' target='_blank'>"
-                   . "<i class='fa fa-user-plus'></i></a>";
+            $items[] = "<li><a href='$conv_url' target='_blank'>"
+                     . "<i class='fa fa-user-plus'></i> Create Admission</a></li>";
         }
         if ($this->rbac->hasPrivilege('admission_enquiry', 'can_edit')) {
-            $html .= "<a onclick=\"getRecord($id,'$s')\" class='btn btn-default btn-xs' "
-                   . "data-target='#myModaledit' data-toggle='modal' title='Edit'>"
-                   . "<i class='fa fa-pencil'></i></a>";
+            $items[] = "<li><a href='#' onclick=\"getRecord($id,'$s')\" "
+                     . "data-target='#myModaledit' data-toggle='modal'>"
+                     . "<i class='fa fa-pencil'></i> Edit</a></li>";
         }
         if ($this->rbac->hasPrivilege('admission_enquiry', 'can_delete')) {
-            $html .= "<a href='#' class='btn btn-default btn-xs' "
-                   . "onclick='delete_enquiry($id)' title='Delete'>"
-                   . "<i class='fa fa-remove'></i></a>";
+            $items[] = "<li><a href='#' onclick='delete_enquiry($id)'>"
+                     . "<i class='fa fa-remove'></i> Delete</a></li>";
         }
 
-        return $html . '</div>';
+        if (empty($items)) {
+            return '';
+        }
+
+        return "<div class='btn-group'>"
+             . "<button type='button' class='btn btn-xs btn-default dropdown-toggle' data-toggle='dropdown'>"
+             . "Actions <span class='caret'></span></button>"
+             . "<ul class='dropdown-menu dropdown-menu-right'>"
+             . implode('', $items)
+             . "</ul></div>";
     }
 
     // -------------------------------------------------------------------------
