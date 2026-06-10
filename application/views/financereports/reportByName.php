@@ -112,6 +112,7 @@ if (isset($student_due_fee)) {
 
                                 <?php
 if (!empty($student_due_fee)) {
+        $school_date_fmt = $this->customlib->getSchoolDateFormat();
         foreach ($student_due_fee as $student_key => $student) {
             $grand_fine_amount=0;
 
@@ -171,7 +172,7 @@ echo $student['category'];
                                     </div>
                                     <div class="col-md-12">
                                         <div style="background: #dadada; height: 1px; width: 100%; clear: both; margin-bottom: 10px;"></div>
-                                        <p class="dates"><?php echo $this->lang->line('date'); ?>: <?php echo date($this->customlib->getSchoolDateFormat()); ?></p></div>
+                                        <p class="dates"><?php echo $this->lang->line('date'); ?>: <?php echo date($school_date_fmt); ?></p></div>
                                 </div>
 
                                 <div class="table-responsive pb10">
@@ -264,7 +265,7 @@ if ($fee_value->due_date == "0000-00-00") {
 
                     } else {
                         if ($fee_value->due_date) {
-                            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($fee_value->due_date));
+                            echo date($school_date_fmt, $this->customlib->dateyyyymmddTodateformat($fee_value->due_date));
                         }
                     }
                     ?>
@@ -291,10 +292,9 @@ if ($feetype_balance == 0) {
                                                             $diff=date_diff($date1,$date2);
                                                             $due_days= $diff->format("%a");;
                                                             
-                                                            if($this->customlib->get_cumulative_fine_amount($fee_value->fee_groups_feetype_id,$due_days)){
-                                                                $testing="test1";
-
-                                                                $due_fine_amount=$this->customlib->get_cumulative_fine_amount($fee_value->fee_groups_feetype_id,$due_days);
+                                                            $_cum_fine = $this->customlib->get_cumulative_fine_amount($fee_value->fee_groups_feetype_id,$due_days);
+                                                            if($_cum_fine){
+                                                                $due_fine_amount=$_cum_fine;
                                                             }else{
                                                                 $testing="test 2";
                                                                 $due_fine_amount=0;
@@ -376,7 +376,7 @@ if ($fee_deposits_value->description == "") {
                                                                 </td>
                                                                 <td class="text text-left"><?php echo $this->lang->line(strtolower($fee_deposits_value->payment_mode)); ?></td>
                                                                 <td class="text text-left">
-                                                                    <?php if($fee_deposits_value->date != '0000-00-00'){  echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($fee_deposits_value->date)); } ?>
+                                                                    <?php if($fee_deposits_value->date != '0000-00-00'){  echo date($school_date_fmt, $this->customlib->dateyyyymmddTodateformat($fee_deposits_value->date)); } ?>
                                                                 </td>
                                                                 <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0); ?></td>
                                                                 <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0); ?></td>
@@ -438,7 +438,7 @@ if (!empty($student['transport_fees'])) {
                                                 <td align="left" class="text-rtl-right"><?php echo $this->lang->line('transport_fees'); ?></td>
                                                 <td align="left" class="text-rtl-right"><?php echo $transport_fee_value->month; ?></td>
                                                 <td align="left" class="text text-left">
-<?php echo $this->customlib->dateformat($transport_fee_value->due_date); ?>                                             </td>
+<?php echo date($school_date_fmt, $this->customlib->dateyyyymmddTodateformat($transport_fee_value->due_date)); ?>                                             </td>
                                                      <td align="left" class="text text-left width85">
                                                     <?php
 if ($feetype_balance == 0) {
@@ -534,7 +534,7 @@ if ($fee_deposits_value->description == "") {
                                                         </td>
                                                         <td class="text text-left"><?php echo $this->lang->line(strtolower($fee_deposits_value->payment_mode)); ?></td>
                                                         <td class="text text-left">
-                                                            <?php if($fee_deposits_value->date != '0000-00-00'){ echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($fee_deposits_value->date)); }?>
+                                                            <?php if($fee_deposits_value->date != '0000-00-00'){ echo date($school_date_fmt, $this->customlib->dateyyyymmddTodateformat($fee_deposits_value->date)); }?>
                                                         </td>
                                                         <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_discount); ?></td>
                                                         <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_fine); ?></td>

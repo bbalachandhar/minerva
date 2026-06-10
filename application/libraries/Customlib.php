@@ -1021,32 +1021,11 @@ class Customlib
 
     public function dateyyyymmddTodateformat($date)
     {
-        log_message('error', 'dateyyyymmddTodateformat called with date: ' . $date);
         if ($date == "" || substr($date, 0, 10) == '0000-00-00' || $date == null) {
             return null;
         }
-
-        // First, try to parse based on the school's date format setting.
-        $format = $this->getSchoolDateFormat();
-        log_message('error', 'dateyyyymmddTodateformat school date format: ' . $format);
-        $d = DateTime::createFromFormat($format, $date);
-
-        if ($d && $d->format($format) === $date) {
-            // The date string was successfully parsed according to the school's format.
-            log_message('error', 'dateyyyymmddTodateformat returning from createFromFormat: ' . $d->getTimestamp());
-            return $d->getTimestamp();
-        }
-
-        // If that fails, fall back to strtotime() as it can handle other formats (like Y-m-d from the DB).
         $timestamp = strtotime($date);
-        if ($timestamp !== false) {
-            log_message('error', 'dateyyyymmddTodateformat returning from strtotime: ' . $timestamp);
-            return $timestamp;
-        }
-
-        // If all parsing fails, return null.
-        log_message('error', 'dateyyyymmddTodateformat returning null.');
-        return null;
+        return ($timestamp !== false) ? $timestamp : null;
     }
 
     public function dateFront()
