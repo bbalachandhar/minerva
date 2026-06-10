@@ -172,6 +172,17 @@ class Staff extends Admin_Controller
         $data["id"]      = $id;
         $data['title']   = 'Staff Details';
         $staff_info      = $this->staff_model->getProfile($id);
+
+        // Generate barcode/QR on-demand if the files were never created (e.g. imported via SQL)
+        if (!empty($staff_info) && !empty($this->sch_setting_detail->staff_barcode)) {
+            $barcode_file = FCPATH . 'uploads/staff_id_card/barcodes/' . $staff_info['id'] . '.png';
+            $qrcode_file  = FCPATH . 'uploads/staff_id_card/qrcode/'   . $staff_info['id'] . '.png';
+            if (!file_exists($barcode_file) || !file_exists($qrcode_file)) {
+                $scan_type = $this->sch_setting_detail->scan_code_type;
+                $this->customlib->generatestaffbarcode($staff_info['employee_id'], $staff_info['id'], $scan_type);
+            }
+        }
+
         $userdata        = $this->customlib->getUserData();
         $userid          = $userdata['id'];
         $timeline_status = '';
