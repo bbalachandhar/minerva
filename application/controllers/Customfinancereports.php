@@ -197,7 +197,7 @@ class Customfinancereports extends Admin_Controller
 
     public function balancereportbetweendates()
     {
-        if (!$this->rbac->hasPrivilege('balance_fees_report', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('balance_report_between_dates', 'can_view')) {
             access_denied();
         }
 
