@@ -880,9 +880,13 @@ class Attendance_model extends CI_Model {
         $is_weekend = in_array($dayOfWeek, $weekendDays, true);
 
         $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
-        if ($isSecondSaturdayHoliday === 1 && $dayOfWeek === 6) {
+        $isFourthSaturdayHoliday = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
+        if ($dayOfWeek === 6) {
             $day = (int) date('j', strtotime($date));
-            if ($day >= 8 && $day <= 14) {
+            if ($isSecondSaturdayHoliday === 1 && $day >= 8 && $day <= 14) {
+                $is_weekend = true;
+            }
+            if ($isFourthSaturdayHoliday === 1 && $day >= 22 && $day <= 28) {
                 $is_weekend = true;
             }
         }

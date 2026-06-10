@@ -326,7 +326,22 @@
                                         </div>
                                     </div>
                                 </div><!--./row-->
-                                
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-3">Fourth Saturday Weekend</label>
+                                            <div class="col-sm-9">
+                                                <div class="material-switch">
+                                                    <input id="isFourthSaturdayHoliday" name="isFourthSaturdayHoliday" type="checkbox" class="chk" value="1" <?php echo (isset($result->isFourthSaturdayHoliday) && $result->isFourthSaturdayHoliday == 1) ? 'checked="checked"' : ''; ?>>
+                                                    <label for="isFourthSaturdayHoliday" class="label-success"></label>
+                                                </div>
+                                                <small class="text-muted">Enable to mark fourth Saturday of every month as weekend</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="settinghr"></div>
