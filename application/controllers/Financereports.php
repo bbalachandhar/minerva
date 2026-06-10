@@ -403,7 +403,15 @@ class Financereports extends Admin_Controller
                 if(!empty($department_id)){
                     $data['classlist']   = $this->class_model->getClassesByDepartment($department_id);
                 }
-                $student_due_fee         = $this->studentfeemaster_model->getStudentFeesByClassSectionStudent($class_id, $section_id, $student_id, $department_id); // Pass department_id
+                $per_page         = 100;
+                $page             = max(1, (int)($this->input->post('page') ?: 1));
+                $all_due_fee      = $this->studentfeemaster_model->getStudentFeesByClassSectionStudent($class_id, $section_id, $student_id, $department_id);
+                $total_students   = count($all_due_fee);
+                $total_pages      = max(1, (int)ceil($total_students / $per_page));
+                $page             = min($page, $total_pages);
+                $offset           = ($page - 1) * $per_page;
+                $student_due_fee  = array_slice($all_due_fee, $offset, $per_page, true);
+
                 $module           = $this->module_model->getPermissionByModulename('transport');
                 $transport_batch  = [];
                 if (!empty($module['is_active']) && !empty($student_due_fee)) {
@@ -418,8 +426,11 @@ class Financereports extends Admin_Controller
                 foreach ($student_due_fee as $key => $value) {
                     $student_due_fee[$key]['transport_fees'] = isset($transport_batch[$key]) ? $transport_batch[$key] : [];
                 }
-				 
+
                 $data['student_due_fee'] = $student_due_fee;
+                $data['page']            = $page;
+                $data['total_pages']     = $total_pages;
+                $data['total_students']  = $total_students;
                 $data['class_id']        = $class_id;
                 $data['section_id']      = $section_id;
                 $data['student_id']      = $student_id;
@@ -522,117 +533,53 @@ $data['department_id_selected'] = $this->input->post('department_id');
 
                 if (!empty($studentlist)) {
 
+                    $all_session_ids = array_column($studentlist, 'student_session_id');
+                    $fee_summary     = $this->customstudentfeemaster_model->getStudentFeesSummaryBatch($all_session_ids);
+
+                    $transport_module  = $this->module_model->getPermissionByModulename('transport');
+                    $transport_summary = [];
+                    if (!empty($transport_module['is_active'])) {
+                        $raw_transport = $this->studentfeemaster_model->getStudentTransportFeesBatch($all_session_ids);
+                        foreach ($raw_transport as $ssid => $transport_rows) {
+                            $t = ['totalfee' => 0.0, 'deposit' => 0.0, 'discount' => 0.0, 'fine' => 0.0];
+                            foreach ($transport_rows as $tf) {
+                                $t['totalfee'] += (float)$tf->fees;
+                                if (!empty($tf->amount_detail) && $tf->amount_detail !== '0' && isJSON($tf->amount_detail)) {
+                                    $detail = json_decode($tf->amount_detail);
+                                    if (is_object($detail) && !empty($detail)) {
+                                        foreach ($detail as $dv) {
+                                            $t['deposit']  += isset($dv->amount) ? (float)$dv->amount : 0.0;
+                                            $t['discount'] += isset($dv->amount_discount) ? (float)$dv->amount_discount : 0.0;
+                                            $t['fine']     += isset($dv->amount_fine) ? (float)$dv->amount_fine : 0.0;
+                                        }
+                                    }
+                                }
+                            }
+                            $transport_summary[$ssid] = $t;
+                        }
+                    }
+
                     foreach ($studentlist as $key => $eachstudent) {
 
-                        $obj                = new stdClass();
+                        $obj               = new stdClass();
+                        $obj->name         = $this->customlib->getFullName($eachstudent['firstname'], $eachstudent['middlename'], $eachstudent['lastname'], $this->sch_setting_detail->middlename, $this->sch_setting_detail->lastname);
+                        $obj->class        = $eachstudent['class'];
+                        $obj->section      = $eachstudent['section'];
+                        $obj->admission_no = $eachstudent['admission_no'];
+                        $obj->roll_no      = $eachstudent['roll_no'];
+                        $obj->father_name  = $eachstudent['father_name'];
+                        $obj->mobileno     = $eachstudent['mobileno'];
 
-                        $obj->name          = $this->customlib->getFullName($eachstudent['firstname'], $eachstudent['middlename'], $eachstudent['lastname'], $this->sch_setting_detail->middlename, $this->sch_setting_detail->lastname);
+                        $ssid = $eachstudent['student_session_id'];
+                        $reg  = isset($fee_summary[$ssid])       ? $fee_summary[$ssid]       : ['totalfee' => 0.0, 'deposit' => 0.0, 'discount' => 0.0, 'fine' => 0.0];
+                        $tran = isset($transport_summary[$ssid]) ? $transport_summary[$ssid] : ['totalfee' => 0.0, 'deposit' => 0.0, 'discount' => 0.0, 'fine' => 0.0];
 
-                        $obj->class         = $eachstudent['class'];
-
-                        $obj->section       = $eachstudent['section'];
-
-                        $obj->admission_no  = $eachstudent['admission_no'];
-
-                        $obj->roll_no       = $eachstudent['roll_no'];
-
-                        $obj->father_name   = $eachstudent['father_name'];
-
-    					$obj->mobileno   	= $eachstudent['mobileno'];
-
-                        $student_session_id = $eachstudent['student_session_id'];
-
-                        $student_total_fees = $this->customstudentfeemaster_model->getTransStudentFees($student_session_id);
-
-    
-
-                        if (!empty($student_total_fees)) {
-
-                            $totalfee = 0;
-
-                            $deposit  = 0;
-
-                            $discount = 0;
-
-                            $balance  = 0;
-
-                            $fine     = 0;
-
-                            
-
-                            foreach ($student_total_fees as $student_total_fees_key => $student_total_fees_value) {
-
-    
-
-                                if (!empty($student_total_fees_value->fees)) {
-
-                                    foreach ($student_total_fees_value->fees as $each_fee_key => $each_fee_value) {
-
-                                        $totalfee = $totalfee + $each_fee_value->amount;
-
-                                        
-
-                                        if(isJSON($each_fee_value->amount_detail)){                                        
-
-                                            $amount_detail = json_decode($each_fee_value->amount_detail);
-
-        
-
-                                            if (is_object($amount_detail) && !empty($amount_detail)) {
-
-                                                foreach ($amount_detail as $amount_detail_key => $amount_detail_value) {
-
-                                                    $deposit  = $deposit + $amount_detail_value->amount;
-
-                                                    $discount = $discount + (isset($amount_detail_value->amount_discount) ? $amount_detail_value->amount_discount : 0);
-
-                                                    $fine     = $fine + $amount_detail_value->amount_fine;
-
-                                                }
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                }
-
-                            }
-
-    
-
-                            $obj->totalfee     = $totalfee;
-
-                            $obj->payment_mode = "N/A";
-
-                            $obj->deposit      = $deposit;
-
-                            $obj->fine         = $fine;
-
-                            $obj->discount     = $discount;
-
-                            $obj->balance      = $totalfee - $deposit;
-
-                        } else {
-
-    
-
-                            $obj->totalfee     = 0;
-
-                            $obj->payment_mode = 0;
-
-                            $obj->deposit      = 0;
-
-                            $obj->fine         = 0;
-
-                            $obj->balance      = 0;
-
-                            $obj->discount     = 0;
-
-                        }
-
-    
+                        $obj->totalfee     = $reg['totalfee'] + $tran['totalfee'];
+                        $obj->deposit      = $reg['deposit']  + $tran['deposit'];
+                        $obj->discount     = $reg['discount'] + $tran['discount'];
+                        $obj->fine         = $reg['fine']     + $tran['fine'];
+                        $obj->balance      = $obj->totalfee - $obj->deposit;
+                        $obj->payment_mode = 'N/A';
 
                         if ($search_type == 'all') {
 
