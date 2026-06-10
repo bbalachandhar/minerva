@@ -487,7 +487,7 @@ class Customstudentfeemaster_model extends MY_Model
             LEFT JOIN student_fees_discounts sfd_disc ON sfd_disc.student_session_id = sfm.student_session_id AND sfd_disc.fees_discount_id = fg.id
             WHERE sfm.student_session_id IN ($ids)
               AND fg.name != 'Balance Master'
-              AND (fgft.due_date = '0000-00-00' OR fgft.due_date IS NULL OR fgft.due_date <= $safe_end_date)
+              AND (fgft.due_date IS NULL OR YEAR(fgft.due_date) = 0 OR fgft.due_date <= $safe_end_date)
             GROUP BY sfm.student_session_id, LOWER(ft.type)";
         foreach ($this->db->query($demand_sql)->result() as $row) {
             $ssid = (int)$row->student_session_id;
@@ -579,7 +579,7 @@ class Customstudentfeemaster_model extends MY_Model
                 LEFT JOIN student_fees_deposite sfdep ON sfdep.student_transport_fee_id = stf.id
                     AND DATE(sfdep.created_at) <= $safe_end_date
                 WHERE stf.student_session_id IN ($ids)
-                  AND (tfm.due_date IS NULL OR tfm.due_date = '0000-00-00' OR tfm.due_date <= $safe_end_date)";
+                  AND (tfm.due_date IS NULL OR YEAR(tfm.due_date) = 0 OR tfm.due_date <= $safe_end_date)";
             foreach ($this->db->query($transport_sql)->result() as $row) {
                 $ssid = (int)$row->student_session_id;
                 if (!isset($summary[$ssid])) continue;
