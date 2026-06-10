@@ -455,6 +455,59 @@ class Customstudentfeemaster_model extends MY_Model
         return $return_object;
     }
 
+    public function getStudentFeesSummaryBatch(array $session_ids)
+    {
+        if (empty($session_ids)) return [];
+        $ids = implode(',', array_map('intval', $session_ids));
+
+        $demand_sql = "SELECT sfm.student_session_id,
+            SUM(COALESCE(sfo.override_amount, fgft.amount) - IFNULL(sfd_disc.custom_amount, 0)) AS total_fee
+            FROM student_fees_master sfm
+            INNER JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+            INNER JOIN fee_groups_feetype fgft ON fgft.fee_session_group_id = fsg.id
+            INNER JOIN fee_groups fg ON fg.id = fgft.fee_groups_id
+            LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = sfm.student_session_id AND sfo.fee_groups_feetype_id = fgft.id
+            LEFT JOIN student_fees_discounts sfd_disc ON sfd_disc.student_session_id = sfm.student_session_id AND sfd_disc.fees_discount_id = fg.id
+            WHERE sfm.student_session_id IN ($ids)
+            GROUP BY sfm.student_session_id";
+        $demand_rows = $this->db->query($demand_sql)->result();
+
+        $summary = [];
+        foreach ($demand_rows as $row) {
+            $summary[$row->student_session_id] = [
+                'totalfee' => (float)$row->total_fee,
+                'deposit'  => 0.0,
+                'discount' => 0.0,
+                'fine'     => 0.0,
+            ];
+        }
+
+        $deposit_sql = "SELECT sfm.student_session_id, sfd.amount_detail
+            FROM student_fees_deposite sfd
+            INNER JOIN student_fees_master sfm ON sfm.id = sfd.student_fees_master_id
+            WHERE sfm.student_session_id IN ($ids)";
+        $deposit_rows = $this->db->query($deposit_sql)->result();
+
+        foreach ($deposit_rows as $row) {
+            $ssid = $row->student_session_id;
+            if (!isset($summary[$ssid])) {
+                $summary[$ssid] = ['totalfee' => 0.0, 'deposit' => 0.0, 'discount' => 0.0, 'fine' => 0.0];
+            }
+            if (!empty($row->amount_detail) && $row->amount_detail !== '0' && isJSON($row->amount_detail)) {
+                $detail = json_decode($row->amount_detail);
+                if (is_object($detail) && !empty($detail)) {
+                    foreach ($detail as $dv) {
+                        $summary[$ssid]['deposit']  += isset($dv->amount) ? (float)$dv->amount : 0.0;
+                        $summary[$ssid]['discount'] += isset($dv->amount_discount) ? (float)$dv->amount_discount : 0.0;
+                        $summary[$ssid]['fine']     += isset($dv->amount_fine) ? (float)$dv->amount_fine : 0.0;
+                    }
+                }
+            }
+        }
+
+        return $summary;
+    }
+
     public function getFeeAmountByCode($student_session_id, $fee_code)
     {
         $this->db->select('COALESCE(sfo.override_amount, fee_groups_feetype.amount) as amount')->from('student_fees_master');

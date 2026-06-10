@@ -2266,9 +2266,13 @@ class Customlib
 	
 	//fees master  fees collect //
     public function get_cumulative_fine_amount($fee_groups_feetype_id,$due_days){
-       
+
         $this->CI->load->model('studentfeemaster_model');
-        $get_cumulative_data = $this->CI->studentfeemaster_model->get_cumulative_fine_amount($fee_groups_feetype_id);
+        static $cumulative_cache = [];
+        if (!isset($cumulative_cache[$fee_groups_feetype_id])) {
+            $cumulative_cache[$fee_groups_feetype_id] = $this->CI->studentfeemaster_model->get_cumulative_fine_amount($fee_groups_feetype_id);
+        }
+        $get_cumulative_data = $cumulative_cache[$fee_groups_feetype_id];
         $due_fine_amount=0;
         $due_fine_amount1=0;
 		$day = 0;

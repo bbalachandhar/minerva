@@ -16,9 +16,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                     </div>
-                    <form action="<?php echo site_url('financereports/reportbyname') ?>"  method="post" accept-charset="utf-8">
+                    <form id="reportbynameForm" action="<?php echo site_url('financereports/reportbyname') ?>"  method="post" accept-charset="utf-8">
                         <div class="box-body">
                             <?php echo $this->customlib->getCSRF(); ?>
+                            <input type="hidden" id="page_input" name="page" value="1">
                             <div class="row">
                                 <?php if ($sch_setting->institution_type == 'college') {?>
                                 <div class="col-md-4">
@@ -602,10 +603,41 @@ echo ($currency_symbol . amountFormat($total_balance_amount - $alot_fee_discount
                         </div>
                     </div>
                     <?php
+    if (isset($total_pages) && $total_pages > 1) {
+        $from = (($page - 1) * 100) + 1;
+        $to   = min($page * 100, $total_students);
+?>
+                    <div class="box-footer text-center" style="padding:10px;">
+                        <span class="text-muted" style="margin-right:15px;">
+                            <?php echo "Showing $from&ndash;$to of $total_students students"; ?>
+                        </span>
+                        <?php if ($page > 1): ?>
+                            <button type="button" class="btn btn-default btn-sm" onclick="reportGoToPage(<?php echo $page - 1; ?>)">
+                                <i class="fa fa-chevron-left"></i> Prev
+                            </button>
+                        <?php endif; ?>
+                        <?php for ($p = max(1, $page - 2); $p <= min($total_pages, $page + 2); $p++): ?>
+                            <button type="button" class="btn btn-sm <?php echo $p == $page ? 'btn-primary' : 'btn-default'; ?>"
+                                onclick="reportGoToPage(<?php echo $p; ?>)"><?php echo $p; ?></button>
+                        <?php endfor; ?>
+                        <?php if ($page < $total_pages): ?>
+                            <button type="button" class="btn btn-default btn-sm" onclick="reportGoToPage(<?php echo $page + 1; ?>)">
+                                Next <i class="fa fa-chevron-right"></i>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+<?php
+    }
 } else {
 
 }
 ?>
+<script>
+function reportGoToPage(n) {
+    document.getElementById('page_input').value = n;
+    document.getElementById('reportbynameForm').submit();
+}
+</script>
             </div>
         </div>
         <!-- /.row -->
