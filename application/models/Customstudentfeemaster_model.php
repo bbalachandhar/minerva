@@ -455,6 +455,152 @@ class Customstudentfeemaster_model extends MY_Model
         return $return_object;
     }
 
+    public function getStudentFeesSummaryByEndDateBatch(array $session_ids, $end_date)
+    {
+        if (empty($session_ids)) return [];
+        $ids           = implode(',', array_map('intval', $session_ids));
+        $safe_end_date = $this->db->escape($end_date);
+
+        $empty = [
+            'tuition_demand' => 0.0, 'tuition_paid' => 0.0,
+            'other_demand'   => 0.0, 'other_paid'   => 0.0,
+            'hostel_demand'  => 0.0, 'hostel_paid'  => 0.0,
+            'transport_demand' => 0.0, 'transport_paid' => 0.0,
+            'advance_paid'   => 0.0, 'advance_discount' => 0.0,
+            'last_yr_cf'     => 0.0, 'cf_paid'      => 0.0,
+            'total_fine'     => 0.0, 'total_discount' => 0.0,
+        ];
+        $summary = [];
+        foreach ($session_ids as $ssid) {
+            $summary[(int)$ssid] = $empty;
+        }
+
+        // 1. Fee demand by type (due_date <= end_date, no Balance Master)
+        $demand_sql = "SELECT sfm.student_session_id, LOWER(ft.type) AS fee_type,
+            SUM(COALESCE(sfo.override_amount, fgft.amount) - IFNULL(sfd_disc.custom_amount, 0)) AS demand
+            FROM student_fees_master sfm
+            INNER JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+            INNER JOIN fee_groups_feetype fgft ON fgft.fee_session_group_id = fsg.id
+            INNER JOIN fee_groups fg ON fg.id = fgft.fee_groups_id
+            INNER JOIN feetype ft ON ft.id = fgft.feetype_id
+            LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = sfm.student_session_id AND sfo.fee_groups_feetype_id = fgft.id
+            LEFT JOIN student_fees_discounts sfd_disc ON sfd_disc.student_session_id = sfm.student_session_id AND sfd_disc.fees_discount_id = fg.id
+            WHERE sfm.student_session_id IN ($ids)
+              AND fg.name != 'Balance Master'
+              AND (fgft.due_date = '0000-00-00' OR fgft.due_date IS NULL OR fgft.due_date <= $safe_end_date)
+            GROUP BY sfm.student_session_id, LOWER(ft.type)";
+        foreach ($this->db->query($demand_sql)->result() as $row) {
+            $ssid = (int)$row->student_session_id;
+            if (!isset($summary[$ssid])) continue;
+            switch (trim($row->fee_type)) {
+                case 'tuition fee':   $summary[$ssid]['tuition_demand']   += (float)$row->demand; break;
+                case 'other fee':     $summary[$ssid]['other_demand']     += (float)$row->demand; break;
+                case 'hostel fees':   $summary[$ssid]['hostel_demand']    += (float)$row->demand; break;
+                case 'transport fee': $summary[$ssid]['transport_demand'] += (float)$row->demand; break;
+            }
+        }
+
+        // 2. Fee payments by type (payment date <= end_date, no Balance Master)
+        $paid_sql = "SELECT sfm.student_session_id, LOWER(ft.type) AS fee_type, sfdep.amount_detail
+            FROM student_fees_deposite sfdep
+            INNER JOIN student_fees_master sfm ON sfm.id = sfdep.student_fees_master_id
+            INNER JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+            INNER JOIN fee_groups_feetype fgft ON fgft.id = sfdep.fee_groups_feetype_id
+            INNER JOIN feetype ft ON ft.id = fgft.feetype_id
+            INNER JOIN fee_groups fg ON fg.id = fgft.fee_groups_id
+            WHERE sfm.student_session_id IN ($ids)
+              AND fg.name != 'Balance Master'
+              AND DATE(sfdep.created_at) <= $safe_end_date";
+        foreach ($this->db->query($paid_sql)->result() as $row) {
+            $ssid = (int)$row->student_session_id;
+            if (!isset($summary[$ssid])) continue;
+            if (empty($row->amount_detail) || $row->amount_detail === '0' || !isJSON($row->amount_detail)) continue;
+            $detail = json_decode($row->amount_detail);
+            if (!is_object($detail)) continue;
+            $paid = 0.0; $fine = 0.0; $disc = 0.0;
+            foreach ($detail as $dv) {
+                $paid += isset($dv->amount) ? (float)$dv->amount : 0.0;
+                $fine += isset($dv->amount_fine) ? (float)$dv->amount_fine : 0.0;
+                $disc += isset($dv->amount_discount) ? (float)$dv->amount_discount : 0.0;
+            }
+            $summary[$ssid]['total_fine']     += $fine;
+            $summary[$ssid]['total_discount'] += $disc;
+            $cleared = $paid + $disc;
+            switch (trim($row->fee_type)) {
+                case 'tuition fee':      $summary[$ssid]['tuition_paid']    += $cleared; break;
+                case 'other fee':        $summary[$ssid]['other_paid']      += $cleared; break;
+                case 'hostel fees':      $summary[$ssid]['hostel_paid']     += $cleared; break;
+                case 'transport fee':    $summary[$ssid]['transport_paid']  += $cleared; break;
+                case 'advance payments': $summary[$ssid]['advance_paid']    += $paid; $summary[$ssid]['advance_discount'] += $disc; break;
+            }
+        }
+
+        // 3. CF demand (Balance Master — no date filter; it is a fixed historical balance)
+        $cf_demand_sql = "SELECT sfm.student_session_id, sfm.amount
+            FROM student_fees_master sfm
+            INNER JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+            INNER JOIN fee_groups fg ON fg.id = fsg.fee_groups_id
+            WHERE sfm.student_session_id IN ($ids) AND fg.name = 'Balance Master'";
+        foreach ($this->db->query($cf_demand_sql)->result() as $row) {
+            if (isset($summary[(int)$row->student_session_id])) {
+                $summary[(int)$row->student_session_id]['last_yr_cf'] = (float)$row->amount;
+            }
+        }
+
+        // 4. CF paid (Balance Master payments <= end_date)
+        $cf_paid_sql = "SELECT sfm.student_session_id, sfdep.amount_detail
+            FROM student_fees_deposite sfdep
+            INNER JOIN student_fees_master sfm ON sfm.id = sfdep.student_fees_master_id
+            INNER JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+            INNER JOIN fee_groups fg ON fg.id = fsg.fee_groups_id
+            WHERE sfm.student_session_id IN ($ids)
+              AND fg.name = 'Balance Master'
+              AND DATE(sfdep.created_at) <= $safe_end_date";
+        foreach ($this->db->query($cf_paid_sql)->result() as $row) {
+            $ssid = (int)$row->student_session_id;
+            if (!isset($summary[$ssid])) continue;
+            if (empty($row->amount_detail) || $row->amount_detail === '0' || !isJSON($row->amount_detail)) continue;
+            $detail = json_decode($row->amount_detail);
+            if (!is_object($detail)) continue;
+            foreach ($detail as $dv) {
+                $summary[$ssid]['cf_paid'] += isset($dv->amount) ? (float)$dv->amount : 0.0;
+            }
+        }
+
+        // 5. Transport fees from student_transport_fees (demand filtered by due_date, paid filtered by date)
+        $module = $this->module_model->getPermissionByModulename('transport');
+        if (!empty($module['is_active'])) {
+            $transport_sql = "SELECT stf.student_session_id,
+                COALESCE(stf.fee_override, rpp.fees) AS fees,
+                sfdep.amount_detail
+                FROM student_transport_fees stf
+                INNER JOIN transport_feemaster tfm ON tfm.id = stf.transport_feemaster_id
+                INNER JOIN route_pickup_point rpp ON rpp.id = stf.route_pickup_point_id
+                LEFT JOIN student_fees_deposite sfdep ON sfdep.student_transport_fee_id = stf.id
+                    AND DATE(sfdep.created_at) <= $safe_end_date
+                WHERE stf.student_session_id IN ($ids)
+                  AND (tfm.due_date IS NULL OR tfm.due_date = '0000-00-00' OR tfm.due_date <= $safe_end_date)";
+            foreach ($this->db->query($transport_sql)->result() as $row) {
+                $ssid = (int)$row->student_session_id;
+                if (!isset($summary[$ssid])) continue;
+                $summary[$ssid]['transport_demand'] += (float)$row->fees;
+                if (!empty($row->amount_detail) && $row->amount_detail !== '0' && isJSON($row->amount_detail)) {
+                    $detail = json_decode($row->amount_detail);
+                    if (is_object($detail)) {
+                        foreach ($detail as $dv) {
+                            $paid = isset($dv->amount) ? (float)$dv->amount : 0.0;
+                            $disc = isset($dv->amount_discount) ? (float)$dv->amount_discount : 0.0;
+                            $summary[$ssid]['transport_paid'] += $paid + $disc;
+                            $summary[$ssid]['total_fine']     += isset($dv->amount_fine) ? (float)$dv->amount_fine : 0.0;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $summary;
+    }
+
     public function getStudentFeesSummaryBatch(array $session_ids)
     {
         if (empty($session_ids)) return [];

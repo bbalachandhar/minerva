@@ -195,6 +195,152 @@ class Customfinancereports extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    public function balancereportbetweendates()
+    {
+        if (!$this->rbac->hasPrivilege('balance_fees_report', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/finance');
+        $this->session->set_userdata('subsub_menu', 'Reports/finance/balancereportbetweendates');
+        $data['title']                  = 'Balance Report Between Dates';
+        $data['payment_type']           = $this->customlib->getPaymenttype();
+        $data['department_id_selected'] = $this->input->post('department_id');
+
+        if (!empty($data['department_id_selected'])) {
+            $data['classlist'] = $this->class_model->getClassesByDepartment($data['department_id_selected']);
+        } else {
+            $data['classlist'] = $this->class_model->get();
+        }
+        $data['sch_setting']     = $this->sch_setting_detail;
+        $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
+        $data['department_list'] = $this->Department_model->getDepartmentType();
+        $data['discount_list']   = $this->feediscount_model->get();
+
+        $this->form_validation->set_rules('search_type', $this->lang->line('search_type'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('start_date', 'Start Date', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('end_date', 'End Date', 'trim|required|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $data['student_due_fee'] = array();
+        } else {
+            $search_type          = $this->input->post('search_type');
+            $class_id             = $this->input->post('class_id');
+            $section_id           = $this->input->post('section_id');
+            $department_id        = $this->input->post('department_id');
+            $discount_type_filter = trim($this->input->post('discount_type_filter'));
+            $start_date           = $this->input->post('start_date');
+            $end_date             = $this->input->post('end_date');
+
+            $data['start_date'] = $start_date;
+            $data['end_date']   = $end_date;
+
+            if (!empty($class_id)) {
+                $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id, $this->current_session, $department_id);
+            } else {
+                $studentlist = $this->student_model->searchByClassSectionWithSession(null, null, $this->current_session, $department_id);
+            }
+
+            $student_Array = array();
+            if (!empty($studentlist)) {
+                $all_session_ids = array_column($studentlist, 'student_session_id');
+
+                // Single batch call replaces per-student getTransStudentFees N+1
+                $fee_summary     = $this->customstudentfeemaster_model->getStudentFeesSummaryByEndDateBatch($all_session_ids, $end_date);
+                $discounts_batch = $this->feediscount_model->getStudentFeesDiscountBatch($all_session_ids);
+
+                foreach ($studentlist as $eachstudent) {
+                    $ssid = $eachstudent['student_session_id'];
+                    $d    = isset($fee_summary[$ssid]) ? $fee_summary[$ssid] : [
+                        'tuition_demand' => 0, 'tuition_paid' => 0,
+                        'other_demand'   => 0, 'other_paid'   => 0,
+                        'hostel_demand'  => 0, 'hostel_paid'  => 0,
+                        'transport_demand' => 0, 'transport_paid' => 0,
+                        'advance_paid'   => 0, 'advance_discount' => 0,
+                        'last_yr_cf'     => 0, 'cf_paid'      => 0,
+                        'total_fine'     => 0, 'total_discount' => 0,
+                    ];
+
+                    $obj               = new stdClass();
+                    $obj->name         = $this->customlib->getFullName($eachstudent['firstname'], $eachstudent['middlename'], $eachstudent['lastname'], $this->sch_setting_detail->middlename, $this->sch_setting_detail->lastname);
+                    $obj->class        = $eachstudent['class'];
+                    $obj->section      = $eachstudent['section'];
+                    $obj->category     = $eachstudent['category'];
+                    $obj->admission_no = $eachstudent['admission_no'];
+
+                    $obj->tuition_demand   = $d['tuition_demand'];
+                    $obj->tuition_paid     = $d['tuition_paid'];
+                    $obj->tuition_balance  = $d['tuition_demand'] - $d['tuition_paid'];
+                    $obj->other_demand     = $d['other_demand'];
+                    $obj->other_paid       = $d['other_paid'];
+                    $obj->other_balance    = $d['other_demand'] - $d['other_paid'];
+                    $obj->hostel_demand    = $d['hostel_demand'];
+                    $obj->hostel_paid      = $d['hostel_paid'];
+                    $obj->hostel_balance   = $d['hostel_demand'] - $d['hostel_paid'];
+                    $obj->transport_demand = $d['transport_demand'];
+                    $obj->transport_paid   = $d['transport_paid'];
+                    $obj->transport_balance = $d['transport_demand'] - $d['transport_paid'];
+                    $obj->advance_paid     = $d['advance_paid'];
+                    $obj->advance_discount = $d['advance_discount'];
+                    $obj->last_yr_cf       = $d['last_yr_cf'];
+                    $obj->cf_paid          = $d['cf_paid'];
+                    $obj->cf_balance       = $d['last_yr_cf'] - $d['cf_paid'];
+                    $obj->fine             = $d['total_fine'];
+
+                    $totalfee          = $d['tuition_demand'] + $d['other_demand'] + $d['hostel_demand'] + $d['transport_demand'];
+                    $total_paid_sum    = $d['tuition_paid']   + $d['other_paid']   + $d['hostel_paid']   + $d['transport_paid'];
+                    $obj->totalfee     = $totalfee;
+                    $obj->deposit      = $total_paid_sum;
+                    $obj->balance      = $totalfee - $total_paid_sum + $obj->cf_balance;
+                    $obj->net_balance  = $obj->balance - ($d['advance_paid'] + $d['advance_discount']);
+
+                    $obj->applied_discounts = isset($discounts_batch[$ssid]) ? $discounts_batch[$ssid] : [];
+                    $total_student_discount = 0;
+                    foreach ($obj->applied_discounts as $student_discount) {
+                        $discount_amount = (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] !== null)
+                            ? $student_discount['custom_amount']
+                            : $student_discount['amount'];
+                        $obj->{"discount_" . $student_discount['fees_discount_id']} = $discount_amount;
+                        $total_student_discount += $discount_amount;
+                    }
+                    $obj->discount = $total_student_discount;
+
+                    // Discount type filter
+                    $has_discount_type = empty($discount_type_filter);
+                    if (!$has_discount_type && !empty($obj->applied_discounts)) {
+                        foreach ($obj->applied_discounts as $student_discount) {
+                            if ((int)$student_discount['fees_discount_id'] == (int)$discount_type_filter) {
+                                $has_discount_type = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Search type filter
+                    $include = false;
+                    if ($search_type == 'all') {
+                        $include = true;
+                    } elseif ($search_type == 'balance' && $obj->balance > 0) {
+                        $include = true;
+                    } elseif ($search_type == 'paid' && $obj->balance <= 0) {
+                        $include = true;
+                    }
+
+                    if ($include && $has_discount_type) {
+                        $student_Array[] = $obj;
+                    }
+                }
+            }
+
+            $data['student_due_fee'] = $student_Array;
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('financereports/balance_report_between_dates', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
     public function dtcustombalancefeesreport()
     {
         if (!$this->rbac->hasPrivilege('balance_fees_report', 'can_view')) {
