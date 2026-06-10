@@ -3298,3 +3298,23 @@ $lang['coe_total_students']        = "Total Students";
 $lang['coe_eligible_count']        = "Eligible";
 $lang['coe_ineligible_count']      = "Ineligible";
 $lang['coe_override_count']        = "Overrides";
+
+// Auto Timetable module
+$lang['auto_timetable']            = "Auto Timetable";
+$lang['tt_period_setup']           = "Period Setup";
+$lang['tt_rooms']                  = "Rooms";
+$lang['tt_batches']                = "Batches";
+$lang['tt_subject_load']           = "Subject Load";
+$lang['tt_teacher_constraints']    = "Teacher Constraints";
+$lang['tt_teacher_availability']   = "Teacher Availability";
+$lang['tt_auto_generate']          = "Auto Generate";
+$lang['tt_class_timetable']        = "Class Timetable";
+$lang['tt_teacher_timetable']      = "Teacher Timetable";
+$lang['tt_substitution']           = "Substitution";
+$lang['tt_reports']                = "Reports";
+$lang['tt_periods']                = "Periods";
+$lang['tt_generate']               = "Auto Generate";
+$lang['tt_class_grid']             = "Class Timetable";
+$lang['tt_teacher_avail']          = "Teacher Availability";
+$lang['tt_teacher_constr']         = "Teacher Constraints";
+$lang['tt_teacher_view']           = "Teacher Timetable";

@@ -432,4 +432,29 @@ class Subjectgroup_model extends MY_Model {
             return false;
         }
     }
+
+    /**
+     * Get all subjects (with subject_group_id) for a class-section.
+     * Used by the Auto Timetable module.
+     */
+    public function getGroupsubjectsByClassSection($class_id, $section_id, $session_id = null)
+    {
+        $session_id = IsNullOrEmptyString($session_id) ? $this->current_session : $session_id;
+
+        $sql = "SELECT sgs.id as subject_group_subject_id, sgs.subject_group_id, sgs.subject_id,
+                       sub.name as subject_name, sub.code as subject_code, sub.type as subject_type,
+                       sg.name as group_name
+                FROM subject_group_subjects sgs
+                INNER JOIN subjects sub ON sub.id = sgs.subject_id
+                INNER JOIN subject_groups sg ON sg.id = sgs.subject_group_id
+                INNER JOIN subject_group_class_sections sgcs ON sgcs.subject_group_id = sg.id
+                INNER JOIN class_sections cs ON cs.id = sgcs.class_section_id
+                WHERE cs.class_id = " . (int)$class_id . "
+                  AND cs.section_id = " . (int)$section_id . "
+                  AND sgs.session_id = " . (int)$session_id . "
+                  AND sgcs.session_id = " . (int)$session_id . "
+                ORDER BY sub.name ASC";
+
+        return $this->db->query($sql)->result();
+    }
 }
