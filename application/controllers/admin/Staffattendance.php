@@ -1161,10 +1161,14 @@ class Staffattendance extends Admin_Controller
             $is_weekend = in_array($dayOfWeek, $weekendDays, true);
 
             $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
-            if ($isSecondSaturdayHoliday === 1 && $dayOfWeek === 6) {
+            $isFourthSaturdayHoliday = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
+            if ($dayOfWeek === 6) {
                 $d = new DateTime($date);
                 $day = (int) $d->format('j');
-                if ($day >= 8 && $day <= 14) {
+                if ($isSecondSaturdayHoliday === 1 && $day >= 8 && $day <= 14) {
+                    $is_weekend = true;
+                }
+                if ($isFourthSaturdayHoliday === 1 && $day >= 22 && $day <= 28) {
                     $is_weekend = true;
                 }
             }

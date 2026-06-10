@@ -1676,6 +1676,7 @@ class Payroll extends Admin_Controller
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int) $settings->isSecondSaturdayHoliday : 0;
+        $isFourthSaturdayWeekend = isset($settings->isFourthSaturdayHoliday) ? (int) $settings->isFourthSaturdayHoliday : 0;
 
         $range_start = new DateTime($start_date);
         $range_end = new DateTime($end_date);
@@ -1713,8 +1714,14 @@ class Payroll extends Admin_Controller
             $dateStr = $current->format('Y-m-d');
             $dayOfWeek = (int) $current->format('w');
             $is_second_saturday = false;
-            if ($isSecondSaturdayWeekend && $dayOfWeek === 6) {
-                $is_second_saturday = $this->isSecondSaturday($current);
+            $is_fourth_saturday = false;
+            if ($dayOfWeek === 6) {
+                if ($isSecondSaturdayWeekend) {
+                    $is_second_saturday = $this->isNthSaturday($current, 2);
+                }
+                if ($isFourthSaturdayWeekend) {
+                    $is_fourth_saturday = $this->isNthSaturday($current, 4);
+                }
             }
 
             if (in_array($dateStr, $compensation_dates, true)) {
@@ -1723,7 +1730,7 @@ class Payroll extends Admin_Controller
                 continue;
             }
 
-            $is_weekend = in_array($dayOfWeek, $weekendDays, true) || $is_second_saturday;
+            $is_weekend = in_array($dayOfWeek, $weekendDays, true) || $is_second_saturday || $is_fourth_saturday;
             $is_official_holiday = in_array($dateStr, $official_holiday_dates, true);
 
             if ($is_weekend) {
@@ -1746,7 +1753,7 @@ class Payroll extends Admin_Controller
         ];
     }
 
-    private function isSecondSaturday(DateTime $dateObj)
+    private function isNthSaturday(DateTime $dateObj, $n)
     {
         $month_start = new DateTime($dateObj->format('Y-m-01'));
         $count = 0;
@@ -1759,7 +1766,7 @@ class Payroll extends Admin_Controller
             }
             $month_start->modify('+1 day');
         }
-        return $count === 2;
+        return $count === $n;
     }
 
     private function getPayrollPeriodRange($month, $year)

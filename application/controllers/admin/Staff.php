@@ -804,18 +804,23 @@ class Staff extends Admin_Controller
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+        $isFourthSaturdayWeekend = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
 
         $num_of_days = cal_days_in_month(CAL_GREGORIAN, (int)$current_month_number, (int)$current_year);
         $cutoff_day = (int)date('d');
         $second_saturday_date = null;
-        if ($isSecondSaturdayWeekend) {
+        $fourth_saturday_date = null;
+        if ($isSecondSaturdayWeekend || $isFourthSaturdayWeekend) {
             $saturdayCount = 0;
             for ($day = 1; $day <= $num_of_days; $day++) {
                 $date = new DateTime($current_year . "-" . $current_month_number . "-" . sprintf("%02d", $day));
                 if ((int)$date->format('w') == 6) {
                     $saturdayCount++;
-                    if ($saturdayCount == 2) {
+                    if ($saturdayCount == 2 && $isSecondSaturdayWeekend) {
                         $second_saturday_date = $date->format('Y-m-d');
+                    }
+                    if ($saturdayCount == 4 && $isFourthSaturdayWeekend) {
+                        $fourth_saturday_date = $date->format('Y-m-d');
                         break;
                     }
                 }
@@ -826,7 +831,7 @@ class Staff extends Admin_Controller
         for ($day = 1; $day <= $num_of_days; $day++) {
             $dateStr = $current_year . "-" . $current_month_number . "-" . sprintf("%02d", $day);
             $dayOfWeek = (int)date('w', strtotime($dateStr));
-            if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date)) {
+            if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date) || ($fourth_saturday_date && $dateStr === $fourth_saturday_date)) {
                 $weekend_day_dates[] = $dateStr;
             }
         }
@@ -988,14 +993,18 @@ class Staff extends Admin_Controller
             $days_in_month = cal_days_in_month(CAL_GREGORIAN, $m, (int)$current_year);
 
             $second_saturday_date_year = null;
-            if ($isSecondSaturdayWeekend) {
+            $fourth_saturday_date_year = null;
+            if ($isSecondSaturdayWeekend || $isFourthSaturdayWeekend) {
                 $saturdayCount = 0;
                 for ($day = 1; $day <= $days_in_month; $day++) {
                     $date = new DateTime($current_year . "-" . sprintf("%02d", $m) . "-" . sprintf("%02d", $day));
                     if ((int)$date->format('w') == 6) {
                         $saturdayCount++;
-                        if ($saturdayCount == 2) {
+                        if ($saturdayCount == 2 && $isSecondSaturdayWeekend) {
                             $second_saturday_date_year = $date->format('Y-m-d');
+                        }
+                        if ($saturdayCount == 4 && $isFourthSaturdayWeekend) {
+                            $fourth_saturday_date_year = $date->format('Y-m-d');
                             break;
                         }
                     }
@@ -1005,7 +1014,7 @@ class Staff extends Admin_Controller
             for ($day = 1; $day <= $days_in_month; $day++) {
                 $dateStr = $current_year . "-" . sprintf("%02d", $m) . "-" . sprintf("%02d", $day);
                 $dayOfWeek = (int)date('w', strtotime($dateStr));
-                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date_year && $dateStr === $second_saturday_date_year)) {
+                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date_year && $dateStr === $second_saturday_date_year) || ($fourth_saturday_date_year && $dateStr === $fourth_saturday_date_year)) {
                     $weekend_day_dates_year[] = $dateStr;
                 }
             }
@@ -1294,6 +1303,7 @@ class Staff extends Admin_Controller
             $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
             $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
             $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+            $isFourthSaturdayWeekend = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
 
             $holidays = $this->holiday_model->get();
             $official_holiday_dates = [];
@@ -1323,14 +1333,18 @@ class Staff extends Admin_Controller
                 $days_in_month = cal_days_in_month(CAL_GREGORIAN, $m, (int)$year);
 
                 $second_saturday_date_year = null;
-                if ($isSecondSaturdayWeekend) {
+                $fourth_saturday_date_year = null;
+                if ($isSecondSaturdayWeekend || $isFourthSaturdayWeekend) {
                     $saturdayCount = 0;
                     for ($day = 1; $day <= $days_in_month; $day++) {
                         $date = new DateTime($year . "-" . sprintf("%02d", $m) . "-" . sprintf("%02d", $day));
                         if ((int)$date->format('w') == 6) {
                             $saturdayCount++;
-                            if ($saturdayCount == 2) {
+                            if ($saturdayCount == 2 && $isSecondSaturdayWeekend) {
                                 $second_saturday_date_year = $date->format('Y-m-d');
+                            }
+                            if ($saturdayCount == 4 && $isFourthSaturdayWeekend) {
+                                $fourth_saturday_date_year = $date->format('Y-m-d');
                                 break;
                             }
                         }
@@ -1340,7 +1354,7 @@ class Staff extends Admin_Controller
                 for ($day = 1; $day <= $days_in_month; $day++) {
                     $dateStr = $year . "-" . sprintf("%02d", $m) . "-" . sprintf("%02d", $day);
                     $dayOfWeek = (int)date('w', strtotime($dateStr));
-                    if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date_year && $dateStr === $second_saturday_date_year)) {
+                    if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date_year && $dateStr === $second_saturday_date_year) || ($fourth_saturday_date_year && $dateStr === $fourth_saturday_date_year)) {
                         $weekend_day_dates_year[] = $dateStr;
                     }
                 }

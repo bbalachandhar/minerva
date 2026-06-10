@@ -534,16 +534,21 @@ class Attendencereports extends Admin_Controller
             $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
             $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
             $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+            $isFourthSaturdayWeekend = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
 
             $second_saturday_date = null;
-            if ($isSecondSaturdayWeekend) {
+            $fourth_saturday_date = null;
+            if ($isSecondSaturdayWeekend || $isFourthSaturdayWeekend) {
                 $saturdayCount = 0;
                 for ($i = 1; $i <= $num_of_days; $i++) {
                     $date = new DateTime($searchyear . "-" . $month_number . "-" . sprintf("%02d", $i));
                     if ((int)$date->format('w') == 6) {
                         $saturdayCount++;
-                        if ($saturdayCount == 2) {
+                        if ($saturdayCount == 2 && $isSecondSaturdayWeekend) {
                             $second_saturday_date = $date->format('Y-m-d');
+                        }
+                        if ($saturdayCount == 4 && $isFourthSaturdayWeekend) {
+                            $fourth_saturday_date = $date->format('Y-m-d');
                             break;
                         }
                     }
@@ -554,17 +559,17 @@ class Attendencereports extends Admin_Controller
             for ($i = 1; $i <= $num_of_days; $i++) {
                 $dateStr = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
                 $dayOfWeek = (int)date('w', strtotime($dateStr));
-                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date)) {
+                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date) || ($fourth_saturday_date && $dateStr === $fourth_saturday_date)) {
                     $weekend_day_dates[] = $dateStr;
                 }
             }
             $weekend_day_dates = array_values(array_unique($weekend_day_dates));
-            
+
             // Remove compensation dates from weekend display (they won't show 'W' in the report)
             if (!empty($data['compensation_dates'])) {
                 $weekend_day_dates = array_values(array_diff($weekend_day_dates, $data['compensation_dates']));
             }
-            
+
             $data['weekend_day_dates'] = $weekend_day_dates;
             $data['weekend_count'] = count($weekend_day_dates);
 
@@ -904,16 +909,21 @@ class Attendencereports extends Admin_Controller
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+        $isFourthSaturdayWeekend = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
 
         $second_saturday_date = null;
-        if ($isSecondSaturdayWeekend) {
+        $fourth_saturday_date = null;
+        if ($isSecondSaturdayWeekend || $isFourthSaturdayWeekend) {
             $saturdayCount = 0;
             for ($i = 1; $i <= $num_of_days; $i++) {
                 $date = new DateTime($searchyear . "-" . $month_number . "-" . sprintf("%02d", $i));
                 if ((int)$date->format('w') == 6) {
                     $saturdayCount++;
-                    if ($saturdayCount == 2) {
+                    if ($saturdayCount == 2 && $isSecondSaturdayWeekend) {
                         $second_saturday_date = $date->format('Y-m-d');
+                    }
+                    if ($saturdayCount == 4 && $isFourthSaturdayWeekend) {
+                        $fourth_saturday_date = $date->format('Y-m-d');
                         break;
                     }
                 }
@@ -924,7 +934,7 @@ class Attendencereports extends Admin_Controller
         for ($i = 1; $i <= $num_of_days; $i++) {
             $dateStr = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
             $dayOfWeek = (int)date('w', strtotime($dateStr));
-            if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date)) {
+            if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date) || ($fourth_saturday_date && $dateStr === $fourth_saturday_date)) {
                 $weekend_day_dates[] = $dateStr;
             }
         }
@@ -1320,16 +1330,21 @@ class Attendencereports extends Admin_Controller
             $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
             $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
             $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+            $isFourthSaturdayWeekend = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
 
             $second_saturday_date = null;
-            if ($isSecondSaturdayWeekend) {
+            $fourth_saturday_date = null;
+            if ($isSecondSaturdayWeekend || $isFourthSaturdayWeekend) {
                 $saturdayCount = 0;
                 for ($day = 1; $day <= $num_of_days; $day++) {
                     $date = new DateTime($year . "-" . $month . "-" . sprintf("%02d", $day));
                     if ((int)$date->format('w') == 6) {
                         $saturdayCount++;
-                        if ($saturdayCount == 2) {
+                        if ($saturdayCount == 2 && $isSecondSaturdayWeekend) {
                             $second_saturday_date = $date->format('Y-m-d');
+                        }
+                        if ($saturdayCount == 4 && $isFourthSaturdayWeekend) {
+                            $fourth_saturday_date = $date->format('Y-m-d');
                             break;
                         }
                     }
@@ -1340,7 +1355,7 @@ class Attendencereports extends Admin_Controller
             for ($day = 1; $day <= $num_of_days; $day++) {
                 $att_date = $year . "-" . $month . "-" . sprintf("%02d", $day);
                 $dayOfWeek = (int)date('w', strtotime($att_date));
-                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $att_date === $second_saturday_date)) {
+                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $att_date === $second_saturday_date) || ($fourth_saturday_date && $att_date === $fourth_saturday_date)) {
                     $weekend_days_in_month[] = $att_date;
                 }
             }

@@ -416,6 +416,7 @@ class SpecialAttendance_model extends CI_Model {
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+        $isFourthSaturdayHoliday = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
 
         $holidayData = $this->getHolidayDates($monthNum, $year);
         $holidayDates = $holidayData['holiday_dates'] ?? [];
@@ -425,6 +426,12 @@ class SpecialAttendance_model extends CI_Model {
             $secondSaturday = $this->getSecondSaturdayDate($monthNum, $year);
             if ($secondSaturday && !in_array($secondSaturday, $compensationDates, true) && !in_array($secondSaturday, $holidayDates, true)) {
                 $holidayDates[] = $secondSaturday;
+            }
+        }
+        if ($isFourthSaturdayHoliday) {
+            $fourthSaturday = $this->getNthSaturdayDate($monthNum, $year, 4);
+            if ($fourthSaturday && !in_array($fourthSaturday, $compensationDates, true) && !in_array($fourthSaturday, $holidayDates, true)) {
+                $holidayDates[] = $fourthSaturday;
             }
         }
 
@@ -504,13 +511,17 @@ class SpecialAttendance_model extends CI_Model {
     }
 
     private function getSecondSaturdayDate($monthNum, $year) {
+        return $this->getNthSaturdayDate($monthNum, $year, 2);
+    }
+
+    private function getNthSaturdayDate($monthNum, $year, $n) {
         $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $monthNum, (int)$year);
         $saturdayCount = 0;
         for ($i = 1; $i <= $daysInMonth; $i++) {
             $date = sprintf('%04d-%02d-%02d', $year, $monthNum, $i);
             if ((int)date('w', strtotime($date)) === 6) {
                 $saturdayCount++;
-                if ($saturdayCount === 2) {
+                if ($saturdayCount === $n) {
                     return $date;
                 }
             }
@@ -523,6 +534,7 @@ class SpecialAttendance_model extends CI_Model {
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+        $isFourthSaturdayHoliday = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
 
         $holidayData = $this->getHolidayDates($monthNum, $year);
         $compensationDates = $holidayData['compensation_dates'] ?? [];
@@ -541,6 +553,12 @@ class SpecialAttendance_model extends CI_Model {
             $secondSaturday = $this->getSecondSaturdayDate($monthNum, $year);
             if (!empty($secondSaturday) && !in_array($secondSaturday, $weekend_dates, true)) {
                 $weekend_dates[] = $secondSaturday;
+            }
+        }
+        if ($isFourthSaturdayHoliday) {
+            $fourthSaturday = $this->getNthSaturdayDate($monthNum, $year, 4);
+            if (!empty($fourthSaturday) && !in_array($fourthSaturday, $weekend_dates, true)) {
+                $weekend_dates[] = $fourthSaturday;
             }
         }
 

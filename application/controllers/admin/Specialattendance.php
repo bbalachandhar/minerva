@@ -128,6 +128,7 @@ class Specialattendance extends Admin_Controller
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+        $isFourthSaturdayHoliday = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
         
         // Get holidays from annual_calendar (exclude compensation from holiday list)
         $this->db->select('annual_calendar.from_date, annual_calendar.to_date, holiday_type.type');
@@ -176,22 +177,19 @@ class Specialattendance extends Admin_Controller
             }
         }
         
-        // Add second Saturday holidays if enabled
-        if ($isSecondSaturdayHoliday) {
-            // Find all Saturdays in the month and identify the second one
+        // Add second/fourth Saturday holidays if enabled
+        if ($isSecondSaturdayHoliday || $isFourthSaturdayHoliday) {
             $saturdayCount = 0;
+            $monthPad = str_pad($monthIndex + 1, 2, '0', STR_PAD_LEFT);
             for ($i = 1; $i <= $daysInMonth; $i++) {
-                $date = new DateTime("$year-" . str_pad($monthIndex + 1, 2, '0', STR_PAD_LEFT) . "-" . str_pad($i, 2, '0', STR_PAD_LEFT));
-                $dayOfWeek = (int)$date->format('w');
-                
-                if ($dayOfWeek == 6) { // Saturday
+                $date = new DateTime("$year-$monthPad-" . str_pad($i, 2, '0', STR_PAD_LEFT));
+                if ((int)$date->format('w') == 6) {
                     $saturdayCount++;
-                    if ($saturdayCount == 2) { // Second Saturday
+                    if (($saturdayCount == 2 && $isSecondSaturdayHoliday) || ($saturdayCount == 4 && $isFourthSaturdayHoliday)) {
                         $dateStr = $date->format('Y-m-d');
                         if (!in_array($dateStr, $holidayDates, true)) {
                             $holidayDates[] = $dateStr;
                         }
-                        break;
                     }
                 }
             }
@@ -227,7 +225,7 @@ class Specialattendance extends Admin_Controller
 
         log_message('debug', 'Specialattendance get_working_days month=' . $month . ' year=' . $year .
             ' weekendDays=' . json_encode($weekendDays) .
-            ' secondSaturday=' . $isSecondSaturdayHoliday .
+            ' secondSaturday=' . $isSecondSaturdayHoliday . ' fourthSaturday=' . $isFourthSaturdayHoliday .
             ' holidayDates=' . json_encode($holidayDates) .
             ' effectiveHolidayDates=' . json_encode($effectiveHolidayDates) .
             ' daysInMonth=' . $daysInMonth .

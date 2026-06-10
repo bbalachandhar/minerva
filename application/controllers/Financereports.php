@@ -1807,6 +1807,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+        $isFourthSaturdayHoliday = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
 
         $this->db->select('annual_calendar.from_date, annual_calendar.to_date, holiday_type.type');
         $this->db->from('annual_calendar');
@@ -1853,13 +1854,14 @@ $data['department_id_selected'] = $this->input->post('department_id');
                 continue;
             }
             if (in_array($weekday, $weekendDays, true)) {
-                // optionally second saturday
-                if ($isSecondSaturdayHoliday && $weekday === 6) {
-                    $weekCount = floor(($i - 1) / 7) + 1;
-                    if ($weekCount === 2) {
-                        continue;
-                    }
-                } else {
+                continue;
+            }
+            if ($weekday === 6) {
+                $weekCount = floor(($i - 1) / 7) + 1;
+                if ($isSecondSaturdayHoliday && $weekCount === 2) {
+                    continue;
+                }
+                if ($isFourthSaturdayHoliday && $weekCount === 4) {
                     continue;
                 }
             }
@@ -1885,6 +1887,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int) $settings->isSecondSaturdayHoliday : 0;
+        $isFourthSaturdayWeekend = isset($settings->isFourthSaturdayHoliday) ? (int) $settings->isFourthSaturdayHoliday : 0;
 
         $range_start = new DateTime($start_date);
         $range_end = new DateTime($end_date);
@@ -1922,8 +1925,14 @@ $data['department_id_selected'] = $this->input->post('department_id');
             $dateStr = $current->format('Y-m-d');
             $dayOfWeek = (int) $current->format('w');
             $is_second_saturday = false;
-            if ($isSecondSaturdayWeekend && $dayOfWeek === 6) {
-                $is_second_saturday = $this->isSecondSaturday($current);
+            $is_fourth_saturday = false;
+            if ($dayOfWeek === 6) {
+                if ($isSecondSaturdayWeekend) {
+                    $is_second_saturday = $this->isNthSaturday($current, 2);
+                }
+                if ($isFourthSaturdayWeekend) {
+                    $is_fourth_saturday = $this->isNthSaturday($current, 4);
+                }
             }
 
             if (in_array($dateStr, $compensation_dates, true)) {
@@ -1932,7 +1941,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
                 continue;
             }
 
-            $is_weekend = in_array($dayOfWeek, $weekendDays, true) || $is_second_saturday;
+            $is_weekend = in_array($dayOfWeek, $weekendDays, true) || $is_second_saturday || $is_fourth_saturday;
             $is_official_holiday = in_array($dateStr, $official_holiday_dates, true);
 
             if ($is_weekend) {
@@ -1955,7 +1964,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
         ];
     }
 
-    private function isSecondSaturday(DateTime $dateObj)
+    private function isNthSaturday(DateTime $dateObj, $n)
     {
         $month_start = new DateTime($dateObj->format('Y-m-01'));
         $count = 0;
@@ -1968,7 +1977,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
             }
             $month_start->modify('+1 day');
         }
-        return $count === 2;
+        return $count === $n;
     }
 
     /**

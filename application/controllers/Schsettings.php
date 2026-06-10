@@ -329,6 +329,7 @@ class Schsettings extends Admin_Controller
                 'leave_approver_id' => $this->input->post('leave_approver_id'),
                 'weekend_days'    => implode(',', $this->input->post('weekend_days') ?? ['0']),
                 'isSecondSaturdayHoliday' => $this->input->post('isSecondSaturdayHoliday') ? 1 : 0,
+                'isFourthSaturdayHoliday' => $this->input->post('isFourthSaturdayHoliday') ? 1 : 0,
                 'monthly_leave_increment_enabled' => $this->input->post('monthly_leave_increment_enabled') ? 1 : 0,
                 'monthly_increment_leave_type_id' => $this->input->post('monthly_increment_leave_type_id') ?: null,
                 'monthly_increment_days' => $this->input->post('monthly_increment_days') ?: 1.00,

@@ -1118,11 +1118,17 @@ class Payroll_model extends MY_Model
         $weekend_days_str = isset($settings->weekend_days) && $settings->weekend_days !== '' ? (string) $settings->weekend_days : '0';
         $weekend_days = array_map('intval', explode(',', $weekend_days_str));
         $is_second_saturday_holiday = isset($settings->isSecondSaturdayHoliday) ? (int) $settings->isSecondSaturdayHoliday : 0;
+        $is_fourth_saturday_holiday = isset($settings->isFourthSaturdayHoliday) ? (int) $settings->isFourthSaturdayHoliday : 0;
 
         $day_of_week = (int) date('w', strtotime($date_ymd));
         $is_weekend = in_array($day_of_week, $weekend_days, true);
-        if (!$is_weekend && $is_second_saturday_holiday === 1 && $day_of_week === 6 && $this->isSecondSaturdayForPayroll($date_ymd)) {
-            $is_weekend = true;
+        if (!$is_weekend && $day_of_week === 6) {
+            if ($is_second_saturday_holiday === 1 && $this->isSecondSaturdayForPayroll($date_ymd)) {
+                $is_weekend = true;
+            }
+            if (!$is_weekend && $is_fourth_saturday_holiday === 1 && $this->isFourthSaturdayForPayroll($date_ymd)) {
+                $is_weekend = true;
+            }
         }
 
         if ($is_weekend) {
@@ -1180,6 +1186,26 @@ class Payroll_model extends MY_Model
         }
 
         return $count === 2;
+    }
+
+    private function isFourthSaturdayForPayroll($date_ymd)
+    {
+        $date_obj = DateTime::createFromFormat('Y-m-d', $date_ymd);
+        if (!$date_obj) {
+            return false;
+        }
+        $month_start = new DateTime($date_obj->format('Y-m-01'));
+        $count = 0;
+        while ($month_start <= $date_obj) {
+            if ((int) $month_start->format('w') === 6) {
+                $count++;
+            }
+            if ($month_start->format('Y-m-d') === $date_obj->format('Y-m-d')) {
+                break;
+            }
+            $month_start->modify('+1 day');
+        }
+        return $count === 4;
     }
 
     private function isCompOffHolidayTypeForPayroll($type_label)

@@ -76,6 +76,7 @@ class Holiday extends Admin_Controller
                 $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
                 $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
                 $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+                $isFourthSaturdayWeekend = isset($settings->isFourthSaturdayHoliday) ? (int)$settings->isFourthSaturdayHoliday : 0;
 
                 $from_dt = new DateTime(date('Y-m-d', $this->customlib->datetostrtotime($from_date)));
                 $to_dt = new DateTime(date('Y-m-d', $this->customlib->datetostrtotime($to_date)));
@@ -84,8 +85,9 @@ class Holiday extends Admin_Controller
 
                 while ($current <= $to_dt) {
                     $dayOfWeek = (int)$current->format('w');
-                    $is_second_saturday = $isSecondSaturdayWeekend && $dayOfWeek === 6 && $this->isSecondSaturday($current);
-                    $is_weekend = in_array($dayOfWeek, $weekendDays, true) || $is_second_saturday;
+                    $is_second_saturday = $isSecondSaturdayWeekend && $dayOfWeek === 6 && $this->isNthSaturday($current, 2);
+                    $is_fourth_saturday = $isFourthSaturdayWeekend && $dayOfWeek === 6 && $this->isNthSaturday($current, 4);
+                    $is_weekend = in_array($dayOfWeek, $weekendDays, true) || $is_second_saturday || $is_fourth_saturday;
                     if (!$is_weekend) {
                         $invalid_date = $current->format('Y-m-d');
                         break;
@@ -151,7 +153,7 @@ class Holiday extends Admin_Controller
         echo json_encode($array);
     }
 
-    private function isSecondSaturday(DateTime $dateObj)
+    private function isNthSaturday(DateTime $dateObj, $n)
     {
         $month_start = new DateTime($dateObj->format('Y-m-01'));
         $count = 0;
@@ -164,7 +166,7 @@ class Holiday extends Admin_Controller
             }
             $month_start->modify('+1 day');
         }
-        return $count === 2;
+        return $count === $n;
     }
 	
 	public function getholiday()

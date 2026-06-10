@@ -1116,19 +1116,23 @@ class Leaverequest extends Admin_Controller
             ? $settings->weekend_days : '0'; // default: Sunday only
         $weekendDays    = array_map('intval', explode(',', $weekendDaysStr));
 
-        // Second-Saturday rule
+        // Second/Fourth-Saturday rule
         $isSecondSatHoliday = isset($settings->isSecondSaturdayHoliday)
             ? (int) $settings->isSecondSaturdayHoliday : 0;
+        $isFourthSatHoliday = isset($settings->isFourthSaturdayHoliday)
+            ? (int) $settings->isFourthSaturdayHoliday : 0;
 
-        $isWeekend = function (DateTime $dt) use ($weekendDays, $isSecondSatHoliday) {
+        $isWeekend = function (DateTime $dt) use ($weekendDays, $isSecondSatHoliday, $isFourthSatHoliday) {
             $dow = (int) $dt->format('w'); // 0=Sun, 6=Sat
             if (in_array($dow, $weekendDays, true)) {
                 return true;
             }
-            // 2nd Saturday rule
-            if ($isSecondSatHoliday === 1 && $dow === 6) {
+            if ($dow === 6) {
                 $day = (int) $dt->format('j');
-                if ($day >= 8 && $day <= 14) {
+                if ($isSecondSatHoliday === 1 && $day >= 8 && $day <= 14) {
+                    return true;
+                }
+                if ($isFourthSatHoliday === 1 && $day >= 22 && $day <= 28) {
                     return true;
                 }
             }
