@@ -248,44 +248,55 @@ class Studentfeemaster_model extends MY_Model
 
         $where_condition_string = implode(" ", $where_condition);
 
-        $sql = "SELECT student_fees_master.*,student_session.id as `student_session_id`,students.firstname,students.middlename,students.lastname,student_session.class_id,classes.class,sections.section,students.category_id,students.image,students.id as student_id,students.father_name,students.admission_no,students.mobileno,students.roll_no,students.rte, IFNULL(categories.category, '') as `category` FROM `student_fees_master` INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id INNER JOIN classes on classes.id =student_session.class_id left join  categories on students.category_id = categories.id INNER join sections on sections.id=student_session.section_id  WHERE student_session.session_id=" . $this->db->escape($this->current_session) . $where_condition_string;
+        $sql = "SELECT student_fees_master.*,student_session.id as `student_session_id`,student_session.route_pickup_point_id,students.firstname,students.middlename,students.lastname,student_session.class_id,classes.class,sections.section,students.category_id,students.image,students.id as student_id,students.father_name,students.admission_no,students.mobileno,students.roll_no,students.rte, IFNULL(categories.category, '') as `category` FROM `student_fees_master` INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id INNER JOIN classes on classes.id =student_session.class_id left join  categories on students.category_id = categories.id INNER join sections on sections.id=student_session.section_id  WHERE student_session.session_id=" . $this->db->escape($this->current_session) . $where_condition_string;
 
         $query        = $this->db->query($sql);
         $result       = $query->result();
         $student_fees = array();
         if (!empty($result)) {
+            $all_master_ids  = [];
+            $all_session_ids = [];
+            foreach ($result as $rv) {
+                $all_master_ids[]  = $rv->id;
+                $all_session_ids[] = $rv->student_session_id;
+            }
+            $batch_fees      = $this->getDueFeesForMultipleMasters(array_unique($all_master_ids));
+            $batch_discounts = $this->feediscount_model->getStudentFeesDiscountBatch(array_unique($all_session_ids));
 
             foreach ($result as $result_key => $result_value) {
-                $fee_session_group_id   = $result_value->fee_session_group_id;
                 $student_fees_master_id = $result_value->id;
-                $result_value->fees     = $this->getDueFeeByFeeSessionGroup($fee_session_group_id, $student_fees_master_id);
+                $result_value->fees     = isset($batch_fees[$student_fees_master_id]) ? $batch_fees[$student_fees_master_id] : [];
 
-                if ($result_value->is_system != 0) {
+                if ($result_value->is_system != 0 && isset($result_value->fees[0])) {
                     $result_value->fees[0]->amount = $result_value->amount;
                 }
 
                 if (!array_key_exists($result_value->student_session_id, $student_fees)) {
 
                     $student_fees[$result_value->student_session_id] = array(
-                        'student_session_id' => $result_value->student_session_id,
-                        'firstname' => $result_value->firstname,
-                        'student_id' => $result_value->student_id,
-                        'middlename' => $result_value->middlename,
-                        'lastname' => $result_value->lastname,
-                        'class_id' => $result_value->class_id,
-                        'class' => $result_value->class,
-                        'section' => $result_value->section,
-                        'father_name' => $result_value->father_name,
-                        'admission_no' => $result_value->admission_no,
-                        'mobileno' => $result_value->mobileno,
-                        'roll_no' => $result_value->roll_no,
-                        'category_id' => $result_value->category_id,
-                        'category' => $result_value->category,
-                        'rte' => $result_value->rte,
-                        'image' => $result_value->image
+                        'student_session_id'    => $result_value->student_session_id,
+                        'route_pickup_point_id' => $result_value->route_pickup_point_id,
+                        'firstname'             => $result_value->firstname,
+                        'student_id'            => $result_value->student_id,
+                        'middlename'            => $result_value->middlename,
+                        'lastname'              => $result_value->lastname,
+                        'class_id'              => $result_value->class_id,
+                        'class'                 => $result_value->class,
+                        'section'               => $result_value->section,
+                        'father_name'           => $result_value->father_name,
+                        'admission_no'          => $result_value->admission_no,
+                        'mobileno'              => $result_value->mobileno,
+                        'roll_no'               => $result_value->roll_no,
+                        'category_id'           => $result_value->category_id,
+                        'category'              => $result_value->category,
+                        'rte'                   => $result_value->rte,
+                        'image'                 => $result_value->image
                     ); //the magic
 
-                    $student_fees[$result_value->student_session_id]['student_discount_fee'] = $this->feediscount_model->getStudentFeesDiscount($result_value->student_session_id);
+                    $student_fees[$result_value->student_session_id]['student_discount_fee'] =
+                        isset($batch_discounts[$result_value->student_session_id])
+                        ? $batch_discounts[$result_value->student_session_id]
+                        : [];
                 }
 
                 $student_fees[$result_value->student_session_id]['fees'][] = $result_value->fees;
@@ -465,6 +476,32 @@ class Studentfeemaster_model extends MY_Model
         $query = $this->db->query($sql);
         $result_value = $query->result();
         return $result_value;
+    }
+
+    private function getDueFeesForMultipleMasters(array $master_ids)
+    {
+        if (empty($master_ids)) return [];
+        $ids = implode(',', array_map('intval', $master_ids));
+        $sql = "SELECT student_fees_master.*, student_fees_master.id as sfm_id, fee_groups_feetype.fine_type, fee_groups_feetype.id as fee_groups_feetype_id, (COALESCE(sfo.override_amount, fee_groups_feetype.amount) - IFNULL(student_fees_discounts.custom_amount, 0)) as amount, sfo.override_amount as fee_override_amount, fee_groups_feetype.amount as base_fee_amount, fee_groups_feetype.due_date, fee_groups_feetype.fine_amount, fee_groups_feetype.fee_groups_id, fee_groups.name, fee_groups_feetype.feetype_id, feetype.code, feetype.type, IFNULL(student_fees_deposite.id,0) as student_fees_deposite_id, IFNULL(student_fees_deposite.amount_detail,0) as amount_detail FROM student_fees_master INNER JOIN fee_session_groups ON fee_session_groups.id = student_fees_master.fee_session_group_id INNER JOIN fee_groups_feetype ON fee_groups_feetype.fee_session_group_id = fee_session_groups.id INNER JOIN fee_groups ON fee_groups.id = fee_groups_feetype.fee_groups_id INNER JOIN feetype ON feetype.id = fee_groups_feetype.feetype_id LEFT JOIN student_fees_deposite ON student_fees_deposite.student_fees_master_id = student_fees_master.id AND student_fees_deposite.fee_groups_feetype_id = fee_groups_feetype.id LEFT JOIN student_fees_discounts ON student_fees_discounts.student_session_id = student_fees_master.student_session_id AND student_fees_discounts.fees_discount_id = fee_groups.id LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = student_fees_master.student_session_id AND sfo.fee_groups_feetype_id = fee_groups_feetype.id WHERE student_fees_master.id IN ($ids) ORDER BY student_fees_master.id, feetype.id ASC";
+        $rows    = $this->db->query($sql)->result();
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[$row->sfm_id][] = $row;
+        }
+        return $grouped;
+    }
+
+    public function getStudentTransportFeesBatch(array $student_session_ids)
+    {
+        if (empty($student_session_ids)) return [];
+        $ids = implode(',', array_map('intval', $student_session_ids));
+        $sql = "SELECT student_transport_fees.*, transport_feemaster.month, transport_feemaster.due_date, COALESCE(student_transport_fees.fee_override, route_pickup_point.fees) AS fees, transport_feemaster.fine_amount, transport_feemaster.fine_type, transport_feemaster.fine_percentage, IFNULL(student_fees_deposite.id,0) as student_fees_deposite_id, IFNULL(student_fees_deposite.amount_detail,0) as amount_detail FROM student_transport_fees INNER JOIN transport_feemaster ON transport_feemaster.id = student_transport_fees.transport_feemaster_id LEFT JOIN student_fees_deposite ON student_fees_deposite.student_transport_fee_id = student_transport_fees.id INNER JOIN route_pickup_point ON route_pickup_point.id = student_transport_fees.route_pickup_point_id WHERE student_transport_fees.student_session_id IN ($ids) ORDER BY student_transport_fees.student_session_id, student_transport_fees.id ASC";
+        $rows    = $this->db->query($sql)->result();
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[$row->student_session_id][] = $row;
+        }
+        return $grouped;
     }
 
     public function getProcessingFeeByFeeSessionGroup($fee_session_groups_id, $student_fees_master_id)

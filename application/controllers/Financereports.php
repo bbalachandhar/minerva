@@ -404,27 +404,20 @@ class Financereports extends Admin_Controller
                     $data['classlist']   = $this->class_model->getClassesByDepartment($department_id);
                 }
                 $student_due_fee         = $this->studentfeemaster_model->getStudentFeesByClassSectionStudent($class_id, $section_id, $student_id, $department_id); // Pass department_id
+                $module           = $this->module_model->getPermissionByModulename('transport');
+                $transport_batch  = [];
+                if (!empty($module['is_active']) && !empty($student_due_fee)) {
+                    $raw_transport = $this->studentfeemaster_model->getStudentTransportFeesBatch(array_keys($student_due_fee));
+                    foreach ($raw_transport as $ssid => $fees) {
+                        $rpp = isset($student_due_fee[$ssid]['route_pickup_point_id']) ? $student_due_fee[$ssid]['route_pickup_point_id'] : null;
+                        $transport_batch[$ssid] = ($rpp !== null && $rpp !== '')
+                            ? array_values(array_filter($fees, function ($tf) use ($rpp) { return $tf->route_pickup_point_id == $rpp; }))
+                            : [];
+                    }
+                }
                 foreach ($student_due_fee as $key => $value) {
-                    $transport_fees = array();
-                    $student               = $this->student_model->getByStudentSession($value['student_session_id']);
-                    
-                    if($student){
-						$route_pickup_point_id = $student['route_pickup_point_id'];
-						$student_session_id    = $student['student_session_id'];
-                    }else{
-                        $route_pickup_point_id = '';
-                        $student_session_id    = '';
-                    }
-					
-                    $transport_fees = [];
-                    $module = $this->module_model->getPermissionByModulename('transport');
-
-                    if ($module['is_active']) {
-
-                        $transport_fees        = $this->studentfeemaster_model->getStudentTransportFeesByStudentSessionId($student_session_id, $route_pickup_point_id);
-                    }
-                    $student_due_fee[$key]['transport_fees']         = $transport_fees;
-                }			 
+                    $student_due_fee[$key]['transport_fees'] = isset($transport_batch[$key]) ? $transport_batch[$key] : [];
+                }
 				 
                 $data['student_due_fee'] = $student_due_fee;
                 $data['class_id']        = $class_id;
