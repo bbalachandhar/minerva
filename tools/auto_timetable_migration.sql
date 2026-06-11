@@ -222,29 +222,39 @@ INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, 
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `perm_group_id` = VALUES(`perm_group_id`);
 
 -- =============================================================================
--- SECTION 3: SIDEBAR MENU
+-- SECTION 3: SIDEBAR MENU  (idempotent: checks activate_menu / key before insert)
 -- =============================================================================
 
 INSERT INTO `sidebar_menus` (`product_name`, `permission_group_id`, `icon`, `menu`, `activate_menu`, `lang_key`, `system_level`, `level`, `sidebar_display`, `access_permissions`, `is_active`)
-VALUES ('minerva', 3000, 'fa fa-calendar-check-o', 'Auto Timetable', 'tt', 'auto_timetable', 0, 1, 1,
+SELECT 'minerva', 3000, 'fa fa-calendar-check-o', 'Auto Timetable', 'tt', 'auto_timetable', 0, 1, 1,
   "('tt_periods','can_view')||('tt_rooms','can_view')||('tt_subject_load','can_view')||('tt_generate','can_view')||('tt_class_grid','can_view')||('tt_substitution','can_view')||('tt_reports','can_view')",
-  1)
-ON DUPLICATE KEY UPDATE `is_active` = 1, `id` = LAST_INSERT_ID(`id`);
+  1
+WHERE NOT EXISTS (SELECT 1 FROM `sidebar_menus` WHERE `activate_menu` = 'tt');
 
-SET @tt_menu_id = LAST_INSERT_ID();
+SET @tt_menu_id = (SELECT id FROM `sidebar_menus` WHERE `activate_menu` = 'tt' LIMIT 1);
 
-INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `is_active`) VALUES
-(@tt_menu_id, 'Period Setup',       'tt_periods',        'tt_period_setup',       'admin/tt/periods',              1, "('tt_periods','can_view')",       3000, 'tt', 1),
-(@tt_menu_id, 'Rooms',              'tt_rooms',          'tt_rooms',              'admin/tt/rooms',                1, "('tt_rooms','can_view')",         3000, 'tt', 1),
-(@tt_menu_id, 'Batches',            'tt_batches',        'tt_batches',            'admin/tt/batches',              1, "('tt_batches','can_view')",       3000, 'tt', 1),
-(@tt_menu_id, 'Subject Load',       'tt_subject_load',   'tt_subject_load',       'admin/tt/subject_load',         1, "('tt_subject_load','can_view')",  3000, 'tt', 1),
-(@tt_menu_id, 'Teacher Constraints','tt_teacher_constr', 'tt_teacher_constraints','admin/tt/teacher_constraints',  1, "('tt_teacher_constr','can_view')",3000, 'tt', 1),
-(@tt_menu_id, 'Teacher Availability','tt_teacher_avail', 'tt_teacher_availability','admin/tt/teacher_unavail',     1, "('tt_teacher_avail','can_view')", 3000, 'tt', 1),
-(@tt_menu_id, 'Auto Generate',      'tt_generate',       'tt_auto_generate',      'admin/tt/generate',             1, "('tt_generate','can_view')",      3000, 'tt', 1),
-(@tt_menu_id, 'Class Timetable',    'tt_class_grid',     'tt_class_timetable',    'admin/tt/class_grid',           1, "('tt_class_grid','can_view')",    3000, 'tt', 1),
-(@tt_menu_id, 'Teacher Timetable',  'tt_teacher_view',   'tt_teacher_timetable',  'admin/tt/teacher_view',         1, "('tt_teacher_view','can_view')",  3000, 'tt', 1),
-(@tt_menu_id, 'Substitution',       'tt_substitution',   'tt_substitution',       'admin/tt/substitution',         1, "('tt_substitution','can_view')",  3000, 'tt', 1),
-(@tt_menu_id, 'Reports',            'tt_reports',        'tt_reports',            'admin/tt/reports',              1, "('tt_reports','can_view')",       3000, 'tt', 1);
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Period Setup',        'tt_periods',        'tt_period_setup',        'admin/tt/periods',             1, "('tt_periods','can_view')",        3000, 'tt', 'periods,save_period,delete_period,reorder_periods', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_periods');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Rooms',               'tt_rooms',          'tt_rooms',               'admin/tt/rooms',               1, "('tt_rooms','can_view')",          3000, 'tt', 'rooms,save_room,delete_room', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_rooms');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Batches',             'tt_batches',        'tt_batches',             'admin/tt/batches',             1, "('tt_batches','can_view')",        3000, 'tt', 'batches,save_batch,delete_batch', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_batches');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Subject Load',        'tt_subject_load',   'tt_subject_load',        'admin/tt/subject_load',        1, "('tt_subject_load','can_view')",   3000, 'tt', 'subject_load,save_subject_load', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_subject_load');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Teacher Constraints', 'tt_teacher_constr', 'tt_teacher_constraints', 'admin/tt/teacher_constraints', 1, "('tt_teacher_constr','can_view')", 3000, 'tt', 'teacher_constraints,save_teacher_constraint,delete_teacher_constraint', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_teacher_constr');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Teacher Availability','tt_teacher_avail',  'tt_teacher_availability','admin/tt/teacher_unavail',     1, "('tt_teacher_avail','can_view')",  3000, 'tt', 'teacher_unavail,save_teacher_unavail', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_teacher_avail');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Auto Generate',       'tt_generate',       'tt_auto_generate',       'admin/tt/generate',            1, "('tt_generate','can_view')",       3000, 'tt', 'generate,run_generate,preview,confirm_draft,discard_draft', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_generate');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Class Timetable',     'tt_class_grid',     'tt_class_timetable',     'admin/tt/class_grid',          1, "('tt_class_grid','can_view')",     3000, 'tt', 'class_grid,save_cell,delete_cell,toggle_lock', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_class_grid');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Teacher Timetable',   'tt_teacher_view',   'tt_teacher_timetable',   'admin/tt/teacher_view',        1, "('tt_teacher_view','can_view')",   3000, 'tt', 'teacher_view', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_teacher_view');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Substitution',        'tt_substitution',   'tt_substitution',        'admin/tt/substitution',        1, "('tt_substitution','can_view')",   3000, 'tt', 'substitution,save_substitution,cancel_substitution', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_substitution');
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Reports',             'tt_reports',        'tt_reports',             'admin/tt/reports',             1, "('tt_reports','can_view')",        3000, 'tt', 'reports,get_master_report,get_room_utilization,get_teacher_workload', 1 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key`='tt_reports');
 
 -- =============================================================================
 -- SECTION 4: ROLE PERMISSIONS (Admin role_id=1 gets full access by default)
@@ -264,3 +274,20 @@ INSERT INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`
 (1, 3010, 1, 1, 1, 1),  -- tt_substitution
 (1, 3011, 1, 0, 0, 0)   -- tt_reports (view only)
 ON DUPLICATE KEY UPDATE `can_view`=VALUES(`can_view`), `can_add`=VALUES(`can_add`), `can_edit`=VALUES(`can_edit`), `can_delete`=VALUES(`can_delete`);
+
+-- =============================================================================
+-- SECTION 5: PATCH — activate_methods for existing installs
+-- Safe to re-run; only updates rows that belong to the tt module.
+-- =============================================================================
+
+UPDATE `sidebar_sub_menus` SET `activate_methods`='periods,save_period,delete_period,reorder_periods'                            WHERE `key`='tt_periods';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='rooms,save_room,delete_room'                                                   WHERE `key`='tt_rooms';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='batches,save_batch,delete_batch'                                               WHERE `key`='tt_batches';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='subject_load,save_subject_load'                                                WHERE `key`='tt_subject_load';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='teacher_constraints,save_teacher_constraint,delete_teacher_constraint'         WHERE `key`='tt_teacher_constr';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='teacher_unavail,save_teacher_unavail'                                          WHERE `key`='tt_teacher_avail';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='generate,run_generate,preview,confirm_draft,discard_draft'                     WHERE `key`='tt_generate';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='class_grid,save_cell,delete_cell,toggle_lock'                                  WHERE `key`='tt_class_grid';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='teacher_view'                                                                  WHERE `key`='tt_teacher_view';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='substitution,save_substitution,cancel_substitution'                            WHERE `key`='tt_substitution';
+UPDATE `sidebar_sub_menus` SET `activate_methods`='reports,get_master_report,get_room_utilization,get_teacher_workload'           WHERE `key`='tt_reports';
