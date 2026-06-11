@@ -245,3 +245,22 @@ INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `
 (@tt_menu_id, 'Teacher Timetable',  'tt_teacher_view',   'tt_teacher_timetable',  'admin/tt/teacher_view',         1, "('tt_teacher_view','can_view')",  3000, 'tt', 1),
 (@tt_menu_id, 'Substitution',       'tt_substitution',   'tt_substitution',       'admin/tt/substitution',         1, "('tt_substitution','can_view')",  3000, 'tt', 1),
 (@tt_menu_id, 'Reports',            'tt_reports',        'tt_reports',            'admin/tt/reports',              1, "('tt_reports','can_view')",       3000, 'tt', 1);
+
+-- =============================================================================
+-- SECTION 4: ROLE PERMISSIONS (Admin role_id=1 gets full access by default)
+-- Super Admin (role_id=7, is_superadmin=1) bypasses RBAC automatically.
+-- =============================================================================
+
+INSERT INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`, `can_edit`, `can_delete`) VALUES
+(1, 3001, 1, 1, 1, 1),  -- tt_periods
+(1, 3002, 1, 1, 1, 1),  -- tt_rooms
+(1, 3003, 1, 1, 1, 1),  -- tt_batches
+(1, 3004, 1, 1, 1, 1),  -- tt_subject_load
+(1, 3005, 1, 1, 1, 1),  -- tt_teacher_constr
+(1, 3006, 1, 1, 1, 1),  -- tt_teacher_avail
+(1, 3007, 1, 1, 0, 0),  -- tt_generate (view+add only)
+(1, 3008, 1, 1, 1, 1),  -- tt_class_grid
+(1, 3009, 1, 0, 0, 0),  -- tt_teacher_view (view only)
+(1, 3010, 1, 1, 1, 1),  -- tt_substitution
+(1, 3011, 1, 0, 0, 0)   -- tt_reports (view only)
+ON DUPLICATE KEY UPDATE `can_view`=VALUES(`can_view`), `can_add`=VALUES(`can_add`), `can_edit`=VALUES(`can_edit`), `can_delete`=VALUES(`can_delete`);
