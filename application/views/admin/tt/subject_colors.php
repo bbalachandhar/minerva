@@ -118,3 +118,4 @@ $(function(){
   $('#btn-save-colors, #btn-save-colors-bottom').on('click', saveColors);
 });
 </script>
+</div>
