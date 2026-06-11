@@ -137,9 +137,8 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
-  var dpTimeIcons = { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' };
-  $('#period_start_pick').datetimepicker({ format: 'HH:mm', icons: dpTimeIcons });
-  $('#period_end_pick').datetimepicker({ format: 'HH:mm', icons: dpTimeIcons });
+  $('#period_start').datetimepicker({ format: 'HH:mm:ss' });
+  $('#period_end').datetimepicker({ format: 'HH:mm:ss' });
 
   // Toggle break label field
   $('#is_break').on('change', function(){
@@ -166,8 +165,8 @@ $(function(){
     var d = $(this).data();
     $('#period_id').val(d.id);
     $('#period_name').val(d.name);
-    $('#period_start_pick').data('DateTimePicker').date(moment(d.start, 'HH:mm:ss'));
-    $('#period_end_pick').data('DateTimePicker').date(moment(d.end, 'HH:mm:ss'));
+    $('#period_start').data('DateTimePicker').date(moment(d.start, 'HH:mm:ss'));
+    $('#period_end').data('DateTimePicker').date(moment(d.end, 'HH:mm:ss'));
     $('#sort_order').val(d.sortorder);
     if (d.isbreak == 1) {
       $('#is_break').prop('checked', true);
@@ -185,8 +184,8 @@ $(function(){
     $('#period-form')[0].reset();
     $('#period_id').val(0);
     $('#break_label_row').hide();
-    $('#period_start_pick').data('DateTimePicker').clear();
-    $('#period_end_pick').data('DateTimePicker').clear();
+    $('#period_start').data('DateTimePicker').clear();
+    $('#period_end').data('DateTimePicker').clear();
   });
 
   // Save
