@@ -22,14 +22,14 @@
           </div>
           <div class="form-group">
             <label>Start Time <span class="text-danger">*</span></label>
-            <div class="input-group date" id="period_start_pick">
+            <div class="input-group" id="period_start_pick">
               <input type="text" class="form-control" id="period_start" name="start_time" placeholder="HH:MM" readonly style="background:#fff;cursor:pointer;" required>
               <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-clock-o" style="color:#3c8dbc;"></i></span>
             </div>
           </div>
           <div class="form-group">
             <label>End Time <span class="text-danger">*</span></label>
-            <div class="input-group date" id="period_end_pick">
+            <div class="input-group" id="period_end_pick">
               <input type="text" class="form-control" id="period_end" name="end_time" placeholder="HH:MM" readonly style="background:#fff;cursor:pointer;" required>
               <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-clock-o" style="color:#3c8dbc;"></i></span>
             </div>
@@ -138,8 +138,8 @@ $(function(){
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
   var dpTimeIcons = { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' };
-  $('#period_start_pick').datetimepicker({ format: 'HH:mm', icons: dpTimeIcons });
-  $('#period_end_pick').datetimepicker({ format: 'HH:mm', icons: dpTimeIcons });
+  $('#period_start_pick').datetimepicker({ format: 'HH:mm', viewMode: 'hours', icons: dpTimeIcons });
+  $('#period_end_pick').datetimepicker({ format: 'HH:mm', viewMode: 'hours', icons: dpTimeIcons });
 
   // Toggle break label field
   $('#is_break').on('change', function(){
