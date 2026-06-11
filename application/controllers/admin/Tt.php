@@ -54,7 +54,7 @@ class Tt extends Admin_Controller
         $teacher_const_ct = $this->db->where('session_id', $session_id)->count_all_results('tt_teacher_constraints');
 
         // Subject loads: count distinct configured class-sections
-        $load_classes = $this->db->select('DISTINCT class_id, section_id')
+        $load_classes = $this->db->select('DISTINCT class_id, section_id', false)
             ->where('session_id', $session_id)->get('tt_subject_load')->result();
         $load_class_count  = count($load_classes);
         $total_load_rows   = $this->db->where('session_id', $session_id)->count_all_results('tt_subject_load');
