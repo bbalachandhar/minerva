@@ -20,7 +20,7 @@
         <select class="form-control" id="cu_dept">
           <option value="">-- All --</option>
           <?php foreach ($departments as $d): ?>
-          <option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['name']); ?></option>
+          <option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['department_name']); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -29,7 +29,7 @@
         <select class="form-control" id="cu_class_id">
           <option value="">-- Select Class --</option>
           <?php foreach ($classlist as $cls): ?>
-          <option value="<?php echo $cls['id']; ?>"><?php echo htmlspecialchars($cls['class']); ?></option>
+          <option value="<?php echo $cls['id']; ?>" data-dept="<?php echo $cls['department_id']; ?>"><?php echo htmlspecialchars($cls['class']); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -121,9 +121,26 @@ $(function(){
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
   var current_class = 0, current_section = 0;
 
-  $('#cu_dept').select2({ placeholder: '-- All --', allowClear: true, width: '100%' });
-  $('#cu_class_id').select2({ placeholder: '-- Select Class --', allowClear: true, width: '100%' });
+  $('#cu_dept').select2({ placeholder: '-- All --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
+  $('#cu_class_id').select2({ placeholder: '-- Select Class --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
   $('#cu_section_id').select2({ placeholder: '-- Select Section --', allowClear: true, width: '100%' });
+
+  // Store original class options for dept filtering
+  var allCuClassOpts = [];
+  $('#cu_class_id option').each(function(){
+    if ($(this).val()) allCuClassOpts.push({val:$(this).val(), text:$(this).text(), dept:$(this).data('dept')});
+  });
+
+  $('#cu_dept').on('change', function(){
+    var dept = $(this).val();
+    var opts = '<option value="">-- Select Class --</option>';
+    $.each(allCuClassOpts, function(i,o){
+      if (!dept || o.dept == dept) opts += '<option value="'+o.val+'" data-dept="'+o.dept+'">'+o.text+'</option>';
+    });
+    $('#cu_class_id').html(opts).trigger('change.select2');
+    $('#cu_section_id').html('<option value="">-- Select Section --</option>').trigger('change.select2');
+    $('#cu-grid-container').hide();
+  });
 
   $('#cu_class_id').on('change', function(){
     var id = $(this).val();

@@ -43,7 +43,7 @@
             <select class="form-control" name="department_id" id="room_dept">
               <option value="">-- All Departments --</option>
               <?php foreach ($departments as $dept): ?>
-              <option value="<?php echo $dept['id']; ?>"><?php echo htmlspecialchars($dept['name']); ?></option>
+              <option value="<?php echo $dept['id']; ?>"><?php echo htmlspecialchars($dept['department_name']); ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -125,6 +125,8 @@
 
 <script>
 $(function(){
+  $('#room_dept').select2({ placeholder: '-- All Departments --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
+
   $(document).on('click', '.btn-edit-room', function(){
     var d = $(this).data();
     $('#room_id').val(d.id);
@@ -132,7 +134,7 @@ $(function(){
     $('#room_number').val(d.number);
     $('#room_type').val(d.type);
     $('#room_capacity').val(d.capacity);
-    $('#room_dept').val(d.dept || '');
+    $('#room_dept').val(d.dept || '').trigger('change.select2');
     $('#room_shared').prop('checked', d.shared == 1);
     $('html,body').animate({scrollTop:0}, 400);
   });
