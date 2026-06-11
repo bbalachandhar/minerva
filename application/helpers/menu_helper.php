@@ -455,6 +455,22 @@ if (!function_exists('main_menu_array')) {
                 'coe_arrear'         => array('index', 'student'),
                 'coe_event'          => array('index', 'add', 'save', 'edit', 'update', 'delete', 'manage', 'save_batch', 'update_batch', 'delete_batch'),
             ),
+            'tt' => array(
+                'tt' => array(
+                    'periods', 'save_period', 'delete_period', 'reorder_periods',
+                    'rooms', 'save_room', 'delete_room',
+                    'batches', 'save_batch', 'delete_batch',
+                    'subject_load', 'get_subject_load_data', 'save_subject_load',
+                    'teacher_constraints', 'save_teacher_constraint', 'delete_teacher_constraint',
+                    'teacher_unavail', 'get_teacher_unavail', 'save_teacher_unavail',
+                    'generate', 'run_generate', 'preview', 'confirm_draft', 'discard_draft',
+                    'class_grid', 'load_class_grid', 'save_cell', 'delete_cell', 'toggle_lock',
+                    'teacher_view', 'load_teacher_grid',
+                    'substitution', 'get_absent_slots', 'save_substitution', 'cancel_substitution', 'get_substitution_report',
+                    'reports', 'get_master_report', 'get_room_utilization', 'get_teacher_workload',
+                    'get_sections_by_class', 'get_batches_by_class_section', 'get_subjects_by_class_section',
+                ),
+            ),
                             
                         
                         

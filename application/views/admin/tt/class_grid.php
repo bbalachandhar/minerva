@@ -32,7 +32,10 @@
         <select class="form-control" id="cg_section"><option value="">-- Select Section --</option></select>
       </div>
       <div class="col-md-3">
-        <button class="btn btn-primary btn-block" id="btn-load-grid" style="margin-top:25px;"><i class="fa fa-table"></i> Load Timetable</button>
+        <div class="row" style="margin-top:25px;">
+          <div class="col-xs-8 pr-0"><button class="btn btn-primary btn-block" id="btn-load-grid"><i class="fa fa-table"></i> Load Timetable</button></div>
+          <div class="col-xs-4 pl-1"><button class="btn btn-default btn-block" id="btn-print-grid" title="Print" disabled><i class="fa fa-print"></i></button></div>
+        </div>
       </div>
     </div>
   </div>
@@ -173,8 +176,27 @@ $(function(){
           current_staff    = res.staff    || [];
           current_rooms    = res.rooms    || [];
           current_batches  = res.batches  || [];
+          $('#btn-print-grid').prop('disabled', false);
         }
       },'json');
+  });
+
+  // Print timetable
+  $('#btn-print-grid').on('click', function(){
+    var printContent = '<html><head><title>Class Timetable</title>'
+      + '<link rel="stylesheet" href="<?php echo base_url('assets/bower_components/bootstrap/dist/css/bootstrap.min.css'); ?>">'
+      + '<style>body{padding:20px;font-size:12px;}.tt-grid th,.tt-grid td{padding:4px 6px;border:1px solid #ccc;white-space:nowrap;}'
+      + '.slot-tag{display:inline-block;border-radius:3px;padding:1px 5px;font-size:11px;font-weight:600;color:#fff;margin:1px;}'
+      + '.slot-theory{background:#3498db;}.slot-practical{background:#e74c3c;}.slot-project{background:#f39c12;}.slot-free{background:#27ae60;}.slot-other{background:#7f8c8d;}'
+      + '.break-row{background:#fffde7 !important;}'
+      + '@media print{.no-print{display:none}}</style></head><body>'
+      + $('#timetable-grid-container').html()
+      + '</body></html>';
+    var w = window.open('','_blank');
+    w.document.write(printContent);
+    w.document.close();
+    w.focus();
+    w.print();
   });
 
   // Open cell modal
