@@ -125,6 +125,7 @@ class Tt extends Admin_Controller
             'capacity'      => (int) $this->input->post('capacity'),
             'room_type'     => $this->input->post('room_type'),
             'department_id' => (int) $this->input->post('department_id') ?: null,
+            'is_shared'     => (int) $this->input->post('is_shared'),
             'is_active'     => 1,
         ];
         if ($id > 0) {
@@ -275,6 +276,7 @@ class Tt extends Admin_Controller
         $this->_setMenu();
         $data = $this->_baseData();
         $data['staff_list']   = $this->staff_model->getStaffbyrole(2);
+        $data['rooms']        = $this->Tt_room_model->getActive();
         $data['constraints']  = $this->Tt_teacher_model->getAllConstraints($data['session_id']);
         $this->load->view('layout/header', $data);
         $this->load->view('admin/tt/teacher_constraints', $data);
@@ -294,6 +296,8 @@ class Tt extends Admin_Controller
             'max_periods_per_day'  => (int) $this->input->post('max_periods_per_day'),
             'max_periods_per_week' => (int) $this->input->post('max_periods_per_week'),
             'min_free_per_day'     => (int) $this->input->post('min_free_per_day'),
+            'max_gap_per_day'      => $this->input->post('max_gap_per_day') !== '' ? (int)$this->input->post('max_gap_per_day') : null,
+            'preferred_room_id'    => (int) $this->input->post('preferred_room_id') ?: null,
             'preferred_start_time' => $this->input->post('preferred_start_time') ?: null,
             'preferred_end_time'   => $this->input->post('preferred_end_time') ?: null,
             'avoid_first_period'   => (int) $this->input->post('avoid_first_period'),
@@ -758,6 +762,119 @@ class Tt extends Admin_Controller
         $data       = $this->Tt_entry_model->getTeacherWorkload($session_id);
         $html = $this->load->view('admin/tt/_report_workload', compact('data'), true);
         echo json_encode(['status' => '1', 'html' => $html]);
+    }
+
+    // =========================================================================
+    // SUBJECT COLORS & ABBREVIATIONS
+    // =========================================================================
+
+    public function subject_colors()
+    {
+        if (!$this->rbac->hasPrivilege('tt_subject_colors', 'can_view')) {
+            access_denied();
+        }
+        $this->_setMenu();
+        $data = $this->_baseData();
+        $data['subjects'] = $this->db->select('subjects.id, subjects.name, subjects.code, subjects.type, subjects.tt_color, subjects.tt_abbr')
+            ->from('subjects')
+            ->where('subjects.status', 'Active')
+            ->order_by('subjects.name', 'ASC')
+            ->get()->result();
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/tt/subject_colors', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function save_subject_colors()
+    {
+        if (!$this->rbac->hasPrivilege('tt_subject_colors', 'can_add')) {
+            access_denied();
+        }
+        $colors = $this->input->post('colors'); // array: subject_id => {color, abbr}
+        if (empty($colors)) {
+            echo json_encode(['status' => '0', 'message' => 'No data received.']);
+            return;
+        }
+        $this->db->trans_start();
+        foreach ($colors as $subject_id => $val) {
+            $this->db->where('id', (int)$subject_id)->update('subjects', [
+                'tt_color' => !empty($val['color']) ? $val['color'] : null,
+                'tt_abbr'  => !empty($val['abbr'])  ? substr(trim($val['abbr']), 0, 10) : null,
+            ]);
+        }
+        $this->db->trans_complete();
+        echo json_encode(['status' => $this->db->trans_status() ? '1' : '0']);
+    }
+
+    // =========================================================================
+    // CLASS UNAVAILABILITY
+    // =========================================================================
+
+    public function class_unavail()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_avail', 'can_view')) {
+            access_denied();
+        }
+        $this->_setMenu();
+        $data = $this->_baseData();
+        $data['classlist']   = $this->class_model->get();
+        $data['departments'] = $this->department_model->getDepartmentType();
+        $data['periods']     = $this->Tt_period_model->getAllNonBreak($data['session_id']);
+        $data['days']        = $this->customlib->getDaysnameWithoutLang();
+        $this->load->model('Tt_class_unavail_model');
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/tt/class_unavail', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function get_class_unavail()
+    {
+        $session_id = $this->setting_model->getCurrentSession();
+        $class_id   = (int) $this->input->post('class_id');
+        $section_id = (int) $this->input->post('section_id');
+        $this->load->model('Tt_class_unavail_model');
+        $data = $this->Tt_class_unavail_model->getForClassSection($session_id, $class_id, $section_id);
+        $map = [];
+        foreach ($data as $row) {
+            $map[$row->day . '_' . $row->period_id] = true;
+        }
+        echo json_encode(['status' => '1', 'map' => $map]);
+    }
+
+    public function save_class_unavail()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_avail', 'can_add')) {
+            access_denied();
+        }
+        $session_id = $this->setting_model->getCurrentSession();
+        $class_id   = (int) $this->input->post('class_id');
+        $section_id = (int) $this->input->post('section_id');
+        $slots      = $this->input->post('slots'); // array of {day, period_id, reason}
+        $this->load->model('Tt_class_unavail_model');
+        $result = $this->Tt_class_unavail_model->saveUnavailability($session_id, $class_id, $section_id, $slots ?: []);
+        echo json_encode(['status' => $result ? '1' : '0']);
+    }
+
+    // =========================================================================
+    // TEST GENERATE (Dry Run)
+    // =========================================================================
+
+    public function test_generate()
+    {
+        if (!$this->rbac->hasPrivilege('tt_generate', 'can_view')) {
+            access_denied();
+        }
+        $session_id  = $this->setting_model->getCurrentSession();
+        $class_scope = json_decode($this->input->post('class_scope'), true);
+        $settings    = [
+            'allow_saturday'           => (int) $this->input->post('allow_saturday'),
+            'max_same_subject_day'     => (int) $this->input->post('max_same_subject_day') ?: 1,
+            'spread_evenly'            => (int) $this->input->post('spread_evenly'),
+            'fill_free_periods'        => (int) $this->input->post('fill_free_periods'),
+            'respect_soft_constraints' => 1,
+        ];
+        $result = $this->Tt_generator_model->testGenerate($session_id, $class_scope, $settings);
+        echo json_encode($result);
     }
 
     // =========================================================================

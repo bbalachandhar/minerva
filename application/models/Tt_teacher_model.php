@@ -9,9 +9,10 @@ class Tt_teacher_model extends MY_Model
 
     public function getAllConstraints($session_id)
     {
-        return $this->db->select('tt_teacher_constraints.*, staff.name, staff.surname, staff.employee_id')
+        return $this->db->select('tt_teacher_constraints.*, staff.name, staff.surname, staff.employee_id, tt_rooms.name as preferred_room_name')
             ->from('tt_teacher_constraints')
             ->join('staff', 'staff.id = tt_teacher_constraints.staff_id')
+            ->join('tt_rooms', 'tt_rooms.id = tt_teacher_constraints.preferred_room_id', 'left')
             ->where('tt_teacher_constraints.session_id', $session_id)
             ->order_by('staff.name','ASC')
             ->get()->result();

@@ -12,6 +12,8 @@
       <th>Consecutive <small>(lab)</small></th>
       <th>Room Type</th>
       <th>Preferred Room</th>
+      <th>Max/Day</th>
+      <th>Spread</th>
       <th>Priority</th>
     </tr>
   </thead>
@@ -84,6 +86,18 @@
         </select>
       </td>
       <td>
+        <input type="number" class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][max_per_day]"
+          value="<?php echo ($existing && isset($existing->max_per_day)) ? $existing->max_per_day : 2; ?>"
+          min="1" max="8" style="width:65px;" title="Max times this subject can appear on the same day">
+      </td>
+      <td>
+        <label style="font-weight:normal;margin:0;">
+          <input type="checkbox" name="rows[<?php echo $sub->subject_group_subject_id; ?>][distribute_evenly]" value="1"
+            <?php echo (!$existing || $existing->distribute_evenly) ? 'checked' : ''; ?>>
+          &nbsp;Spread
+        </label>
+      </td>
+      <td>
         <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][priority]" style="width:70px;">
           <?php for ($p=10;$p>=1;$p--): ?>
           <option value="<?php echo $p; ?>" <?php echo ($existing && $existing->priority==$p) ? 'selected' : ($p==5 ? 'selected' : ''); ?>><?php echo $p; ?></option>
@@ -129,6 +143,8 @@
           <option value="">-- Auto --</option>
           <?php foreach ($rooms as $rm): ?><option value="<?php echo $rm->id; ?>" <?php echo ($bexisting && $bexisting->preferred_room_id==$rm->id)?'selected':''; ?>><?php echo htmlspecialchars($rm->name); ?></option><?php endforeach; ?>
         </select></td>
+      <td><input type="number" class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id.'_b'.$batch->id; ?>][max_per_day]" value="<?php echo ($bexisting && isset($bexisting->max_per_day)) ? $bexisting->max_per_day : 2; ?>" min="1" max="8" style="width:65px;"></td>
+      <td><label style="font-weight:normal;margin:0;"><input type="checkbox" name="rows[<?php echo $sub->subject_group_subject_id.'_b'.$batch->id; ?>][distribute_evenly]" value="1" <?php echo (!$bexisting || $bexisting->distribute_evenly) ? 'checked' : ''; ?>></label></td>
       <td><input type="hidden" name="rows[<?php echo $sub->subject_group_subject_id.'_b'.$batch->id; ?>][priority]" value="<?php echo $bexisting ? $bexisting->priority : 5; ?>"></td>
     </tr>
     <?php endforeach; ?>

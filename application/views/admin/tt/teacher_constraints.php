@@ -39,10 +39,20 @@
               </div>
             </div>
           </div>
-          <div class="form-group">
-            <label>Min Free Periods / Day</label>
-            <input type="number" class="form-control" name="min_free_per_day" id="tc_min_free" value="0" min="0" max="4">
-            <small class="text-muted">Minimum gaps in teacher's daily schedule</small>
+          <div class="row">
+            <div class="col-sm-6">
+              <div class="form-group">
+                <label>Min Free Periods / Day</label>
+                <input type="number" class="form-control" name="min_free_per_day" id="tc_min_free" value="0" min="0" max="4">
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-group">
+                <label>Max Gap / Day</label>
+                <input type="number" class="form-control" name="max_gap_per_day" id="tc_max_gap" placeholder="No limit" min="0" max="8">
+                <small class="text-muted">Max consecutive free slots between lessons</small>
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-sm-6">
@@ -57,6 +67,16 @@
                 <input type="time" class="form-control" name="preferred_end_time" id="tc_pref_end">
               </div>
             </div>
+          </div>
+          <div class="form-group">
+            <label>Preferred / Home Room (optional)</label>
+            <select class="form-control" name="preferred_room_id" id="tc_pref_room">
+              <option value="">-- None --</option>
+              <?php foreach ($rooms as $rm): ?>
+              <option value="<?php echo $rm->id; ?>"><?php echo htmlspecialchars($rm->name); ?> (<?php echo $rm->room_type; ?>)</option>
+              <?php endforeach; ?>
+            </select>
+            <small class="text-muted">Scheduler will prefer this room for this teacher's lessons</small>
           </div>
           <div class="form-group">
             <label><input type="checkbox" name="avoid_first_period" id="tc_avoid_first" value="1"> Avoid First Period of Day</label><br>
@@ -83,7 +103,9 @@
               <th>Teacher</th>
               <th>Max/Day</th>
               <th>Max/Week</th>
-              <th>Min Free/Day</th>
+              <th>Min Free</th>
+              <th>Max Gap</th>
+              <th>Pref. Room</th>
               <th>Pref. Start</th>
               <th>Pref. End</th>
               <th>Avoid 1st</th>
@@ -98,6 +120,8 @@
               <td><?php echo $c->max_periods_per_day; ?></td>
               <td><?php echo $c->max_periods_per_week; ?></td>
               <td><?php echo $c->min_free_per_day; ?></td>
+              <td><?php echo isset($c->max_gap_per_day) && $c->max_gap_per_day !== null ? $c->max_gap_per_day : '-'; ?></td>
+              <td><?php echo !empty($c->preferred_room_name) ? htmlspecialchars($c->preferred_room_name) : '-'; ?></td>
               <td><?php echo $c->preferred_start_time ? date('h:i A', strtotime($c->preferred_start_time)) : '-'; ?></td>
               <td><?php echo $c->preferred_end_time ? date('h:i A', strtotime($c->preferred_end_time)) : '-'; ?></td>
               <td><?php echo $c->avoid_first_period ? '<i class="fa fa-check text-success"></i>' : '-'; ?></td>
@@ -109,6 +133,8 @@
                   data-maxday="<?php echo $c->max_periods_per_day; ?>"
                   data-maxweek="<?php echo $c->max_periods_per_week; ?>"
                   data-minfree="<?php echo $c->min_free_per_day; ?>"
+                  data-maxgap="<?php echo $c->max_gap_per_day ?? ''; ?>"
+                  data-prefroom="<?php echo $c->preferred_room_id ?? ''; ?>"
                   data-prefstart="<?php echo $c->preferred_start_time ?? ''; ?>"
                   data-prefend="<?php echo $c->preferred_end_time ?? ''; ?>"
                   data-avoidfirst="<?php echo $c->avoid_first_period; ?>"
@@ -145,6 +171,8 @@ $(function(){
     $('#tc_max_day').val(d.maxday);
     $('#tc_max_week').val(d.maxweek);
     $('#tc_min_free').val(d.minfree);
+    $('#tc_max_gap').val(d.maxgap || '');
+    $('#tc_pref_room').val(d.prefroom || '');
     $('#tc_pref_start').val(d.prefstart);
     $('#tc_pref_end').val(d.prefend);
     $('#tc_avoid_first').prop('checked', d.avoidfirst == 1);
