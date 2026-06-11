@@ -29,8 +29,13 @@
           <?php $entry = $entry_map[$dk][$period->id] ?? null; ?>
           <td class="tt-cell <?php echo $entry ? 'filled' : ''; ?>" style="min-height:60px;text-align:center;vertical-align:middle;">
             <?php if ($entry): ?>
-              <?php $tc = $type_class[strtolower($entry->subject_type ?? 'other')] ?? 'slot-other'; ?>
-              <span class="slot-tag <?php echo $tc; ?>"><?php echo htmlspecialchars($entry->subject_code ?: $entry->subject_name); ?></span><br>
+              <?php
+                $tc = $type_class[strtolower($entry->subject_type ?? 'other')] ?? 'slot-other';
+                $slot_color = !empty($entry->tt_color) ? $entry->tt_color : null;
+                $slot_text  = !empty($entry->tt_abbr)  ? $entry->tt_abbr  : ($entry->subject_code ?: $entry->subject_name);
+                $slot_style = $slot_color ? "background-color:{$slot_color};color:#fff;" : '';
+              ?>
+              <span class="slot-tag <?php echo $slot_color ? '' : $tc; ?>" style="<?php echo $slot_style; ?>"><?php echo htmlspecialchars($slot_text); ?></span><br>
               <small style="font-size:11px;"><strong><?php echo htmlspecialchars($entry->class_name); ?> <?php echo htmlspecialchars($entry->section_name); ?></strong></small>
               <?php if ($entry->room_name): ?><br><small style="font-size:10px;color:#777;"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($entry->room_name); ?></small><?php endif; ?>
               <?php if ($entry->batch_name): ?><br><span class="label label-info" style="font-size:9px;">Batch <?php echo $entry->batch_name; ?></span><?php endif; ?>

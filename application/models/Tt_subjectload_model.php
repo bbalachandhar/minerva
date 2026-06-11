@@ -85,6 +85,8 @@ class Tt_subjectload_model extends MY_Model
                 'preferred_room_id'        => !empty($row['preferred_room_id']) ? (int)$row['preferred_room_id'] : null,
                 'batch_id'                 => $batch_id,
                 'priority'                 => (int) ($row['priority'] ?? 5),
+                'max_per_day'              => (int) ($row['max_per_day'] ?? 2),
+                'distribute_evenly'        => !empty($row['distribute_evenly']) ? 1 : 0,
             ];
 
             if ($existing) {

@@ -18,6 +18,15 @@ class Tt_room_model extends MY_Model
         return $this->db->where('room_type', $type)->where('is_active', 1)->get('tt_rooms')->result();
     }
 
+    public function getSharedByType($type)
+    {
+        $q = $this->db->where('is_active', 1);
+        if ($type && $type !== 'any') {
+            $q->where('room_type', $type);
+        }
+        return $q->where('is_shared', 1)->get('tt_rooms')->result();
+    }
+
     public function getById($id)
     {
         return $this->db->where('id', $id)->get('tt_rooms')->row();
@@ -55,7 +64,11 @@ class Tt_room_model extends MY_Model
 
         $this->db->where('is_active', 1);
         if (!empty($booked_ids)) {
-            $this->db->where_not_in('id', $booked_ids);
+            // Shared rooms can be double-booked, so only exclude non-shared booked rooms
+            $this->db->group_start()
+                ->where_not_in('id', $booked_ids)
+                ->or_where('is_shared', 1)
+                ->group_end();
         }
         if ($room_type && $room_type !== 'any') {
             $this->db->where('room_type', $room_type);

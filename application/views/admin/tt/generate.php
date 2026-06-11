@@ -105,9 +105,19 @@
             You will see a <strong>preview</strong> before anything is saved.
           </div>
 
-          <button type="submit" class="btn btn-success btn-lg btn-block" id="btn-generate">
-            <i class="fa fa-magic"></i> Generate Timetable
-          </button>
+          <div class="row">
+            <div class="col-md-6">
+              <button type="button" class="btn btn-default btn-lg btn-block" id="btn-test-generate">
+                <i class="fa fa-flask"></i> Test (Dry Run)
+              </button>
+              <small class="text-muted text-center" style="display:block;margin-top:4px;">See stats without saving anything</small>
+            </div>
+            <div class="col-md-6">
+              <button type="submit" class="btn btn-success btn-lg btn-block" id="btn-generate">
+                <i class="fa fa-magic"></i> Generate Timetable
+              </button>
+            </div>
+          </div>
         </form>
       </div>
     </div>
@@ -213,49 +223,90 @@ $(function(){
     $('#generate-form').find('button[type=submit]').prop('disabled', true);
 
     var formData = $(this).serialize() + '&' + csrf_name + '=' + csrf_val;
-    // Add scope as JSON
     formData += '&class_scope=' + encodeURIComponent(JSON.stringify(scope));
 
     $.post('<?php echo site_url('admin/tt/run_generate'); ?>', formData, function(res){
       $('#progress-box').hide();
       $('#generate-form').find('button[type=submit]').prop('disabled', false);
-
-      if (res.status === '1') {
-        var color = res.quality_score >= 90 ? 'success' : (res.quality_score >= 70 ? 'warning' : 'danger');
-        var html = '<div class="text-center" style="padding:10px;">'
-          + '<div style="font-size:48px;font-weight:700;" class="text-'+color+'">' + res.quality_score + '%</div>'
-          + '<div>Quality Score</div>'
-          + '<hr>'
-          + '<table class="table table-sm" style="font-size:13px;">'
-          + '<tr><td>Required</td><td><strong>' + res.total_required + '</strong></td></tr>'
-          + '<tr><td>Placed</td><td><strong class="text-success">' + res.total_placed + '</strong></td></tr>'
-          + '<tr><td>Conflicts</td><td><strong class="text-danger">' + res.total_conflicts + '</strong></td></tr>'
-          + '</table>';
-
-        if (res.total_conflicts > 0) {
-          html += '<div class="alert alert-warning text-left" style="font-size:12px;max-height:150px;overflow-y:auto;">'
-            + '<strong>Unplaced subjects:</strong><ul>';
-          $.each(res.conflicts, function(i, c){
-            html += '<li>' + c.subject + ' — ' + c['class_id'] + '/' + c['section_id'] + ' ('+c.reason+')</li>';
-          });
-          html += '</ul></div>';
-        }
-
-        html += '<a href="<?php echo site_url('admin/tt/preview/'); ?>' + res.log_id + '" class="btn btn-primary btn-block btn-lg">'
-          + '<i class="fa fa-eye"></i> Review & Confirm</a></div>';
-
-        $('#result-header').find('.box-title').html('<i class="fa fa-check text-success"></i> Generation Complete');
-        $('#result-body').html(html);
-        $('#result-box').show();
-      } else {
-        $('#result-header').find('.box-title').html('<i class="fa fa-times text-danger"></i> Failed');
-        $('#result-body').html('<div class="alert alert-danger">' + (res.message || 'Generation failed.') + '</div>');
-        $('#result-box').show();
-      }
+      showResult(res, false);
     },'json').fail(function(){
       $('#progress-box').hide();
       alert('Server error. Please try again.');
     });
   });
+
+  $('#btn-test-generate').on('click', function(){
+    var scope = [];
+    $('.scope-chk:checked').each(function(){
+      scope.push({class_id: $(this).data('class'), section_id: $(this).data('section')});
+    });
+    if (scope.length === 0) { alert('Please select at least one class-section.'); return; }
+
+    $('#progress-box').show();
+    $('#result-box').hide();
+    $('#btn-test-generate').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Testing...');
+
+    var formData = $('#generate-form').serialize() + '&' + csrf_name + '=' + csrf_val;
+    formData += '&class_scope=' + encodeURIComponent(JSON.stringify(scope));
+
+    $.post('<?php echo site_url('admin/tt/test_generate'); ?>', formData, function(res){
+      $('#progress-box').hide();
+      $('#btn-test-generate').prop('disabled', false).html('<i class="fa fa-flask"></i> Test (Dry Run)');
+      showResult(res, true);
+    },'json').fail(function(){
+      $('#progress-box').hide();
+      alert('Server error. Please try again.');
+    });
+  });
+
+  function showResult(res, isDryRun) {
+    if (res.status === '1') {
+      var color = res.quality_score >= 90 ? 'success' : (res.quality_score >= 70 ? 'warning' : 'danger');
+      var cardsLeft = res.cards_left || (res.total_required - res.total_placed);
+
+      var html = '<div style="padding:10px;">';
+
+      if (isDryRun) {
+        html += '<div class="alert alert-info"><i class="fa fa-flask"></i> <strong>Dry Run — nothing was saved</strong></div>';
+      }
+
+      html += '<div class="row text-center" style="margin-bottom:10px;">'
+        + '<div class="col-xs-4"><div style="font-size:32px;font-weight:700;" class="text-success">' + res.total_placed + '</div><small>Cards Placed</small></div>'
+        + '<div class="col-xs-4"><div style="font-size:32px;font-weight:700;" class="text-' + (cardsLeft > 0 ? 'danger' : 'success') + '">' + cardsLeft + '</div><small>Cards Left</small></div>'
+        + '<div class="col-xs-4"><div style="font-size:32px;font-weight:700;" class="text-' + color + '">' + res.quality_score + '%</div><small>Quality</small></div>'
+        + '</div>';
+
+      html += '<table class="table table-condensed table-bordered" style="font-size:12px;">'
+        + '<tr><td>Total Required</td><td><strong>' + res.total_required + '</strong></td></tr>'
+        + '<tr><td>Conditions Broken</td><td><strong class="text-' + (res.total_conflicts > 0 ? 'danger' : 'success') + '">' + res.total_conflicts + '</strong></td></tr>'
+        + '</table>';
+
+      if (res.total_conflicts > 0) {
+        html += '<div class="alert alert-warning text-left" style="font-size:11px;max-height:160px;overflow-y:auto;">'
+          + '<strong><i class="fa fa-exclamation-triangle"></i> Unplaced (' + res.total_conflicts + '):</strong><ul style="margin-top:5px;">';
+        $.each(res.conflicts, function(i, c){
+          html += '<li><strong>' + c.subject + '</strong> — ' + c.staff + '<br><small class="text-muted">' + c.reason + '</small></li>';
+        });
+        html += '</ul></div>';
+      }
+
+      if (!isDryRun) {
+        html += '<a href="<?php echo site_url('admin/tt/preview/'); ?>' + res.log_id + '" class="btn btn-primary btn-block btn-lg">'
+          + '<i class="fa fa-eye"></i> Review & Confirm</a>';
+      }
+
+      html += '</div>';
+
+      var icon = isDryRun ? '<i class="fa fa-flask text-info"></i> Test Result'
+                           : '<i class="fa fa-check text-success"></i> Generation Complete';
+      $('#result-header').find('.box-title').html(icon);
+      $('#result-body').html(html);
+      $('#result-box').show();
+    } else {
+      $('#result-header').find('.box-title').html('<i class="fa fa-times text-danger"></i> Failed');
+      $('#result-body').html('<div class="alert alert-danger">' + (res.message || 'Generation failed.') + '</div>');
+      $('#result-box').show();
+    }
+  }
 });
 </script>

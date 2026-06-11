@@ -47,6 +47,13 @@
               <?php endforeach; ?>
             </select>
           </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" name="is_shared" id="room_shared" value="1">
+              Shared Room
+            </label>
+            <small class="text-muted block">Shared rooms can be used by multiple classes simultaneously (e.g. Playground, Auditorium)</small>
+          </div>
           <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-save"></i> Save Room</button>
           <button type="button" class="btn btn-default btn-block" id="btn-reset-room">Reset</button>
         </form>
@@ -71,6 +78,7 @@
               <th>Number</th>
               <th>Type</th>
               <th>Capacity</th>
+              <th>Shared</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -84,6 +92,7 @@
               <td><?php echo htmlspecialchars($r->room_number ?? '-'); ?></td>
               <td><?php echo $type_labels[$r->room_type] ?? $r->room_type; ?></td>
               <td><?php echo $r->capacity; ?></td>
+              <td><?php echo $r->is_shared ? '<span class="label label-info">Shared</span>' : '-'; ?></td>
               <td><?php echo $r->is_active ? '<span class="label label-success">Active</span>' : '<span class="label label-default">Inactive</span>'; ?></td>
               <td>
                 <button class="btn btn-xs btn-info btn-edit-room"
@@ -92,7 +101,8 @@
                   data-number="<?php echo htmlspecialchars($r->room_number ?? ''); ?>"
                   data-type="<?php echo $r->room_type; ?>"
                   data-capacity="<?php echo $r->capacity; ?>"
-                  data-dept="<?php echo $r->department_id ?? ''; ?>">
+                  data-dept="<?php echo $r->department_id ?? ''; ?>"
+                  data-shared="<?php echo $r->is_shared; ?>">
                   <i class="fa fa-edit"></i>
                 </button>
                 <a href="<?php echo site_url('admin/tt/delete_room/'.$r->id); ?>"
@@ -123,6 +133,7 @@ $(function(){
     $('#room_type').val(d.type);
     $('#room_capacity').val(d.capacity);
     $('#room_dept').val(d.dept || '');
+    $('#room_shared').prop('checked', d.shared == 1);
     $('html,body').animate({scrollTop:0}, 400);
   });
 
