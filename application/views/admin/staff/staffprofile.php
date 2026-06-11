@@ -224,28 +224,55 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                                                                                 }
                                                                                                                                 ?></a>
                                 </li>
-                            <?php }
+                            <?php } ?>
 
-                            if ($sch_setting->staff_barcode) { ?>
+                            <?php if ($sch_setting->staff_barcode):
+                                $bc_exists = file_exists("./uploads/staff_id_card/barcodes/" . $staff['id'] . ".png");
+                                $qr_exists = file_exists("./uploads/staff_id_card/qrcode/" . $staff['id'] . ".png");
+                            ?>
+                            <?php if ($bc_exists): ?>
                                 <li class="list-group-item listnoback">
                                     <b><?php echo $this->lang->line('barcode'); ?></b>
-                                    <?php if (file_exists("./uploads/staff_id_card/barcodes/" . $staff['id'] . ".png")) { ?>
-                                        <a class="pull-right text-aqua" href="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/barcodes/' . $staff['id'] . '.png'); ?>" target="_blank">
-                                            <img src="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/barcodes/' . $staff['id'] . '.png'); ?>" width="auto" height="auto" /></a>
-                                    <?php } ?>
+                                    <a class="pull-right text-aqua" id="staff-barcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/barcodes/' . $staff['id'] . '.png'); ?>" target="_blank">
+                                        <img id="staff-barcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/barcodes/' . $staff['id'] . '.png'); ?>" width="auto" height="auto" />
+                                    </a>
                                 </li>
-                            <?php }
-                              if ($sch_setting->staff_barcode) { ?>
+                            <?php endif; ?>
+                            <?php if ($qr_exists): ?>
                                 <li class="list-group-item listnoback">
                                     <b><?php echo $this->lang->line('qrcode'); ?></b>
-                                    <?php if (file_exists("./uploads/staff_id_card/qrcode/" . $staff['id'] . ".png")) { ?>
-                                        <a class="pull-right text-aqua" href="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/qrcode/' . $staff['id'] . '.png'); ?>" target="_blank">
-                                            <img src="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/qrcode/' . $staff['id'] . '.png'); ?>" width="auto" height="auto" class="h-50" /></a>
-                                    <?php } ?>
+                                    <a class="pull-right text-aqua" id="staff-qrcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/qrcode/' . $staff['id'] . '.png'); ?>" target="_blank">
+                                        <img class="h-50" id="staff-qrcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/qrcode/' . $staff['id'] . '.png'); ?>" width="auto" height="auto" />
+                                    </a>
                                 </li>
-                            <?php }
+                            <?php endif; ?>
+                            <?php if (!$bc_exists && !$qr_exists): ?>
+                                <li class="list-group-item listnoback" id="staff-generate-codes-row">
+                                    <b>Barcode / QR</b>
+                                    <span class="pull-right">
+                                        <button type="button" class="btn btn-xs btn-default" id="btn-generate-staff-codes"
+                                            data-staff-id="<?php echo $staff['id']; ?>"
+                                            style="border:1px solid #d2d6de;border-radius:3px;padding:2px 8px;font-size:11px;color:#555;">
+                                            <i class="fa fa-qrcode"></i> Generate
+                                        </button>
+                                    </span>
+                                </li>
+                                <li class="list-group-item listnoback" id="staff-generated-barcode-row" style="display:none;">
+                                    <b><?php echo $this->lang->line('barcode'); ?></b>
+                                    <a class="pull-right text-aqua" id="staff-barcode-img-link" href="#" target="_blank">
+                                        <img id="staff-barcode-img" src="" width="auto" height="auto" />
+                                    </a>
+                                </li>
+                                <li class="list-group-item listnoback" id="staff-generated-qrcode-row" style="display:none;">
+                                    <b><?php echo $this->lang->line('qrcode'); ?></b>
+                                    <a class="pull-right text-aqua" id="staff-qrcode-img-link" href="#" target="_blank">
+                                        <img class="h-50" id="staff-qrcode-img" src="" width="auto" height="auto" />
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php endif; ?>
 
-                            if (($staff["is_active"] == 0)) {
+                            <?php if (($staff["is_active"] == 0)) {
                             ?>
                                 <li class="list-group-item listnoback">
                                     <b><?php echo $this->lang->line('date_of_leaving'); ?></b> <a class="pull-right text-aqua"><?php
@@ -2455,6 +2482,25 @@ $(document).on('click', '.recascade-balance-btn', function () {
     }, 'json').fail(function () {
         alert('Request failed.');
         btn.prop('disabled', false).html('&#8635; Recalculate');
+    });
+});
+
+$(document).on('click', '#btn-generate-staff-codes', function() {
+    var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+    var staff_id = $(this).data('staff-id');
+    $.getJSON('<?php echo site_url('admin/staff/generate_codes/'); ?>' + staff_id, function(res) {
+        if (res.status === '1') {
+            var ts = '?t=' + Date.now();
+            $('#staff-barcode-img').attr('src', res.barcode_url + ts);
+            $('#staff-barcode-img-link').attr('href', res.barcode_url + ts);
+            $('#staff-qrcode-img').attr('src', res.qrcode_url + ts);
+            $('#staff-qrcode-img-link').attr('href', res.qrcode_url + ts);
+            $('#staff-generate-codes-row').hide();
+            $('#staff-generated-barcode-row, #staff-generated-qrcode-row').show();
+        } else {
+            $btn.prop('disabled', false).html('<i class="fa fa-qrcode"></i> Generate');
+            alert('Failed to generate codes. Please try again.');
+        }
     });
 });
 </script>

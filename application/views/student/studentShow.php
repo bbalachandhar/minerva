@@ -212,24 +212,51 @@ $currency_symbol = $admin_session['currency_symbol'];
                                     <b><?php echo $this->lang->line('rte'); ?></b> <a class="pull-right text-aqua"><?php if($student['rte']){ echo $this->lang->line(strtolower($student['rte'])); } ?></a>
                                 </li>
                             <?php } ?>                            
-                            <?php if ($sch_setting->student_barcode == 1) { ?>
+                            <?php if ($sch_setting->student_barcode == 1):
+                                $bc_exists = file_exists("uploads/student_id_card/barcodes/" . $student['id'] . ".png");
+                                $qr_exists = file_exists("./uploads/student_id_card/qrcode/" . $student['id'] . ".png");
+                            ?>
+                            <?php if ($bc_exists): ?>
                                 <li class="list-group-item listnoback">
                                     <b><?php echo $this->lang->line('barcode'); ?></b>
-                                    <?php if (file_exists("uploads/student_id_card/barcodes/" . $student['id'] . ".png")) { ?>
-                                        <a class="pull-right text-aqua" href="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/barcodes/' . $student['id'] . '.png'); ?>" target="_blank">
-                                            <img class="h-36" src="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/barcodes/' . $student['id'] . '.png'); ?>" width="auto" height="auto" /></a>
-                                    <?php } ?>
+                                    <a class="pull-right text-aqua" id="barcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/barcodes/' . $student['id'] . '.png'); ?>" target="_blank">
+                                        <img class="h-36" id="student-barcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/barcodes/' . $student['id'] . '.png'); ?>" width="auto" height="auto" />
+                                    </a>
                                 </li>
-                            <?php } ?>
-                            <?php if ($sch_setting->student_barcode == 1) { ?>
+                            <?php endif; ?>
+                            <?php if ($qr_exists): ?>
                                 <li class="list-group-item listnoback">
                                     <b><?php echo $this->lang->line('qrcode'); ?></b>
-                                    <?php if (file_exists("./uploads/student_id_card/qrcode/" . $student['id'] . ".png")) { ?>
-                                        <a class="pull-right text-aqua" href="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/qrcode/' . $student['id'] . '.png'); ?>" target="_blank">
-                                            <img class="h-50" src="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/qrcode/' . $student['id'] . '.png'); ?>" width="auto" height="auto" /></a>
-                                    <?php } ?>
+                                    <a class="pull-right text-aqua" id="qrcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/qrcode/' . $student['id'] . '.png'); ?>" target="_blank">
+                                        <img class="h-50" id="student-qrcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/qrcode/' . $student['id'] . '.png'); ?>" width="auto" height="auto" />
+                                    </a>
                                 </li>
-                            <?php } ?>
+                            <?php endif; ?>
+                            <?php if (!$bc_exists && !$qr_exists): ?>
+                                <li class="list-group-item listnoback" id="generate-codes-row">
+                                    <b>Barcode / QR</b>
+                                    <span class="pull-right">
+                                        <button type="button" class="btn btn-xs btn-default" id="btn-generate-codes"
+                                            data-student-id="<?php echo $student['id']; ?>"
+                                            style="border:1px solid #d2d6de;border-radius:3px;padding:2px 8px;font-size:11px;color:#555;">
+                                            <i class="fa fa-qrcode"></i> Generate
+                                        </button>
+                                    </span>
+                                </li>
+                                <li class="list-group-item listnoback" id="generated-barcode-row" style="display:none;">
+                                    <b><?php echo $this->lang->line('barcode'); ?></b>
+                                    <a class="pull-right text-aqua" id="barcode-img-link" href="#" target="_blank">
+                                        <img class="h-36" id="student-barcode-img" src="" width="auto" height="auto" />
+                                    </a>
+                                </li>
+                                <li class="list-group-item listnoback" id="generated-qrcode-row" style="display:none;">
+                                    <b><?php echo $this->lang->line('qrcode'); ?></b>
+                                    <a class="pull-right text-aqua" id="qrcode-img-link" href="#" target="_blank">
+                                        <img class="h-50" id="student-qrcode-img" src="" width="auto" height="auto" />
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php endif; ?>
 
                             <!------- Behaviour Report Start-------->
                             <?php
@@ -3645,6 +3672,25 @@ $currency_symbol = $admin_session['currency_symbol'];
         complete: function() {
             // Reset the button regardless of success or failure
             $button_.button('reset');
+        }
+    });
+});
+
+$(document).on('click', '#btn-generate-codes', function() {
+    var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+    var student_id = $(this).data('student-id');
+    $.getJSON('<?php echo site_url('student/generate_codes/'); ?>' + student_id, function(res) {
+        if (res.status === '1') {
+            var ts = '?t=' + Date.now();
+            $('#student-barcode-img').attr('src', res.barcode_url + ts);
+            $('#barcode-img-link').attr('href', res.barcode_url + ts);
+            $('#student-qrcode-img').attr('src', res.qrcode_url + ts);
+            $('#qrcode-img-link').attr('href', res.qrcode_url + ts);
+            $('#generate-codes-row').hide();
+            $('#generated-barcode-row, #generated-qrcode-row').show();
+        } else {
+            $btn.prop('disabled', false).html('<i class="fa fa-qrcode"></i> Generate');
+            alert('Failed to generate codes. Please try again.');
         }
     });
 });
