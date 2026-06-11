@@ -475,6 +475,7 @@ if (!function_exists('main_menu_array')) {
                     'get_sections_by_class', 'get_batches_by_class_section', 'get_subjects_by_class_section', 'get_all_subjects',
                     'dashboard',
                     'lesson_browser', 'get_lesson_browser_data',
+                    'joint_lessons', 'get_joint_lesson', 'save_joint_lesson', 'delete_joint_lesson',
                 ),
             ),
                             

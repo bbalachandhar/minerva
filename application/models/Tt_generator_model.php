@@ -93,6 +93,24 @@ class Tt_generator_model extends MY_Model
             return $score_b - $score_a;
         });
 
+        // Load joint lessons (placed first in every pass — hardest constraint)
+        $this->CI->load->model('Tt_joint_model');
+        $joint_lessons = $this->CI->Tt_joint_model->getAllForGeneration($session_id);
+
+        // Filter joint lessons to only those whose class-sections intersect with class_scope
+        if (!empty($class_scope) && !empty($joint_lessons)) {
+            $scope_set = [];
+            foreach ($class_scope as $cs) {
+                $scope_set[$cs['class_id'].'_'.$cs['section_id']] = true;
+            }
+            foreach ($joint_lessons as $jl) {
+                $jl->classes = array_values(array_filter($jl->classes, function($cs) use ($scope_set) {
+                    return isset($scope_set[$cs->class_id.'_'.$cs->section_id]);
+                }));
+            }
+            $joint_lessons = array_values(array_filter($joint_lessons, fn($jl) => count($jl->classes) >= 1));
+        }
+
         $gen_size       = $settings['gen_size']       ?? 'normal';
         $gen_strictness = $settings['gen_strictness']  ?? 'normal';
         $passes         = ($gen_size === 'huge') ? 10 : (($gen_size === 'large') ? 3 : 1);
@@ -125,6 +143,95 @@ class Tt_generator_model extends MY_Model
             $total_required = 0;
             $total_placed   = 0;
             $class_stats    = [];  // [class_id.'_'.section_id] => {label, required, placed}
+
+            // ---- JOINT LESSON PRE-PASS ----
+            foreach ($joint_lessons as $jl) {
+                $jl_consec     = (int) $jl->consecutive_periods;
+                $jl_ppw        = (int) $jl->periods_per_week;
+                $jl_staff      = $jl->staff_id    ? (int) $jl->staff_id    : null;
+                $jl_alt_staff  = $jl->alt_staff_id ? (int) $jl->alt_staff_id : null;
+                $jl_room       = $jl->room_id     ? (int) $jl->room_id     : null;
+                $jl_max_day    = max(1, (int) $jl->max_per_day);
+                $jl_spread     = !empty($jl->distribute_evenly);
+                $placements    = ($jl_consec > 1) ? (int) ceil($jl_ppw / $jl_consec) : $jl_ppw;
+
+                // Track per-class stats
+                foreach ($jl->classes as $cs) {
+                    $ck = $cs->class_id . '_' . $cs->section_id;
+                    if (!isset($class_stats[$ck])) {
+                        $class_stats[$ck] = ['class_id' => (int)$cs->class_id, 'section_id' => (int)$cs->section_id, 'required' => 0, 'placed' => 0];
+                    }
+                    $class_stats[$ck]['required'] += $placements;
+                }
+                $total_required += $placements;
+
+                $jl_days_used = [];
+
+                for ($p = 0; $p < $placements; $p++) {
+                    $slot = $this->_findJointSlot($jl, $jl_staff, $jl_alt_staff, $jl_room,
+                        $jl_consec, $jl_days_used, $jl_max_day, $jl_spread,
+                        $constraints, $unavail_map);
+
+                    if ($slot === null) {
+                        $class_labels = implode('+', array_map(fn($cs) => "C{$cs->class_id}/S{$cs->section_id}", $jl->classes));
+                        $conflicts[] = [
+                            'class_id'   => 0,
+                            'section_id' => 0,
+                            'subject'    => $jl->subject_name . ' (Joint)',
+                            'staff'      => $jl_staff ? "Staff#{$jl_staff}" : 'No teacher',
+                            'placement'  => ($p + 1) . ' of ' . $placements,
+                            'reason'     => "Joint lesson [{$jl->name}] for {$class_labels}: no slot where all classes are simultaneously free.",
+                        ];
+                        continue;
+                    }
+
+                    $assigned_teacher = $slot['staff_id'];
+
+                    // Place in ALL participating class-sections
+                    foreach ($jl->classes as $cs) {
+                        foreach ($slot['period_ids'] as $pid) {
+                            $this->class_occ[(int)$cs->class_id][(int)$cs->section_id][$slot['day']][$pid][0] = true;
+                            if ($assigned_teacher) {
+                                $this->teacher_occ[$assigned_teacher][$slot['day']][$pid] = true;
+                            }
+                            if ($slot['room_id']) {
+                                $this->room_occ[$slot['room_id']][$slot['day']][$pid] =
+                                    ($this->room_occ[$slot['room_id']][$slot['day']][$pid] ?? 0) + 1;
+                            }
+
+                            $draft_entries[] = [
+                                'gen_log_id'               => $log_id,
+                                'session_id'               => $session_id,
+                                'class_id'                 => (int)$cs->class_id,
+                                'section_id'               => (int)$cs->section_id,
+                                'subject_group_id'         => (int)$cs->sg_id,
+                                'subject_group_subject_id' => (int)$cs->sgs_id,
+                                'staff_id'                 => $assigned_teacher,
+                                'period_id'                => $pid,
+                                'day'                      => $slot['day'],
+                                'room_id'                  => $slot['room_id'],
+                                'batch_id'                 => null,
+                            ];
+                        }
+
+                        $ck = $cs->class_id . '_' . $cs->section_id;
+                        if (isset($class_stats[$ck])) $class_stats[$ck]['placed']++;
+                    }
+
+                    if ($assigned_teacher) {
+                        foreach ($slot['period_ids'] as $pid) {
+                            $this->teacher_periods_day[$assigned_teacher][$slot['day']] =
+                                ($this->teacher_periods_day[$assigned_teacher][$slot['day']] ?? 0) + 1;
+                            $this->teacher_periods_week[$assigned_teacher] =
+                                ($this->teacher_periods_week[$assigned_teacher] ?? 0) + 1;
+                        }
+                    }
+
+                    $jl_days_used[] = $slot['day'];
+                    $total_placed++;
+                }
+            }
+            // ---- END JOINT LESSON PRE-PASS ----
 
             foreach ($loads as $load) {
                 $class_id   = (int) $load->class_id;
@@ -376,6 +483,78 @@ class Tt_generator_model extends MY_Model
             }
         }
 
+        return $best;
+    }
+
+    /**
+     * Find a slot where ALL participating class-sections + teacher are simultaneously free.
+     * Returns ['day', 'period_ids', 'staff_id', 'room_id'] or null.
+     */
+    private function _findJointSlot($jl, $staff_id, $alt_staff, $pref_room,
+                                     $consec, $days_used, $max_per_day, $dist_evenly,
+                                     $constraints, $unavail_map)
+    {
+        $best       = null;
+        $best_score = -999;
+
+        foreach ($this->working_days as $day) {
+            if ($dist_evenly && in_array($day, $days_used)) {
+                $day_penalty = -10;
+            } else {
+                $day_penalty = 0;
+            }
+
+            foreach ($this->_getConsecutiveStarts($consec) as $pid_group) {
+                // Check ALL class-sections are free in this slot
+                $all_cs_free = true;
+                foreach ($jl->classes as $cs) {
+                    foreach ($pid_group as $pid) {
+                        if (!empty($this->class_occ[(int)$cs->class_id][(int)$cs->section_id][$day][$pid][0])) {
+                            $all_cs_free = false; break 2;
+                        }
+                        if (!empty($this->class_unavail[(int)$cs->class_id][(int)$cs->section_id][$day][$pid])) {
+                            $all_cs_free = false; break 2;
+                        }
+                    }
+                }
+                if (!$all_cs_free) continue;
+
+                // Check teacher availability
+                $teacher_candidates = array_filter([$staff_id, $alt_staff]);
+                if (empty($teacher_candidates)) $teacher_candidates = [null]; // no teacher required
+
+                foreach ($teacher_candidates as $t_id) {
+                    if ($t_id !== null) {
+                        $constraint = $constraints[$t_id] ?? null;
+                        if ($constraint) {
+                            $day_count  = $this->teacher_periods_day[$t_id][$day] ?? 0;
+                            if ($day_count + $consec > $constraint->max_periods_per_day) continue;
+                            $week_count = $this->teacher_periods_week[$t_id] ?? 0;
+                            if ($week_count + $consec > $constraint->max_periods_per_week) continue;
+                            if ($constraint->avoid_first_period && $pid_group[0] === $this->period_order[0]) continue;
+                            if ($constraint->avoid_last_period  && end($pid_group) === end($this->period_order)) continue;
+                        }
+                        $t_free = true;
+                        foreach ($pid_group as $pid) {
+                            if (!empty($this->teacher_occ[$t_id][$day][$pid])) { $t_free = false; break; }
+                            if (!empty($unavail_map[$t_id][$day][$pid]))        { $t_free = false; break; }
+                        }
+                        if (!$t_free) continue;
+                    }
+
+                    $room_id = $this->_findRoom($day, $pid_group, 'any', $pref_room, $t_id, $constraints[$t_id] ?? null);
+                    $score   = $day_penalty;
+                    if ($t_id === $staff_id) $score += 5;
+                    if ($room_id && $room_id === $pref_room) $score += 3;
+                    $score -= array_search($day, $this->working_days) * 0.1;
+
+                    if ($score > $best_score) {
+                        $best_score = $score;
+                        $best = ['day' => $day, 'period_ids' => $pid_group, 'staff_id' => $t_id, 'room_id' => $room_id];
+                    }
+                }
+            }
+        }
         return $best;
     }
 
