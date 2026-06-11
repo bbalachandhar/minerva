@@ -226,3 +226,4 @@ $(function(){
   $('#btn-save-loads, #btn-save-loads-bottom').on('click', saveLoads);
 });
 </script>
+</div>

@@ -178,3 +178,4 @@ $color = $score >= 90 ? 'success' : ($score >= 70 ? 'warning' : 'danger');
 </div>
 
 </section>
+</div>
