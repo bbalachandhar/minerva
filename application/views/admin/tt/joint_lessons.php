@@ -63,7 +63,11 @@
             <?php endforeach; ?>
             <?php if (empty($jl->classes)): ?><span class="text-danger">No classes!</span><?php endif; ?>
           </td>
-          <td><?php echo $jl->priority; ?></td>
+          <td><?php
+            $pLabel = [10=>'Highest',9=>'Very High',8=>'High',7=>'Above Normal',6=>'Normal',5=>'Below Normal',4=>'Low',3=>'Very Low',2=>'Very Low',1=>'Lowest'];
+            $pColor = $jl->priority>=8?'danger':($jl->priority>=6?'warning':($jl->priority>=4?'default':'info'));
+            echo '<span class="label label-'.$pColor.'" title="'.($pLabel[$jl->priority]??'').'">'.$jl->priority.'</span>';
+          ?></td>
           <td>
             <button class="btn btn-xs btn-primary btn-edit-joint" data-id="<?php echo $jl->id; ?>"><i class="fa fa-edit"></i></button>
             <button class="btn btn-xs btn-danger btn-delete-joint" data-id="<?php echo $jl->id; ?>" data-name="<?php echo htmlspecialchars($jl->name); ?>"><i class="fa fa-trash"></i></button>
@@ -110,9 +114,16 @@
               <div class="form-group">
                 <label>Priority</label>
                 <select class="form-control" name="priority" id="jl_priority">
-                  <?php for ($p=10;$p>=1;$p--): ?>
-                  <option value="<?php echo $p; ?>" <?php echo $p==7?'selected':''; ?>><?php echo $p; ?></option>
-                  <?php endfor; ?>
+                  <option value="10">10 — Highest (first to schedule)</option>
+                  <option value="9">9 — Very High</option>
+                  <option value="8">8 — High</option>
+                  <option value="7" selected>7 — Above Normal (default)</option>
+                  <option value="6">6 — Normal</option>
+                  <option value="5">5 — Below Normal</option>
+                  <option value="4">4 — Low</option>
+                  <option value="3">3 — Very Low</option>
+                  <option value="2">2 — Very Low</option>
+                  <option value="1">1 — Lowest (last to schedule)</option>
                 </select>
               </div>
             </div>

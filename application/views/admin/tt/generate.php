@@ -10,7 +10,7 @@
 </section>
 <section class="content">
 <div class="row">
-  <div class="col-md-8">
+  <div class="col-md-12">
     <div class="box box-primary">
       <div class="box-header with-border">
         <h3 class="box-title"><i class="fa fa-cog"></i> Generation Settings</h3>
@@ -38,7 +38,7 @@
 
             <div id="class-scope-list" style="max-height:300px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:10px;">
               <?php foreach ($classlist as $cls): ?>
-              <div class="class-scope-item" style="padding:6px 0;border-bottom:1px solid #f4f4f4;">
+              <div class="class-scope-item" data-dept="<?php echo $cls['department_id']; ?>" style="padding:6px 0;border-bottom:1px solid #f4f4f4;">
                 <strong><?php echo htmlspecialchars($cls['class']); ?></strong>
                 <div id="sections-<?php echo $cls['id']; ?>" style="padding-left:20px;margin-top:4px;">
                   <small class="text-muted"><i class="fa fa-spinner fa-spin"></i> Loading sections...</small>
@@ -157,9 +157,11 @@
       </div>
     </div>
   </div>
+</div>
 
-  <div class="col-md-4">
-    <!-- Generation progress -->
+<!-- Progress and result appear below the form (full width) -->
+<div class="row" id="progress-result-row" style="display:none;">
+  <div class="col-md-12">
     <div class="box box-info" id="progress-box" style="display:none;">
       <div class="box-header"><h3 class="box-title"><i class="fa fa-cog fa-spin"></i> Generating...</h3></div>
       <div class="box-body text-center">
@@ -169,50 +171,48 @@
         <p>Scheduling subjects across the week.<br>This may take a few seconds...</p>
       </div>
     </div>
-
-    <!-- Result card -->
     <div class="box box-default" id="result-box" style="display:none;">
       <div class="box-header" id="result-header"><h3 class="box-title">Result</h3></div>
       <div class="box-body" id="result-body"></div>
     </div>
+  </div>
+</div>
 
-    <!-- Recent runs -->
-    <?php if (!empty($gen_logs)): ?>
+<?php if (!empty($gen_logs)): ?>
+<div class="row">
+  <div class="col-md-12">
     <div class="box box-default">
       <div class="box-header"><h3 class="box-title"><i class="fa fa-history"></i> Recent Runs</h3></div>
       <div class="box-body p-0">
         <table class="table table-sm table-hover" style="font-size:12px;">
+          <thead><tr style="background:#f4f4f4;">
+            <th>Date / By</th><th style="width:80px;text-align:center;">Quality</th><th style="width:120px;">Status</th>
+          </tr></thead>
           <tbody>
             <?php foreach ($gen_logs as $log): ?>
             <tr>
-              <td>
-                <?php echo date('d M Y h:i A', strtotime($log->generated_at)); ?><br>
-                <small>By <?php echo htmlspecialchars($log->generated_by_name.' '.($log->generated_by_surname??'')); ?></small>
-              </td>
-              <td class="text-center">
-                <?php
+              <td><?php echo date('d M Y h:i A', strtotime($log->generated_at)); ?><br>
+                  <small class="text-muted">By <?php echo htmlspecialchars($log->generated_by_name.' '.($log->generated_by_surname??'')); ?></small></td>
+              <td class="text-center"><?php
                 $color = $log->quality_score >= 90 ? 'success' : ($log->quality_score >= 70 ? 'warning' : 'danger');
                 echo '<span class="label label-'.$color.'">'.$log->quality_score.'%</span>';
-                ?>
-              </td>
-              <td>
-                <?php if ($log->confirmed_at): ?>
+              ?></td>
+              <td><?php if ($log->confirmed_at): ?>
                   <span class="label label-success">Confirmed</span>
                 <?php elseif ($log->status === 'completed'): ?>
                   <a href="<?php echo site_url('admin/tt/preview/'.$log->id); ?>" class="btn btn-xs btn-primary">Preview</a>
                 <?php else: ?>
                   <span class="label label-default"><?php echo $log->status; ?></span>
-                <?php endif; ?>
-              </td>
+                <?php endif; ?></td>
             </tr>
             <?php endforeach; ?>
           </tbody>
         </table>
       </div>
     </div>
-    <?php endif; ?>
   </div>
 </div>
+<?php endif; ?>
 </section>
 
 <script>
@@ -220,7 +220,15 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
-  $('#scope_dept').select2({ placeholder: '-- All Departments --', allowClear: true, width: '100%' });
+  $('#scope_dept').select2({ placeholder: '-- All Departments --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
+
+  // Filter class scope list by department
+  $('#scope_dept').on('change', function(){
+    var dept = $(this).val();
+    $('.class-scope-item').each(function(){
+      $(this).toggle(!dept || $(this).data('dept') == dept);
+    });
+  });
 
   var sizeHints = {
     normal: 'Quick single pass — good for most timetables.',
@@ -274,6 +282,7 @@ $(function(){
       alert('Please select at least one class-section.'); return;
     }
 
+    $('#progress-result-row').show();
     $('#progress-box').show();
     $('#result-box').hide();
     $('#generate-form').find('button[type=submit]').prop('disabled', true);
@@ -298,6 +307,7 @@ $(function(){
     });
     if (scope.length === 0) { alert('Please select at least one class-section.'); return; }
 
+    $('#progress-result-row').show();
     $('#progress-box').show();
     $('#result-box').hide();
     $('#btn-test-generate').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Testing...');

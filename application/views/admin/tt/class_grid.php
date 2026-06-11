@@ -25,7 +25,7 @@
         <label>Class <span class="text-danger">*</span></label>
         <select class="form-control" id="cg_class">
           <option value="">-- Select Class --</option>
-          <?php foreach ($classlist as $c): ?><option value="<?php echo $c['id']; ?>"><?php echo htmlspecialchars($c['class']); ?></option><?php endforeach; ?>
+          <?php foreach ($classlist as $c): ?><option value="<?php echo $c['id']; ?>" data-dept="<?php echo $c['department_id']; ?>"><?php echo htmlspecialchars($c['class']); ?></option><?php endforeach; ?>
         </select>
       </div>
       <div class="col-md-3">
@@ -149,9 +149,25 @@ $(function(){
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
   var current_subjects = [], current_staff = [], current_rooms = [], current_batches = [];
 
-  $('#cg_dept').select2({ placeholder: '-- All --', allowClear: true, width: '100%' });
-  $('#cg_class').select2({ placeholder: '-- Select Class --', allowClear: true, width: '100%' });
+  $('#cg_dept').select2({ placeholder: '-- All --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
+  $('#cg_class').select2({ placeholder: '-- Select Class --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
   $('#cg_section').select2({ placeholder: '-- Select Section --', allowClear: true, width: '100%' });
+
+  // Store original class options for dept filtering
+  var allCgClassOpts = [];
+  $('#cg_class option').each(function(){
+    if ($(this).val()) allCgClassOpts.push({val:$(this).val(), text:$(this).text(), dept:$(this).data('dept')});
+  });
+
+  $('#cg_dept').on('change', function(){
+    var dept = $(this).val();
+    var opts = '<option value="">-- Select Class --</option>';
+    $.each(allCgClassOpts, function(i,o){
+      if (!dept || o.dept == dept) opts += '<option value="'+o.val+'" data-dept="'+o.dept+'">'+o.text+'</option>';
+    });
+    $('#cg_class').html(opts).trigger('change.select2');
+    $('#cg_section').html('<option value="">-- Select Section --</option>').trigger('change.select2');
+  });
 
   // Load sections
   $('#cg_class').on('change', function(){

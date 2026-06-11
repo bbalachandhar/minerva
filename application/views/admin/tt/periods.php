@@ -22,11 +22,17 @@
           </div>
           <div class="form-group">
             <label>Start Time <span class="text-danger">*</span></label>
-            <input type="time" class="form-control" id="period_start" name="start_time" required>
+            <div class="input-group date" id="period_start_pick">
+              <input type="text" class="form-control" id="period_start" name="start_time" placeholder="HH:MM" readonly style="background:#fff;cursor:pointer;" required>
+              <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-clock-o" style="color:#3c8dbc;"></i></span>
+            </div>
           </div>
           <div class="form-group">
             <label>End Time <span class="text-danger">*</span></label>
-            <input type="time" class="form-control" id="period_end" name="end_time" required>
+            <div class="input-group date" id="period_end_pick">
+              <input type="text" class="form-control" id="period_end" name="end_time" placeholder="HH:MM" readonly style="background:#fff;cursor:pointer;" required>
+              <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-clock-o" style="color:#3c8dbc;"></i></span>
+            </div>
           </div>
           <div class="form-group">
             <label><input type="checkbox" id="is_break" name="is_break" value="1"> This is a Break / Interval</label>
@@ -131,6 +137,10 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
+  var dpTimeIcons = { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' };
+  $('#period_start_pick').datetimepicker({ format: 'HH:mm', icons: dpTimeIcons });
+  $('#period_end_pick').datetimepicker({ format: 'HH:mm', icons: dpTimeIcons });
+
   // Toggle break label field
   $('#is_break').on('change', function(){
     $('#break_label_row').toggle(this.checked);
@@ -156,8 +166,8 @@ $(function(){
     var d = $(this).data();
     $('#period_id').val(d.id);
     $('#period_name').val(d.name);
-    $('#period_start').val(d.start);
-    $('#period_end').val(d.end);
+    $('#period_start_pick').data('DateTimePicker').date(moment(d.start, 'HH:mm:ss'));
+    $('#period_end_pick').data('DateTimePicker').date(moment(d.end, 'HH:mm:ss'));
     $('#sort_order').val(d.sortorder);
     if (d.isbreak == 1) {
       $('#is_break').prop('checked', true);
@@ -175,6 +185,8 @@ $(function(){
     $('#period-form')[0].reset();
     $('#period_id').val(0);
     $('#break_label_row').hide();
+    $('#period_start_pick').data('DateTimePicker').clear();
+    $('#period_end_pick').data('DateTimePicker').clear();
   });
 
   // Save

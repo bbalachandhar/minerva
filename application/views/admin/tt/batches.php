@@ -21,7 +21,7 @@
             <select class="form-control" id="batch_dept">
               <option value="">-- All --</option>
               <?php foreach ($departments as $dept): ?>
-              <option value="<?php echo $dept['id']; ?>"><?php echo htmlspecialchars($dept['name']); ?></option>
+              <option value="<?php echo $dept['id']; ?>"><?php echo htmlspecialchars($dept['department_name']); ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -30,7 +30,7 @@
             <select class="form-control" name="class_id" id="batch_class" required>
               <option value="">-- Select Class --</option>
               <?php foreach ($classlist as $cls): ?>
-              <option value="<?php echo $cls['id']; ?>"><?php echo htmlspecialchars($cls['class']); ?></option>
+              <option value="<?php echo $cls['id']; ?>" data-dept="<?php echo $cls['department_id']; ?>"><?php echo htmlspecialchars($cls['class']); ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -114,6 +114,26 @@
 
 <script>
 $(function(){
+  $('#batch_dept').select2({ placeholder: '-- All --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
+  $('#batch_class').select2({ placeholder: '-- Select Class --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
+  $('#batch_section').select2({ placeholder: '-- Select Section --', allowClear: true, width: '100%' });
+
+  // Store original class options for dept filtering
+  var allClassOpts = [];
+  $('#batch_class option').each(function(){
+    if ($(this).val()) allClassOpts.push({val:$(this).val(), text:$(this).text(), dept:$(this).data('dept')});
+  });
+
+  $('#batch_dept').on('change', function(){
+    var dept = $(this).val();
+    var opts = '<option value="">-- Select Class --</option>';
+    $.each(allClassOpts, function(i,o){
+      if (!dept || o.dept == dept) opts += '<option value="'+o.val+'" data-dept="'+o.dept+'">'+o.text+'</option>';
+    });
+    $('#batch_class').html(opts).trigger('change.select2');
+    $('#batch_section').html('<option value="">-- Select Section --</option>').trigger('change.select2');
+  });
+
   $('#batch_class').on('change', function(){
     var class_id = $(this).val();
     $('#batch_section').html('<option value="">Loading...</option>');
