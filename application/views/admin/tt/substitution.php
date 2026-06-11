@@ -133,6 +133,8 @@ $(function(){
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
   var current_slots = [];
 
+  $('#absent_staff').select2({ placeholder: '-- Select Teacher --', allowClear: true, width: '100%' });
+
   $('#btn-load-slots').on('click', function(){
     var staff_id = $('#absent_staff').val();
     var date     = $('#absence_date').val();

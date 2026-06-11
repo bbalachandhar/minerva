@@ -185,6 +185,8 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
+  $('#scope_dept').select2({ placeholder: '-- All Departments --', allowClear: true, width: '100%' });
+
   // Load sections for each class
   <?php foreach ($classlist as $cls): ?>
   $.post('<?php echo site_url('admin/tt/get_sections_by_class'); ?>',
