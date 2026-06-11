@@ -1,4 +1,5 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1>Preview Draft Timetable <small>Review before confirming</small></h1>
     <ol class="breadcrumb">
