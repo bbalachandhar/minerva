@@ -23,15 +23,15 @@
           <div class="form-group">
             <label>Start Time <span class="text-danger">*</span></label>
             <div class="input-group" id="period_start_pick">
-              <input type="text" class="form-control" id="period_start" name="start_time" placeholder="HH:MM" readonly style="background:#fff;cursor:pointer;" required>
-              <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-clock-o" style="color:#3c8dbc;"></i></span>
+              <input type="text" class="form-control" id="period_start" name="start_time" placeholder="HH:MM:SS" autocomplete="off" required>
+              <span class="input-group-addon"><i class="fa fa-clock-o"></i></span>
             </div>
           </div>
           <div class="form-group">
             <label>End Time <span class="text-danger">*</span></label>
             <div class="input-group" id="period_end_pick">
-              <input type="text" class="form-control" id="period_end" name="end_time" placeholder="HH:MM" readonly style="background:#fff;cursor:pointer;" required>
-              <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-clock-o" style="color:#3c8dbc;"></i></span>
+              <input type="text" class="form-control" id="period_end" name="end_time" placeholder="HH:MM:SS" autocomplete="off" required>
+              <span class="input-group-addon"><i class="fa fa-clock-o"></i></span>
             </div>
           </div>
           <div class="form-group">
