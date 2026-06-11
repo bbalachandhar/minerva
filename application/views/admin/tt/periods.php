@@ -127,6 +127,9 @@
 
 <script>
 $(function(){
+  var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
+  var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
+
   // Toggle break label field
   $('#is_break').on('change', function(){
     $('#break_label_row').toggle(this.checked);
@@ -142,7 +145,7 @@ $(function(){
           order.push($(this).data('id'));
         });
         $.post('<?php echo site_url('admin/tt/reorder_periods'); ?>', {order: order,
-          <?php echo $this->customlib->getCSRFToken(); ?>});
+          [csrf_name]: csrf_val});
       }
     });
   }
