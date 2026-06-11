@@ -17,7 +17,7 @@
         <label>Department</label>
         <select class="form-control" id="lb_dept">
           <option value="">-- All Departments --</option>
-          <?php foreach ($departments as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['name']); ?></option><?php endforeach; ?>
+          <?php foreach ($departments as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['department_name']); ?></option><?php endforeach; ?>
         </select>
       </div>
       <div class="col-md-3">

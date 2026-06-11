@@ -92,6 +92,19 @@ class Tt extends Admin_Controller
     // =========================================================================
     // LESSON BROWSER
     // =========================================================================
+    // INSTRUCTIONS
+    // =========================================================================
+
+    public function instructions()
+    {
+        $this->_setMenu();
+        $data = $this->_baseData();
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/tt/instructions', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    // =========================================================================
 
     public function lesson_browser()
     {
@@ -102,7 +115,7 @@ class Tt extends Admin_Controller
         $session_id = $this->setting_model->getCurrentSession();
 
         $data = $this->_baseData();
-        $data['departments'] = $this->department_model->getAllDepartment();
+        $data['departments'] = $this->department_model->getDepartmentType();
         $data['staff_list']  = $this->staff_model->getStaffbyrole(2);
 
         $this->load->view('layout/header', $data);

@@ -26,7 +26,10 @@
         </div>
         <div class="form-group">
           <label>Date <span class="text-danger">*</span></label>
-          <input type="date" class="form-control" id="absence_date" value="<?php echo date('Y-m-d'); ?>">
+          <div class="input-group date" id="absence_date_pick">
+            <input type="text" class="form-control" id="absence_date" value="<?php echo date('Y-m-d'); ?>" placeholder="YYYY-MM-DD" readonly style="background:#fff;cursor:pointer;">
+            <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-calendar" style="color:#3c8dbc;"></i></span>
+          </div>
         </div>
         <button class="btn btn-warning btn-block" id="btn-load-slots">
           <i class="fa fa-search"></i> Find Affected Slots
@@ -132,6 +135,12 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
   var current_slots = [];
+
+  $('#absence_date_pick').datetimepicker({
+    format: 'YYYY-MM-DD',
+    maxDate: moment(),
+    icons: { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' }
+  });
 
   $('#absent_staff').select2({ placeholder: '-- Select Teacher --', allowClear: true, width: '100%' });
 

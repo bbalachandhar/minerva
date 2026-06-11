@@ -69,11 +69,17 @@
       <div class="row" style="padding:10px 0;">
         <div class="col-md-3">
           <label>From</label>
-          <input type="date" class="form-control" id="sub_from" value="<?php echo date('Y-m-01'); ?>">
+          <div class="input-group date" id="sub_from_pick">
+            <input type="text" class="form-control" id="sub_from" value="<?php echo date('Y-m-01'); ?>" placeholder="YYYY-MM-DD" readonly style="background:#fff;cursor:pointer;">
+            <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-calendar" style="color:#3c8dbc;"></i></span>
+          </div>
         </div>
         <div class="col-md-3">
           <label>To</label>
-          <input type="date" class="form-control" id="sub_to" value="<?php echo date('Y-m-d'); ?>">
+          <div class="input-group date" id="sub_to_pick">
+            <input type="text" class="form-control" id="sub_to" value="<?php echo date('Y-m-d'); ?>" placeholder="YYYY-MM-DD" readonly style="background:#fff;cursor:pointer;">
+            <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-calendar" style="color:#3c8dbc;"></i></span>
+          </div>
         </div>
         <div class="col-md-3">
           <label>Teacher (optional)</label>
@@ -100,6 +106,12 @@
 $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
+
+  var dpIcons = { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' };
+  $('#sub_from_pick').datetimepicker({ format:'YYYY-MM-DD', icons: dpIcons });
+  $('#sub_to_pick').datetimepicker({ format:'YYYY-MM-DD', icons: dpIcons });
+  $('#sub_from_pick').on('dp.change', function(e){ $('#sub_to_pick').data('DateTimePicker').minDate(e.date); });
+  $('#sub_to_pick').on('dp.change',   function(e){ $('#sub_from_pick').data('DateTimePicker').maxDate(e.date); });
 
   $('#btn-load-master').on('click', function(){
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
