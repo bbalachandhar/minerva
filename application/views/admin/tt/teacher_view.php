@@ -21,13 +21,17 @@
           <?php endforeach; ?>
         </select>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-4">
         <label>&nbsp;</label>
-        <button class="btn btn-primary btn-block" id="btn-load-teacher-grid"><i class="fa fa-search"></i> Load</button>
+        <div class="input-group">
+          <span class="input-group-btn"><button class="btn btn-default" id="btn-prev-teacher" title="Previous Teacher" disabled><i class="fa fa-chevron-left"></i></button></span>
+          <button class="btn btn-primary btn-block" id="btn-load-teacher-grid" style="border-radius:0;"><i class="fa fa-search"></i> Load</button>
+          <span class="input-group-btn"><button class="btn btn-default" id="btn-next-teacher" title="Next Teacher" disabled><i class="fa fa-chevron-right"></i></button></span>
+        </div>
       </div>
-      <div class="col-md-5 text-right">
+      <div class="col-md-4 text-right">
         <label>&nbsp;</label>
-        <button class="btn btn-default btn-block" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
+        <button class="btn btn-default btn-block" id="btn-print-teacher"><i class="fa fa-print"></i> Print</button>
       </div>
     </div>
   </div>
@@ -44,21 +48,66 @@
 $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
+  var lastStaffName = '';
 
   $('#tv_staff').select2({ placeholder: '-- Select Teacher --', allowClear: true, width: '100%' });
 
-  $('#btn-load-teacher-grid').on('click', function(){
+  function updateNavButtons(){
+    var $opts = $('#tv_staff option[value!=""]');
+    var idx   = $opts.index($('#tv_staff option:selected'));
+    $('#btn-prev-teacher').prop('disabled', idx <= 0);
+    $('#btn-next-teacher').prop('disabled', idx < 0 || idx >= $opts.length - 1);
+  }
+
+  function loadTeacher(){
     var staff_id = $('#tv_staff').val();
     if (!staff_id) { alert('Please select a teacher.'); return; }
-    var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
+    lastStaffName = $('#tv_staff option:selected').text().trim();
+    var $btn = $('#btn-load-teacher-grid').prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/load_teacher_grid'); ?>',
       {staff_id: staff_id, [csrf_name]: csrf_val}, function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-search"></i> Load');
         if (res.status === '1') {
           $('#tv-placeholder').hide();
           $('#teacher-grid-container').html(res.html);
+          updateNavButtons();
         }
       },'json');
+  }
+
+  $('#btn-load-teacher-grid').on('click', loadTeacher);
+
+  $('#btn-prev-teacher').on('click', function(){
+    var $opts = $('#tv_staff option[value!=""]');
+    var idx   = $opts.index($('#tv_staff option:selected'));
+    if (idx > 0) { $('#tv_staff').val($opts.eq(idx-1).val()).trigger('change'); loadTeacher(); }
+  });
+
+  $('#btn-next-teacher').on('click', function(){
+    var $opts = $('#tv_staff option[value!=""]');
+    var idx   = $opts.index($('#tv_staff option:selected'));
+    if (idx < $opts.length - 1) { $('#tv_staff').val($opts.eq(idx+1).val()).trigger('change'); loadTeacher(); }
+  });
+
+  $('#btn-print-teacher').on('click', function(){
+    var html = $('#teacher-grid-container').html();
+    if (!html || !html.trim() || html.indexOf('fa-arrow-up') !== -1) { alert('Please load a timetable first.'); return; }
+    var w = window.open('','_blank');
+    w.document.write('<html><head><title>'+lastStaffName+' — Timetable</title>'
+      +'<link rel="stylesheet" href="<?php echo base_url('assets/bower_components/bootstrap/dist/css/bootstrap.min.css'); ?>">'
+      +'<style>body{padding:20px;font-size:12px;}'
+      +'.tt-grid th,.tt-grid td{padding:4px 6px;border:1px solid #ccc;white-space:nowrap;}'
+      +'.tt-grid th{background:#3c8dbc;color:#fff;text-align:center;}'
+      +'.time-col{width:80px;background:#f4f4f4;text-align:center;font-size:11px;}'
+      +'.slot-tag{display:inline-block;border-radius:3px;padding:1px 5px;font-size:11px;font-weight:600;color:#fff;margin:1px;}'
+      +'.slot-theory{background:#3498db;}.slot-practical{background:#e74c3c;}.slot-project{background:#f39c12;}.slot-free{background:#27ae60;}.slot-other{background:#7f8c8d;}'
+      +'.break-row{background:#fffde7 !important;}.box-tools,.box-header .btn{display:none}'
+      +'</style></head><body>'
+      +'<h4>'+lastStaffName+' — Weekly Timetable</h4>'
+      +html+'</body></html>');
+    w.document.close();
+    w.focus();
+    w.print();
   });
 });
 </script>

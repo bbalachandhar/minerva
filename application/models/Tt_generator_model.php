@@ -71,92 +71,138 @@ class Tt_generator_model extends MY_Model
         $this->_loadRoomUnavail($session_id);
         $this->_loadSubjectUnavail($session_id);
 
+        // Snapshot occupancy after locked entries so each pass starts clean
+        $locked_occ_snapshot = [
+            'class_occ'           => $this->class_occ,
+            'teacher_occ'         => $this->teacher_occ,
+            'room_occ'            => $this->room_occ,
+            'teacher_periods_day' => $this->teacher_periods_day,
+            'teacher_periods_week'=> $this->teacher_periods_week,
+            'subject_day_count'   => $this->subject_day_count,
+        ];
+
         $this->CI->load->model('Tt_teacher_model');
         $constraints = $this->CI->Tt_teacher_model->getAllConstraintsMap($session_id);
         $unavail_map = $this->CI->Tt_teacher_model->getUnavailabilityMap($session_id);
 
         $this->CI->load->model('Tt_subjectload_model');
-        $loads = $this->CI->Tt_subjectload_model->getAllForClassScope($session_id, $class_scope);
-        usort($loads, function($a, $b) {
+        $base_loads = $this->CI->Tt_subjectload_model->getAllForClassScope($session_id, $class_scope);
+        usort($base_loads, function($a, $b) {
             $score_a = ($a->consecutive_periods * 10) + $a->periods_per_week + $a->priority;
             $score_b = ($b->consecutive_periods * 10) + $b->periods_per_week + $b->priority;
             return $score_b - $score_a;
         });
 
+        $gen_size       = $settings['gen_size']       ?? 'normal';
+        $gen_strictness = $settings['gen_strictness']  ?? 'normal';
+        $passes         = ($gen_size === 'huge') ? 10 : (($gen_size === 'large') ? 3 : 1);
+
         $log_id = $dry_run ? 0 : $this->_createLog($session_id, $staff_id, $class_scope, $settings);
 
-        $draft_entries  = [];
-        $conflicts      = [];
-        $total_required = 0;
-        $total_placed   = 0;
+        $best_placed   = -1;
+        $best_result   = null;
 
-        foreach ($loads as $load) {
-            $class_id   = (int) $load->class_id;
-            $section_id = (int) $load->section_id;
-            $staff_id_t = (int) $load->staff_id;
-            $alt_staff  = !empty($load->alt_staff_id) ? (int)$load->alt_staff_id : null;
-            $periods_pw = (int) $load->periods_per_week;
-            $consec     = (int) $load->consecutive_periods;
-            $batch_id   = $load->batch_id ? (int)$load->batch_id : null;
-            $batch_key  = $batch_id ?: 0;
-            $room_type  = $load->preferred_room_type ?? 'any';
-            $pref_room  = !empty($load->preferred_room_id) ? (int)$load->preferred_room_id : null;
-            $max_per_day   = (int) ($load->max_per_day ?? 2);
-            $min_per_day   = !empty($load->min_per_day) ? 1 : 0;
-            $dist_evenly   = !empty($load->distribute_evenly);
-            $sgs_id        = (int) $load->subject_group_subject_id;
+        for ($pass = 0; $pass < $passes; $pass++) {
+            // Restore occupancy snapshot
+            $this->class_occ            = $locked_occ_snapshot['class_occ'];
+            $this->teacher_occ          = $locked_occ_snapshot['teacher_occ'];
+            $this->room_occ             = $locked_occ_snapshot['room_occ'];
+            $this->teacher_periods_day  = $locked_occ_snapshot['teacher_periods_day'];
+            $this->teacher_periods_week = $locked_occ_snapshot['teacher_periods_week'];
+            $this->subject_day_count    = $locked_occ_snapshot['subject_day_count'];
 
-            // Teacher preferred room fallback
-            if (!$pref_room && !empty($constraints[$staff_id_t]->preferred_room_id)) {
-                $pref_room = (int) $constraints[$staff_id_t]->preferred_room_id;
+            // Shuffle loads slightly on passes > 0 to escape local optima
+            $loads = $base_loads;
+            if ($pass > 0) {
+                $hard_loads = array_filter($loads, fn($l) => $l->consecutive_periods > 1);
+                $soft_loads = array_filter($loads, fn($l) => $l->consecutive_periods <= 1);
+                shuffle($soft_loads);
+                $loads = array_values(array_merge($hard_loads, $soft_loads));
             }
 
-            $placements_needed = ($consec > 1)
-                ? (int) ceil($periods_pw / $consec)
-                : $periods_pw;
+            $draft_entries  = [];
+            $conflicts      = [];
+            $total_required = 0;
+            $total_placed   = 0;
+            $class_stats    = [];  // [class_id.'_'.section_id] => {label, required, placed}
 
-            $total_required += $placements_needed;
-            $placed_count    = 0;
-            $subject_days_used = [];
+            foreach ($loads as $load) {
+                $class_id   = (int) $load->class_id;
+                $section_id = (int) $load->section_id;
+                $staff_id_t = (int) $load->staff_id;
+                $alt_staff  = !empty($load->alt_staff_id) ? (int)$load->alt_staff_id : null;
+                $periods_pw = (int) $load->periods_per_week;
+                $consec     = (int) $load->consecutive_periods;
+                $batch_id   = $load->batch_id ? (int)$load->batch_id : null;
+                $batch_key  = $batch_id ?: 0;
+                $room_type  = $load->preferred_room_type ?? 'any';
+                $pref_room  = !empty($load->preferred_room_id) ? (int)$load->preferred_room_id : null;
+                $sgs_id     = (int) $load->subject_group_subject_id;
 
-            for ($p = 0; $p < $placements_needed; $p++) {
-                $slot = $this->_findBestSlot(
-                    $class_id, $section_id, $batch_key, $sgs_id,
-                    $staff_id_t, $alt_staff,
-                    $consec, $subject_days_used,
-                    $constraints, $unavail_map,
-                    $room_type, $pref_room,
-                    $max_per_day, $min_per_day, $dist_evenly
-                );
+                // Adjust max_per_day based on strictness
+                $max_per_day = (int) ($load->max_per_day ?? 2);
+                if ($gen_strictness === 'strict')  $max_per_day = min($max_per_day, 1);
+                if ($gen_strictness === 'relaxed') $max_per_day = max($max_per_day, 3);
 
-                if ($slot === null) {
-                    $conflicts[] = [
-                        'class_id'   => $class_id,
-                        'section_id' => $section_id,
-                        'subject'    => $load->subject_name . ' (' . ($load->subject_code ?? '') . ')',
-                        'staff'      => $load->staff_name . ' ' . $load->staff_surname,
-                        'placement'  => ($p + 1) . ' of ' . $placements_needed,
-                        'reason'     => 'No available slot — teacher fully booked, class full, or constraints block all options.',
-                    ];
-                    continue;
+                $min_per_day  = !empty($load->min_per_day) ? 1 : 0;
+                $dist_evenly  = !empty($load->distribute_evenly);
+
+                // Teacher preferred room fallback
+                if (!$pref_room && !empty($constraints[$staff_id_t]->preferred_room_id)) {
+                    $pref_room = (int) $constraints[$staff_id_t]->preferred_room_id;
                 }
 
-                $assigned_teacher = $slot['staff_id'];
-                foreach ($slot['period_ids'] as $pid) {
-                    $this->class_occ[$class_id][$section_id][$slot['day']][$pid][$batch_key] = true;
-                    $this->teacher_occ[$assigned_teacher][$slot['day']][$pid] = true;
-                    if ($slot['room_id']) {
-                        $this->room_occ[$slot['room_id']][$slot['day']][$pid] =
-                            ($this->room_occ[$slot['room_id']][$slot['day']][$pid] ?? 0) + 1;
-                    }
-                    $this->teacher_periods_day[$assigned_teacher][$slot['day']] =
-                        ($this->teacher_periods_day[$assigned_teacher][$slot['day']] ?? 0) + 1;
-                    $this->teacher_periods_week[$assigned_teacher] =
-                        ($this->teacher_periods_week[$assigned_teacher] ?? 0) + 1;
-                    $this->subject_day_count[$class_id][$section_id][$sgs_id][$slot['day']] =
-                        ($this->subject_day_count[$class_id][$section_id][$sgs_id][$slot['day']] ?? 0) + 1;
+                $placements_needed = ($consec > 1)
+                    ? (int) ceil($periods_pw / $consec)
+                    : $periods_pw;
 
-                    if (!$dry_run) {
+                $ck = $class_id . '_' . $section_id;
+                if (!isset($class_stats[$ck])) {
+                    $class_stats[$ck] = ['class_id' => $class_id, 'section_id' => $section_id, 'required' => 0, 'placed' => 0];
+                }
+                $class_stats[$ck]['required'] += $placements_needed;
+
+                $total_required += $placements_needed;
+                $placed_count    = 0;
+                $subject_days_used = [];
+
+                for ($p = 0; $p < $placements_needed; $p++) {
+                    $slot = $this->_findBestSlot(
+                        $class_id, $section_id, $batch_key, $sgs_id,
+                        $staff_id_t, $alt_staff,
+                        $consec, $subject_days_used,
+                        $constraints, $unavail_map,
+                        $room_type, $pref_room,
+                        $max_per_day, $min_per_day, $dist_evenly
+                    );
+
+                    if ($slot === null) {
+                        $conflicts[] = [
+                            'class_id'   => $class_id,
+                            'section_id' => $section_id,
+                            'subject'    => $load->subject_name . ' (' . ($load->subject_code ?? '') . ')',
+                            'staff'      => $load->staff_name . ' ' . $load->staff_surname,
+                            'placement'  => ($p + 1) . ' of ' . $placements_needed,
+                            'reason'     => 'No available slot — teacher fully booked, class full, or constraints block all options.',
+                        ];
+                        continue;
+                    }
+
+                    $assigned_teacher = $slot['staff_id'];
+                    foreach ($slot['period_ids'] as $pid) {
+                        $this->class_occ[$class_id][$section_id][$slot['day']][$pid][$batch_key] = true;
+                        $this->teacher_occ[$assigned_teacher][$slot['day']][$pid] = true;
+                        if ($slot['room_id']) {
+                            $this->room_occ[$slot['room_id']][$slot['day']][$pid] =
+                                ($this->room_occ[$slot['room_id']][$slot['day']][$pid] ?? 0) + 1;
+                        }
+                        $this->teacher_periods_day[$assigned_teacher][$slot['day']] =
+                            ($this->teacher_periods_day[$assigned_teacher][$slot['day']] ?? 0) + 1;
+                        $this->teacher_periods_week[$assigned_teacher] =
+                            ($this->teacher_periods_week[$assigned_teacher] ?? 0) + 1;
+                        $this->subject_day_count[$class_id][$section_id][$sgs_id][$slot['day']] =
+                            ($this->subject_day_count[$class_id][$section_id][$sgs_id][$slot['day']] ?? 0) + 1;
+
                         $draft_entries[] = [
                             'gen_log_id'               => $log_id,
                             'session_id'               => $session_id,
@@ -171,30 +217,43 @@ class Tt_generator_model extends MY_Model
                             'batch_id'                 => $batch_id,
                         ];
                     }
+
+                    $subject_days_used[] = $slot['day'];
+                    $placed_count++;
+                    $total_placed++;
+                    $class_stats[$ck]['placed']++;
                 }
 
-                $subject_days_used[] = $slot['day'];
-                $placed_count++;
-                $total_placed++;
-            }
-
-            // On1 check: warn if subject didn't get placed on every working day
-            if ($min_per_day && $placed_count > 0) {
-                $days_covered = array_unique($subject_days_used);
-                $missing_days = array_diff($this->working_days, $days_covered);
-                foreach ($missing_days as $md) {
-                    $conflicts[] = [
-                        'class_id'   => $class_id,
-                        'section_id' => $section_id,
-                        'subject'    => $load->subject_name . ' (' . ($load->subject_code ?? '') . ')',
-                        'staff'      => $load->staff_name . ' ' . $load->staff_surname,
-                        'placement'  => 'On1',
-                        'reason'     => "On1 violation: no slot placed on {$md}.",
-                    ];
+                // On1 check
+                if ($min_per_day && $placed_count > 0) {
+                    $days_covered = array_unique($subject_days_used);
+                    $missing_days = array_diff($this->working_days, $days_covered);
+                    foreach ($missing_days as $md) {
+                        $conflicts[] = [
+                            'class_id'   => $class_id,
+                            'section_id' => $section_id,
+                            'subject'    => $load->subject_name . ' (' . ($load->subject_code ?? '') . ')',
+                            'staff'      => $load->staff_name . ' ' . $load->staff_surname,
+                            'placement'  => 'On1',
+                            'reason'     => "On1 violation: no slot placed on {$md}.",
+                        ];
+                    }
                 }
             }
+
+            if ($total_placed > $best_placed) {
+                $best_placed = $total_placed;
+                $best_result = compact('draft_entries', 'conflicts', 'total_required', 'total_placed', 'class_stats');
+            }
+
+            if ($total_placed === $total_required) break; // perfect — no need for more passes
         }
 
+        $total_required = $best_result['total_required'];
+        $total_placed   = $best_result['total_placed'];
+        $draft_entries  = $best_result['draft_entries'];
+        $conflicts      = $best_result['conflicts'];
+        $class_stats    = array_values($best_result['class_stats'] ?? []);
         $quality = ($total_required > 0) ? round(($total_placed / $total_required) * 100, 2) : 100.00;
 
         if (!$dry_run) {
@@ -221,6 +280,7 @@ class Tt_generator_model extends MY_Model
             'total_conflicts' => count($conflicts),
             'quality_score'   => $quality,
             'conflicts'       => $conflicts,
+            'class_stats'     => $class_stats,
             'dry_run'         => $dry_run,
         ];
     }

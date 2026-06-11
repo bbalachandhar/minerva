@@ -50,9 +50,37 @@
 <div id="subject-load-container" style="display:none;">
   <div class="box box-default">
     <div class="box-header with-border">
-      <h3 class="box-title"><i class="fa fa-table"></i> Subject Load Configuration</h3>
+      <h3 class="box-title"><i class="fa fa-table"></i> Subject Load Configuration <span id="sl-status-badge"></span></h3>
       <div class="box-tools">
+        <button class="btn btn-default btn-sm" id="btn-toggle-copy-panel" title="Copy load settings from another section"><i class="fa fa-copy"></i> Copy from Section</button>
+        &nbsp;
         <button class="btn btn-success btn-sm" id="btn-save-loads"><i class="fa fa-save"></i> Save All</button>
+      </div>
+    </div>
+    <!-- Copy-from panel (hidden by default) -->
+    <div id="copy-from-panel" style="display:none;background:#f9f9f9;border-bottom:1px solid #ddd;padding:12px 15px;">
+      <div class="row" style="align-items:flex-end;">
+        <div class="col-md-3">
+          <label style="font-size:12px;">Source Class</label>
+          <select class="form-control input-sm" id="cp_class_id">
+            <option value="">-- Select Class --</option>
+            <?php foreach ($classlist as $cls): ?>
+            <option value="<?php echo $cls['id']; ?>"><?php echo htmlspecialchars($cls['class']); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label style="font-size:12px;">Source Section</label>
+          <select class="form-control input-sm" id="cp_section_id">
+            <option value="">-- Select Section --</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-primary btn-sm" id="btn-apply-copy" style="margin-top:20px;"><i class="fa fa-arrow-down"></i> Apply (Periods/Week only)</button>
+        </div>
+        <div class="col-md-3">
+          <small class="text-muted" style="display:block;margin-top:22px;">Copies <em>Periods/Week</em> values for matching subjects. Teacher assignments are not copied.</small>
+        </div>
       </div>
     </div>
     <div class="box-body p-0">
@@ -97,12 +125,24 @@ $(function(){
       },'json');
   });
 
+  function updateStatusBadge() {
+    var $staffInputs = $('[name$="][staff_id]"]').filter(function(){
+      return /^rows\[\d+\]\[staff_id\]$/.test($(this).attr('name'));
+    });
+    var total = $staffInputs.length;
+    if (!total) { $('#sl-status-badge').html(''); return; }
+    var configured = $staffInputs.filter(function(){ return $(this).val() !== ''; }).length;
+    var color = (configured === total) ? 'success' : (configured > 0 ? 'warning' : 'danger');
+    $('#sl-status-badge').html('<span class="label label-'+color+'" style="font-size:11px;vertical-align:middle;margin-left:6px;">'+configured+'/'+total+' teachers assigned</span>');
+  }
+
   $('#btn-load-subjects').on('click', function(){
     var class_id   = $('#sl_class_id').val();
     var section_id = $('#sl_section_id').val();
     if (!class_id || !section_id) { alert('Please select Class and Section.'); return; }
 
     $('#subject-load-container, #subject-load-empty').hide();
+    $('#copy-from-panel').hide();
     var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Loading...');
 
     $.post('<?php echo site_url('admin/tt/get_subject_load_data'); ?>',
@@ -115,8 +155,54 @@ $(function(){
           $('#subject-load-rows').html(res.html);
           $('#subject-load-rows select').select2({ width: 'resolve', placeholder: '-- Select --', allowClear: true });
           $('#subject-load-container').show();
+          updateStatusBadge();
+          $(document).on('change', '#subject-load-rows select, #subject-load-rows input', updateStatusBadge);
         } else {
           $('#subject-load-empty').show();
+        }
+      },'json');
+  });
+
+  // Copy-from panel toggle
+  $('#btn-toggle-copy-panel').on('click', function(){
+    $('#copy-from-panel').slideToggle(200);
+  });
+
+  $('#cp_class_id').on('change', function(){
+    var id = $(this).val();
+    $('#cp_section_id').html('<option value="">Loading...</option>');
+    if (!id) return;
+    $.post('<?php echo site_url('admin/tt/get_sections_by_class'); ?>',
+      {class_id: id, [csrf_name]: csrf_val}, function(res){
+        var opts = '<option value="">-- Select Section --</option>';
+        $.each(res, function(i,s){ opts += '<option value="'+s.section_id+'">'+s.section+'</option>'; });
+        $('#cp_section_id').html(opts);
+      },'json');
+  });
+
+  $('#btn-apply-copy').on('click', function(){
+    var class_id   = $('#cp_class_id').val();
+    var section_id = $('#cp_section_id').val();
+    if (!class_id || !section_id) { alert('Select source class and section first.'); return; }
+    var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
+    $.post('<?php echo site_url('admin/tt/get_subject_load_raw'); ?>',
+      {class_id: class_id, section_id: section_id, [csrf_name]: csrf_val},
+      function(res){
+        $btn.prop('disabled',false).html('<i class="fa fa-arrow-down"></i> Apply (Periods/Week only)');
+        if (res.status === '1') {
+          var applied = 0;
+          $.each(res.data, function(sgs_id, row){
+            var $ppw = $('[name="rows['+sgs_id+'][periods_per_week]"]');
+            if ($ppw.length && row.periods_per_week > 0) {
+              $ppw.val(row.periods_per_week);
+              applied++;
+            }
+          });
+          updateStatusBadge();
+          alert('Applied periods/week for '+applied+' subject(s). Review and save.');
+          $('#copy-from-panel').slideUp(200);
+        } else {
+          alert('No load data found for selected section.');
         }
       },'json');
   });
@@ -129,6 +215,7 @@ $(function(){
       if (res.status === '1') {
         $('#btn-save-loads, #btn-save-loads-bottom').html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
         setTimeout(function(){ $('#btn-save-loads, #btn-save-loads-bottom').html('<i class="fa fa-save"></i> Save All').removeClass('btn-success'); }, 2000);
+        updateStatusBadge();
       } else {
         alert('Error saving. Please try again.');
         $btn.html('<i class="fa fa-save"></i> Save All');

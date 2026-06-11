@@ -35,6 +35,116 @@ class Tt extends Admin_Controller
     }
 
     // =========================================================================
+    // DASHBOARD
+    // =========================================================================
+
+    public function dashboard()
+    {
+        if (!$this->rbac->hasPrivilege('tt_dashboard', 'can_view')) {
+            access_denied();
+        }
+        $this->_setMenu();
+        $session_id = $this->setting_model->getCurrentSession();
+
+        $period_count     = $this->db->where('session_id', $session_id)->where('is_break', 0)->count_all_results('tt_periods');
+        $break_count      = $this->db->where('session_id', $session_id)->where('is_break', 1)->count_all_results('tt_periods');
+        $room_count       = $this->db->count_all_results('tt_rooms');
+        $batch_count      = $this->db->where('session_id', $session_id)->count_all_results('tt_batches');
+        $teacher_const_ct = $this->db->where('session_id', $session_id)->count_all_results('tt_teacher_constraints');
+
+        // Subject loads: count distinct configured class-sections
+        $load_classes = $this->db->select('DISTINCT class_id, section_id')
+            ->where('session_id', $session_id)->get('tt_subject_load')->result();
+        $load_class_count  = count($load_classes);
+        $total_load_rows   = $this->db->where('session_id', $session_id)->count_all_results('tt_subject_load');
+        $missing_teacher   = $this->db->where('session_id', $session_id)->where('staff_id IS NULL', null, false)->count_all_results('tt_subject_load');
+
+        // Subject colors
+        $colored_subjects = $this->db->where('tt_color !=', '')->count_all_results('subjects');
+
+        // Last generation
+        $last_gen = $this->db->where('session_id', $session_id)->order_by('id', 'DESC')->limit(1)->get('tt_gen_log')->row();
+
+        // Recent confirmed timetable (last confirmed_at)
+        $last_confirmed = $this->db->where('session_id', $session_id)->where('confirmed_at IS NOT NULL', null, false)->order_by('confirmed_at', 'DESC')->limit(1)->get('tt_gen_log')->row();
+
+        $data = [
+            'session_id'       => $session_id,
+            'period_count'     => $period_count,
+            'break_count'      => $break_count,
+            'room_count'       => $room_count,
+            'batch_count'      => $batch_count,
+            'teacher_const_ct' => $teacher_const_ct,
+            'load_class_count' => $load_class_count,
+            'total_load_rows'  => $total_load_rows,
+            'missing_teacher'  => $missing_teacher,
+            'colored_subjects' => $colored_subjects,
+            'last_gen'         => $last_gen,
+            'last_confirmed'   => $last_confirmed,
+        ];
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/tt/dashboard', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    // =========================================================================
+    // LESSON BROWSER
+    // =========================================================================
+
+    public function lesson_browser()
+    {
+        if (!$this->rbac->hasPrivilege('tt_lesson_browser', 'can_view')) {
+            access_denied();
+        }
+        $this->_setMenu();
+        $session_id = $this->setting_model->getCurrentSession();
+
+        $data = $this->_baseData();
+        $data['departments'] = $this->department_model->getAllDepartment();
+        $data['staff_list']  = $this->staff_model->getStaffbyrole(2);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/tt/lesson_browser', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function get_lesson_browser_data()
+    {
+        $session_id  = $this->setting_model->getCurrentSession();
+        $dept_id     = (int) $this->input->post('dept_id');
+        $staff_id    = (int) $this->input->post('staff_id');
+        $subject_id  = (int) $this->input->post('subject_id');
+
+        $this->db->select('tt_subject_load.*, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type,
+                            staff.name as staff_name, staff.surname as staff_surname, staff.employee_id,
+                            classes.class as class_name, sections.section as section_name,
+                            tt_batches.batch_name,
+                            subject_groups.name as subject_group_name')
+            ->from('tt_subject_load')
+            ->join('subject_group_subjects', 'subject_group_subjects.id = tt_subject_load.subject_group_subject_id', 'left')
+            ->join('subjects', 'subjects.id = subject_group_subjects.subject_id', 'left')
+            ->join('staff', 'staff.id = tt_subject_load.staff_id', 'left')
+            ->join('classes', 'classes.id = tt_subject_load.class_id', 'left')
+            ->join('sections', 'sections.id = tt_subject_load.section_id', 'left')
+            ->join('tt_batches', 'tt_batches.id = tt_subject_load.batch_id', 'left')
+            ->join('subject_groups', 'subject_groups.id = tt_subject_load.subject_group_id', 'left')
+            ->where('tt_subject_load.session_id', $session_id);
+
+        if ($dept_id) $this->db->where('classes.department_id', $dept_id);
+        if ($staff_id) $this->db->where('tt_subject_load.staff_id', $staff_id);
+        if ($subject_id) $this->db->where('subject_group_subjects.subject_id', $subject_id);
+
+        $rows = $this->db->order_by('classes.class', 'ASC')
+            ->order_by('sections.section', 'ASC')
+            ->order_by('subjects.name', 'ASC')
+            ->get()->result();
+
+        $html = $this->load->view('admin/tt/_lesson_browser_rows', ['rows' => $rows], true);
+        echo json_encode(['status' => '1', 'html' => $html, 'count' => count($rows)]);
+    }
+
+    // =========================================================================
     // PERIOD SETUP
     // =========================================================================
 
@@ -245,6 +355,31 @@ class Tt extends Admin_Controller
         echo json_encode(['status' => '1', 'html' => $html]);
     }
 
+    public function get_subject_load_raw()
+    {
+        $session_id = $this->setting_model->getCurrentSession();
+        $class_id   = (int) $this->input->post('class_id');
+        $section_id = (int) $this->input->post('section_id');
+        $loads      = $this->Tt_subjectload_model->getForClassSection($session_id, $class_id, $section_id);
+        if (empty($loads)) {
+            echo json_encode(['status' => '0']);
+            return;
+        }
+        $data = [];
+        foreach ($loads as $l) {
+            if ($l->batch_id) continue; // skip batch rows for copy
+            $data[$l->subject_group_subject_id] = [
+                'periods_per_week'    => (int) $l->periods_per_week,
+                'consecutive_periods' => (int) $l->consecutive_periods,
+                'max_per_day'         => (int) $l->max_per_day,
+                'min_per_day'         => (int) $l->min_per_day,
+                'distribute_evenly'   => (int) $l->distribute_evenly,
+                'priority'            => (int) $l->priority,
+            ];
+        }
+        echo json_encode(['status' => '1', 'data' => $data]);
+    }
+
     public function save_subject_load()
     {
         if (!$this->rbac->hasPrivilege('tt_subject_load', 'can_add')) {
@@ -386,12 +521,18 @@ class Tt extends Admin_Controller
         $session_id    = $this->setting_model->getCurrentSession();
         $staff_id      = $this->customlib->getStaffID();
         $class_scope   = json_decode($this->input->post('class_scope'), true); // array of {class_id, section_id}
+        $gen_size_raw       = $this->input->post('gen_size');
+        $gen_strictness_raw = $this->input->post('gen_strictness');
+        $valid_sizes        = ['normal', 'large', 'huge'];
+        $valid_strict       = ['relaxed', 'normal', 'strict'];
         $settings      = [
-            'allow_saturday'        => (int) $this->input->post('allow_saturday'),
-            'max_same_subject_day'  => (int) $this->input->post('max_same_subject_day') ?: 1,
-            'spread_evenly'         => (int) $this->input->post('spread_evenly'),
-            'fill_free_periods'     => (int) $this->input->post('fill_free_periods'),
+            'allow_saturday'           => (int) $this->input->post('allow_saturday'),
+            'max_same_subject_day'     => (int) $this->input->post('max_same_subject_day') ?: 1,
+            'spread_evenly'            => (int) $this->input->post('spread_evenly'),
+            'fill_free_periods'        => (int) $this->input->post('fill_free_periods'),
             'respect_soft_constraints' => 1,
+            'gen_size'                 => in_array($gen_size_raw, $valid_sizes) ? $gen_size_raw : 'normal',
+            'gen_strictness'           => in_array($gen_strictness_raw, $valid_strict) ? $gen_strictness_raw : 'normal',
         ];
 
         $result = $this->Tt_generator_model->generate($session_id, $staff_id, $class_scope, $settings);
@@ -960,17 +1101,100 @@ class Tt extends Admin_Controller
         if (!$this->rbac->hasPrivilege('tt_generate', 'can_view')) {
             access_denied();
         }
-        $session_id  = $this->setting_model->getCurrentSession();
-        $class_scope = json_decode($this->input->post('class_scope'), true);
+        $session_id         = $this->setting_model->getCurrentSession();
+        $class_scope        = json_decode($this->input->post('class_scope'), true);
+        $gen_size_raw       = $this->input->post('gen_size');
+        $gen_strictness_raw = $this->input->post('gen_strictness');
+        $valid_sizes        = ['normal', 'large', 'huge'];
+        $valid_strict       = ['relaxed', 'normal', 'strict'];
         $settings    = [
             'allow_saturday'           => (int) $this->input->post('allow_saturday'),
             'max_same_subject_day'     => (int) $this->input->post('max_same_subject_day') ?: 1,
             'spread_evenly'            => (int) $this->input->post('spread_evenly'),
             'fill_free_periods'        => (int) $this->input->post('fill_free_periods'),
             'respect_soft_constraints' => 1,
+            'gen_size'                 => in_array($gen_size_raw, $valid_sizes) ? $gen_size_raw : 'normal',
+            'gen_strictness'           => in_array($gen_strictness_raw, $valid_strict) ? $gen_strictness_raw : 'normal',
         ];
         $result = $this->Tt_generator_model->testGenerate($session_id, $class_scope, $settings);
         echo json_encode($result);
+    }
+
+    // =========================================================================
+    // VERIFY CONSTRAINTS
+    // =========================================================================
+
+    public function verify_constraints()
+    {
+        if (!$this->rbac->hasPrivilege('tt_generate', 'can_view')) { access_denied(); }
+
+        $session_id  = $this->setting_model->getCurrentSession();
+        $class_scope = json_decode($this->input->post('class_scope'), true);
+        $allow_sat   = (int) $this->input->post('allow_saturday');
+        $items       = [];
+        $overall_ok  = true;
+
+        // 1. Periods configured?
+        $period_count = $this->db->where('session_id', $session_id)->where('is_break', 0)->count_all_results('tt_periods');
+        $break_count  = $this->db->where('session_id', $session_id)->where('is_break', 1)->count_all_results('tt_periods');
+        $items[] = ['ok' => $period_count > 0, 'msg' => "Periods configured: {$period_count} teaching + {$break_count} break slots"];
+        if ($period_count === 0) $overall_ok = false;
+
+        // 2. Working days
+        $this->load->library('Customlib');
+        $days_map    = $this->customlib->getDaysnameWithoutLang();
+        $working_days = array_filter(array_keys($days_map), fn($d) => $d !== 'Sunday' && !($d === 'Saturday' && !$allow_sat));
+        $day_count   = count($working_days);
+        $slot_count  = $day_count * $period_count;
+        $items[] = ['ok' => $day_count > 0, 'msg' => "Working days: {$day_count} (" . implode(', ', array_values($working_days)) . ")"];
+
+        // 3. Per class-section checks
+        if (!empty($class_scope)) {
+            $this->load->model('Tt_subjectload_model');
+            $teacher_totals = [];
+            foreach ($class_scope as $cs) {
+                $loads = $this->Tt_subjectload_model->getForClassSection($session_id, (int)$cs['class_id'], (int)$cs['section_id']);
+                $label = $this->db->select('classes.class, sections.section')
+                    ->from('classes')->join('sections','sections.class_id=classes.id','left')
+                    ->where('classes.id', $cs['class_id'])->where('sections.id', $cs['section_id'])
+                    ->get()->row();
+                $cls_label = $label ? "{$label->class} {$label->section}" : "Class {$cs['class_id']}";
+
+                $total_ppw   = 0;
+                $missing_teacher = 0;
+                foreach ($loads as $l) {
+                    if ($l->batch_id) continue;
+                    $total_ppw += (int)$l->periods_per_week;
+                    if (empty($l->staff_id)) $missing_teacher++;
+                    if (!empty($l->staff_id)) {
+                        $teacher_totals[$l->staff_id] = ($teacher_totals[$l->staff_id] ?? 0) + (int)$l->periods_per_week;
+                    }
+                }
+                $load_ok = ($total_ppw > 0 && $total_ppw <= $slot_count && $missing_teacher === 0);
+                if (!$load_ok) $overall_ok = false;
+                $msg = "{$cls_label}: {$total_ppw}/{$slot_count} slots assigned";
+                if ($missing_teacher > 0) $msg .= " — {$missing_teacher} subject(s) missing teacher";
+                if ($total_ppw > $slot_count) $msg .= " — OVERFLOW: more loads than slots";
+                $items[] = ['ok' => $load_ok, 'msg' => $msg];
+            }
+
+            // 4. Teacher overload check
+            if (!empty($teacher_totals)) {
+                $this->load->model('Tt_teacher_model');
+                $constraints = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
+                foreach ($teacher_totals as $tid => $total) {
+                    $max_week = isset($constraints[$tid]) ? (int)$constraints[$tid]->max_periods_per_week : $slot_count;
+                    if ($total > $max_week) {
+                        $overall_ok = false;
+                        $t = $this->db->select('name, surname')->where('id', $tid)->get('staff')->row();
+                        $tname = $t ? "{$t->name} {$t->surname}" : "Staff #{$tid}";
+                        $items[] = ['ok' => false, 'msg' => "Teacher {$tname}: assigned {$total} periods/week but max is {$max_week}"];
+                    }
+                }
+            }
+        }
+
+        echo json_encode(['ok' => $overall_ok, 'items' => $items]);
     }
 
     // =========================================================================
@@ -1000,5 +1224,11 @@ class Tt extends Admin_Controller
         $section_id = (int) $this->input->post('section_id');
         $data = $this->subjectgroup_model->getGroupsubjectsByClassSection($class_id, $section_id, $session_id);
         echo json_encode($data);
+    }
+
+    public function get_all_subjects()
+    {
+        $rows = $this->db->select('id, name, code')->where('is_active', 'yes')->order_by('name', 'ASC')->get('subjects')->result();
+        echo json_encode($rows);
     }
 }

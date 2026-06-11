@@ -98,6 +98,33 @@
             </div>
           </div>
 
+          <hr>
+          <!-- Complexity & Strictness -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label><i class="fa fa-tachometer"></i> Generation Size</label>
+                <div class="btn-group btn-group-justified gen-radio-group" data-toggle="buttons">
+                  <label class="btn btn-default active"><input type="radio" name="gen_size" value="normal" checked> Normal</label>
+                  <label class="btn btn-default"><input type="radio" name="gen_size" value="large"> Large</label>
+                  <label class="btn btn-default"><input type="radio" name="gen_size" value="huge"> Huge</label>
+                </div>
+                <small class="text-muted" id="gen-size-hint">Quick single pass — good for most timetables.</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label><i class="fa fa-sliders"></i> Constraint Strictness</label>
+                <div class="btn-group btn-group-justified gen-radio-group" data-toggle="buttons">
+                  <label class="btn btn-default"><input type="radio" name="gen_strictness" value="relaxed"> Relaxed</label>
+                  <label class="btn btn-default active"><input type="radio" name="gen_strictness" value="normal" checked> Normal</label>
+                  <label class="btn btn-default"><input type="radio" name="gen_strictness" value="strict"> Strict</label>
+                </div>
+                <small class="text-muted" id="gen-strict-hint">Balanced constraint enforcement.</small>
+              </div>
+            </div>
+          </div>
+
           <div class="alert alert-warning">
             <i class="fa fa-exclamation-triangle"></i>
             <strong>Important:</strong> Auto-generation will <strong>replace</strong> existing non-locked entries for selected classes.
@@ -105,6 +132,14 @@
             You will see a <strong>preview</strong> before anything is saved.
           </div>
 
+          <div class="row" style="margin-bottom:10px;">
+            <div class="col-md-12">
+              <button type="button" class="btn btn-info btn-block" id="btn-verify">
+                <i class="fa fa-check-circle"></i> Verify Constraints &amp; Readiness
+              </button>
+              <small class="text-muted text-center" style="display:block;margin-top:4px;">Checks loads, teacher capacity and slot availability before generating</small>
+            </div>
+          </div>
           <div class="row">
             <div class="col-md-6">
               <button type="button" class="btn btn-default btn-lg btn-block" id="btn-test-generate">
@@ -187,6 +222,23 @@ $(function(){
 
   $('#scope_dept').select2({ placeholder: '-- All Departments --', allowClear: true, width: '100%' });
 
+  var sizeHints = {
+    normal: 'Quick single pass — good for most timetables.',
+    large:  '3 retry passes with reordering — better quality for complex setups.',
+    huge:   '10 passes exhaustive search — best quality, slower (may take 10-30s).'
+  };
+  var strictHints = {
+    relaxed: 'Fewer constraints enforced — maximises slot fill-rate.',
+    normal:  'Balanced constraint enforcement.',
+    strict:  'All constraints hard-enforced — may leave more slots empty but no violations.'
+  };
+  $('input[name=gen_size]').on('change', function(){
+    $('#gen-size-hint').text(sizeHints[$(this).val()] || '');
+  });
+  $('input[name=gen_strictness]').on('change', function(){
+    $('#gen-strict-hint').text(strictHints[$(this).val()] || '');
+  });
+
   // Load sections for each class
   <?php foreach ($classlist as $cls): ?>
   $.post('<?php echo site_url('admin/tt/get_sections_by_class'); ?>',
@@ -196,7 +248,9 @@ $(function(){
       $.each(res, function(i, s){
         html += '<label style="margin-right:12px;font-weight:normal;">'
           + '<input type="checkbox" class="scope-chk" name="class_scope[]" value="<?php echo $cls['id']; ?>_'+s.section_id+'" '
-          + 'data-class="<?php echo $cls['id']; ?>" data-section="'+s.section_id+'"> '
+          + 'data-class="<?php echo $cls['id']; ?>" data-section="'+s.section_id+'"'
+          + ' data-class-name="<?php echo addslashes(htmlspecialchars($cls['class'])); ?>" data-section-name="'+s.section+'"'
+          + '> '
           + s.section + '</label>';
       });
       $('#sections-<?php echo $cls['id']; ?>').html(html || '<small class="text-muted">No sections</small>');
@@ -261,6 +315,33 @@ $(function(){
     });
   });
 
+  $('#btn-verify').on('click', function(){
+    var scope = [];
+    $('.scope-chk:checked').each(function(){
+      scope.push({class_id: $(this).data('class'), section_id: $(this).data('section')});
+    });
+    if (scope.length === 0) { alert('Please select at least one class-section.'); return; }
+    var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Checking...');
+    var formData = $('#generate-form').serialize() + '&' + csrf_name + '=' + csrf_val;
+    formData += '&class_scope=' + encodeURIComponent(JSON.stringify(scope));
+    $.post('<?php echo site_url('admin/tt/verify_constraints'); ?>', formData, function(res){
+      $btn.prop('disabled',false).html('<i class="fa fa-check-circle"></i> Verify Constraints &amp; Readiness');
+      var html = '<div style="padding:10px;">';
+      var icon  = res.ok ? '<i class="fa fa-check-circle text-success"></i> Ready to Generate' : '<i class="fa fa-exclamation-triangle text-warning"></i> Warnings Found';
+      html += '<div class="alert alert-'+(res.ok?'success':'warning')+' text-left" style="font-size:12px;">';
+      $.each(res.items, function(i, item){
+        html += '<div style="margin-bottom:4px;"><i class="fa '+(item.ok?'fa-check text-success':'fa-times text-danger')+'" style="width:16px;"></i> '+item.msg+'</div>';
+      });
+      html += '</div></div>';
+      $('#result-header').find('.box-title').html(icon);
+      $('#result-body').html(html);
+      $('#result-box').show();
+    },'json').fail(function(){
+      $btn.prop('disabled',false).html('<i class="fa fa-check-circle"></i> Verify Constraints &amp; Readiness');
+      alert('Server error during verification.');
+    });
+  });
+
   function showResult(res, isDryRun) {
     if (res.status === '1') {
       var color = res.quality_score >= 90 ? 'success' : (res.quality_score >= 70 ? 'warning' : 'danger');
@@ -282,6 +363,26 @@ $(function(){
         + '<tr><td>Total Required</td><td><strong>' + res.total_required + '</strong></td></tr>'
         + '<tr><td>Conditions Broken</td><td><strong class="text-' + (res.total_conflicts > 0 ? 'danger' : 'success') + '">' + res.total_conflicts + '</strong></td></tr>'
         + '</table>';
+
+      // Per-class breakdown
+      if (res.class_stats && res.class_stats.length > 0) {
+        var classMap = {};
+        $('.scope-chk').each(function(){
+          var k = $(this).data('class')+'_'+$(this).data('section');
+          classMap[k] = ($(this).data('class-name')||'Class '+$(this).data('class'))+' '+($(this).data('section-name')||'Sec '+$(this).data('section'));
+        });
+        html += '<div style="margin-bottom:8px;"><strong style="font-size:12px;"><i class="fa fa-list"></i> Class-by-Class</strong>'
+          +'<div style="max-height:130px;overflow-y:auto;margin-top:4px;">';
+        $.each(res.class_stats, function(i, cs){
+          var pct   = cs.required > 0 ? Math.round(cs.placed/cs.required*100) : 100;
+          var cl    = pct === 100 ? 'success' : (pct >= 70 ? 'warning' : 'danger');
+          var label = classMap[cs.class_id+'_'+cs.section_id] || ('Class '+cs.class_id+' Sec '+cs.section_id);
+          html += '<div style="font-size:11px;display:flex;justify-content:space-between;padding:1px 0;">'
+            + '<span>'+label+'</span>'
+            + '<span><span class="label label-'+cl+'">'+cs.placed+'/'+cs.required+' ('+pct+'%)</span></span></div>';
+        });
+        html += '</div></div>';
+      }
 
       if (res.total_conflicts > 0) {
         html += '<div class="alert alert-warning text-left" style="font-size:11px;max-height:160px;overflow-y:auto;">'
