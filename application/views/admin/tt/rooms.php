@@ -1,4 +1,5 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1>Rooms <small>Manage classrooms, labs and other venues</small></h1>
     <ol class="breadcrumb">

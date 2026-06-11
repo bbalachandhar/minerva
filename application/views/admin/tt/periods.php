@@ -1,4 +1,5 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1><?php echo $this->lang->line('tt_period_setup') ?: 'Period Setup'; ?> <small>Define daily time slots and breaks</small></h1>
     <ol class="breadcrumb">

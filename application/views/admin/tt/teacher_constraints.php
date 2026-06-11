@@ -1,4 +1,5 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1>Teacher Constraints <small>Set max load, preferred hours and scheduling preferences per teacher</small></h1>
     <ol class="breadcrumb">

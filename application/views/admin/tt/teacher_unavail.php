@@ -1,4 +1,5 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1>Teacher Availability <small>Mark slots where a teacher is permanently unavailable</small></h1>
     <ol class="breadcrumb">

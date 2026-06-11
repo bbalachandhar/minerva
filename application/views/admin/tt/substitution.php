@@ -1,4 +1,5 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1>Substitution / Rescheduling <small>Manage teacher absences and assign substitutes</small></h1>
     <ol class="breadcrumb">

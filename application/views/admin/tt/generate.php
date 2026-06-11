@@ -1,4 +1,5 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1>Auto Generate Timetable <small>Let the system build the timetable automatically</small></h1>
     <ol class="breadcrumb">

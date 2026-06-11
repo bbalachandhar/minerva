@@ -1,4 +1,5 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1>Subject Load <small>Configure weekly periods per subject per class — the scheduling "cards"</small></h1>
     <ol class="breadcrumb">

@@ -1,4 +1,5 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1>Teacher Timetable <small>View teacher-wise weekly schedule</small></h1>
     <ol class="breadcrumb">
