@@ -15,6 +15,7 @@ class Tt extends Admin_Controller
         $this->load->model('Tt_teacher_model');
         $this->load->model('Tt_entry_model');
         $this->load->model('Tt_generator_model');
+        $this->load->model('Tt_joint_model');
         $this->load->model('Tt_substitution_model');
         $this->load->model('department_model');
         $this->load->model('staff_model');
@@ -142,6 +143,94 @@ class Tt extends Admin_Controller
 
         $html = $this->load->view('admin/tt/_lesson_browser_rows', ['rows' => $rows], true);
         echo json_encode(['status' => '1', 'html' => $html, 'count' => count($rows)]);
+    }
+
+    // =========================================================================
+    // JOINT / CROSS-CLASS LESSONS
+    // =========================================================================
+
+    public function joint_lessons()
+    {
+        if (!$this->rbac->hasPrivilege('tt_joint_lessons', 'can_view')) {
+            access_denied();
+        }
+        $this->_setMenu();
+        $this->load->model('Tt_joint_model');
+        $session_id = $this->setting_model->getCurrentSession();
+
+        // Build classlist with sections pre-loaded for the picker
+        $this->load->model('section_model');
+        $raw_classes = $this->class_model->get();
+        $classlist   = [];
+        foreach ($raw_classes as $cls) {
+            $sections = $this->section_model->getClassBySection($cls['id']);
+            if (!empty($sections)) {
+                $cls['sections'] = $sections;
+                $classlist[]     = $cls;
+            }
+        }
+
+        $data = $this->_baseData();
+        $data['joint_lessons'] = $this->Tt_joint_model->getAll($session_id);
+        $data['classlist']     = $classlist;
+        $data['subjects']      = $this->db->select('id, name, code, tt_color, tt_abbr')
+                                    ->where('is_active', 'yes')
+                                    ->order_by('name', 'ASC')
+                                    ->get('subjects')->result();
+        $data['staff_list']    = $this->staff_model->getStaffbyrole(2);
+        $data['rooms']         = $this->Tt_room_model->getAll();
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/tt/joint_lessons', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function get_joint_lesson()
+    {
+        if (!$this->rbac->hasPrivilege('tt_joint_lessons', 'can_view')) { access_denied(); }
+        $this->load->model('Tt_joint_model');
+        $id     = (int) $this->input->post('id');
+        $lesson = $this->Tt_joint_model->getById($id);
+        if (!$lesson) { echo json_encode(['status' => '0']); return; }
+        echo json_encode(['status' => '1', 'lesson' => $lesson]);
+    }
+
+    public function save_joint_lesson()
+    {
+        if (!$this->rbac->hasPrivilege('tt_joint_lessons', 'can_add')) { access_denied(); }
+        $this->load->model('Tt_joint_model');
+        $session_id  = $this->setting_model->getCurrentSession();
+        $classes_raw = json_decode($this->input->post('classes_json'), true);
+        if (empty($classes_raw)) {
+            echo json_encode(['status' => '0', 'message' => 'No class-sections selected.']); return;
+        }
+        $data = [
+            'id'                 => (int) $this->input->post('id'),
+            'name'               => trim($this->input->post('name')),
+            'subject_id'         => (int) $this->input->post('subject_id'),
+            'staff_id'           => $this->input->post('staff_id')     ?: null,
+            'alt_staff_id'       => $this->input->post('alt_staff_id') ?: null,
+            'room_id'            => $this->input->post('room_id')      ?: null,
+            'periods_per_week'   => (int) $this->input->post('periods_per_week')    ?: 1,
+            'consecutive_periods'=> (int) $this->input->post('consecutive_periods') ?: 1,
+            'max_per_day'        => (int) $this->input->post('max_per_day')         ?: 1,
+            'distribute_evenly'  => $this->input->post('distribute_evenly') ? 1 : 0,
+            'priority'           => (int) $this->input->post('priority')            ?: 5,
+            'notes'              => $this->input->post('notes'),
+        ];
+        if (empty($data['name']) || empty($data['subject_id'])) {
+            echo json_encode(['status' => '0', 'message' => 'Name and subject are required.']); return;
+        }
+        $id = $this->Tt_joint_model->save($session_id, $data, $classes_raw);
+        echo json_encode($id ? ['status' => '1', 'id' => $id] : ['status' => '0', 'message' => 'Error saving.']);
+    }
+
+    public function delete_joint_lesson($id)
+    {
+        if (!$this->rbac->hasPrivilege('tt_joint_lessons', 'can_delete')) { access_denied(); }
+        $this->load->model('Tt_joint_model');
+        $result = $this->Tt_joint_model->delete((int) $id);
+        echo json_encode(['status' => $result ? '1' : '0']);
     }
 
     // =========================================================================
