@@ -3388,4 +3388,25 @@ catch (Exception $e) {
         echo array_to_csv($data);
         exit();
     }
+
+    public function generate_codes($id)
+    {
+        if (!$this->rbac->hasPrivilege('student', 'can_edit')) {
+            echo json_encode(['status' => '0', 'error' => 'Access denied']);
+            return;
+        }
+        $student = $this->student_model->get($id);
+        if (empty($student)) {
+            echo json_encode(['status' => '0', 'error' => 'Student not found']);
+            return;
+        }
+        $scan_type = $this->sch_setting_detail->scan_code_type ?? 'barcode';
+        $this->customlib->generatebarcode($student['admission_no'], $id, $scan_type);
+        $base = $this->customlib->getBaseUrl();
+        echo json_encode([
+            'status'      => '1',
+            'barcode_url' => $base . 'uploads/student_id_card/barcodes/' . $id . '.png',
+            'qrcode_url'  => $base . 'uploads/student_id_card/qrcode/' . $id . '.png',
+        ]);
+    }
 }

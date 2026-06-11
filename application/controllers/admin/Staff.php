@@ -3540,4 +3540,24 @@ class Staff extends Admin_Controller
 
         echo json_encode(['status' => 'success', 'message' => 'Balances recascaded from ' . $from_year . '-' . str_pad($from_month, 2, '0', STR_PAD_LEFT)]);
     }
+
+    public function generate_codes($id)
+    {
+        if (!$this->rbac->hasPrivilege('human_resource', 'can_edit')) {
+            echo json_encode(['status' => '0', 'error' => 'Access denied']);
+            return;
+        }
+        $staff = $this->staff_model->get($id);
+        if (empty($staff)) {
+            echo json_encode(['status' => '0', 'error' => 'Staff not found']);
+            return;
+        }
+        $this->customlib->generatestaffbarcode($staff['employee_id'], $id, 'barcode');
+        $base = $this->customlib->getBaseUrl();
+        echo json_encode([
+            'status'      => '1',
+            'barcode_url' => $base . 'uploads/staff_id_card/barcodes/' . $id . '.png',
+            'qrcode_url'  => $base . 'uploads/staff_id_card/qrcode/' . $id . '.png',
+        ]);
+    }
 }
