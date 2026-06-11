@@ -1,5 +1,12 @@
 <?php if (empty($rows)): ?>
-<div class="text-center text-muted p-4"><i class="fa fa-info-circle"></i> No lessons found for the selected filters.</div>
+<div class="text-center" style="padding:36px 20px;">
+  <i class="fa fa-inbox fa-3x" style="color:#ccc;"></i>
+  <p class="text-muted" style="margin-top:14px;font-size:14px;font-weight:600;">No subject loads found</p>
+  <p class="text-muted" style="font-size:12px;margin-bottom:16px;">
+    Subject loads must be configured before lessons appear here.<br>
+    Go to <a href="<?php echo site_url('admin/tt/subject_load'); ?>"><strong>Subject Load</strong></a> to assign subjects and teachers to each class.
+  </p>
+</div>
 <?php return; endif; ?>
 <div class="table-responsive">
 <table class="table table-bordered table-hover table-condensed" style="font-size:12px;">
