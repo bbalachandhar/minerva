@@ -7160,6 +7160,8 @@ CREATE TABLE `subjects` (
   `is_active` varchar(255) DEFAULT 'no',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `tt_color` VARCHAR(7) DEFAULT NULL,
+  `tt_abbr`  VARCHAR(10) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_name` (`name`),
   KEY `idx_code` (`code`)
@@ -12132,6 +12134,7 @@ CREATE TABLE IF NOT EXISTS `tt_rooms` (
   `room_type`     ENUM('classroom','lab','seminar','hall','other') NOT NULL DEFAULT 'classroom',
   `department_id` INT(11)               DEFAULT NULL,
   `is_active`     TINYINT(1)   NOT NULL DEFAULT 1,
+  `is_shared`     TINYINT(1)   NOT NULL DEFAULT 0,
   `created_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_tt_rooms_type` (`room_type`)
@@ -12165,6 +12168,9 @@ CREATE TABLE IF NOT EXISTS `tt_subject_load` (
   `preferred_room_id`        INT(11)            DEFAULT NULL,
   `batch_id`                 INT(11)            DEFAULT NULL,
   `priority`                 INT(11)   NOT NULL DEFAULT 5,
+  `max_per_day`              INT(11)   NOT NULL DEFAULT 2,
+  `distribute_evenly`        TINYINT(1) NOT NULL DEFAULT 1,
+  `min_per_day`              TINYINT(1) NOT NULL DEFAULT 0,
   `created_at`               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -12183,6 +12189,8 @@ CREATE TABLE IF NOT EXISTS `tt_teacher_constraints` (
   `preferred_end_time`    TIME                DEFAULT NULL,
   `avoid_first_period`    TINYINT(1) NOT NULL DEFAULT 0,
   `avoid_last_period`     TINYINT(1) NOT NULL DEFAULT 0,
+  `max_gap_per_day`       INT        DEFAULT NULL,
+  `preferred_room_id`     INT        DEFAULT NULL,
   `created_at`            TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`            TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -12290,22 +12298,93 @@ CREATE TABLE IF NOT EXISTS `tt_substitutions` (
   KEY `idx_tt_sub_date`   (`date`,`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `tt_class_unavail` (
+  `id`         INT(11)      NOT NULL AUTO_INCREMENT,
+  `session_id` INT(11)      NOT NULL,
+  `class_id`   INT(11)      NOT NULL,
+  `section_id` INT(11)      NOT NULL,
+  `day`        VARCHAR(20)  NOT NULL,
+  `period_id`  INT(11)      NOT NULL,
+  `reason`     VARCHAR(200) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_class_unavail` (`session_id`,`class_id`,`section_id`,`day`,`period_id`),
+  KEY `idx_class_unavail` (`session_id`,`class_id`,`section_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `tt_room_unavail` (
+  `id`         INT          NOT NULL AUTO_INCREMENT,
+  `session_id` INT          NOT NULL,
+  `room_id`    INT          NOT NULL,
+  `day`        VARCHAR(20)  NOT NULL,
+  `period_id`  INT          NOT NULL,
+  `reason`     VARCHAR(255) NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ru_session_room` (`session_id`,`room_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `tt_subject_unavail` (
+  `id`         INT          NOT NULL AUTO_INCREMENT,
+  `session_id` INT          NOT NULL,
+  `subject_id` INT          NOT NULL,
+  `day`        VARCHAR(20)  NOT NULL,
+  `period_id`  INT          NOT NULL,
+  `reason`     VARCHAR(255) NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_su_session_subject` (`session_id`,`subject_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `tt_joint_lessons` (
+  `id`                   INT          NOT NULL AUTO_INCREMENT,
+  `session_id`           INT          NOT NULL,
+  `name`                 VARCHAR(100) NOT NULL COMMENT 'e.g. PE Combined 3A+3B',
+  `subject_id`           INT          NOT NULL,
+  `staff_id`             INT          NULL,
+  `alt_staff_id`         INT          NULL,
+  `room_id`              INT          NULL,
+  `periods_per_week`     INT          NOT NULL DEFAULT 1,
+  `consecutive_periods`  INT          NOT NULL DEFAULT 1,
+  `max_per_day`          INT          NOT NULL DEFAULT 1,
+  `distribute_evenly`    TINYINT(1)   NOT NULL DEFAULT 1,
+  `priority`             INT          NOT NULL DEFAULT 5,
+  `notes`                VARCHAR(255) NULL,
+  `created_at`           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_jl_session` (`session_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `tt_joint_lesson_classes` (
+  `id`               INT NOT NULL AUTO_INCREMENT,
+  `joint_lesson_id`  INT NOT NULL,
+  `class_id`         INT NOT NULL,
+  `section_id`       INT NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_jlc_joint` (`joint_lesson_id`),
+  KEY `idx_jlc_class` (`class_id`,`section_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 INSERT INTO `permission_group` (`id`, `name`, `short_code`, `is_active`, `system`)
 VALUES (3000, 'Auto Timetable', 'auto_timetable', 1, 0)
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `is_active` = 1;
 
 INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`) VALUES
-(3001, 3000, 'TT Period Setup',         'tt_periods',       1, 1, 1, 1),
-(3002, 3000, 'TT Room Setup',           'tt_rooms',         1, 1, 1, 1),
-(3003, 3000, 'TT Batch Setup',          'tt_batches',       1, 1, 1, 1),
-(3004, 3000, 'TT Subject Load',         'tt_subject_load',  1, 1, 1, 1),
-(3005, 3000, 'TT Teacher Constraints',  'tt_teacher_constr',1, 1, 1, 1),
-(3006, 3000, 'TT Teacher Availability', 'tt_teacher_avail', 1, 1, 1, 1),
-(3007, 3000, 'TT Auto Generate',        'tt_generate',      1, 1, 0, 0),
-(3008, 3000, 'TT Class Timetable',      'tt_class_grid',    1, 1, 1, 1),
-(3009, 3000, 'TT Teacher Timetable',    'tt_teacher_view',  1, 0, 0, 0),
-(3010, 3000, 'TT Substitution',         'tt_substitution',  1, 1, 1, 1),
-(3011, 3000, 'TT Reports',              'tt_reports',       1, 0, 0, 0)
+(3001, 3000, 'TT Period Setup',         'tt_periods',        1, 1, 1, 1),
+(3002, 3000, 'TT Room Setup',           'tt_rooms',          1, 1, 1, 1),
+(3003, 3000, 'TT Batch Setup',          'tt_batches',        1, 1, 1, 1),
+(3004, 3000, 'TT Subject Load',         'tt_subject_load',   1, 1, 1, 1),
+(3005, 3000, 'TT Teacher Constraints',  'tt_teacher_constr', 1, 1, 1, 1),
+(3006, 3000, 'TT Teacher Availability', 'tt_teacher_avail',  1, 1, 1, 1),
+(3007, 3000, 'TT Auto Generate',        'tt_generate',       1, 1, 0, 0),
+(3008, 3000, 'TT Class Timetable',      'tt_class_grid',     1, 1, 1, 1),
+(3009, 3000, 'TT Teacher Timetable',    'tt_teacher_view',   1, 0, 0, 0),
+(3010, 3000, 'TT Substitution',         'tt_substitution',   1, 1, 1, 1),
+(3011, 3000, 'TT Reports',              'tt_reports',        1, 0, 0, 0),
+(3012, 3000, 'TT Class Availability',   'tt_class_avail',    1, 1, 0, 0),
+(3013, 3000, 'TT Subject Colors',       'tt_subject_colors', 1, 1, 0, 0),
+(3014, 3000, 'TT Room Availability',    'tt_room_avail',     1, 1, 0, 0),
+(3015, 3000, 'TT Subject Time Off',     'tt_subject_avail',  1, 1, 0, 0),
+(3016, 3000, 'TT Dashboard',            'tt_dashboard',      1, 0, 0, 0),
+(3017, 3000, 'TT Lesson Browser',       'tt_lesson_browser', 1, 0, 0, 0),
+(3018, 3000, 'TT Joint Lessons',        'tt_joint_lessons',  1, 1, 1, 1)
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `perm_group_id` = VALUES(`perm_group_id`);
 
 INSERT INTO `sidebar_menus` (`product_name`, `permission_group_id`, `icon`, `menu`, `activate_menu`, `lang_key`, `system_level`, `level`, `sidebar_display`, `access_permissions`, `is_active`)
@@ -12317,17 +12396,24 @@ ON DUPLICATE KEY UPDATE `is_active` = 1, `id` = LAST_INSERT_ID(`id`);
 SET @tt_menu_id = LAST_INSERT_ID();
 
 INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`) VALUES
-(@tt_menu_id, 'Period Setup',        'tt_periods',        'tt_period_setup',        'admin/tt/periods',             1, "('tt_periods','can_view')",        3000, 'tt', 'periods,save_period,delete_period,reorder_periods', 1),
-(@tt_menu_id, 'Rooms',               'tt_rooms',          'tt_rooms',               'admin/tt/rooms',               1, "('tt_rooms','can_view')",          3000, 'tt', 'rooms,save_room,delete_room', 1),
-(@tt_menu_id, 'Batches',             'tt_batches',        'tt_batches',             'admin/tt/batches',             1, "('tt_batches','can_view')",        3000, 'tt', 'batches,save_batch,delete_batch', 1),
-(@tt_menu_id, 'Subject Load',        'tt_subject_load',   'tt_subject_load',        'admin/tt/subject_load',        1, "('tt_subject_load','can_view')",   3000, 'tt', 'subject_load,save_subject_load', 1),
-(@tt_menu_id, 'Teacher Constraints', 'tt_teacher_constr', 'tt_teacher_constraints', 'admin/tt/teacher_constraints', 1, "('tt_teacher_constr','can_view')", 3000, 'tt', 'teacher_constraints,save_teacher_constraint,delete_teacher_constraint', 1),
-(@tt_menu_id, 'Teacher Availability','tt_teacher_avail',  'tt_teacher_availability','admin/tt/teacher_unavail',     1, "('tt_teacher_avail','can_view')",  3000, 'tt', 'teacher_unavail,save_teacher_unavail', 1),
-(@tt_menu_id, 'Auto Generate',       'tt_generate',       'tt_auto_generate',       'admin/tt/generate',            1, "('tt_generate','can_view')",       3000, 'tt', 'generate,run_generate,preview,confirm_draft,discard_draft', 1),
-(@tt_menu_id, 'Class Timetable',     'tt_class_grid',     'tt_class_timetable',     'admin/tt/class_grid',          1, "('tt_class_grid','can_view')",     3000, 'tt', 'class_grid,save_cell,delete_cell,toggle_lock', 1),
-(@tt_menu_id, 'Teacher Timetable',   'tt_teacher_view',   'tt_teacher_timetable',   'admin/tt/teacher_view',        1, "('tt_teacher_view','can_view')",   3000, 'tt', 'teacher_view', 1),
-(@tt_menu_id, 'Substitution',        'tt_substitution',   'tt_substitution',        'admin/tt/substitution',        1, "('tt_substitution','can_view')",   3000, 'tt', 'substitution,save_substitution,cancel_substitution', 1),
-(@tt_menu_id, 'Reports',             'tt_reports',        'tt_reports',             'admin/tt/reports',             1, "('tt_reports','can_view')",        3000, 'tt', 'reports,get_master_report,get_room_utilization,get_teacher_workload', 1);
+(@tt_menu_id, 'TT Dashboard',         'tt_dashboard',       'tt_dashboard',          'admin/tt/dashboard',           1, "('tt_dashboard','can_view')",       3000, 'tt', 'dashboard', 1),
+(@tt_menu_id, 'Period Setup',         'tt_periods',         'tt_period_setup',        'admin/tt/periods',             1, "('tt_periods','can_view')",         3000, 'tt', 'periods,save_period,delete_period,reorder_periods', 1),
+(@tt_menu_id, 'Rooms',                'tt_rooms',           'tt_rooms',               'admin/tt/rooms',               1, "('tt_rooms','can_view')",           3000, 'tt', 'rooms,save_room,delete_room', 1),
+(@tt_menu_id, 'Batches',              'tt_batches',         'tt_batches',             'admin/tt/batches',             1, "('tt_batches','can_view')",         3000, 'tt', 'batches,save_batch,delete_batch', 1),
+(@tt_menu_id, 'Subject Colors',       'tt_subject_colors',  'tt_subject_colors',      'admin/tt/subject_colors',      1, "('tt_subject_colors','can_view')",  3000, 'tt', 'subject_colors,save_subject_colors', 1),
+(@tt_menu_id, 'Class Availability',   'tt_class_avail',     'tt_class_avail',         'admin/tt/class_unavail',       1, "('tt_class_avail','can_view')",     3000, 'tt', 'class_unavail,save_class_unavail,get_class_unavail', 1),
+(@tt_menu_id, 'Room Availability',    'tt_room_avail',      'tt_room_avail',          'admin/tt/room_unavail',        1, "('tt_room_avail','can_view')",      3000, 'tt', 'room_unavail,save_room_unavail,get_room_unavail', 1),
+(@tt_menu_id, 'Subject Time Off',     'tt_subject_avail',   'tt_subject_avail',       'admin/tt/subject_unavail',     1, "('tt_subject_avail','can_view')",   3000, 'tt', 'subject_unavail,save_subject_unavail,get_subject_unavail', 1),
+(@tt_menu_id, 'Subject Load',         'tt_subject_load',    'tt_subject_load',        'admin/tt/subject_load',        1, "('tt_subject_load','can_view')",    3000, 'tt', 'subject_load,save_subject_load', 1),
+(@tt_menu_id, 'Teacher Constraints',  'tt_teacher_constr',  'tt_teacher_constraints', 'admin/tt/teacher_constraints', 1, "('tt_teacher_constr','can_view')",  3000, 'tt', 'teacher_constraints,save_teacher_constraint,delete_teacher_constraint', 1),
+(@tt_menu_id, 'Teacher Availability', 'tt_teacher_avail',   'tt_teacher_availability','admin/tt/teacher_unavail',     1, "('tt_teacher_avail','can_view')",   3000, 'tt', 'teacher_unavail,save_teacher_unavail', 1),
+(@tt_menu_id, 'Auto Generate',        'tt_generate',        'tt_auto_generate',       'admin/tt/generate',            1, "('tt_generate','can_view')",        3000, 'tt', 'generate,run_generate,preview,confirm_draft,discard_draft', 1),
+(@tt_menu_id, 'Lesson Browser',       'tt_lesson_browser',  'tt_lesson_browser',      'admin/tt/lesson_browser',      1, "('tt_lesson_browser','can_view')",  3000, 'tt', 'lesson_browser,get_lesson_browser_data,get_all_subjects', 1),
+(@tt_menu_id, 'Joint Lessons',        'tt_joint_lessons',   'tt_joint_lessons',       'admin/tt/joint_lessons',       1, "('tt_joint_lessons','can_view')",   3000, 'tt', 'joint_lessons,save_joint_lesson,delete_joint_lesson,get_joint_lesson,get_joint_classes', 1),
+(@tt_menu_id, 'Class Timetable',      'tt_class_grid',      'tt_class_timetable',     'admin/tt/class_grid',          1, "('tt_class_grid','can_view')",      3000, 'tt', 'class_grid,save_cell,delete_cell,toggle_lock', 1),
+(@tt_menu_id, 'Teacher Timetable',    'tt_teacher_view',    'tt_teacher_timetable',   'admin/tt/teacher_view',        1, "('tt_teacher_view','can_view')",    3000, 'tt', 'teacher_view', 1),
+(@tt_menu_id, 'Substitution',         'tt_substitution',    'tt_substitution',        'admin/tt/substitution',        1, "('tt_substitution','can_view')",    3000, 'tt', 'substitution,save_substitution,cancel_substitution', 1),
+(@tt_menu_id, 'Reports',              'tt_reports',         'tt_reports',             'admin/tt/reports',             1, "('tt_reports','can_view')",         3000, 'tt', 'reports,get_master_report,get_room_utilization,get_teacher_workload', 1);
 
 INSERT INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`, `can_edit`, `can_delete`) VALUES
 (1, 3001, 1, 1, 1, 1),
@@ -12340,5 +12426,12 @@ INSERT INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`
 (1, 3008, 1, 1, 1, 1),
 (1, 3009, 1, 0, 0, 0),
 (1, 3010, 1, 1, 1, 1),
-(1, 3011, 1, 0, 0, 0)
+(1, 3011, 1, 0, 0, 0),
+(1, 3012, 1, 1, 0, 0),
+(1, 3013, 1, 1, 0, 0),
+(1, 3014, 1, 1, 0, 0),
+(1, 3015, 1, 1, 0, 0),
+(1, 3016, 1, 0, 0, 0),
+(1, 3017, 1, 0, 0, 0),
+(1, 3018, 1, 1, 1, 1)
 ON DUPLICATE KEY UPDATE `can_view`=VALUES(`can_view`), `can_add`=VALUES(`can_add`), `can_edit`=VALUES(`can_edit`), `can_delete`=VALUES(`can_delete`);
