@@ -60,9 +60,9 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
-  $('#lb_dept').select2({ placeholder: '-- All Departments --', allowClear: true, width: '100%' });
-  $('#lb_staff').select2({ placeholder: '-- All Teachers --', allowClear: true, width: '100%' });
-  $('#lb_subject').select2({ placeholder: '-- All Subjects --', allowClear: true, width: '100%' });
+  $('#lb_dept').select2({ placeholder: '-- All Departments --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
+  $('#lb_staff').select2({ placeholder: '-- All Teachers --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
+  $('#lb_subject').select2({ placeholder: '-- All Subjects --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
 
   // Load subjects list
   $.get('<?php echo site_url('admin/tt/get_all_subjects'); ?>', function(res){
@@ -80,7 +80,11 @@ $(function(){
         $btn.prop('disabled',false).html('<i class="fa fa-search"></i> Load');
         if (res.status === '1') {
           $('#lb-rows').html(res.html);
-          $('#lb-count-badge').text(res.count + ' lessons');
+          if (res.count > 0) {
+            $('#lb-count-badge').text(res.count + ' lessons').removeClass('label-warning').addClass('label-primary');
+          } else {
+            $('#lb-count-badge').text('No data').removeClass('label-primary').addClass('label-warning');
+          }
           $('#lb-result-box').show();
         }
       },'json');
