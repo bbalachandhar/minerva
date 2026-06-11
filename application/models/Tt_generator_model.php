@@ -32,7 +32,11 @@ class Tt_generator_model extends MY_Model
     private $subject_day_count    = [];  // [class_id][section_id][sgs_id][day] = count
 
     // Class unavailability: [class_id][section_id][day][period_id] = true
-    private $class_unavail = [];
+    private $class_unavail   = [];
+    // Room unavailability: [room_id][day][period_id] = true
+    private $room_unavail    = [];
+    // Subject time-off: [sgs_id][day][period_id] = true
+    private $subject_unavail = [];
 
     public function __construct()
     {
@@ -64,6 +68,8 @@ class Tt_generator_model extends MY_Model
 
         $this->_loadLockedEntries($session_id, $class_scope);
         $this->_loadClassUnavail($session_id);
+        $this->_loadRoomUnavail($session_id);
+        $this->_loadSubjectUnavail($session_id);
 
         $this->CI->load->model('Tt_teacher_model');
         $constraints = $this->CI->Tt_teacher_model->getAllConstraintsMap($session_id);
@@ -96,6 +102,7 @@ class Tt_generator_model extends MY_Model
             $room_type  = $load->preferred_room_type ?? 'any';
             $pref_room  = !empty($load->preferred_room_id) ? (int)$load->preferred_room_id : null;
             $max_per_day   = (int) ($load->max_per_day ?? 2);
+            $min_per_day   = !empty($load->min_per_day) ? 1 : 0;
             $dist_evenly   = !empty($load->distribute_evenly);
             $sgs_id        = (int) $load->subject_group_subject_id;
 
@@ -119,7 +126,7 @@ class Tt_generator_model extends MY_Model
                     $consec, $subject_days_used,
                     $constraints, $unavail_map,
                     $room_type, $pref_room,
-                    $max_per_day, $dist_evenly
+                    $max_per_day, $min_per_day, $dist_evenly
                 );
 
                 if ($slot === null) {
@@ -170,6 +177,22 @@ class Tt_generator_model extends MY_Model
                 $placed_count++;
                 $total_placed++;
             }
+
+            // On1 check: warn if subject didn't get placed on every working day
+            if ($min_per_day && $placed_count > 0) {
+                $days_covered = array_unique($subject_days_used);
+                $missing_days = array_diff($this->working_days, $days_covered);
+                foreach ($missing_days as $md) {
+                    $conflicts[] = [
+                        'class_id'   => $class_id,
+                        'section_id' => $section_id,
+                        'subject'    => $load->subject_name . ' (' . ($load->subject_code ?? '') . ')',
+                        'staff'      => $load->staff_name . ' ' . $load->staff_surname,
+                        'placement'  => 'On1',
+                        'reason'     => "On1 violation: no slot placed on {$md}.",
+                    ];
+                }
+            }
         }
 
         $quality = ($total_required > 0) ? round(($total_placed / $total_required) * 100, 2) : 100.00;
@@ -207,7 +230,7 @@ class Tt_generator_model extends MY_Model
                                     $consec, $days_used,
                                     $constraints, $unavail_map,
                                     $room_type, $pref_room,
-                                    $max_per_day, $dist_evenly)
+                                    $max_per_day, $min_per_day, $dist_evenly)
     {
         $best       = null;
         $best_score = -999;
@@ -219,7 +242,8 @@ class Tt_generator_model extends MY_Model
             $day_subject_count = $this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0;
             if ($day_subject_count >= $max_per_day) continue;
 
-            $day_penalty = ($dist_evenly && in_array($day, $days_used)) ? -10 : 0;
+            $day_penalty  = ($dist_evenly && in_array($day, $days_used)) ? -10 : 0;
+            $day_on1_bonus = ($min_per_day && $day_subject_count === 0 && !in_array($day, $days_used)) ? 8 : 0;
 
             $candidate_starts = $this->_getConsecutiveStarts($consec);
 
@@ -235,6 +259,15 @@ class Tt_generator_model extends MY_Model
                     }
                 }
                 if (!$class_free) continue;
+
+                // Subject time-off check
+                $subj_free = true;
+                foreach ($pid_group as $pid) {
+                    if (!empty($this->subject_unavail[$sgs_id][$day][$pid])) {
+                        $subj_free = false; break;
+                    }
+                }
+                if (!$subj_free) continue;
 
                 $teacher_candidates = [$staff_id];
                 if ($alt_staff) $teacher_candidates[] = $alt_staff;
@@ -264,7 +297,7 @@ class Tt_generator_model extends MY_Model
                     $room_id = $this->_findRoom($day, $pid_group, $room_type, $pref_room, $t_id, $constraint);
 
                     // Score
-                    $score = $day_penalty;
+                    $score = $day_penalty + $day_on1_bonus;
                     if ($t_id === $staff_id) $score += 5;
                     if ($room_id && $room_id === $pref_room) $score += 3;
                     // Prefer earlier in the week for spreading
@@ -332,6 +365,7 @@ class Tt_generator_model extends MY_Model
     {
         foreach ($pid_group as $pid) {
             if (!empty($this->room_occ[$room_id][$day][$pid])) return false;
+            if (!empty($this->room_unavail[$room_id][$day][$pid])) return false;
         }
         return true;
     }
@@ -400,6 +434,29 @@ class Tt_generator_model extends MY_Model
         $rows = $this->db->where('session_id', $session_id)->get('tt_class_unavail')->result();
         foreach ($rows as $r) {
             $this->class_unavail[$r->class_id][$r->section_id][$r->day][$r->period_id] = true;
+        }
+    }
+
+    private function _loadRoomUnavail($session_id)
+    {
+        $rows = $this->db->where('session_id', $session_id)->get('tt_room_unavail')->result();
+        foreach ($rows as $r) {
+            $this->room_unavail[$r->room_id][$r->day][$r->period_id] = true;
+        }
+    }
+
+    private function _loadSubjectUnavail($session_id)
+    {
+        // tt_subject_unavail stores by subject_id; map to sgs_id via subject_group_subjects
+        $rows = $this->db->select('tt_subject_unavail.*, subject_group_subjects.id as sgs_id')
+            ->from('tt_subject_unavail')
+            ->join('subject_group_subjects', 'subject_group_subjects.subject_id = tt_subject_unavail.subject_id', 'left')
+            ->where('tt_subject_unavail.session_id', $session_id)
+            ->get()->result();
+        foreach ($rows as $r) {
+            if ($r->sgs_id) {
+                $this->subject_unavail[$r->sgs_id][$r->day][$r->period_id] = true;
+            }
         }
     }
 

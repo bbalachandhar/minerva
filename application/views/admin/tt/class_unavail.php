@@ -121,6 +121,10 @@ $(function(){
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
   var current_class = 0, current_section = 0;
 
+  $('#cu_dept').select2({ placeholder: '-- All --', allowClear: true, width: '100%' });
+  $('#cu_class_id').select2({ placeholder: '-- Select Class --', allowClear: true, width: '100%' });
+  $('#cu_section_id').select2({ placeholder: '-- Select Section --', allowClear: true, width: '100%' });
+
   $('#cu_class_id').on('change', function(){
     var id = $(this).val();
     $('#cu_section_id').html('<option value="">Loading...</option>');

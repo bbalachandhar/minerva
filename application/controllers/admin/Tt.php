@@ -777,7 +777,7 @@ class Tt extends Admin_Controller
         $data = $this->_baseData();
         $data['subjects'] = $this->db->select('subjects.id, subjects.name, subjects.code, subjects.type, subjects.tt_color, subjects.tt_abbr')
             ->from('subjects')
-            ->where('subjects.status', 'Active')
+            ->where('subjects.is_active !=', 'no')
             ->order_by('subjects.name', 'ASC')
             ->get()->result();
         $this->load->view('layout/header', $data);
@@ -790,16 +790,16 @@ class Tt extends Admin_Controller
         if (!$this->rbac->hasPrivilege('tt_subject_colors', 'can_add')) {
             access_denied();
         }
-        $colors = $this->input->post('colors'); // array: subject_id => {color, abbr}
-        if (empty($colors)) {
+        $subjects = $this->input->post('subjects'); // array: subject_id => {tt_color, tt_abbr}
+        if (empty($subjects)) {
             echo json_encode(['status' => '0', 'message' => 'No data received.']);
             return;
         }
         $this->db->trans_start();
-        foreach ($colors as $subject_id => $val) {
+        foreach ($subjects as $subject_id => $val) {
             $this->db->where('id', (int)$subject_id)->update('subjects', [
-                'tt_color' => !empty($val['color']) ? $val['color'] : null,
-                'tt_abbr'  => !empty($val['abbr'])  ? substr(trim($val['abbr']), 0, 10) : null,
+                'tt_color' => !empty($val['tt_color']) ? $val['tt_color'] : null,
+                'tt_abbr'  => !empty($val['tt_abbr'])  ? substr(trim($val['tt_abbr']), 0, 10) : null,
             ]);
         }
         $this->db->trans_complete();
@@ -852,6 +852,102 @@ class Tt extends Admin_Controller
         $slots      = $this->input->post('slots'); // array of {day, period_id, reason}
         $this->load->model('Tt_class_unavail_model');
         $result = $this->Tt_class_unavail_model->saveUnavailability($session_id, $class_id, $section_id, $slots ?: []);
+        echo json_encode(['status' => $result ? '1' : '0']);
+    }
+
+    // =========================================================================
+    // ROOM UNAVAILABILITY
+    // =========================================================================
+
+    public function room_unavail()
+    {
+        if (!$this->rbac->hasPrivilege('tt_room_avail', 'can_view')) {
+            access_denied();
+        }
+        $this->_setMenu();
+        $data = $this->_baseData();
+        $data['rooms']   = $this->Tt_room_model->getAll();
+        $data['periods'] = $this->Tt_period_model->getAllNonBreak($data['session_id']);
+        $data['days']    = $this->customlib->getDaysnameWithoutLang();
+        $this->load->model('Tt_room_unavail_model');
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/tt/room_unavail', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function get_room_unavail()
+    {
+        $session_id = $this->setting_model->getCurrentSession();
+        $room_id    = (int) $this->input->post('room_id');
+        $this->load->model('Tt_room_unavail_model');
+        $data = $this->Tt_room_unavail_model->getForRoom($session_id, $room_id);
+        $map  = [];
+        foreach ($data as $row) {
+            $map[$row->day . '_' . $row->period_id] = true;
+        }
+        echo json_encode(['status' => '1', 'map' => $map]);
+    }
+
+    public function save_room_unavail()
+    {
+        if (!$this->rbac->hasPrivilege('tt_room_avail', 'can_add')) {
+            access_denied();
+        }
+        $session_id = $this->setting_model->getCurrentSession();
+        $room_id    = (int) $this->input->post('room_id');
+        $slots      = $this->input->post('slots') ?: [];
+        $this->load->model('Tt_room_unavail_model');
+        $result = $this->Tt_room_unavail_model->saveUnavailability($session_id, $room_id, $slots);
+        echo json_encode(['status' => $result ? '1' : '0']);
+    }
+
+    // =========================================================================
+    // SUBJECT UNAVAILABILITY
+    // =========================================================================
+
+    public function subject_unavail()
+    {
+        if (!$this->rbac->hasPrivilege('tt_subject_avail', 'can_view')) {
+            access_denied();
+        }
+        $this->_setMenu();
+        $data = $this->_baseData();
+        $data['subjects'] = $this->db->select('subjects.id, subjects.name, subjects.code, subjects.type')
+            ->from('subjects')
+            ->where('subjects.is_active !=', 'no')
+            ->order_by('subjects.name', 'ASC')
+            ->get()->result();
+        $data['periods'] = $this->Tt_period_model->getAllNonBreak($data['session_id']);
+        $data['days']    = $this->customlib->getDaysnameWithoutLang();
+        $this->load->model('Tt_subject_unavail_model');
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/tt/subject_unavail', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function get_subject_unavail()
+    {
+        $session_id = $this->setting_model->getCurrentSession();
+        $subject_id = (int) $this->input->post('subject_id');
+        $this->load->model('Tt_subject_unavail_model');
+        $data = $this->Tt_subject_unavail_model->getForSubject($session_id, $subject_id);
+        $map  = [];
+        foreach ($data as $row) {
+            $map[$row->day . '_' . $row->period_id] = true;
+        }
+        echo json_encode(['status' => '1', 'map' => $map]);
+    }
+
+    public function save_subject_unavail()
+    {
+        if (!$this->rbac->hasPrivilege('tt_subject_avail', 'can_add')) {
+            access_denied();
+        }
+        $session_id = $this->setting_model->getCurrentSession();
+        $subject_id = (int) $this->input->post('subject_id');
+        $slots      = $this->input->post('slots') ?: [];
+        $this->load->model('Tt_subject_unavail_model');
+        $result = $this->Tt_subject_unavail_model->saveUnavailability($session_id, $subject_id, $slots);
         echo json_encode(['status' => $result ? '1' : '0']);
     }
 

@@ -45,6 +45,8 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
+  $('#tv_staff').select2({ placeholder: '-- Select Teacher --', allowClear: true, width: '100%' });
+
   $('#btn-load-teacher-grid').on('click', function(){
     var staff_id = $('#tv_staff').val();
     if (!staff_id) { alert('Please select a teacher.'); return; }

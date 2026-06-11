@@ -164,6 +164,9 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
+  $('#tc_staff').select2({ placeholder: '-- Select Teacher --', allowClear: true, width: '100%' });
+  $('#tc_pref_room').select2({ placeholder: '-- No Preference --', allowClear: true, width: '100%' });
+
   $(document).on('click', '.btn-edit-tc', function(){
     var d = $(this).data();
     $('#tc_id').val(d.id);

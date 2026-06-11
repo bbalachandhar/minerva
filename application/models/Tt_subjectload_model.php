@@ -86,6 +86,7 @@ class Tt_subjectload_model extends MY_Model
                 'batch_id'                 => $batch_id,
                 'priority'                 => (int) ($row['priority'] ?? 5),
                 'max_per_day'              => (int) ($row['max_per_day'] ?? 2),
+                'min_per_day'              => !empty($row['min_per_day']) ? 1 : 0,
                 'distribute_evenly'        => !empty($row['distribute_evenly']) ? 1 : 0,
             ];
 

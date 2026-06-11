@@ -81,6 +81,10 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
+  $('#dept_filter').select2({ placeholder: '-- All --', allowClear: true, width: '100%' });
+  $('#sl_class_id').select2({ placeholder: '-- Select Class --', allowClear: true, width: '100%' });
+  $('#sl_section_id').select2({ placeholder: '-- Select Section --', allowClear: true, width: '100%' });
+
   $('#sl_class_id').on('change', function(){
     var id = $(this).val();
     $('#sl_section_id').html('<option value="">Loading...</option>');
@@ -109,6 +113,7 @@ $(function(){
           $('#sl_class_id_hidden').val(class_id);
           $('#sl_section_id_hidden').val(section_id);
           $('#subject-load-rows').html(res.html);
+          $('#subject-load-rows select').select2({ width: 'resolve', placeholder: '-- Select --', allowClear: true });
           $('#subject-load-container').show();
         } else {
           $('#subject-load-empty').show();

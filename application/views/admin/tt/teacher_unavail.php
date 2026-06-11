@@ -88,6 +88,8 @@ $(function(){
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
   var current_staff_id = null;
 
+  $('#avail_staff_id').select2({ placeholder: '-- Select Teacher --', allowClear: true, width: '100%' });
+
   $('#btn-load-avail').on('click', function(){
     var staff_id = $('#avail_staff_id').val();
     if (!staff_id) { alert('Please select a teacher.'); return; }

@@ -470,6 +470,8 @@ if (!function_exists('main_menu_array')) {
                     'reports', 'get_master_report', 'get_room_utilization', 'get_teacher_workload',
                     'subject_colors', 'save_subject_colors',
                     'class_unavail', 'get_class_unavail', 'save_class_unavail',
+                    'room_unavail', 'get_room_unavail', 'save_room_unavail',
+                    'subject_unavail', 'get_subject_unavail', 'save_subject_unavail',
                     'get_sections_by_class', 'get_batches_by_class_section', 'get_subjects_by_class_section',
                 ),
             ),
