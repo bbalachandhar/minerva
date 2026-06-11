@@ -34,10 +34,21 @@ CREATE TABLE IF NOT EXISTS `tt_subject_unavail` (
 
 -- -----------------------------------------------------------
 -- 3. ALTER tt_subject_load — add min_per_day (On1 flag)
+--    Uses PREPARE/EXECUTE for MySQL 5.7 compatibility (no IF NOT EXISTS on ALTER)
 -- -----------------------------------------------------------
-ALTER TABLE `tt_subject_load`
-  ADD COLUMN IF NOT EXISTS `min_per_day` TINYINT(1) NOT NULL DEFAULT 0
-  COMMENT 'On1: if 1, subject must appear at least once on every working day';
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME   = 'tt_subject_load'
+    AND COLUMN_NAME  = 'min_per_day'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_subject_load` ADD COLUMN `min_per_day` TINYINT(1) NOT NULL DEFAULT 0',
+  'SELECT 1 -- min_per_day already exists'
+);
+PREPARE _stmt FROM @sql;
+EXECUTE _stmt;
+DEALLOCATE PREPARE _stmt;
 
 -- -----------------------------------------------------------
 -- 4. permission_category — add tt_room_avail
