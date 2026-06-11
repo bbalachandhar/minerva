@@ -6,7 +6,7 @@ class Tt_entry_model extends MY_Model
     private function _select()
     {
         return 'tt_entries.*, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type, subjects.tt_color, subjects.tt_abbr,
-                staff.name as staff_name, staff.surname as staff_surname,
+                staff.name as staff_name, staff.surname as staff_surname, staff.employee_id as staff_emp_id,
                 tt_rooms.name as room_name, tt_rooms.room_number,
                 tt_batches.batch_name,
                 tt_periods.name as period_name, tt_periods.start_time, tt_periods.end_time';

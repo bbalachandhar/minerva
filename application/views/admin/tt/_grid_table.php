@@ -62,7 +62,12 @@ $type_class = ['theory'=>'slot-theory','practical'=>'slot-practical','project'=>
                   $slot_style  = $slot_color ? "background-color:{$slot_color};color:#fff;" : '';
                 ?>
                 <span class="slot-tag <?php echo $slot_color ? '' : $tc; ?>" style="<?php echo $slot_style; ?>"><?php echo htmlspecialchars($slot_text); ?></span><br>
-                <small style="font-size:10px;"><?php echo htmlspecialchars($entry->staff_name.' '.($entry->staff_surname??'')); ?></small>
+                <?php
+                  $emp = $entry->staff_emp_id ?? '';
+                  $t_abbr = (strlen($emp) > 0 && strlen($emp) <= 8) ? $emp
+                           : mb_strtoupper(mb_substr($entry->staff_name,0,1).mb_substr($entry->staff_surname??'',0,2));
+                ?>
+                <small style="font-size:10px;" title="<?php echo htmlspecialchars($entry->staff_name.' '.($entry->staff_surname??'')); ?>"><?php echo htmlspecialchars($t_abbr); ?></small>
                 <?php if ($entry->room_name): ?><br><small style="font-size:10px;color:#777;"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($entry->room_name); ?></small><?php endif; ?>
                 <?php if ($entry->batch_name): ?><br><span class="label label-info" style="font-size:9px;">Batch <?php echo $entry->batch_name; ?></span><?php endif; ?>
               <?php endif; ?>

@@ -149,6 +149,10 @@ $(function(){
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
   var current_subjects = [], current_staff = [], current_rooms = [], current_batches = [];
 
+  $('#cg_dept').select2({ placeholder: '-- All --', allowClear: true, width: '100%' });
+  $('#cg_class').select2({ placeholder: '-- Select Class --', allowClear: true, width: '100%' });
+  $('#cg_section').select2({ placeholder: '-- Select Section --', allowClear: true, width: '100%' });
+
   // Load sections
   $('#cg_class').on('change', function(){
     var id = $(this).val();
