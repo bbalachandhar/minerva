@@ -138,8 +138,8 @@ $(function(){
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
   var dpTimeIcons = { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' };
-  $('#period_start_pick').datetimepicker({ format: 'HH:mm', viewMode: 'hours', icons: dpTimeIcons });
-  $('#period_end_pick').datetimepicker({ format: 'HH:mm', viewMode: 'hours', icons: dpTimeIcons });
+  $('#period_start_pick').datetimepicker({ format: 'HH:mm', icons: dpTimeIcons });
+  $('#period_end_pick').datetimepicker({ format: 'HH:mm', icons: dpTimeIcons });
 
   // Toggle break label field
   $('#is_break').on('change', function(){
