@@ -12396,24 +12396,24 @@ ON DUPLICATE KEY UPDATE `is_active` = 1, `id` = LAST_INSERT_ID(`id`);
 SET @tt_menu_id = LAST_INSERT_ID();
 
 INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`) VALUES
-(@tt_menu_id, 'TT Dashboard',         'tt_dashboard',       'tt_dashboard',          'admin/tt/dashboard',           1, "('tt_dashboard','can_view')",       3000, 'tt', 'dashboard', 1),
-(@tt_menu_id, 'Period Setup',         'tt_periods',         'tt_period_setup',        'admin/tt/periods',             1, "('tt_periods','can_view')",         3000, 'tt', 'periods,save_period,delete_period,reorder_periods', 1),
-(@tt_menu_id, 'Rooms',                'tt_rooms',           'tt_rooms',               'admin/tt/rooms',               1, "('tt_rooms','can_view')",           3000, 'tt', 'rooms,save_room,delete_room', 1),
-(@tt_menu_id, 'Batches',              'tt_batches',         'tt_batches',             'admin/tt/batches',             1, "('tt_batches','can_view')",         3000, 'tt', 'batches,save_batch,delete_batch', 1),
-(@tt_menu_id, 'Subject Colors',       'tt_subject_colors',  'tt_subject_colors',      'admin/tt/subject_colors',      1, "('tt_subject_colors','can_view')",  3000, 'tt', 'subject_colors,save_subject_colors', 1),
-(@tt_menu_id, 'Class Availability',   'tt_class_avail',     'tt_class_avail',         'admin/tt/class_unavail',       1, "('tt_class_avail','can_view')",     3000, 'tt', 'class_unavail,save_class_unavail,get_class_unavail', 1),
-(@tt_menu_id, 'Room Availability',    'tt_room_avail',      'tt_room_avail',          'admin/tt/room_unavail',        1, "('tt_room_avail','can_view')",      3000, 'tt', 'room_unavail,save_room_unavail,get_room_unavail', 1),
-(@tt_menu_id, 'Subject Time Off',     'tt_subject_avail',   'tt_subject_avail',       'admin/tt/subject_unavail',     1, "('tt_subject_avail','can_view')",   3000, 'tt', 'subject_unavail,save_subject_unavail,get_subject_unavail', 1),
-(@tt_menu_id, 'Subject Load',         'tt_subject_load',    'tt_subject_load',        'admin/tt/subject_load',        1, "('tt_subject_load','can_view')",    3000, 'tt', 'subject_load,save_subject_load', 1),
-(@tt_menu_id, 'Teacher Constraints',  'tt_teacher_constr',  'tt_teacher_constraints', 'admin/tt/teacher_constraints', 1, "('tt_teacher_constr','can_view')",  3000, 'tt', 'teacher_constraints,save_teacher_constraint,delete_teacher_constraint', 1),
-(@tt_menu_id, 'Teacher Availability', 'tt_teacher_avail',   'tt_teacher_availability','admin/tt/teacher_unavail',     1, "('tt_teacher_avail','can_view')",   3000, 'tt', 'teacher_unavail,save_teacher_unavail', 1),
-(@tt_menu_id, 'Auto Generate',        'tt_generate',        'tt_auto_generate',       'admin/tt/generate',            1, "('tt_generate','can_view')",        3000, 'tt', 'generate,run_generate,preview,confirm_draft,discard_draft', 1),
-(@tt_menu_id, 'Lesson Browser',       'tt_lesson_browser',  'tt_lesson_browser',      'admin/tt/lesson_browser',      1, "('tt_lesson_browser','can_view')",  3000, 'tt', 'lesson_browser,get_lesson_browser_data,get_all_subjects', 1),
-(@tt_menu_id, 'Joint Lessons',        'tt_joint_lessons',   'tt_joint_lessons',       'admin/tt/joint_lessons',       1, "('tt_joint_lessons','can_view')",   3000, 'tt', 'joint_lessons,save_joint_lesson,delete_joint_lesson,get_joint_lesson,get_joint_classes', 1),
-(@tt_menu_id, 'Class Timetable',      'tt_class_grid',      'tt_class_timetable',     'admin/tt/class_grid',          1, "('tt_class_grid','can_view')",      3000, 'tt', 'class_grid,save_cell,delete_cell,toggle_lock', 1),
-(@tt_menu_id, 'Teacher Timetable',    'tt_teacher_view',    'tt_teacher_timetable',   'admin/tt/teacher_view',        1, "('tt_teacher_view','can_view')",    3000, 'tt', 'teacher_view', 1),
-(@tt_menu_id, 'Substitution',         'tt_substitution',    'tt_substitution',        'admin/tt/substitution',        1, "('tt_substitution','can_view')",    3000, 'tt', 'substitution,save_substitution,cancel_substitution', 1),
-(@tt_menu_id, 'Reports',              'tt_reports',         'tt_reports',             'admin/tt/reports',             1, "('tt_reports','can_view')",         3000, 'tt', 'reports,get_master_report,get_room_utilization,get_teacher_workload', 1);
+(@tt_menu_id, 'TT Dashboard',         'tt_dashboard',       'tt_dashboard',          'admin/tt/dashboard',           10,  "('tt_dashboard','can_view')",       3000, 'tt', 'dashboard', 1),
+(@tt_menu_id, 'Period Setup',         'tt_periods',         'tt_period_setup',        'admin/tt/periods',             20,  "('tt_periods','can_view')",         3000, 'tt', 'periods,save_period,delete_period,reorder_periods', 1),
+(@tt_menu_id, 'Rooms',                'tt_rooms',           'tt_rooms',               'admin/tt/rooms',               30,  "('tt_rooms','can_view')",           3000, 'tt', 'rooms,save_room,delete_room', 1),
+(@tt_menu_id, 'Batches',              'tt_batches',         'tt_batches',             'admin/tt/batches',             40,  "('tt_batches','can_view')",         3000, 'tt', 'batches,save_batch,delete_batch', 1),
+(@tt_menu_id, 'Subject Colors',       'tt_subject_colors',  'tt_subject_colors',      'admin/tt/subject_colors',      50,  "('tt_subject_colors','can_view')",  3000, 'tt', 'subject_colors,save_subject_colors', 1),
+(@tt_menu_id, 'Class Availability',   'tt_class_avail',     'tt_class_avail',         'admin/tt/class_unavail',       60,  "('tt_class_avail','can_view')",     3000, 'tt', 'class_unavail,save_class_unavail,get_class_unavail', 1),
+(@tt_menu_id, 'Room Availability',    'tt_room_avail',      'tt_room_avail',          'admin/tt/room_unavail',        70,  "('tt_room_avail','can_view')",      3000, 'tt', 'room_unavail,save_room_unavail,get_room_unavail', 1),
+(@tt_menu_id, 'Subject Time Off',     'tt_subject_avail',   'tt_subject_avail',       'admin/tt/subject_unavail',     80,  "('tt_subject_avail','can_view')",   3000, 'tt', 'subject_unavail,save_subject_unavail,get_subject_unavail', 1),
+(@tt_menu_id, 'Subject Load',         'tt_subject_load',    'tt_subject_load',        'admin/tt/subject_load',        90,  "('tt_subject_load','can_view')",    3000, 'tt', 'subject_load,save_subject_load', 1),
+(@tt_menu_id, 'Teacher Constraints',  'tt_teacher_constr',  'tt_teacher_constraints', 'admin/tt/teacher_constraints', 100, "('tt_teacher_constr','can_view')",  3000, 'tt', 'teacher_constraints,save_teacher_constraint,delete_teacher_constraint', 1),
+(@tt_menu_id, 'Teacher Availability', 'tt_teacher_avail',   'tt_teacher_availability','admin/tt/teacher_unavail',     110, "('tt_teacher_avail','can_view')",   3000, 'tt', 'teacher_unavail,save_teacher_unavail', 1),
+(@tt_menu_id, 'Auto Generate',        'tt_generate',        'tt_auto_generate',       'admin/tt/generate',            120, "('tt_generate','can_view')",        3000, 'tt', 'generate,run_generate,preview,confirm_draft,discard_draft', 1),
+(@tt_menu_id, 'Lesson Browser',       'tt_lesson_browser',  'tt_lesson_browser',      'admin/tt/lesson_browser',      130, "('tt_lesson_browser','can_view')",  3000, 'tt', 'lesson_browser,get_lesson_browser_data,get_all_subjects', 1),
+(@tt_menu_id, 'Joint Lessons',        'tt_joint_lessons',   'tt_joint_lessons',       'admin/tt/joint_lessons',       140, "('tt_joint_lessons','can_view')",   3000, 'tt', 'joint_lessons,save_joint_lesson,delete_joint_lesson,get_joint_lesson,get_joint_classes', 1),
+(@tt_menu_id, 'Class Timetable',      'tt_class_grid',      'tt_class_timetable',     'admin/tt/class_grid',          150, "('tt_class_grid','can_view')",      3000, 'tt', 'class_grid,save_cell,delete_cell,toggle_lock', 1),
+(@tt_menu_id, 'Teacher Timetable',    'tt_teacher_view',    'tt_teacher_timetable',   'admin/tt/teacher_view',        160, "('tt_teacher_view','can_view')",    3000, 'tt', 'teacher_view', 1),
+(@tt_menu_id, 'Substitution',         'tt_substitution',    'tt_substitution',        'admin/tt/substitution',        170, "('tt_substitution','can_view')",    3000, 'tt', 'substitution,save_substitution,cancel_substitution', 1),
+(@tt_menu_id, 'Reports',              'tt_reports',         'tt_reports',             'admin/tt/reports',             180, "('tt_reports','can_view')",         3000, 'tt', 'reports,get_master_report,get_room_utilization,get_teacher_workload', 1);
 
 INSERT INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`, `can_edit`, `can_delete`) VALUES
 (1, 3001, 1, 1, 1, 1),
