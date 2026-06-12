@@ -13,9 +13,9 @@
       <th>Room Type</th>
       <th>Preferred Room</th>
       <th>Max/Day</th>
-      <th title="Minimum once per day (On1)">On1</th>
-      <th>Spread</th>
-      <th>Priority</th>
+      <th title="Min 1/Day — If checked, the generator tries to place at least one period of this subject on every working day (never skips a day). Useful for languages and daily practice subjects.">Min/Day <i class="fa fa-question-circle text-warning" style="font-size:11px;"></i></th>
+      <th title="Spread across days — If checked, periods are distributed across different days of the week (no double-booking on the same day unless necessary). Uncheck only if you want back-to-back days allowed.">Spread <i class="fa fa-question-circle text-warning" style="font-size:11px;"></i></th>
+      <th title="Scheduling priority (1–10). Higher number = scheduled first by the generator. Set 8–10 for labs, practicals, or subjects with strict room/teacher constraints. Default is 5.">Priority <i class="fa fa-question-circle text-warning" style="font-size:11px;"></i></th>
       <th width="36"></th>
     </tr>
   </thead>
@@ -209,6 +209,16 @@
   <p style="margin-top:10px;">No subjects configured for this class yet.</p>
 </div>
 <?php endif; ?>
+
+<!-- Column Legend -->
+<div style="background:#f8f9fa;border-top:1px solid #e0e0e0;padding:10px 14px;font-size:12px;color:#555;display:flex;flex-wrap:wrap;gap:18px;">
+  <span><strong>P/W</strong> — Periods per week for this subject in this class.</span>
+  <span><strong>Consecutive</strong> — 1 = normal single periods &nbsp;|&nbsp; 2 = must be placed as a double period (e.g. lab) &nbsp;|&nbsp; 3 = triple block.</span>
+  <span><strong>Max/Day</strong> — Hard cap: no more than this many periods of this subject in a single day.</span>
+  <span><i class="fa fa-square text-warning" style="font-size:10px;"></i> <strong>Min/Day</strong> — Soft goal: place at least one period every working day (good for daily-practice subjects like languages, PT).</span>
+  <span><i class="fa fa-square text-primary" style="font-size:10px;"></i> <strong>Spread</strong> — Don't put all periods on the same day; distribute across different days of the week. Recommended to keep ON for most subjects.</span>
+  <span><i class="fa fa-square text-danger" style="font-size:10px;"></i> <strong>Priority 1–10</strong> — Generator schedules higher-priority subjects first. Use <strong>8–10</strong> for labs/practicals (need specific rooms), <strong>5</strong> for normal subjects, <strong>1–3</strong> for electives or flexible subjects.</span>
+</div>
 
 <!-- Add Subject Panel -->
 <div style="border-top:2px dashed #ddd;padding:14px 16px;background:#f9fbff;">
