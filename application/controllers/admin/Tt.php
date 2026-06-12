@@ -664,7 +664,19 @@ class Tt extends Admin_Controller
         $data = $this->_baseData();
         $data['staff_list'] = $this->staff_model->getStaffbyrole(2);
         $data['periods']    = $this->Tt_period_model->getAllNonBreak($data['session_id']);
-        $data['days']       = $this->customlib->getDaysnameWithoutLang();
+
+        $all_days     = $this->customlib->getDaysnameWithoutLang();
+        $sch_settings = $this->setting_model->getSetting();
+        $weekend_str  = isset($sch_settings->weekend_days) ? (string) $sch_settings->weekend_days : '';
+        if ($weekend_str !== '') {
+            $dow_map = [0 => 'Sunday', 1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday',
+                        4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday'];
+            foreach (array_map('intval', explode(',', $weekend_str)) as $dow) {
+                if (isset($dow_map[$dow])) unset($all_days[$dow_map[$dow]]);
+            }
+        }
+        $data['days'] = $all_days;
+
         $this->load->view('layout/header', $data);
         $this->load->view('admin/tt/teacher_unavail', $data);
         $this->load->view('layout/footer', $data);
