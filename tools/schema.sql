@@ -5774,6 +5774,8 @@ CREATE TABLE `staff` (
   `opening_ytd_tax_deducted` decimal(15,2) DEFAULT NULL,
   `opening_ytd_fy_start_year` smallint DEFAULT NULL,
   `skip_payroll` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'skip payroll',
+  `au_fin_no` varchar(50) DEFAULT NULL,
+  `aicte_coa_id` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `employee_id` (`employee_id`),
   UNIQUE KEY `biometric_id` (`biometric_id`),
