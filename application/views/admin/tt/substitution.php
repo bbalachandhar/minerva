@@ -167,9 +167,13 @@ $(function(){
     format: 'YYYY-MM-DD',
     maxDate: moment(),
     useCurrent: false,
+    ignoreReadonly: true,
     icons: { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' }
   });
-  $('#absence_date_pick').data('DateTimePicker').date(moment());
+  $('#absence_date_pick').on('dp.show', function(){
+    var dtp = $(this).data('DateTimePicker');
+    if (!dtp.date()) dtp.date(moment());
+  });
 
   $('#btn-load-slots').on('click', function(){
     var staff_id = $('#absent_staff').val();
@@ -226,7 +230,7 @@ $(function(){
             + (slot.room_name ? '<span><i class="fa fa-map-marker"></i> '+slot.room_name+'</span>' : '')
             + '</div>'
             + '<div class="slot-assign-row">'
-            + '<select class="form-control input-sm slot-sub-select" style="flex:1;min-width:0;">'+subOpts+'</select>'
+            + '<select class="form-control input-sm slot-sub-select" style="flex:1;min-width:120px;">'+subOpts+'</select>'
             + '<input type="text" class="form-control input-sm slot-note" placeholder="Note" style="flex:0 0 90px;" value="'+(slot.substitution&&slot.substitution.note?slot.substitution.note:'')+'">'
             + '<button class="btn btn-sm btn-success btn-assign-sub" title="Save"><i class="fa fa-save"></i></button>'
             + '<button class="btn btn-sm btn-info btn-auto-this" title="Best available"><i class="fa fa-magic"></i></button>'
@@ -237,6 +241,7 @@ $(function(){
 
         html += '</div>';
         $('#slots-container').html(html);
+        $('.slot-sub-select').select2({ placeholder: '-- Unassigned --', allowClear: true, width: '100%' });
       },'json');
   });
 
@@ -254,7 +259,9 @@ $(function(){
   $(document).on('click', '.btn-auto-this', function(){
     var $card   = $(this).closest('.slot-card');
     var $select = $card.find('.slot-sub-select');
-    if ($select.find('option').length > 1) $select.find('option:eq(1)').prop('selected', true);
+    if ($select.find('option').length > 1) {
+      $select.val($select.find('option:eq(1)').val()).trigger('change');
+    }
     $card.find('.btn-assign-sub').trigger('click');
   });
 
@@ -264,7 +271,7 @@ $(function(){
       var $card = $(this);
       var $select = $card.find('.slot-sub-select');
       if ($select.find('option').length > 1) {
-        $select.find('option:eq(1)').prop('selected', true);
+        $select.val($select.find('option:eq(1)').val()).trigger('change');
         $card.find('.btn-assign-sub').trigger('click');
       }
     });
