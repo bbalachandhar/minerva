@@ -67,14 +67,12 @@ class Tt_joint_model extends MY_Model
     {
         $this->db->trans_start();
 
-        // Sanitise teacher_ids to a clean integer array
         $teacher_ids = array_values(array_unique(array_filter(array_map('intval', (array) $teacher_ids))));
 
         $row = [
             'session_id'          => $session_id,
             'name'                => $data['name'],
             'subject_id'          => (int) $data['subject_id'],
-            // Keep legacy columns populated for backward compat
             'staff_id'            => isset($teacher_ids[0]) ? $teacher_ids[0] : null,
             'alt_staff_id'        => isset($teacher_ids[1]) ? $teacher_ids[1] : null,
             'room_id'             => !empty($data['room_id']) ? (int) $data['room_id'] : null,
@@ -115,17 +113,124 @@ class Tt_joint_model extends MY_Model
         }
 
         $this->db->trans_complete();
-        return $this->db->trans_status() ? $id : false;
+
+        if (!$this->db->trans_status()) return false;
+
+        // Sync subject load rows outside the main transaction (best-effort)
+        $this->_syncSubjectLoad($session_id, $id, $row, $teacher_ids, $classes);
+
+        return $id;
     }
 
     public function delete($id)
     {
+        // Remove linked subject load rows first
+        $this->db->where('joint_lesson_id', $id)->delete('tt_subject_load');
+
         $this->db->trans_start();
         $this->db->where('joint_lesson_id', $id)->delete('tt_joint_lesson_classes');
         $this->db->where('joint_lesson_id', $id)->delete('tt_joint_lesson_teachers');
         $this->db->where('id', $id)->delete('tt_joint_lessons');
         $this->db->trans_complete();
         return $this->db->trans_status();
+    }
+
+    /**
+     * Auto-upsert one tt_subject_load row per participating class-section.
+     * Rows are tagged with joint_lesson_id so the generator skips them in
+     * the regular pass and they appear as read-only in the Subject Load screen.
+     * Orphaned rows (from classes removed from the lesson) are deleted.
+     */
+    private function _syncSubjectLoad($session_id, $joint_lesson_id, $lesson_row, $teacher_ids, $classes)
+    {
+        $subject_id  = (int) $lesson_row['subject_id'];
+        $primary_tid = isset($teacher_ids[0]) ? $teacher_ids[0] : null;
+
+        // Build sgs lookup: [class_id] => {sgs_id, sg_id}
+        if (empty($classes)) {
+            // No classes → delete any orphaned rows
+            $this->db->where('joint_lesson_id', $joint_lesson_id)->delete('tt_subject_load');
+            return;
+        }
+
+        $class_ids = array_values(array_unique(array_map(fn($c) => (int)$c['class_id'], $classes)));
+        $sgs_rows  = $this->db->query(
+            'SELECT sgs.id as sgs_id, sgs.subject_group_id as sg_id, sg.class_id
+             FROM subject_group_subjects sgs
+             JOIN subject_groups sg ON sg.id = sgs.subject_group_id
+             WHERE sg.session_id = ?
+               AND sgs.subject_id = ?
+               AND sg.class_id IN (' . implode(',', array_fill(0, count($class_ids), '?')) . ')',
+            array_merge([$session_id, $subject_id], $class_ids)
+        )->result();
+
+        $sgs_map = []; // [class_id] => {sgs_id, sg_id}
+        foreach ($sgs_rows as $r) {
+            $sgs_map[(int)$r->class_id] = ['sgs_id' => (int)$r->sgs_id, 'sg_id' => (int)$r->sg_id];
+        }
+
+        // Track which (class_id, section_id) we upserted — for orphan cleanup
+        $kept_keys = [];
+
+        foreach ($classes as $cs) {
+            $class_id   = (int) $cs['class_id'];
+            $section_id = (int) $cs['section_id'];
+
+            if (!isset($sgs_map[$class_id])) continue; // subject not in this class's group — skip
+
+            $sgs_id = $sgs_map[$class_id]['sgs_id'];
+            $sg_id  = $sgs_map[$class_id]['sg_id'];
+
+            $kept_keys[] = $class_id . '_' . $section_id;
+
+            $existing = $this->db
+                ->where('session_id',               $session_id)
+                ->where('class_id',                 $class_id)
+                ->where('section_id',               $section_id)
+                ->where('subject_group_subject_id', $sgs_id)
+                ->where('batch_id IS NULL',         null, false)
+                ->get('tt_subject_load')->row();
+
+            $load_row = [
+                'session_id'               => $session_id,
+                'class_id'                 => $class_id,
+                'section_id'               => $section_id,
+                'subject_group_id'         => $sg_id,
+                'subject_group_subject_id' => $sgs_id,
+                'staff_id'                 => $primary_tid,
+                'alt_staff_id'             => isset($teacher_ids[1]) ? $teacher_ids[1] : null,
+                'periods_per_week'         => (int) $lesson_row['periods_per_week'],
+                'consecutive_periods'      => (int) $lesson_row['consecutive_periods'],
+                'max_per_day'              => (int) $lesson_row['max_per_day'],
+                'distribute_evenly'        => (int) $lesson_row['distribute_evenly'],
+                'priority'                 => (int) $lesson_row['priority'],
+                'preferred_room_type'      => 'any',
+                'preferred_room_id'        => !empty($lesson_row['room_id']) ? (int)$lesson_row['room_id'] : null,
+                'batch_id'                 => null,
+                'joint_lesson_id'          => $joint_lesson_id,
+            ];
+
+            if ($existing && $existing->joint_lesson_id == $joint_lesson_id) {
+                // Update only rows we own
+                $this->db->where('id', $existing->id)->update('tt_subject_load', $load_row);
+            } elseif (!$existing) {
+                $this->db->insert('tt_subject_load', $load_row);
+            }
+            // If existing row belongs to a different joint_lesson or is manual — leave it alone
+        }
+
+        // Delete orphaned linked rows (class-sections no longer in this lesson)
+        $orphans = $this->db
+            ->where('joint_lesson_id', $joint_lesson_id)
+            ->where('session_id', $session_id)
+            ->get('tt_subject_load')->result();
+
+        foreach ($orphans as $o) {
+            $key = $o->class_id . '_' . $o->section_id;
+            if (!in_array($key, $kept_keys)) {
+                $this->db->where('id', $o->id)->delete('tt_subject_load');
+            }
+        }
     }
 
     /**
@@ -143,7 +248,6 @@ class Tt_joint_model extends MY_Model
 
         if (empty($lessons)) return [];
 
-        // Pre-load sgs map for all subject_ids involved in this session
         $subject_ids = array_unique(array_column($lessons, 'subject_id'));
         $sgs_rows = $this->db->query(
             'SELECT sgs.id as sgs_id, sgs.subject_id, sg.id as sg_id, sg.class_id
@@ -154,12 +258,11 @@ class Tt_joint_model extends MY_Model
             array_merge([$session_id], $subject_ids)
         )->result();
 
-        $sgs_map = []; // [subject_id][class_id] => {sgs_id, sg_id}
+        $sgs_map = [];
         foreach ($sgs_rows as $r) {
             $sgs_map[$r->subject_id][$r->class_id] = ['sgs_id' => (int)$r->sgs_id, 'sg_id' => (int)$r->sg_id];
         }
 
-        // Pre-load teacher IDs for all lessons
         $lesson_ids = array_column($lessons, 'id');
         $teacher_rows = [];
         if (!empty($lesson_ids)) {
@@ -168,7 +271,7 @@ class Tt_joint_model extends MY_Model
                 ->order_by('sort_order', 'ASC')
                 ->get('tt_joint_lesson_teachers')->result();
         }
-        $teacher_map = []; // [joint_lesson_id] => [staff_id, ...]
+        $teacher_map = [];
         foreach ($teacher_rows as $tr) {
             $teacher_map[$tr->joint_lesson_id][] = (int) $tr->staff_id;
         }
@@ -178,7 +281,6 @@ class Tt_joint_model extends MY_Model
                 ->where('joint_lesson_id', $l->id)
                 ->get('tt_joint_lesson_classes')->result();
 
-            // Use junction table; fall back to legacy columns if junction is empty
             $t_ids = $teacher_map[$l->id] ?? [];
             if (empty($t_ids)) {
                 if ($l->staff_id)     $t_ids[] = (int) $l->staff_id;
@@ -186,7 +288,6 @@ class Tt_joint_model extends MY_Model
             }
             $l->teacher_ids = $t_ids;
 
-            // Attach sgs_id + sg_id per class
             foreach ($l->classes as $cs) {
                 $entry = $sgs_map[$l->subject_id][$cs->class_id] ?? ['sgs_id' => 0, 'sg_id' => 0];
                 $cs->sgs_id = $entry['sgs_id'];

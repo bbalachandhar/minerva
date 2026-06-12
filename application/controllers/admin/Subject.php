@@ -73,10 +73,11 @@ class Subject extends Admin_Controller
             $this->load->view('layout/footer', $data);
         } else {
             $data = array(
-                'name' => $this->input->post('name'),
-                'code' => $this->input->post('code'),
-                'type' => strtolower($this->input->post('type')),
-                'department_id' => $this->input->post('department_id'), // Add department_id
+                'name'          => $this->input->post('name'),
+                'code'          => $this->input->post('code'),
+                'type'          => strtolower($this->input->post('type')),
+                'department_id' => $this->input->post('department_id'),
+                'is_active'     => 'yes',
             );
             if ($this->sch_setting_detail->institution_type == 'college') {
                 $data['teacher_id'] = json_encode($this->input->post('teacher_id'));

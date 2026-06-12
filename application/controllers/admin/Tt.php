@@ -586,11 +586,16 @@ class Tt extends Admin_Controller
         $session_id  = $this->setting_model->getCurrentSession();
         $class_id    = (int) $this->input->post('class_id');
         $section_id  = (int) $this->input->post('section_id');
-        $rows        = $this->input->post('rows');
+        $rows = $this->input->post('rows');
 
         if (empty($rows)) {
             echo json_encode(['status' => '0', 'message' => 'No data received.']);
             return;
+        }
+
+        // Strip rows that are managed by a joint lesson (view marks them with _skip_joint)
+        foreach ($rows as $key => $row) {
+            if (!empty($row['_skip_joint'])) unset($rows[$key]);
         }
 
         $result = $this->Tt_subjectload_model->saveRows($session_id, $class_id, $section_id, $rows);

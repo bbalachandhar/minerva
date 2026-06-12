@@ -7159,7 +7159,7 @@ CREATE TABLE `subjects` (
   `type` varchar(100) NOT NULL,
   `department_id` int DEFAULT NULL,
   `teacher_id` text,
-  `is_active` varchar(255) DEFAULT 'no',
+  `is_active` varchar(255) DEFAULT 'yes',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `tt_color` VARCHAR(7) DEFAULT NULL,
@@ -12162,7 +12162,7 @@ CREATE TABLE IF NOT EXISTS `tt_subject_load` (
   `section_id`               INT(11)   NOT NULL,
   `subject_group_id`         INT(11)   NOT NULL,
   `subject_group_subject_id` INT(11)   NOT NULL,
-  `staff_id`                 INT(11)   NOT NULL,
+  `staff_id`                 INT(11)            DEFAULT NULL,
   `alt_staff_id`             INT(11)            DEFAULT NULL,
   `periods_per_week`         INT(11)   NOT NULL DEFAULT 1,
   `consecutive_periods`      INT(11)   NOT NULL DEFAULT 1,
@@ -12173,11 +12173,13 @@ CREATE TABLE IF NOT EXISTS `tt_subject_load` (
   `max_per_day`              INT(11)   NOT NULL DEFAULT 2,
   `distribute_evenly`        TINYINT(1) NOT NULL DEFAULT 1,
   `min_per_day`              TINYINT(1) NOT NULL DEFAULT 0,
+  `joint_lesson_id`          INT(11)            DEFAULT NULL,
   `created_at`               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_tt_subject_load` (`session_id`,`class_id`,`section_id`,`subject_group_subject_id`,`batch_id`),
-  KEY `idx_tt_sl_class` (`class_id`,`section_id`,`session_id`)
+  KEY `idx_tt_sl_class` (`class_id`,`section_id`,`session_id`),
+  KEY `idx_tsl_joint` (`joint_lesson_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `tt_teacher_constraints` (

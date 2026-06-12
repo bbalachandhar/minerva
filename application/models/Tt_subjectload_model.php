@@ -5,11 +5,12 @@ class Tt_subjectload_model extends MY_Model
 {
     public function getForClassSection($session_id, $class_id, $section_id)
     {
-        return $this->db->select('tt_subject_load.*, subject_group_subjects.subject_id, staff.name as staff_name, staff.surname as staff_surname, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type')
+        return $this->db->select('tt_subject_load.*, subject_group_subjects.subject_id, staff.name as staff_name, staff.surname as staff_surname, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type, tt_joint_lessons.name as joint_lesson_name')
             ->from('tt_subject_load')
             ->join('staff', 'staff.id = tt_subject_load.staff_id', 'left')
             ->join('subject_group_subjects', 'subject_group_subjects.id = tt_subject_load.subject_group_subject_id', 'left')
             ->join('subjects', 'subjects.id = subject_group_subjects.subject_id', 'left')
+            ->join('tt_joint_lessons', 'tt_joint_lessons.id = tt_subject_load.joint_lesson_id', 'left')
             ->where('tt_subject_load.session_id', $session_id)
             ->where('tt_subject_load.class_id', $class_id)
             ->where('tt_subject_load.section_id', $section_id)
@@ -67,6 +68,9 @@ class Tt_subjectload_model extends MY_Model
             }
             $this->db->group_end();
         }
+
+        // Exclude joint-linked rows — generator handles them in the joint pre-pass
+        $this->db->where('tt_subject_load.joint_lesson_id IS NULL', null, false);
 
         return $this->db->get()->result();
     }
