@@ -26,19 +26,37 @@
       $key      = $sub->subject_group_subject_id . '_0';
       $existing = $load_map[$key] ?? null;
       $load_id  = $existing ? $existing->id : 0;
+      $is_joint = $existing && !empty($existing->joint_lesson_name);
+      $dis      = $is_joint ? 'disabled' : '';
     ?>
-    <tr data-sgs="<?php echo $sub->subject_group_subject_id; ?>">
+    <tr data-sgs="<?php echo $sub->subject_group_subject_id; ?>" <?php echo $is_joint ? 'style="background:#f0f8ff;"' : ''; ?>>
       <td>
         <strong><?php echo htmlspecialchars($sub->subject_name); ?></strong>
+        <?php if ($is_joint): ?>
+        <br><a href="<?php echo site_url('admin/tt/joint_lessons'); ?>" class="label label-info" style="font-size:10px;" title="Managed by Joint Lesson — edit from Joint Lessons screen">
+          <i class="fa fa-object-group"></i> Joint: <?php echo htmlspecialchars($existing->joint_lesson_name); ?>
+        </a>
+        <?php endif; ?>
         <input type="hidden" name="rows[<?php echo $sub->subject_group_subject_id; ?>][subject_group_id]" value="<?php echo $sub->subject_group_id; ?>">
         <input type="hidden" name="rows[<?php echo $sub->subject_group_subject_id; ?>][subject_group_subject_id]" value="<?php echo $sub->subject_group_subject_id; ?>">
         <input type="hidden" name="rows[<?php echo $sub->subject_group_subject_id; ?>][batch_id]" value="">
         <input type="hidden" class="sl-load-id" name="rows[<?php echo $sub->subject_group_subject_id; ?>][load_id]" value="<?php echo $load_id; ?>">
+        <?php if ($is_joint): ?><input type="hidden" name="rows[<?php echo $sub->subject_group_subject_id; ?>][_skip_joint]" value="1"><?php endif; ?>
       </td>
       <td><?php echo htmlspecialchars($sub->subject_code ?? ''); ?></td>
       <td><span class="label <?php echo $type_badge[strtolower($sub->subject_type ?? 'other')] ?? 'label-default'; ?>"><?php echo $sub->subject_type; ?></span></td>
-      <td>Full Class</td>
+      <td><?php echo $is_joint ? '<span class="label label-info">Joint</span>' : 'Full Class'; ?></td>
       <td>
+        <?php if ($is_joint): ?>
+        <span class="text-muted" style="font-size:12px;">
+          <?php
+          $t_names = [];
+          if ($existing->staff_name) $t_names[] = $existing->staff_name.' '.($existing->staff_surname ?? '');
+          echo $t_names ? htmlspecialchars(implode(', ', $t_names)) : '—';
+          ?>
+          <br><small>(edit in Joint Lessons)</small>
+        </span>
+        <?php else: ?>
         <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][staff_id]" required style="min-width:150px;">
           <option value="">-- Select --</option>
           <?php foreach ($staff as $st): ?>
@@ -47,8 +65,10 @@
           </option>
           <?php endforeach; ?>
         </select>
+        <?php endif; ?>
       </td>
       <td>
+        <?php if (!$is_joint): ?>
         <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][alt_staff_id]" style="min-width:130px;">
           <option value="">-- None --</option>
           <?php foreach ($staff as $st): ?>
@@ -57,21 +77,22 @@
           </option>
           <?php endforeach; ?>
         </select>
+        <?php else: ?><span class="text-muted">—</span><?php endif; ?>
       </td>
       <td>
         <input type="number" class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][periods_per_week]"
           value="<?php echo $existing ? $existing->periods_per_week : 4; ?>"
-          min="1" max="30" style="width:70px;" required>
+          min="1" max="30" style="width:70px;" <?php echo $dis; ?> <?php echo $is_joint ? '' : 'required'; ?>>
       </td>
       <td>
-        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][consecutive_periods]" style="width:80px;">
+        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][consecutive_periods]" style="width:80px;" <?php echo $dis; ?>>
           <option value="1" <?php echo (!$existing || $existing->consecutive_periods==1) ? 'selected' : ''; ?>>1</option>
           <option value="2" <?php echo ($existing && $existing->consecutive_periods==2) ? 'selected' : ''; ?>>2 (double)</option>
           <option value="3" <?php echo ($existing && $existing->consecutive_periods==3) ? 'selected' : ''; ?>>3 (triple)</option>
         </select>
       </td>
       <td>
-        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][preferred_room_type]" style="width:110px;">
+        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][preferred_room_type]" style="width:110px;" <?php echo $dis; ?>>
           <option value="any" <?php echo (!$existing || $existing->preferred_room_type=='any') ? 'selected' : ''; ?>>Any</option>
           <option value="classroom" <?php echo ($existing && $existing->preferred_room_type=='classroom') ? 'selected' : ''; ?>>Classroom</option>
           <option value="lab" <?php echo ($existing && $existing->preferred_room_type=='lab') ? 'selected' : ''; ?>>Lab</option>
@@ -79,7 +100,7 @@
         </select>
       </td>
       <td>
-        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][preferred_room_id]" style="min-width:120px;">
+        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][preferred_room_id]" style="min-width:120px;" <?php echo $dis; ?>>
           <option value="">-- Auto --</option>
           <?php foreach ($rooms as $rm): ?>
           <option value="<?php echo $rm->id; ?>" <?php echo ($existing && $existing->preferred_room_id==$rm->id) ? 'selected' : ''; ?>>
@@ -91,34 +112,40 @@
       <td>
         <input type="number" class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][max_per_day]"
           value="<?php echo ($existing && isset($existing->max_per_day)) ? $existing->max_per_day : 2; ?>"
-          min="1" max="8" style="width:65px;">
+          min="1" max="8" style="width:65px;" <?php echo $dis; ?>>
       </td>
       <td>
         <label style="font-weight:normal;margin:0;">
           <input type="checkbox" name="rows[<?php echo $sub->subject_group_subject_id; ?>][min_per_day]" value="1"
-            <?php echo ($existing && !empty($existing->min_per_day)) ? 'checked' : ''; ?>>
+            <?php echo ($existing && !empty($existing->min_per_day)) ? 'checked' : ''; ?> <?php echo $dis; ?>>
         </label>
       </td>
       <td>
         <label style="font-weight:normal;margin:0;">
           <input type="checkbox" name="rows[<?php echo $sub->subject_group_subject_id; ?>][distribute_evenly]" value="1"
-            <?php echo (!$existing || $existing->distribute_evenly) ? 'checked' : ''; ?>>
+            <?php echo (!$existing || $existing->distribute_evenly) ? 'checked' : ''; ?> <?php echo $dis; ?>>
         </label>
       </td>
       <td>
-        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][priority]" style="width:70px;">
+        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][priority]" style="width:70px;" <?php echo $dis; ?>>
           <?php for ($p=10;$p>=1;$p--): ?>
           <option value="<?php echo $p; ?>" <?php echo ($existing && $existing->priority==$p) ? 'selected' : ($p==5 ? 'selected' : ''); ?>><?php echo $p; ?></option>
           <?php endfor; ?>
         </select>
       </td>
       <td class="text-center">
+        <?php if ($is_joint): ?>
+        <a href="<?php echo site_url('admin/tt/joint_lessons'); ?>" class="btn btn-xs btn-info" title="Managed by Joint Lesson — edit there">
+          <i class="fa fa-object-group"></i>
+        </a>
+        <?php else: ?>
         <button type="button" class="btn btn-xs btn-danger btn-remove-sl-row"
           data-load-id="<?php echo $load_id; ?>"
           data-sgs="<?php echo $sub->subject_group_subject_id; ?>"
           title="Remove subject from this class">
           <i class="fa fa-times"></i>
         </button>
+        <?php endif; ?>
       </td>
     </tr>
 
