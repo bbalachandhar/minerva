@@ -12364,6 +12364,16 @@ CREATE TABLE IF NOT EXISTS `tt_joint_lesson_classes` (
   KEY `idx_jlc_class` (`class_id`,`section_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `tt_joint_lesson_teachers` (
+  `id`               INT NOT NULL AUTO_INCREMENT,
+  `joint_lesson_id`  INT NOT NULL,
+  `staff_id`         INT NOT NULL,
+  `sort_order`       INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_jlt_joint` (`joint_lesson_id`),
+  UNIQUE KEY `uq_jlt` (`joint_lesson_id`,`staff_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 INSERT INTO `permission_group` (`id`, `name`, `short_code`, `is_active`, `system`)
 VALUES (3000, 'Auto Timetable', 'auto_timetable', 1, 0)
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `is_active` = 1;

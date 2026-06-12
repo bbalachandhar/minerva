@@ -1,7 +1,7 @@
 <?php if (isset($msg)) { echo $msg; } ?>
 <div class="content-wrapper">
 <section class="content-header">
-    <h1>Joint / Cross-Class Lessons <small>Schedule one teacher with multiple classes at the same slot</small></h1>
+    <h1>Joint / Cross-Class Lessons <small>Schedule multiple teachers with multiple classes at the same slot</small></h1>
     <ol class="breadcrumb">
         <li><a href="<?php echo site_url('admin/dashboard'); ?>"><i class="fa fa-dashboard"></i> Home</a></li>
         <li>Auto Timetable</li>
@@ -23,7 +23,7 @@
       <i class="fa fa-object-group fa-3x"></i><br><br>
       <strong>No joint lessons defined yet.</strong><br>
       Joint lessons let you schedule multiple class-sections to attend the same lesson simultaneously.<br>
-      <em>Examples: Combined PT, Assembly, Library period, cross-section lab.</em><br><br>
+      <em>Examples: Combined PT, Silambam, Assembly, Library period, cross-section lab.</em><br><br>
       <button class="btn btn-success" id="btn-add-joint2"><i class="fa fa-plus"></i> Add Joint Lesson</button>
     </div>
     <?php else: ?>
@@ -32,7 +32,7 @@
         <tr style="background:#3c8dbc;color:#fff;">
           <th>Name</th>
           <th>Subject</th>
-          <th>Teacher</th>
+          <th>Teachers</th>
           <th>Room</th>
           <th>P/W</th>
           <th>Consec.</th>
@@ -53,7 +53,19 @@
             <?php echo htmlspecialchars($jl->subject_name ?? ''); ?>
             <?php if ($jl->subject_code): ?><small class="text-muted">(<?php echo $jl->subject_code; ?>)</small><?php endif; ?>
           </td>
-          <td><?php echo $jl->staff_name ? htmlspecialchars($jl->staff_name.' '.$jl->staff_surname) : '<span class="text-muted">—</span>'; ?></td>
+          <td>
+            <?php if (empty($jl->teachers)): ?>
+              <span class="text-muted">—</span>
+            <?php else: ?>
+              <?php foreach ($jl->teachers as $i => $t): ?>
+                <?php if ($i === 0): ?>
+                  <span class="label label-primary" style="margin:1px;display:inline-block;"><?php echo htmlspecialchars($t->name.' '.$t->surname); ?></span>
+                <?php else: ?>
+                  <span class="label label-default" style="margin:1px;display:inline-block;"><?php echo htmlspecialchars($t->name.' '.$t->surname); ?></span>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </td>
           <td><?php echo $jl->room_name ? htmlspecialchars($jl->room_name) : '<span class="text-muted">—</span>'; ?></td>
           <td><strong><?php echo $jl->periods_per_week; ?></strong></td>
           <td><?php echo $jl->consecutive_periods; ?></td>
@@ -84,9 +96,10 @@
   <h4><i class="fa fa-info-circle"></i> How joint lessons work</h4>
   <ul style="margin:6px 0 0 0;padding-left:20px;">
     <li>During Auto Generate, joint lessons are placed <strong>first</strong> (harder constraint: all classes must be free simultaneously).</li>
-    <li>A single teacher is scheduled across all participating class-sections at the same day &amp; period.</li>
+    <li>The generator picks the <strong>first available teacher</strong> from the pool for each placement (primary teacher preferred).</li>
     <li>After generation, each class-section's timetable will show the lesson independently.</li>
     <li>The subject must ideally exist in each class's Subject Group for correct display in the grid.</li>
+    <li>Example: Silambam with 7 teachers (3 external + 4 internal) — assign all 7 as the teacher pool.</li>
   </ul>
 </div>
 
@@ -107,7 +120,7 @@
             <div class="col-md-8">
               <div class="form-group">
                 <label>Lesson Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="name" id="jl_name" placeholder="e.g. PE Combined 3A+3B, Assembly All" required>
+                <input type="text" class="form-control" name="name" id="jl_name" placeholder="e.g. Silambam All Sections, PE Combined 3A+3B" required>
               </div>
             </div>
             <div class="col-md-4">
@@ -130,7 +143,7 @@
           </div>
 
           <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-6">
               <div class="form-group">
                 <label>Subject <span class="text-danger">*</span></label>
                 <select class="form-control" name="subject_id" id="jl_subject" required>
@@ -141,32 +154,7 @@
                 </select>
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label>Teacher</label>
-                <select class="form-control" name="staff_id" id="jl_staff">
-                  <option value="">-- No Teacher --</option>
-                  <?php foreach ($staff_list as $st): ?>
-                  <option value="<?php echo $st['id']; ?>"><?php echo htmlspecialchars($st['name'].' '.$st['surname']); ?> (<?php echo $st['employee_id']; ?>)</option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label>Alt. Teacher</label>
-                <select class="form-control" name="alt_staff_id" id="jl_alt_staff">
-                  <option value="">-- None --</option>
-                  <?php foreach ($staff_list as $st): ?>
-                  <option value="<?php echo $st['id']; ?>"><?php echo htmlspecialchars($st['name'].' '.$st['surname']); ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-3">
+            <div class="col-md-6">
               <div class="form-group">
                 <label>Room (optional)</label>
                 <select class="form-control" name="room_id" id="jl_room">
@@ -177,6 +165,22 @@
                 </select>
               </div>
             </div>
+          </div>
+
+          <!-- Multi-teacher picker -->
+          <div class="form-group">
+            <label><strong>Teacher Pool</strong>
+              <small class="text-muted ml-2">Select one or more teachers. The generator picks the first available for each slot. The first selected is treated as primary (preferred).</small>
+            </label>
+            <select class="form-control" name="teacher_ids[]" id="jl_teachers" multiple style="width:100%;">
+              <?php foreach ($staff_list as $st): ?>
+              <option value="<?php echo $st['id']; ?>"><?php echo htmlspecialchars($st['name'].' '.$st['surname']); ?> (<?php echo $st['employee_id']; ?>)</option>
+              <?php endforeach; ?>
+            </select>
+            <small class="text-muted"><i class="fa fa-info-circle"></i> Leave empty if no specific teacher is required.</small>
+          </div>
+
+          <div class="row">
             <div class="col-md-3">
               <div class="form-group">
                 <label>Periods / Week <span class="text-danger">*</span></label>
@@ -199,10 +203,11 @@
                 <input type="number" class="form-control" name="max_per_day" id="jl_mpd" value="1" min="1" max="4">
               </div>
             </div>
-          </div>
-
-          <div class="form-group">
-            <label><input type="checkbox" name="distribute_evenly" id="jl_spread" value="1" checked> Spread across different days</label>
+            <div class="col-md-3">
+              <div class="form-group" style="padding-top:26px;">
+                <label><input type="checkbox" name="distribute_evenly" id="jl_spread" value="1" checked> Spread across days</label>
+              </div>
+            </div>
           </div>
 
           <!-- Participating Classes -->
@@ -229,7 +234,7 @@
               </div>
               <?php endforeach; ?>
             </div>
-            <small id="jl-class-error" class="text-danger" style="display:none;">Please select at least 2 class-sections.</small>
+            <small id="jl-class-error" class="text-danger" style="display:none;">Please select at least 1 class-section.</small>
           </div>
 
           <div class="form-group">
@@ -254,9 +259,13 @@ $(function(){
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
   $('#jl_subject').select2({ placeholder: '-- Select Subject --', allowClear: true, width: '100%' });
-  $('#jl_staff').select2({ placeholder: '-- No Teacher --', allowClear: true, width: '100%' });
-  $('#jl_alt_staff').select2({ placeholder: '-- None --', allowClear: true, width: '100%' });
   $('#jl_room').select2({ placeholder: '-- Any Room --', allowClear: true, width: '100%' });
+  $('#jl_teachers').select2({
+    placeholder: '-- No specific teacher (any available) --',
+    allowClear: true,
+    width: '100%',
+    tags: false
+  });
 
   function openAddModal() {
     $('#jl-modal-title').text('Add Joint Lesson');
@@ -264,9 +273,10 @@ $(function(){
     $('#jl_id').val(0);
     $('.jl-class-chk').prop('checked', false);
     $('#jl-conflict-msg, #jl-class-error').hide();
-    // Reset Select2
-    $('#jl_subject, #jl_staff, #jl_alt_staff, #jl_room').val('').trigger('change.select2');
+    $('#jl_subject, #jl_room').val('').trigger('change.select2');
+    $('#jl_teachers').val([]).trigger('change.select2');
     $('#jl_priority').val(7);
+    $('#jl_spread').prop('checked', true);
     $('#joint-modal').modal('show');
   }
 
@@ -282,8 +292,6 @@ $(function(){
         $('#jl_id').val(l.id);
         $('#jl_name').val(l.name);
         $('#jl_subject').val(l.subject_id).trigger('change.select2');
-        $('#jl_staff').val(l.staff_id || '').trigger('change.select2');
-        $('#jl_alt_staff').val(l.alt_staff_id || '').trigger('change.select2');
         $('#jl_room').val(l.room_id || '').trigger('change.select2');
         $('#jl_ppw').val(l.periods_per_week);
         $('#jl_consec').val(l.consecutive_periods);
@@ -291,6 +299,14 @@ $(function(){
         $('#jl_priority').val(l.priority);
         $('#jl_spread').prop('checked', l.distribute_evenly == 1);
         $('#jl_notes').val(l.notes || '');
+
+        // Populate teacher multi-select
+        var teacher_ids = [];
+        if (l.teachers && l.teachers.length) {
+          $.each(l.teachers, function(i, t){ teacher_ids.push(String(t.staff_id)); });
+        }
+        $('#jl_teachers').val(teacher_ids).trigger('change.select2');
+
         // Set class checkboxes
         $('.jl-class-chk').prop('checked', false);
         $.each(l.classes, function(i, cs){
@@ -311,11 +327,30 @@ $(function(){
       $('#jl-class-error').text('Please select at least 1 class-section.').show();
       return;
     }
+
+    // Collect teacher IDs in selection order
+    var teacher_ids = $('#jl_teachers').val() || [];
+
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
-    var formData = $('#joint-form').serialize()
-      + '&classes_json=' + encodeURIComponent(JSON.stringify(classes))
-      + '&' + csrf_name + '=' + csrf_val;
-    $.post('<?php echo site_url('admin/tt/save_joint_lesson'); ?>', formData, function(res){
+
+    // Build POST data manually to send teacher_ids[] as array
+    var postData = {
+      id:                  $('#jl_id').val(),
+      name:                $('#jl_name').val(),
+      subject_id:          $('#jl_subject').val(),
+      room_id:             $('#jl_room').val(),
+      periods_per_week:    $('#jl_ppw').val(),
+      consecutive_periods: $('#jl_consec').val(),
+      max_per_day:         $('#jl_mpd').val(),
+      priority:            $('#jl_priority').val(),
+      distribute_evenly:   $('#jl_spread').is(':checked') ? 1 : 0,
+      notes:               $('#jl_notes').val(),
+      classes_json:        JSON.stringify(classes),
+      'teacher_ids[]':     teacher_ids
+    };
+    postData[csrf_name] = csrf_val;
+
+    $.post('<?php echo site_url('admin/tt/save_joint_lesson'); ?>', postData, function(res){
       $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save Joint Lesson');
       if (res.status === '1') {
         $('#joint-modal').modal('hide');
