@@ -146,14 +146,13 @@ class Tt_generator_model extends MY_Model
 
             // ---- JOINT LESSON PRE-PASS ----
             foreach ($joint_lessons as $jl) {
-                $jl_consec     = (int) $jl->consecutive_periods;
-                $jl_ppw        = (int) $jl->periods_per_week;
-                $jl_staff      = $jl->staff_id    ? (int) $jl->staff_id    : null;
-                $jl_alt_staff  = $jl->alt_staff_id ? (int) $jl->alt_staff_id : null;
-                $jl_room       = $jl->room_id     ? (int) $jl->room_id     : null;
-                $jl_max_day    = max(1, (int) $jl->max_per_day);
-                $jl_spread     = !empty($jl->distribute_evenly);
-                $placements    = ($jl_consec > 1) ? (int) ceil($jl_ppw / $jl_consec) : $jl_ppw;
+                $jl_consec      = (int) $jl->consecutive_periods;
+                $jl_ppw         = (int) $jl->periods_per_week;
+                $jl_teacher_ids = $jl->teacher_ids ?? [];
+                $jl_room        = $jl->room_id ? (int) $jl->room_id : null;
+                $jl_max_day     = max(1, (int) $jl->max_per_day);
+                $jl_spread      = !empty($jl->distribute_evenly);
+                $placements     = ($jl_consec > 1) ? (int) ceil($jl_ppw / $jl_consec) : $jl_ppw;
 
                 // Track per-class stats
                 foreach ($jl->classes as $cs) {
@@ -168,17 +167,18 @@ class Tt_generator_model extends MY_Model
                 $jl_days_used = [];
 
                 for ($p = 0; $p < $placements; $p++) {
-                    $slot = $this->_findJointSlot($jl, $jl_staff, $jl_alt_staff, $jl_room,
+                    $slot = $this->_findJointSlot($jl, $jl_teacher_ids, $jl_room,
                         $jl_consec, $jl_days_used, $jl_max_day, $jl_spread,
                         $constraints, $unavail_map);
 
                     if ($slot === null) {
                         $class_labels = implode('+', array_map(fn($cs) => "C{$cs->class_id}/S{$cs->section_id}", $jl->classes));
+                        $teacher_label = !empty($jl_teacher_ids) ? count($jl_teacher_ids).' teacher(s)' : 'No teacher';
                         $conflicts[] = [
                             'class_id'   => 0,
                             'section_id' => 0,
                             'subject'    => $jl->subject_name . ' (Joint)',
-                            'staff'      => $jl_staff ? "Staff#{$jl_staff}" : 'No teacher',
+                            'staff'      => $teacher_label,
                             'placement'  => ($p + 1) . ' of ' . $placements,
                             'reason'     => "Joint lesson [{$jl->name}] for {$class_labels}: no slot where all classes are simultaneously free.",
                         ];
@@ -490,19 +490,16 @@ class Tt_generator_model extends MY_Model
      * Find a slot where ALL participating class-sections + teacher are simultaneously free.
      * Returns ['day', 'period_ids', 'staff_id', 'room_id'] or null.
      */
-    private function _findJointSlot($jl, $staff_id, $alt_staff, $pref_room,
+    private function _findJointSlot($jl, array $teacher_ids, $pref_room,
                                      $consec, $days_used, $max_per_day, $dist_evenly,
                                      $constraints, $unavail_map)
     {
         $best       = null;
         $best_score = -999;
+        $primary    = $teacher_ids[0] ?? null;
 
         foreach ($this->working_days as $day) {
-            if ($dist_evenly && in_array($day, $days_used)) {
-                $day_penalty = -10;
-            } else {
-                $day_penalty = 0;
-            }
+            $day_penalty = ($dist_evenly && in_array($day, $days_used)) ? -10 : 0;
 
             foreach ($this->_getConsecutiveStarts($consec) as $pid_group) {
                 // Check ALL class-sections are free in this slot
@@ -519,11 +516,10 @@ class Tt_generator_model extends MY_Model
                 }
                 if (!$all_cs_free) continue;
 
-                // Check teacher availability
-                $teacher_candidates = array_filter([$staff_id, $alt_staff]);
-                if (empty($teacher_candidates)) $teacher_candidates = [null]; // no teacher required
+                // Try each teacher in the pool; null = no teacher required
+                $candidates = !empty($teacher_ids) ? $teacher_ids : [null];
 
-                foreach ($teacher_candidates as $t_id) {
+                foreach ($candidates as $t_id) {
                     if ($t_id !== null) {
                         $constraint = $constraints[$t_id] ?? null;
                         if ($constraint) {
@@ -544,7 +540,7 @@ class Tt_generator_model extends MY_Model
 
                     $room_id = $this->_findRoom($day, $pid_group, 'any', $pref_room, $t_id, $constraints[$t_id] ?? null);
                     $score   = $day_penalty;
-                    if ($t_id === $staff_id) $score += 5;
+                    if ($t_id === $primary) $score += 5; // prefer primary teacher
                     if ($room_id && $room_id === $pref_room) $score += 3;
                     $score -= array_search($day, $this->working_days) * 0.1;
 
