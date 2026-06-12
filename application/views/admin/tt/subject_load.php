@@ -99,8 +99,8 @@
 
 <div id="subject-load-empty" class="text-center text-muted p-5" style="display:none;">
   <i class="fa fa-exclamation-circle fa-3x"></i><br>
-  <strong>No subjects found.</strong><br>
-  Please assign subjects to a Subject Group for this class first.
+  <strong>Could not load subjects.</strong><br>
+  Please try again.
 </div>
 </section>
 
@@ -136,31 +136,65 @@ $(function(){
     $('#sl-status-badge').html('<span class="label label-'+color+'" style="font-size:11px;vertical-align:middle;margin-left:6px;">'+configured+'/'+total+' teachers assigned</span>');
   }
 
-  $('#btn-load-subjects').on('click', function(){
+  function loadSubjects() {
     var class_id   = $('#sl_class_id').val();
     var section_id = $('#sl_section_id').val();
     if (!class_id || !section_id) { alert('Please select Class and Section.'); return; }
 
     $('#subject-load-container, #subject-load-empty').hide();
     $('#copy-from-panel').hide();
-    var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Loading...');
+    var $btn = $('#btn-load-subjects').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Loading...');
 
     $.post('<?php echo site_url('admin/tt/get_subject_load_data'); ?>',
       {class_id: class_id, section_id: section_id, [csrf_name]: csrf_val},
       function(res){
         $btn.prop('disabled', false).html('<i class="fa fa-search"></i> Load Subjects');
-        if (res.status === '1' && res.html) {
+        if (res.status === '1') {
           $('#sl_class_id_hidden').val(class_id);
           $('#sl_section_id_hidden').val(section_id);
           $('#subject-load-rows').html(res.html);
-          $('#subject-load-rows select').select2({ width: 'resolve', placeholder: '-- Select --', allowClear: true });
+          $('#subject-load-rows select:not(#sl-add-subject-picker)').select2({ width: 'resolve', placeholder: '-- Select --', allowClear: true });
+          $('#sl-add-subject-picker').select2({ width: '100%', placeholder: 'Select subjects to add...', allowClear: true });
           $('#subject-load-container').show();
           updateStatusBadge();
-          $(document).on('change', '#subject-load-rows select, #subject-load-rows input', updateStatusBadge);
         } else {
           $('#subject-load-empty').show();
         }
       },'json');
+  }
+
+  $('#btn-load-subjects').on('click', loadSubjects);
+
+  // Remove subject row
+  $(document).on('click', '.btn-remove-sl-row', function(){
+    var $row = $(this).closest('tr');
+    var load_id = $(this).data('load-id');
+    if (!confirm('Remove this subject from the class?')) return;
+    if (load_id > 0) {
+      $.post('<?php echo site_url('admin/tt/delete_subject_load_row'); ?>',
+        {id: load_id, [csrf_name]: csrf_val},
+        function(res){ if (res.status === '1') { $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); }); }
+          else { alert('Error removing subject.'); } }, 'json');
+    } else {
+      $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); });
+    }
+  });
+
+  // Add subjects
+  $(document).on('click', '#btn-add-subjects', function(){
+    var class_id   = $('#sl_class_id_hidden').val();
+    var section_id = $('#sl_section_id_hidden').val();
+    var subject_ids = $('#sl-add-subject-picker').val();
+    if (!subject_ids || subject_ids.length === 0) { alert('Please select at least one subject.'); return; }
+    var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+    $.post('<?php echo site_url('admin/tt/add_subjects_to_load'); ?>',
+      {class_id: class_id, section_id: section_id, subject_ids: subject_ids, [csrf_name]: csrf_val},
+      function(res){
+        $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Add Selected');
+        if (res.status === '1') {
+          loadSubjects(); // reload the table to show new rows
+        } else { alert('Error adding subjects: ' + (res.error || 'Unknown error')); }
+      }, 'json');
   });
 
   // Copy-from panel toggle
