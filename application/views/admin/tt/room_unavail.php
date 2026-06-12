@@ -131,7 +131,7 @@ $(function(){
   $('#btn-save-ru').on('click', function(){
     if (!current_room_id) return;
     var slots = [];
-    $('.ru-cell[data-blocked="1"]').each(function(){
+    $('.ru-cell').filter(function(){ return $(this).data('blocked') == 1; }).each(function(){
       slots.push({day: $(this).data('day'), period_id: $(this).data('period'), reason: ''});
     });
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
