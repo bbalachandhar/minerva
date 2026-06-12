@@ -356,16 +356,15 @@ class Staff_model extends MY_Model
             $this->db->where('id', $staff_id);
             $this->db->update('staff', $data);
 
-            // Update staff_roles
-            $this->db->where('staff_id', $staff_id);
-            $q = $this->db->get('staff_roles');
-
-            if ( $q->num_rows() > 0 ) {
-                $this->db->where('staff_id', $staff_id);
-                $this->db->update('staff_roles', $roles);
-            } else {
-                $roles['staff_id'] = $staff_id;
-                $this->db->insert('staff_roles', $roles);
+            // Update staff_roles — delete all existing rows and insert fresh so
+            // the role is always active and duplicates can never accumulate.
+            if (!empty($roles['role_id'])) {
+                $this->db->where('staff_id', $staff_id)->delete('staff_roles');
+                $this->db->insert('staff_roles', [
+                    'role_id'   => (int) $roles['role_id'],
+                    'staff_id'  => $staff_id,
+                    'is_active' => 1,
+                ]);
             }
 
             // Update staff_leave_details
@@ -382,6 +381,7 @@ class Staff_model extends MY_Model
             $this->db->insert('staff', $data);
             $staff_id          = $this->db->insert_id();
             $roles['staff_id'] = $staff_id;
+            $roles['is_active'] = 1;
             $this->db->insert_batch('staff_roles', array($roles));
 
             if (!empty($leave_array)) {
