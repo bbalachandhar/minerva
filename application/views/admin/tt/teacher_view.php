@@ -37,12 +37,35 @@
   </div>
 </div>
 
+<!-- Legend -->
+<div class="row" style="margin-bottom:8px;padding-left:15px;">
+  <span class="label label-primary" style="font-size:12px;padding:5px 10px;">Theory</span>&nbsp;
+  <span class="label label-danger"  style="font-size:12px;padding:5px 10px;">Practical / Lab</span>&nbsp;
+  <span class="label label-warning" style="font-size:12px;padding:5px 10px;">Project</span>&nbsp;
+  <span class="label label-success" style="font-size:12px;padding:5px 10px;">Free / PT</span>&nbsp;
+  <span class="label label-default" style="font-size:12px;padding:5px 10px;">Other</span>
+</div>
+
 <div id="teacher-grid-container">
   <div class="text-center text-muted p-5" id="tv-placeholder">
     <i class="fa fa-arrow-up fa-2x"></i><br>Select a teacher to view their timetable.
   </div>
 </div>
 </section>
+
+<style>
+.tt-grid th { text-align:center; background:#3c8dbc; color:#fff; white-space:nowrap; padding:8px 4px; }
+.tt-grid .time-col { width:80px; min-width:80px; background:#f4f4f4; font-size:11px; text-align:center; vertical-align:middle; }
+.tt-cell { min-height:60px; vertical-align:middle; text-align:center; padding:4px; }
+.tt-cell.filled { background:#eaf7ea; }
+.tt-cell.break-row { background:#fffde7 !important; }
+.slot-tag { display:inline-block; border-radius:4px; padding:2px 6px; font-size:11px; font-weight:600; color:#fff; margin:1px; }
+.slot-theory    { background:#3498db; }
+.slot-practical { background:#e74c3c; }
+.slot-project   { background:#f39c12; }
+.slot-free      { background:#27ae60; }
+.slot-other     { background:#7f8c8d; }
+</style>
 
 <script>
 $(function(){
