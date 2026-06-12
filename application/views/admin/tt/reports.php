@@ -83,7 +83,7 @@
         </div>
         <div class="col-md-3">
           <label>Teacher (optional)</label>
-          <select class="form-control" id="sub_staff">
+          <select class="form-control" id="sub_staff" style="width:100%;">
             <option value="">All Teachers</option>
             <?php foreach ($staff_list as $st): ?><option value="<?php echo $st['id']; ?>"><?php echo htmlspecialchars($st['name'].' '.$st['surname']); ?></option><?php endforeach; ?>
           </select>
@@ -106,6 +106,8 @@
 $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
+
+  $('#sub_staff').select2({ placeholder: 'All Teachers', allowClear: true, width: '100%' });
 
   var dpIcons = { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' };
   $('#sub_from_pick').datetimepicker({ format:'YYYY-MM-DD', icons: dpIcons });
