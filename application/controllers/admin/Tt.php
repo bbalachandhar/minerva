@@ -564,7 +564,23 @@ class Tt extends Admin_Controller
             echo json_encode(['status' => '0', 'error' => 'Access denied']); return;
         }
         $id = (int) $this->input->post('id');
-        $this->db->where('id', $id)->delete('tt_subject_load');
+
+        $load = $this->db->where('id', $id)->get('tt_subject_load')->row();
+        if (!$load) {
+            echo json_encode(['status' => '0', 'error' => 'Not found']); return;
+        }
+
+        $this->Tt_subjectload_model->delete($id);
+
+        // If no other load row references this subject_group_subject, remove it from the group
+        // so the subject stops reappearing in the class's subject list on reload
+        $remaining = $this->db
+            ->where('subject_group_subject_id', $load->subject_group_subject_id)
+            ->count_all_results('tt_subject_load');
+        if ($remaining === 0) {
+            $this->db->where('id', $load->subject_group_subject_id)->delete('subject_group_subjects');
+        }
+
         echo json_encode(['status' => '1']);
     }
 
