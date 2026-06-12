@@ -109,6 +109,25 @@ class Route_model extends MY_Model
         }
     }
 
+    public function bulkInsert($rows)
+    {
+        $inserted = 0; $skipped = [];
+        foreach ($rows as $row) {
+            $route_title = trim($row['route_title'] ?? '');
+            if ($route_title === '') { $skipped[] = '(empty route_title)'; continue; }
+            $this->db->where('route_title', $route_title);
+            if ($this->db->count_all_results('transport_route') > 0) { $skipped[] = $route_title . ' (duplicate)'; continue; }
+            $data = [
+                'route_title' => $route_title,
+                'note'        => trim($row['note'] ?? ''),
+                'is_active'   => 'yes',
+            ];
+            $this->db->insert('transport_route', $data);
+            $inserted++;
+        }
+        return ['inserted' => $inserted, 'skipped' => $skipped];
+    }
+
     public function listroute($id = null)
     {
         $this->db->select()->from('transport_route');

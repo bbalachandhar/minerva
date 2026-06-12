@@ -103,6 +103,33 @@ class Vehicle_model extends MY_Model
         }
     }
 
+    public function bulkInsert($rows)
+    {
+        $inserted = 0; $skipped = [];
+        foreach ($rows as $row) {
+            $vehicle_no = trim($row['vehicle_no'] ?? '');
+            if ($vehicle_no === '') { $skipped[] = '(empty vehicle_no)'; continue; }
+            $this->db->where('vehicle_no', $vehicle_no);
+            if ($this->db->count_all_results('vehicles') > 0) { $skipped[] = $vehicle_no . ' (duplicate)'; continue; }
+            $data = [
+                'vehicle_no'           => $vehicle_no,
+                'vehicle_model'        => trim($row['vehicle_model'] ?? ''),
+                'manufacture_year'     => trim($row['manufacture_year'] ?? ''),
+                'registration_number'  => trim($row['registration_number'] ?? ''),
+                'chasis_number'        => trim($row['chasis_number'] ?? ''),
+                'engine_number'        => trim($row['engine_number'] ?? ''),
+                'max_seating_capacity' => trim($row['max_seating_capacity'] ?? ''),
+                'driver_name'          => trim($row['driver_name'] ?? ''),
+                'driver_licence'       => trim($row['driver_licence'] ?? ''),
+                'driver_contact'       => trim($row['driver_contact'] ?? ''),
+                'note'                 => trim($row['note'] ?? ''),
+            ];
+            $this->db->insert('vehicles', $data);
+            $inserted++;
+        }
+        return ['inserted' => $inserted, 'skipped' => $skipped];
+    }
+
     public function vehicleListByarray($array)
     {
         $this->db->select('*');

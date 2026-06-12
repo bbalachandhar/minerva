@@ -218,6 +218,39 @@ class Vehicle extends Admin_Controller
         echo json_encode(['status' => 'success', 'message' => $this->lang->line('success_message')]);
     }
 
+    public function downloadVehicleTemplate()
+    {
+        $file = FCPATH . 'backend/import/import_vehicle_sample.csv';
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="import_vehicle_sample.csv"');
+        readfile($file);
+        exit;
+    }
+
+    public function import()
+    {
+        if (!$this->rbac->hasPrivilege('vehicle', 'can_add')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Access denied']);
+            return;
+        }
+        if (empty($_FILES['vehicle_csv']['name'])) {
+            echo json_encode(['status' => 'fail', 'message' => 'No file uploaded']);
+            return;
+        }
+        $this->load->library('csvimport');
+        $csv_array = $this->csvimport->get_array($_FILES['vehicle_csv']['tmp_name']);
+        if (empty($csv_array)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Empty or invalid CSV file']);
+            return;
+        }
+        $result  = $this->vehicle_model->bulkInsert($csv_array);
+        $message = '<div class="alert alert-success text-left">' . $result['inserted'] . ' vehicle(s) imported successfully.</div>';
+        if (!empty($result['skipped'])) {
+            $message .= '<div class="alert alert-warning text-left">Skipped (' . count($result['skipped']) . '): ' . implode(', ', $result['skipped']) . '</div>';
+        }
+        echo json_encode(['status' => 'success', 'message' => $message]);
+    }
+
     public function handle_upload()
     {
         $image_validate = $this->config->item('file_validate');

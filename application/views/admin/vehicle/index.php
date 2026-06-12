@@ -9,7 +9,8 @@
                         <h3 class="box-title titlefix"> <?php echo $this->lang->line('vehicle_list'); ?></h3>
                         <div class="box-tools pull-right">
                             <?php if ($this->rbac->hasPrivilege('vehicle', 'can_add')) { ?>
-                            <button type="button" class="btn btn-sm btn-primary pull-right" data-toggle="modal" data-backdrop="static" data-target="#myModal"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add'); ?></button>
+                            <button type="button" class="btn btn-sm btn-default pull-right" style="margin-right:5px;" data-toggle="modal" data-target="#vehicleImportModal"><i class="fa fa-upload"></i> Import</button>
+                            <button type="button" class="btn btn-sm btn-primary pull-right" style="margin-right:5px;" data-toggle="modal" data-backdrop="static" data-target="#myModal"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add'); ?></button>
                             <?php } ?>
                         </div>
                     </div>
@@ -577,4 +578,49 @@ $("#editvehicleform").on('submit', (function (e) {
 
     });
 }));
+</script>
+
+<!-- Vehicle Import Modal -->
+<div class="modal fade" id="vehicleImportModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"><i class="fa fa-upload"></i> Import Vehicles</h4>
+            </div>
+            <form id="vehicleImportForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div id="vehicleImportMsg"></div>
+                    <div class="form-group">
+                        <label>CSV File <small class="req">*</small></label>
+                        <input type="file" name="vehicle_csv" id="vehicle_csv" accept=".csv" class="form-control">
+                        <p class="help-block">Required columns: <code>vehicle_no, vehicle_model, manufacture_year, registration_number, chasis_number, engine_number, max_seating_capacity, driver_name, driver_licence, driver_contact, note</code></p>
+                    </div>
+                    <a href="<?php echo site_url('admin/vehicle/downloadVehicleTemplate'); ?>" class="btn btn-default btn-sm"><i class="fa fa-download"></i> Download Template</a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" id="vehicleImportBtn"><i class="fa fa-upload"></i> Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+$(document).on('submit', '#vehicleImportForm', function(e) {
+    e.preventDefault();
+    var fd = new FormData(this);
+    $('#vehicleImportBtn').prop('disabled', true).text('Importing...');
+    $.ajax({
+        url: '<?php echo site_url("admin/vehicle/import"); ?>',
+        type: 'POST',
+        data: fd, processData: false, contentType: false,
+        success: function(res) {
+            res = $.parseJSON(res);
+            $('#vehicleImportMsg').html(res.message);
+            if (res.status === 'success') { setTimeout(function(){ window.location.reload(true); }, 1500); }
+        },
+        complete: function() { $('#vehicleImportBtn').prop('disabled', false).text('Import'); }
+    });
+});
 </script>

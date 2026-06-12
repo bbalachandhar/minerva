@@ -56,6 +56,11 @@ if ($this->rbac->hasPrivilege('routes', 'can_add')) {
                 <div class="box box-primary" id="route">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('route_list'); ?></h3>
+                        <?php if ($this->rbac->hasPrivilege('routes', 'can_add')) { ?>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-sm btn-default" data-toggle="modal" data-target="#routeImportModal"><i class="fa fa-upload"></i> Import</button>
+                        </div>
+                        <?php } ?>
                     </div>
                     <div class="box-body">
                         <div class="mailbox-controls">
@@ -123,6 +128,33 @@ if ($this->rbac->hasPrivilege('routes', 'can_add')) {
     });
 </script>
 
+<!-- Route Import Modal -->
+<div class="modal fade" id="routeImportModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"><i class="fa fa-upload"></i> Import Routes</h4>
+            </div>
+            <form id="routeImportForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div id="routeImportMsg"></div>
+                    <div class="form-group">
+                        <label>CSV File <small class="req">*</small></label>
+                        <input type="file" name="route_csv" accept=".csv" class="form-control">
+                        <p class="help-block">Required columns: <code>route_title, note</code></p>
+                    </div>
+                    <a href="<?php echo site_url('admin/route/downloadRouteTemplate'); ?>" class="btn btn-default btn-sm"><i class="fa fa-download"></i> Download Template</a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" id="routeImportBtn"><i class="fa fa-upload"></i> Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">
     var base_url = '<?php echo base_url() ?>';
     function printDiv(elem) {
@@ -165,4 +197,21 @@ if ($this->rbac->hasPrivilege('routes', 'can_add')) {
 
         return true;
     }
+
+$(document).on('submit', '#routeImportForm', function(e) {
+    e.preventDefault();
+    var fd = new FormData(this);
+    $('#routeImportBtn').prop('disabled', true).text('Importing...');
+    $.ajax({
+        url: '<?php echo site_url("admin/route/import"); ?>',
+        type: 'POST',
+        data: fd, processData: false, contentType: false,
+        success: function(res) {
+            res = $.parseJSON(res);
+            $('#routeImportMsg').html(res.message);
+            if (res.status === 'success') { setTimeout(function(){ window.location.reload(true); }, 1500); }
+        },
+        complete: function() { $('#routeImportBtn').prop('disabled', false).text('Import'); }
+    });
+});
 </script>

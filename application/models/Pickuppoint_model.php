@@ -197,6 +197,25 @@ class Pickuppoint_model extends MY_Model
         return $route_pickup_point->result_array();
     }
 
+    public function bulkInsert($rows)
+    {
+        $inserted = 0; $skipped = [];
+        foreach ($rows as $row) {
+            $name = trim($row['name'] ?? '');
+            if ($name === '') { $skipped[] = '(empty name)'; continue; }
+            $this->db->where('name', $name);
+            if ($this->db->count_all_results('pickup_point') > 0) { $skipped[] = $name . ' (duplicate)'; continue; }
+            $data = [
+                'name'      => $name,
+                'latitude'  => trim($row['latitude'] ?? ''),
+                'longitude' => trim($row['longitude'] ?? ''),
+            ];
+            $this->db->insert('pickup_point', $data);
+            $inserted++;
+        }
+        return ['inserted' => $inserted, 'skipped' => $skipped];
+    }
+
     public function add_pickup_point($data)
     {
         $this->db->trans_start(); # Starting Transaction
