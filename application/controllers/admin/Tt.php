@@ -217,13 +217,15 @@ class Tt extends Admin_Controller
         if (empty($classes_raw)) {
             echo json_encode(['status' => '0', 'message' => 'No class-sections selected.']); return;
         }
+        $teacher_ids_raw = $this->input->post('teacher_ids') ?: [];
+        if (!is_array($teacher_ids_raw)) $teacher_ids_raw = [$teacher_ids_raw];
+        $teacher_ids = array_values(array_filter(array_map('intval', $teacher_ids_raw)));
+
         $data = [
             'id'                 => (int) $this->input->post('id'),
             'name'               => trim($this->input->post('name')),
             'subject_id'         => (int) $this->input->post('subject_id'),
-            'staff_id'           => $this->input->post('staff_id')     ?: null,
-            'alt_staff_id'       => $this->input->post('alt_staff_id') ?: null,
-            'room_id'            => $this->input->post('room_id')      ?: null,
+            'room_id'            => $this->input->post('room_id') ?: null,
             'periods_per_week'   => (int) $this->input->post('periods_per_week')    ?: 1,
             'consecutive_periods'=> (int) $this->input->post('consecutive_periods') ?: 1,
             'max_per_day'        => (int) $this->input->post('max_per_day')         ?: 1,
@@ -234,7 +236,7 @@ class Tt extends Admin_Controller
         if (empty($data['name']) || empty($data['subject_id'])) {
             echo json_encode(['status' => '0', 'message' => 'Name and subject are required.']); return;
         }
-        $id = $this->Tt_joint_model->save($session_id, $data, $classes_raw);
+        $id = $this->Tt_joint_model->save($session_id, $data, $classes_raw, $teacher_ids);
         echo json_encode($id ? ['status' => '1', 'id' => $id] : ['status' => '0', 'message' => 'Error saving.']);
     }
 
@@ -1267,7 +1269,18 @@ class Tt extends Admin_Controller
             ->order_by('subjects.name', 'ASC')
             ->get()->result();
         $data['periods'] = $this->Tt_period_model->getAllNonBreak($data['session_id']);
-        $data['days']    = $this->customlib->getDaysnameWithoutLang();
+
+        $all_days    = $this->customlib->getDaysnameWithoutLang();
+        $sch_settings = $this->setting_model->getSetting();
+        $weekend_str  = isset($sch_settings->weekend_days) ? (string) $sch_settings->weekend_days : '';
+        if ($weekend_str !== '') {
+            $dow_map = [0 => 'Sunday', 1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday',
+                        4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday'];
+            foreach (array_map('intval', explode(',', $weekend_str)) as $dow) {
+                if (isset($dow_map[$dow])) unset($all_days[$dow_map[$dow]]);
+            }
+        }
+        $data['days'] = $all_days;
         $this->load->model('Tt_subject_unavail_model');
         $this->load->view('layout/header', $data);
         $this->load->view('admin/tt/subject_unavail', $data);
