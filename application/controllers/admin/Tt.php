@@ -949,7 +949,7 @@ class Tt extends Admin_Controller
 
         $this->load->library('m_pdf');
         $mpdf = $this->m_pdf->load([
-            'tempDir'      => APPPATH . 'tmp',
+            'tempDir'      => sys_get_temp_dir(),
             'mode'         => 'utf-8',
             'default_font' => 'roboto',
             'margin_left'  => 8,
@@ -970,83 +970,81 @@ class Tt extends Admin_Controller
         if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_view')) { access_denied(); }
         $class_id   = (int) $this->input->get('class_id');
         $section_id = (int) $this->input->get('section_id');
-        $d          = $this->_loadClassGridData($class_id, $section_id);
-        $cls_label  = $d['class_label'] . ' ' . $d['section_label'];
-        $days       = $d['days'];
-        $day_names  = array_keys($days);
-        $n_days     = count($day_names);
+        $d         = $this->_loadClassGridData($class_id, $section_id);
+        $cls_label = $d['class_label'] . ' ' . $d['section_label'];
+        $day_names = array_keys($d['days']);
+        $n_days    = count($day_names);
+        $col_span  = 2 + $n_days;
 
-        $this->load->library('Excel');
-        $sheet = $this->excel->getActiveSheet();
-        $sheet->setTitle('Timetable');
+        $hdr_bg  = '#3C8DBC';
+        $hdr_col = '#FFFFFF';
+        $brk_bg  = '#FFFDE7';
 
-        $last_col = PHPExcel_Cell::stringFromColumnIndex(1 + $n_days); // Period(0)+Time(1)+days
+        $rows  = '';
 
-        // Title
-        $sheet->mergeCells('A1:' . $last_col . '1');
-        $sheet->setCellValue('A1', 'Class Timetable — ' . $cls_label);
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1')->getAlignment()
-            ->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+        // Title row
+        $rows .= '<tr><td colspan="' . $col_span . '" style="font-size:14pt;font-weight:bold;text-align:center;background:#F0F0F0;">'
+               . htmlspecialchars('Class Timetable — ' . $cls_label) . '</td></tr>';
 
-        // Header row
-        $sheet->setCellValue('A2', 'Period');
-        $sheet->setCellValue('B2', 'Time');
-        foreach ($day_names as $i => $dn) {
-            $sheet->setCellValueByColumnAndRow(2 + $i, 2, $dn);
+        // Column header row
+        $rows .= '<tr>'
+               . '<td style="background:' . $hdr_bg . ';color:' . $hdr_col . ';font-weight:bold;width:90pt;">Period</td>'
+               . '<td style="background:' . $hdr_bg . ';color:' . $hdr_col . ';font-weight:bold;width:80pt;">Time</td>';
+        foreach ($day_names as $dn) {
+            $rows .= '<td style="background:' . $hdr_bg . ';color:' . $hdr_col . ';font-weight:bold;width:100pt;">' . htmlspecialchars($dn) . '</td>';
         }
-        $hdr_range = 'A2:' . $last_col . '2';
-        $sheet->getStyle($hdr_range)->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
-        $sheet->getStyle($hdr_range)->getFill()
-            ->setFillType(PHPExcel_Style_Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FF3C8DBC');
-        $sheet->getStyle($hdr_range)->getAlignment()
-            ->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+        $rows .= '</tr>';
 
-        $row = 3;
         foreach ($d['periods'] as $period) {
-            $sheet->setCellValue('A' . $row, $period->name);
-            $sheet->setCellValue('B' . $row,
-                date('h:i', strtotime($period->start_time)) . '-' . date('h:i', strtotime($period->end_time)));
+            $time_str = date('h:i', strtotime($period->start_time)) . ' - ' . date('h:i', strtotime($period->end_time));
 
             if ($period->is_break) {
-                $sheet->mergeCells('C' . $row . ':' . $last_col . $row);
-                $sheet->setCellValue('C' . $row, $period->break_label ?: $period->name);
-                $sheet->getStyle('A' . $row . ':' . $last_col . $row)->getFill()
-                    ->setFillType(PHPExcel_Style_Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('FFFFFDE7');
+                $rows .= '<tr>'
+                       . '<td style="background:' . $brk_bg . ';font-style:italic;">' . htmlspecialchars($period->name) . '</td>'
+                       . '<td style="background:' . $brk_bg . ';font-size:9pt;color:#888;">' . $time_str . '</td>'
+                       . '<td colspan="' . $n_days . '" style="background:' . $brk_bg . ';text-align:center;color:#888;font-style:italic;">'
+                       . htmlspecialchars($period->break_label ?: $period->name) . '</td>'
+                       . '</tr>';
             } else {
-                foreach ($day_names as $i => $dn) {
+                $rows .= '<tr>'
+                       . '<td style="font-weight:bold;">' . htmlspecialchars($period->name) . '</td>'
+                       . '<td style="font-size:9pt;color:#555;">' . $time_str . '</td>';
+
+                foreach ($day_names as $dn) {
                     $entry = $d['entry_map'][$dn][$period->id][0] ?? null;
                     if ($entry) {
                         if ($entry->is_free_period) {
-                            $text = $entry->free_period_label ?: 'Free';
+                            $cell = '<span style="background:#27ae60;color:#fff;padding:1px 5px;">'
+                                  . htmlspecialchars($entry->free_period_label ?: 'Free') . '</span>';
                         } else {
                             $abbr  = !empty($entry->tt_abbr) ? $entry->tt_abbr : ($entry->subject_code ?: $entry->subject_name);
-                            $tname = trim($entry->staff_name . ' ' . ($entry->staff_surname ?? ''));
-                            $text  = $abbr . ($tname ? "\n" . $tname : '');
+                            $tname = trim(($entry->staff_name ?? '') . ' ' . ($entry->staff_surname ?? ''));
+                            $cell  = '<strong>' . htmlspecialchars($abbr) . '</strong>'
+                                   . ($tname ? '<br><small>' . htmlspecialchars($tname) . '</small>' : '');
                         }
-                        $sheet->setCellValueByColumnAndRow(2 + $i, $row, $text);
-                        $sheet->getStyleByColumnAndRow(2 + $i, $row)->getAlignment()->setWrapText(true);
+                    } else {
+                        $cell = '';
                     }
+                    $rows .= '<td style="vertical-align:top;">' . $cell . '</td>';
                 }
+                $rows .= '</tr>';
             }
-            $row++;
         }
 
-        // Column widths
-        $sheet->getColumnDimension('A')->setWidth(14);
-        $sheet->getColumnDimension('B')->setWidth(13);
-        for ($i = 0; $i < $n_days; $i++) {
-            $sheet->getColumnDimensionByColumn(2 + $i)->setWidth(18);
-        }
+        $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" '
+              . 'xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
+              . '<head><meta charset="UTF-8">'
+              . '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>'
+              . '<x:Name>Timetable</x:Name></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
+              . '</head><body>'
+              . '<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:Arial;font-size:10pt;">'
+              . $rows . '</table></body></html>';
 
         $fname = 'timetable_' . preg_replace('/[^a-zA-Z0-9]/', '_', $cls_label) . '_' . date('Ymd') . '.xls';
         header('Content-Type: application/vnd.ms-excel');
         header('Content-Disposition: attachment;filename="' . $fname . '"');
         header('Cache-Control: max-age=0');
-        $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel5');
-        $objWriter->save('php://output');
+        echo $html;
         exit;
     }
 
