@@ -35,6 +35,20 @@ class Tt extends Admin_Controller
         ];
     }
 
+    private function _getWorkingDays()
+    {
+        $days        = $this->customlib->getDaysnameWithoutLang();
+        $settings    = $this->setting_model->getSetting();
+        $weekend_str = isset($settings->weekend_days) ? (string) $settings->weekend_days : '';
+        if ($weekend_str !== '') {
+            $dow_map = [0=>'Sunday',1=>'Monday',2=>'Tuesday',3=>'Wednesday',4=>'Thursday',5=>'Friday',6=>'Saturday'];
+            foreach (array_map('intval', explode(',', $weekend_str)) as $dow) {
+                if (isset($dow_map[$dow])) unset($days[$dow_map[$dow]]);
+            }
+        }
+        return $days;
+    }
+
     // =========================================================================
     // DASHBOARD
     // =========================================================================
@@ -1108,7 +1122,7 @@ class Tt extends Admin_Controller
         $class_ids  = $this->input->post('class_ids');
         $data = $this->Tt_entry_model->getMasterReport($session_id, $class_ids);
         $periods = $this->Tt_period_model->getAll($session_id);
-        $days    = $this->customlib->getDaysnameWithoutLang();
+        $days    = $this->_getWorkingDays();
         $html = $this->load->view('admin/tt/_report_master', compact('data','periods','days'), true);
         echo json_encode(['status' => '1', 'html' => $html]);
     }
@@ -1119,7 +1133,7 @@ class Tt extends Admin_Controller
         $data    = $this->Tt_entry_model->getRoomUtilization($session_id);
         $periods = $this->Tt_period_model->getAllNonBreak($session_id);
         $rooms   = $this->Tt_room_model->getActive();
-        $days    = $this->customlib->getDaysnameWithoutLang();
+        $days    = $this->_getWorkingDays();
         $html = $this->load->view('admin/tt/_report_rooms', compact('data','periods','rooms','days'), true);
         echo json_encode(['status' => '1', 'html' => $html]);
     }
