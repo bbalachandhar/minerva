@@ -1164,7 +1164,7 @@ class Tt extends Admin_Controller
     {
         $session_id     = $this->setting_model->getCurrentSession();
         $absent_staff   = (int) $this->input->post('absent_staff_id');
-        $date           = $this->input->post('date');
+        $date           = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date')));
         $day            = date('l', strtotime($date));
 
         $slots    = $this->Tt_entry_model->getStaffSlotsForDay($session_id, $absent_staff, $day);
@@ -1194,7 +1194,7 @@ class Tt extends Admin_Controller
         $absent_staff_id    = (int) $this->input->post('absent_staff_id');
         $substitute_id      = (int) $this->input->post('substitute_staff_id') ?: null;
         $tt_entry_id        = (int) $this->input->post('tt_entry_id');
-        $date               = $this->input->post('date');
+        $date               = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date')));
         $day                = date('l', strtotime($date));
         $sub_type           = $substitute_id ? 'manual' : 'auto_suggested';
 

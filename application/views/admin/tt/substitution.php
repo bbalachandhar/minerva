@@ -29,9 +29,9 @@
         <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">
           <i class="fa fa-calendar text-primary"></i> Date <span class="text-danger">*</span>
         </label>
-        <div class="input-group date" id="absence_date_pick">
-          <input type="text" class="form-control" id="absence_date" value="<?php echo date('Y-m-d'); ?>" placeholder="YYYY-MM-DD" readonly style="background:#fff;cursor:pointer;">
-          <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;"><i class="fa fa-calendar" style="color:#3c8dbc;"></i></span>
+        <div class="input-group">
+          <input type="text" class="form-control date" id="absence_date" value="<?php echo date($this->customlib->getSchoolDateFormat()); ?>" data-date-end-date="0" readonly style="background:#fff;cursor:pointer;">
+          <span class="input-group-addon" style="cursor:pointer;background:#f4f4f4;border-left:0;" onclick="$('#absence_date').focus();"><i class="fa fa-calendar" style="color:#3c8dbc;"></i></span>
         </div>
       </div>
       <div class="col-md-3">
@@ -163,17 +163,6 @@ $(function(){
   var current_slots = [];
 
   $('#absent_staff').select2({ placeholder: '-- Select Teacher --', allowClear: true, width: '100%' });
-  $('#absence_date_pick').datetimepicker({
-    format: 'YYYY-MM-DD',
-    maxDate: moment(),
-    useCurrent: false,
-    ignoreReadonly: true,
-    icons: { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' }
-  });
-  $('#absence_date_pick').on('dp.show', function(){
-    var dtp = $(this).data('DateTimePicker');
-    if (!dtp.date()) dtp.date(moment());
-  });
 
   $('#btn-load-slots').on('click', function(){
     var staff_id = $('#absent_staff').val();
