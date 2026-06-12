@@ -53,8 +53,10 @@
     <div class="box-header with-border">
       <h3 class="box-title"><i class="fa fa-ban"></i> Mark Unavailable Slots</h3>
       <div class="box-tools">
-        <span class="text-muted" style="font-size:12px;"><i class="fa fa-square" style="color:#e74c3c;"></i> Unavailable &nbsp;
-          <i class="fa fa-square" style="color:#eee;border:1px solid #ccc;"></i> Available</span>
+        <span style="font-size:12px;">
+          <i class="fa fa-square" style="color:#27ae60;"></i> <span style="color:#555;">Available</span> &nbsp;&nbsp;
+          <i class="fa fa-square" style="color:#e74c3c;"></i> <span style="color:#555;">Unavailable</span>
+        </span>
       </div>
     </div>
     <div class="box-body">
@@ -110,9 +112,25 @@
 </section>
 
 <style>
-.cu-cell.unavail { background: #e74c3c !important; }
-.cu-cell.unavail::after { content: '\f00d'; font-family: FontAwesome; color: #fff; font-size: 16px; line-height: 45px; }
-.cu-cell:hover { opacity: 0.8; }
+.cu-cell {
+  background: #eafaf1 !important;
+}
+.cu-cell:hover {
+  background: #d5f5e3 !important;
+}
+.cu-cell.unavail {
+  background: #e74c3c !important;
+}
+.cu-cell.unavail:hover {
+  background: #c0392b !important;
+}
+.cu-cell.unavail::after {
+  content: '\f00d';
+  font-family: FontAwesome;
+  color: #fff;
+  font-size: 16px;
+  line-height: 45px;
+}
 </style>
 
 <script>
