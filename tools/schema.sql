@@ -12461,3 +12461,27 @@ INSERT INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`
 (1, 3017, 1, 1, 1, 1), (7, 3017, 1, 1, 1, 1),
 (1, 3018, 1, 1, 1, 1), (7, 3018, 1, 1, 1, 1)
 ON DUPLICATE KEY UPDATE `can_view`=VALUES(`can_view`), `can_add`=VALUES(`can_add`), `can_edit`=VALUES(`can_edit`), `can_delete`=VALUES(`can_delete`);
+
+-- =============================================================================
+-- UPGRADE PATCHES — safe to run on existing installations (idempotent)
+-- =============================================================================
+
+-- tt_subject_load: columns added after initial tt_* release
+ALTER TABLE `tt_subject_load`
+  ADD COLUMN IF NOT EXISTS `joint_lesson_id`       INT(11)     DEFAULT NULL AFTER `min_per_day`,
+  ADD COLUMN IF NOT EXISTS `all_teachers_required` TINYINT(1)  NOT NULL DEFAULT 0 AFTER `joint_lesson_id`;
+
+-- tt_joint_lessons: columns added after initial release
+ALTER TABLE `tt_joint_lessons`
+  ADD COLUMN IF NOT EXISTS `all_teachers_required` TINYINT(1) NOT NULL DEFAULT 0 AFTER `notes`;
+
+-- tt_subject_load_teachers: new table for multi-teacher pool per load row
+CREATE TABLE IF NOT EXISTS `tt_subject_load_teachers` (
+  `id`               INT NOT NULL AUTO_INCREMENT,
+  `subject_load_id`  INT NOT NULL,
+  `staff_id`         INT NOT NULL,
+  `sort_order`       INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_slt_load` (`subject_load_id`),
+  UNIQUE KEY `uq_slt` (`subject_load_id`,`staff_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -843,7 +843,7 @@ class Tt extends Admin_Controller
         $data['subjects']    = [];
         $data['staff_list']  = [];
         $data['rooms']       = $this->Tt_room_model->getActive();
-        $data['days']        = $this->customlib->getDaysnameWithoutLang();
+        $data['days']        = $this->_getWorkingDays();
         $data['class_id']    = '';
         $data['section_id']  = '';
         $this->load->view('layout/header', $data);
@@ -863,7 +863,7 @@ class Tt extends Admin_Controller
         $staff     = $this->staff_model->getStaffbyrole(2);
         $rooms     = $this->Tt_room_model->getActive();
         $batches   = $this->Tt_batch_model->getForClassSection($session_id, $class_id, $section_id);
-        $days      = $this->customlib->getDaysnameWithoutLang();
+        $days      = $this->_getWorkingDays();
 
         $entry_map = [];
         foreach ($entries as $e) {
@@ -951,7 +951,7 @@ class Tt extends Admin_Controller
         $data['staff_list'] = $this->staff_model->getStaffbyrole(2);
         $data['periods']    = [];
         $data['entries']    = [];
-        $data['days']       = $this->customlib->getDaysnameWithoutLang();
+        $data['days']       = $this->_getWorkingDays();
         $this->load->view('layout/header', $data);
         $this->load->view('admin/tt/teacher_view', $data);
         $this->load->view('layout/footer', $data);
@@ -963,7 +963,7 @@ class Tt extends Admin_Controller
         $staff_id   = (int) $this->input->post('staff_id');
         $periods    = $this->Tt_period_model->getAll($session_id);
         $entries    = $this->Tt_entry_model->getTeacherEntries($session_id, $staff_id);
-        $days       = $this->customlib->getDaysnameWithoutLang();
+        $days       = $this->_getWorkingDays();
 
         $entry_map = [];
         foreach ($entries as $e) {
@@ -1215,12 +1215,8 @@ class Tt extends Admin_Controller
         $class_id   = (int) $this->input->post('class_id');
         $section_id = (int) $this->input->post('section_id');
         $this->load->model('Tt_class_unavail_model');
-        $data = $this->Tt_class_unavail_model->getForClassSection($session_id, $class_id, $section_id);
-        $map = [];
-        foreach ($data as $row) {
-            $map[$row->day . '_' . $row->period_id] = true;
-        }
-        echo json_encode(['status' => '1', 'map' => $map]);
+        $rows = $this->Tt_class_unavail_model->getForClassSection($session_id, $class_id, $section_id);
+        echo json_encode(['status' => '1', 'data' => $rows]);
     }
 
     public function save_class_unavail()
