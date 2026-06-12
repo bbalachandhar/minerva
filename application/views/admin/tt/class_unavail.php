@@ -112,6 +112,8 @@
 </section>
 
 <style>
+#cu-grid { border-collapse: collapse; }
+#cu-grid th, #cu-grid td { border: 1px solid #aaa !important; }
 .cu-cell {
   background: #eafaf1 !important;
 }
