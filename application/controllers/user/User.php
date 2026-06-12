@@ -24,6 +24,8 @@ class User extends Student_Controller
         $this->load->model("studentAppliedDiscount_model");
         $this->load->helper('custom_helper');
         $this->result = $this->customlib->getLoggedInUserData();
+        $this->load->model('Tt_period_model');
+        $this->load->model('Tt_entry_model');
 
     }
 
@@ -588,11 +590,35 @@ class User extends Student_Controller
         }
         // end
 
-        // upcomming class start
-        $days        = $this->customlib->getDaysname();
-        $days_record = array();
-        foreach ($days as $day_key => $day_value) {
-            $days_record[$day_key] = $this->subjecttimetable_model->getparentSubjectByClassandSectionDay($student_current_class->class_id, $student_current_class->section_id, $day_key);
+        // upcomming class start — using auto timetable (tt_entries)
+        $tt_days = $this->customlib->getDaysnameWithoutLang();
+        $days_record = [];
+        $tt_session_id = $student_current_class->session_id ?? null;
+        if (!empty($tt_session_id)) {
+            $tt_entries = $this->Tt_entry_model->getStudentEntries($tt_session_id, $student_current_class->class_id, $student_current_class->section_id);
+            foreach (array_keys($tt_days) as $day_name) {
+                $day_entries = array_values(array_filter($tt_entries, function($e) use ($day_name) {
+                    return $e->day === $day_name && !$e->is_free_period;
+                }));
+                $days_record[$day_name] = array_map(function($e) {
+                    return (object)[
+                        'image'        => $e->staff_image ?? '',
+                        'gender'       => $e->staff_gender ?? 'Male',
+                        'name'         => $e->staff_name ?? '',
+                        'surname'      => $e->staff_surname ?? '',
+                        'employee_id'  => $e->staff_emp_id ?? '',
+                        'subject_name' => $e->subject_name ?? '',
+                        'code'         => $e->subject_code ?? '',
+                        'room_no'      => $e->room_name ?? '',
+                        'time_from'    => $e->start_time ?? '',
+                        'time_to'      => $e->end_time ?? '',
+                    ];
+                }, $day_entries);
+            }
+        } else {
+            foreach (array_keys($tt_days) as $day_name) {
+                $days_record[$day_name] = [];
+            }
         }
         $data['timetable'] = $days_record;
         $data['attendence_percentage'] = $attendence_percentage;

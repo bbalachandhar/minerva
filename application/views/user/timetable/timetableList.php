@@ -1,151 +1,135 @@
 <div class="content-wrapper">
-    <!-- Main content -->
-    <section class="content">
-        <div class="row">
-            <div class="col-md-12">
-                <div class="box box-warning">
-                    <div class="box-header ptbnull">
-                        <h3 class="box-title titlefix"> <?php echo $this->lang->line('class_timetable'); ?></h3>
-                        <div class="box-tools pull-right">
-                        </div>
-                    </div>
-                    <div class="box-body">
-                        <div class="table-responsive">
-                            <div class="download_label"><?php echo $this->lang->line('class_timetable'); ?></div>
-
-                            <?php
-                            if (!empty($timetable)) {
-                            ?>
-                                <button type="submit" title="<?php echo $this->lang->line('print'); ?>" class="btn btn-primary btn-xs pull-right  print_timetable" data-class_id="<?php echo set_value('class_id'); ?>" data-section_id="<?php echo set_value('section_id'); ?>" id="load" data-loading-text="<i class='fa fa-spinner fa-spin'></i> <?php echo $this->lang->line('please_wait'); ?>"><i class="fa fa-print"></i></button>
-                                <table class="table table-stripped">
-                                    <thead>
-                                        <tr>
-                                            <?php
-                                            foreach ($timetable as $tm_key => $tm_value) {
-                                            ?>
-                                                <th class="text"><?php echo $this->lang->line(strtolower($tm_key)); ?></th>
-                                            <?php
-                                            }
-                                            ?>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <?php
-                                            foreach ($timetable as $tm_key => $tm_value) {
-                                            ?>
-                                                <td class="text" width="14%">
-
-                                                    <?php
-                                                    if (!$timetable[$tm_key]) {
-                                                    ?>
-                                                        <div class="attachment-block block-b-noraml clearfix">
-                                                            <b class="text text-danger"><i class="fa fa-times-circle text-danger"></i><?php echo $this->lang->line('not_scheduled'); ?></b>
-                                                        </div>
-                                                        <?php
-                                                    } else {
-                                                        foreach ($timetable[$tm_key] as $tm_k => $tm_kue) {
-                                                        ?>
-                                                            <div class="attachment-block attachment-block-normal clearfix">
-
-                                                                <div class="relative attachment-left-space"><i class="fa fa-book"></i><?php echo $this->lang->line('subject') ?>:
-                                                                    <?php
-                                                                    echo $tm_kue->subject_name;
-                                                                    if ($tm_kue->code != '') {
-                                                                        echo " (" . $tm_kue->code . ")";
-                                                                    }
-                                                                    ?>
-                                                                </div>
-                                                                <div class="relative attachment-left-space"><i class="fa fa-clock-o"></i><?php echo $tm_kue->time_from ?>
-                                                                    <b class="text text-center">-</b>
-                                                                    <strong class="text-green"><?php echo $tm_kue->time_to; ?></strong>
-                                                                </div>
-                                                                <div class="relative attachment-left-space"><i class="fa fa-user"></i> <?php echo $tm_kue->name." ".$tm_kue->surname." (".$tm_kue->employee_id.")";?>
-                                                                    </div>
-                                                                <div class="relative attachment-left-space"><i class="fa fa-building"></i><?php echo $this->lang->line('room_no'); ?>: <?php echo $tm_kue->room_no; ?>
-                                                                </div>
-                                                            </div>
-                                                    <?php
-                                                        }
-                                                    }
-                                                    ?>
-                                                </td>
-                                            <?php
-                                            }
-                                            ?>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            <?php
-                            }
-                            ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<section class="content-header">
+    <h1><?php echo $this->lang->line('class_timetable'); ?></h1>
+</section>
+<section class="content">
+<div class="box box-primary">
+    <div class="box-header with-border">
+        <h3 class="box-title">
+            <i class="fa fa-table"></i>
+            <?php echo htmlspecialchars($class_label . ' ' . $section_label); ?> &mdash; <?php echo $this->lang->line('class_timetable'); ?>
+        </h3>
+        <div class="box-tools pull-right">
+            <?php if (!empty($periods)): ?>
+            <button class="btn btn-default btn-sm" id="btn-print-tt" title="<?php echo $this->lang->line('print'); ?>">
+                <i class="fa fa-print"></i> <?php echo $this->lang->line('print'); ?>
+            </button>
+            <?php endif; ?>
         </div>
-    </section>
+    </div>
+    <div class="box-body table-responsive p-0">
+
+    <?php if (empty($periods)): ?>
+        <div class="text-center text-muted" style="padding:40px;">
+            <i class="fa fa-calendar-o fa-3x" style="color:#ddd;"></i>
+            <p style="margin-top:12px;"><?php echo $this->lang->line('no_record_found'); ?></p>
+        </div>
+    <?php else: ?>
+
+    <?php
+    $type_class = [
+        'theory'    => 'slot-theory',
+        'practical' => 'slot-practical',
+        'project'   => 'slot-project',
+        'other'     => 'slot-other',
+    ];
+    $today = date('l'); // Monday, Tuesday, etc.
+    ?>
+
+    <style>
+    .tt-student-grid th, .tt-student-grid td { vertical-align: middle; text-align: center; font-size: 12px; }
+    .tt-student-grid .time-col { text-align: left; background: #f9f9f9; white-space: nowrap; min-width: 80px; }
+    .tt-student-grid .today-col { background: #fffde7; }
+    .tt-student-grid th.today-col { background: #f0a500; color: #fff; }
+    .tt-student-grid .break-row td { background: #f4f4f4; color: #999; font-style: italic; }
+    .slot-tag { display: inline-block; border-radius: 3px; padding: 2px 7px; font-size: 11px; font-weight: 600; color: #fff; }
+    .slot-theory    { background: #3498db; }
+    .slot-practical { background: #e74c3c; }
+    .slot-project   { background: #f39c12; }
+    .slot-free      { background: #27ae60; }
+    .slot-other     { background: #7f8c8d; }
+    .slot-sub { display: block; font-size: 10px; color: #555; margin-top: 2px; }
+    .slot-room { display: block; font-size: 10px; color: #888; }
+    </style>
+
+    <table class="table table-bordered tt-student-grid">
+        <thead>
+            <tr>
+                <th class="time-col"><?php echo $this->lang->line('time'); ?></th>
+                <?php foreach ($days as $day_name => $day_val): ?>
+                <th class="<?php echo ($day_name === $today) ? 'today-col' : ''; ?>">
+                    <?php echo $this->lang->line(strtolower($day_name)); ?>
+                    <?php if ($day_name === $today): ?><br><small style="font-size:10px;"><?php echo $this->lang->line('today'); ?></small><?php endif; ?>
+                </th>
+                <?php endforeach; ?>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($periods as $period): ?>
+            <?php if ($period->is_break): ?>
+            <tr class="break-row">
+                <td class="time-col">
+                    <strong><?php echo htmlspecialchars($period->name); ?></strong><br>
+                    <small><?php echo date('h:i A', strtotime($period->start_time)); ?></small>
+                </td>
+                <td colspan="<?php echo count($days); ?>">
+                    <i class="fa fa-coffee"></i> <?php echo htmlspecialchars($period->break_label ?? $period->name); ?>
+                </td>
+            </tr>
+            <?php else: ?>
+            <tr>
+                <td class="time-col">
+                    <strong><?php echo htmlspecialchars($period->name); ?></strong><br>
+                    <small><?php echo date('h:i', strtotime($period->start_time)) . ' - ' . date('h:i', strtotime($period->end_time)); ?></small>
+                </td>
+                <?php foreach ($days as $day_name => $day_val): ?>
+                <?php $entry = $entry_map[$day_name][$period->id] ?? null; ?>
+                <td class="<?php echo ($day_name === $today) ? 'today-col' : ''; ?>" style="min-height:52px;">
+                    <?php if ($entry): ?>
+                        <?php if ($entry->is_free_period): ?>
+                            <span class="slot-tag slot-free"><?php echo htmlspecialchars($entry->free_period_label ?: 'Free'); ?></span>
+                        <?php else: ?>
+                            <?php
+                                $tc         = $type_class[strtolower($entry->subject_type ?? 'other')] ?? 'slot-other';
+                                $slot_color = !empty($entry->tt_color) ? $entry->tt_color : null;
+                                $slot_text  = !empty($entry->tt_abbr) ? $entry->tt_abbr : ($entry->subject_code ?: $entry->subject_name);
+                                $slot_style = $slot_color ? "background:{$slot_color};" : '';
+                                $slot_cls   = $slot_color ? '' : $tc;
+                            ?>
+                            <span class="slot-tag <?php echo $slot_cls; ?>" style="<?php echo $slot_style; ?>"><?php echo htmlspecialchars($slot_text); ?></span>
+                            <?php $tname = trim(($entry->staff_name ?? '') . ' ' . ($entry->staff_surname ?? '')); ?>
+                            <?php if ($tname): ?><span class="slot-sub"><?php echo htmlspecialchars($tname); ?></span><?php endif; ?>
+                            <?php if (!empty($entry->room_name)): ?><span class="slot-room"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($entry->room_name); ?></span><?php endif; ?>
+                        <?php endif; ?>
+                    <?php else: ?><span class="text-muted">&mdash;</span><?php endif; ?>
+                </td>
+                <?php endforeach; ?>
+            </tr>
+            <?php endif; ?>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+
+    <?php endif; ?>
+
+    </div>
+</div>
+</section>
 </div>
 
-
-
 <script>
-    $(document).on('click', '.print_timetable', function(e) {
-        e.preventDefault(); // avoid to execute the actual submit of the form.
-        var $this = $(this);
-       
-        $.ajax({
-            url: baseurl  + 'user/timetable/printclasstimetable',
-            type: "POST",
-            data: {},
-            dataType: 'Json',
-            beforeSend: function() {
-                $this.button('loading');
-            },
-            success: function(data, textStatus, jqXHR) {
-
-                Popup(data.page);
-                $this.button('reset');
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                $this.button('reset');
-            },
-            complete: function() {
-                $this.button('reset');
-            }
-        });
+$(document).on('click', '#btn-print-tt', function() {
+    var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+    $.post('<?php echo site_url('user/timetable/printclasstimetable'); ?>', {}, function(res) {
+        $btn.prop('disabled', false).html('<i class="fa fa-print"></i> <?php echo addslashes($this->lang->line('print')); ?>');
+        if (res.status === '1') {
+            var w = window.open('', 'TimetablePrint');
+            w.document.open();
+            w.document.write(res.page);
+            w.document.close();
+        }
+    }, 'json').fail(function() {
+        $btn.prop('disabled', false).html('<i class="fa fa-print"></i> <?php echo addslashes($this->lang->line('print')); ?>');
     });
-
-    function Popup(data, winload = false) {
-        var frameDoc = window.open('', 'Print-Window');
-        frameDoc.document.open();
-        //Create a new HTML document.
-        frameDoc.document.write('<html>');
-        frameDoc.document.write('<head>');
-        frameDoc.document.write('<title></title>');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/bootstrap/css/bootstrap.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/dist/css/font-awesome.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/dist/css/ionicons.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/dist/css/AdminLTE.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/dist/css/skins/_all-skins.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/plugins/iCheck/flat/blue.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/plugins/morris/morris.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/plugins/jvectormap/jquery-jvectormap-1.2.2.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/plugins/datepicker/datepicker3.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + baseurl  + 'backend/plugins/daterangepicker/daterangepicker-bs3.css">');
-        frameDoc.document.write('</head>');
-        frameDoc.document.write('<body onload="window.print()">');
-        frameDoc.document.write(data);
-        frameDoc.document.write('</body>');
-        frameDoc.document.write('</html>');
-        frameDoc.document.close();
-        setTimeout(function() {
-            frameDoc.close();
-            if (winload) {
-                window.location.reload(true);
-            }
-        }, 5000);
-
-        return true;
-    }
+});
 </script>

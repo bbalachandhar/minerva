@@ -194,6 +194,25 @@ class Tt_entry_model extends MY_Model
         $this->db->delete('tt_entries');
     }
 
+    public function getStudentEntries($session_id, $class_id, $section_id)
+    {
+        return $this->db->select('tt_entries.*, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type, subjects.tt_color, subjects.tt_abbr,
+                staff.name as staff_name, staff.surname as staff_surname, staff.employee_id as staff_emp_id, staff.image as staff_image, staff.gender as staff_gender,
+                tt_rooms.name as room_name,
+                tt_periods.name as period_name, tt_periods.start_time, tt_periods.end_time, tt_periods.sort_order, tt_periods.is_break')
+            ->from('tt_entries')
+            ->join('subject_group_subjects', 'subject_group_subjects.id = tt_entries.subject_group_subject_id', 'left')
+            ->join('subjects', 'subjects.id = subject_group_subjects.subject_id', 'left')
+            ->join('staff', 'staff.id = tt_entries.staff_id', 'left')
+            ->join('tt_rooms', 'tt_rooms.id = tt_entries.room_id', 'left')
+            ->join('tt_periods', 'tt_periods.id = tt_entries.period_id', 'left')
+            ->where('tt_entries.session_id', $session_id)
+            ->where('tt_entries.class_id', $class_id)
+            ->where('tt_entries.section_id', $section_id)
+            ->order_by('tt_periods.sort_order', 'ASC')
+            ->get()->result();
+    }
+
     public function insertBatch($entries)
     {
         if (empty($entries)) return true;
