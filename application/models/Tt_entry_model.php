@@ -102,8 +102,10 @@ class Tt_entry_model extends MY_Model
 
         $this->db->select('staff.id, staff.name, staff.surname, staff.employee_id')
             ->from('staff')
-            ->where('staff.role_id', 2)
-            ->where('staff.is_active', 1);
+            ->join('staff_roles', 'staff_roles.staff_id = staff.id', 'inner')
+            ->where('staff_roles.role_id', 2)
+            ->where('staff.is_active', 1)
+            ->group_by('staff.id');
         if (!empty($exclude_ids)) {
             $this->db->where_not_in('staff.id', $exclude_ids);
         }

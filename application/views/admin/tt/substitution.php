@@ -165,6 +165,7 @@ $(function(){
   $('#absent_staff').select2({ placeholder: '-- Select Teacher --', allowClear: true, width: '100%' });
   $('#absence_date_pick').datetimepicker({
     format: 'YYYY-MM-DD',
+    defaultDate: moment(),
     maxDate: moment(),
     icons: { time:'fa fa-clock-o', date:'fa fa-calendar', up:'fa fa-chevron-up', down:'fa fa-chevron-down', previous:'fa fa-chevron-left', next:'fa fa-chevron-right', today:'fa fa-crosshairs', clear:'fa fa-trash', close:'fa fa-times' }
   });
