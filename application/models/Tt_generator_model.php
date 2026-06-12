@@ -490,7 +490,7 @@ class Tt_generator_model extends MY_Model
                     if (!$all_free) continue;
 
                     $room_id = $this->_findRoom($day, $pid_group, $room_type, $pref_room, $primary, $constraints[$primary] ?? null);
-                    $score   = $day_penalty + $day_on1_bonus + $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec);
+                    $score   = $day_penalty + $day_on1_bonus + $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec, $max_per_day);
                     if ($room_id && $room_id === $pref_room) $score += 3;
                     $score  -= array_search($day, $this->working_days) * 0.1;
 
@@ -522,7 +522,7 @@ class Tt_generator_model extends MY_Model
                         }
 
                         $room_id = $this->_findRoom($day, $pid_group, $room_type, $pref_room, $t_id, $constraint);
-                        $score   = $day_penalty + $day_on1_bonus + $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec);
+                        $score   = $day_penalty + $day_on1_bonus + $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec, $max_per_day);
                         if ($t_id === $primary) $score += 5;
                         if ($room_id && $room_id === $pref_room) $score += 3;
                         $score  -= array_search($day, $this->working_days) * 0.1;
@@ -639,19 +639,25 @@ class Tt_generator_model extends MY_Model
     /**
      * Returns a negative score when a single-period subject would land
      * immediately next to one of its already-placed periods on the same day.
-     * Only applies when consecutive_periods <= 1 (non-double subjects).
+     *
+     * Only fires when max_per_day = 1 (strict spread — user explicitly said
+     * "one per day", so adjacent is always wrong).
+     *
+     * When max_per_day >= 2 the user has allowed multiple periods on the same
+     * day (e.g. Maths 5 PPW, 2/day OK), so consecutive placement is fine —
+     * no penalty applied.
      */
-    private function _adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec)
+    private function _adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec, $max_per_day)
     {
-        if ($consec > 1) return 0;
+        if ($consec > 1)    return 0;  // intentional double/triple block
+        if ($max_per_day > 1) return 0;  // user allows >1/day → consecutive is acceptable
         $placed = $this->subject_day_periods[$class_id][$section_id][$sgs_id][$day] ?? [];
         if (empty($placed)) return 0;
 
-        $period_idx = array_flip($this->period_order);
+        $period_idx    = array_flip($this->period_order);
         $candidate_idx = $period_idx[$pid_group[0]] ?? -99;
         foreach ($placed as $pp) {
-            $placed_idx = $period_idx[$pp] ?? -99;
-            if (abs($candidate_idx - $placed_idx) === 1) return -25;
+            if (abs($candidate_idx - ($period_idx[$pp] ?? -99)) === 1) return -25;
         }
         return 0;
     }

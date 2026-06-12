@@ -180,8 +180,8 @@
   <span><strong>Teachers (Pool)</strong> — Select one or more teachers. Generator picks any free teacher each slot (pool mode). First selected = primary (preferred).</span>
   <span><i class="fa fa-square" style="font-size:10px;color:#888;"></i> <strong>All Attend</strong> — If checked, ALL selected teachers must be free simultaneously, and ALL are marked occupied. Use for PT/Yoga where every teacher physically attends.</span>
   <span><strong>P/W</strong> — Periods per week for this subject in this class.</span>
-  <span><strong>Consecutive</strong> — 1 = normal single periods &nbsp;|&nbsp; 2 = must be placed as a double period (e.g. lab) &nbsp;|&nbsp; 3 = triple block.</span>
-  <span><strong>Max/Day</strong> — Hard cap: no more than this many periods of this subject in a single day.</span>
+  <span><strong>Consecutive</strong> — 1 = single periods &nbsp;|&nbsp; 2 = <em>always</em> placed as a fixed double block (e.g. lab) &nbsp;|&nbsp; 3 = triple block. <em>For "Maths can sometimes be 2-in-a-row": keep Consecutive=1 and set Max/Day=2.</em></span>
+  <span><strong>Max/Day</strong> — Hard cap per day. <strong>Max/Day=1</strong>: strictly one per day, never consecutive. <strong>Max/Day=2</strong>: up to two per day; back-to-back is allowed (generator won't penalise adjacency). Use 2 for subjects like Maths where a double is acceptable.</span>
   <span><i class="fa fa-square text-warning" style="font-size:10px;"></i> <strong>Min/Day</strong> — Soft goal: place at least one period every working day.</span>
   <span><i class="fa fa-square text-primary" style="font-size:10px;"></i> <strong>Spread</strong> — Distribute across different days; keep ON for most subjects.</span>
   <span><i class="fa fa-square text-danger" style="font-size:10px;"></i> <strong>Priority 1–10</strong> — Generator schedules higher-priority subjects first. Use <strong>8–10</strong> for labs/practicals, <strong>5</strong> for normal, <strong>1–3</strong> for electives.</span>
