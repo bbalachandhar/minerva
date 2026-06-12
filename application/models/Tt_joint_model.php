@@ -70,18 +70,19 @@ class Tt_joint_model extends MY_Model
         $teacher_ids = array_values(array_unique(array_filter(array_map('intval', (array) $teacher_ids))));
 
         $row = [
-            'session_id'          => $session_id,
-            'name'                => $data['name'],
-            'subject_id'          => (int) $data['subject_id'],
-            'staff_id'            => isset($teacher_ids[0]) ? $teacher_ids[0] : null,
-            'alt_staff_id'        => isset($teacher_ids[1]) ? $teacher_ids[1] : null,
-            'room_id'             => !empty($data['room_id']) ? (int) $data['room_id'] : null,
-            'periods_per_week'    => max(1, (int) ($data['periods_per_week']    ?? 1)),
-            'consecutive_periods' => max(1, (int) ($data['consecutive_periods'] ?? 1)),
-            'max_per_day'         => max(1, (int) ($data['max_per_day']         ?? 1)),
-            'distribute_evenly'   => !empty($data['distribute_evenly']) ? 1 : 0,
-            'priority'            => max(1, min(10, (int) ($data['priority'] ?? 5))),
-            'notes'               => $data['notes'] ?? null,
+            'session_id'            => $session_id,
+            'name'                  => $data['name'],
+            'subject_id'            => (int) $data['subject_id'],
+            'staff_id'              => isset($teacher_ids[0]) ? $teacher_ids[0] : null,
+            'alt_staff_id'          => isset($teacher_ids[1]) ? $teacher_ids[1] : null,
+            'room_id'               => !empty($data['room_id']) ? (int) $data['room_id'] : null,
+            'periods_per_week'      => max(1, (int) ($data['periods_per_week']    ?? 1)),
+            'consecutive_periods'   => max(1, (int) ($data['consecutive_periods'] ?? 1)),
+            'max_per_day'           => max(1, (int) ($data['max_per_day']         ?? 1)),
+            'distribute_evenly'     => !empty($data['distribute_evenly']) ? 1 : 0,
+            'priority'              => max(1, min(10, (int) ($data['priority'] ?? 5))),
+            'notes'                 => $data['notes'] ?? null,
+            'all_teachers_required' => !empty($data['all_teachers_required']) ? 1 : 0,
         ];
 
         $id = !empty($data['id']) ? (int) $data['id'] : 0;
@@ -124,7 +125,11 @@ class Tt_joint_model extends MY_Model
 
     public function delete($id)
     {
-        // Remove linked subject load rows first
+        // Remove linked subject load teacher pool rows first
+        $linked_ids = $this->db->select('id')->where('joint_lesson_id', $id)->get('tt_subject_load')->result();
+        foreach ($linked_ids as $sl) {
+            $this->db->where('subject_load_id', $sl->id)->delete('tt_subject_load_teachers');
+        }
         $this->db->where('joint_lesson_id', $id)->delete('tt_subject_load');
 
         $this->db->trans_start();
@@ -199,6 +204,7 @@ class Tt_joint_model extends MY_Model
                 'subject_group_subject_id' => $sgs_id,
                 'staff_id'                 => $primary_tid,
                 'alt_staff_id'             => isset($teacher_ids[1]) ? $teacher_ids[1] : null,
+                'all_teachers_required'    => !empty($lesson_row['all_teachers_required']) ? 1 : 0,
                 'periods_per_week'         => (int) $lesson_row['periods_per_week'],
                 'consecutive_periods'      => (int) $lesson_row['consecutive_periods'],
                 'max_per_day'              => (int) $lesson_row['max_per_day'],
@@ -211,12 +217,25 @@ class Tt_joint_model extends MY_Model
             ];
 
             if ($existing && $existing->joint_lesson_id == $joint_lesson_id) {
-                // Update only rows we own
                 $this->db->where('id', $existing->id)->update('tt_subject_load', $load_row);
+                $load_id = $existing->id;
             } elseif (!$existing) {
                 $this->db->insert('tt_subject_load', $load_row);
+                $load_id = $this->db->insert_id();
+            } else {
+                // Owned by a different joint or manual — leave it alone
+                continue;
             }
-            // If existing row belongs to a different joint_lesson or is manual — leave it alone
+
+            // Sync teacher pool
+            $this->db->where('subject_load_id', $load_id)->delete('tt_subject_load_teachers');
+            foreach ($teacher_ids as $order => $t_id) {
+                $this->db->insert('tt_subject_load_teachers', [
+                    'subject_load_id' => $load_id,
+                    'staff_id'        => $t_id,
+                    'sort_order'      => $order,
+                ]);
+            }
         }
 
         // Delete orphaned linked rows (class-sections no longer in this lesson)
@@ -228,6 +247,7 @@ class Tt_joint_model extends MY_Model
         foreach ($orphans as $o) {
             $key = $o->class_id . '_' . $o->section_id;
             if (!in_array($key, $kept_keys)) {
+                $this->db->where('subject_load_id', $o->id)->delete('tt_subject_load_teachers');
                 $this->db->where('id', $o->id)->delete('tt_subject_load');
             }
         }
@@ -239,7 +259,7 @@ class Tt_joint_model extends MY_Model
      */
     public function getAllForGeneration($session_id)
     {
-        $lessons = $this->db->select('tj.*, subjects.tt_color, subjects.tt_abbr, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type')
+        $lessons = $this->db->select('tj.*, subjects.tt_color, subjects.tt_abbr, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type, tj.all_teachers_required')
             ->from('tt_joint_lessons tj')
             ->join('subjects', 'subjects.id = tj.subject_id', 'left')
             ->where('tj.session_id', $session_id)

@@ -6,8 +6,8 @@
       <th>Code</th>
       <th>Type</th>
       <th>Batch</th>
-      <th>Teacher <span class="text-warning">*</span></th>
-      <th>Alt. Teacher</th>
+      <th title="Assign one or more teachers. Generator picks any free one (pool mode) or requires ALL to attend simultaneously.">Teachers (Pool) <span class="text-warning">*</span></th>
+      <th title="All must attend — if checked, ALL teachers in the pool must be free at the same time, and ALL get marked occupied. Use for activities like Yoga or PT where every teacher is physically present.">All Attend <i class="fa fa-question-circle text-warning" style="font-size:11px;"></i></th>
       <th>Periods/Week <span class="text-warning">*</span></th>
       <th>Consecutive <small>(lab)</small></th>
       <th>Room Type</th>
@@ -51,33 +51,47 @@
         <span class="text-muted" style="font-size:12px;">
           <?php
           $t_names = [];
-          if ($existing->staff_name) $t_names[] = $existing->staff_name.' '.($existing->staff_surname ?? '');
+          if (!empty($existing->teacher_ids)) {
+              foreach ($existing->teacher_ids as $tid) {
+                  foreach ($staff as $st) {
+                      if ($st['id'] == $tid) { $t_names[] = $st['name'].' '.$st['surname']; break; }
+                  }
+              }
+          } elseif ($existing->staff_name) {
+              $t_names[] = $existing->staff_name.' '.($existing->staff_surname ?? '');
+          }
           echo $t_names ? htmlspecialchars(implode(', ', $t_names)) : '—';
           ?>
           <br><small>(edit in Joint Lessons)</small>
         </span>
         <?php else: ?>
-        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][staff_id]" required style="min-width:150px;">
-          <option value="">-- Select --</option>
+        <select class="form-control input-sm sl-teacher-pool" name="rows[<?php echo $sub->subject_group_subject_id; ?>][teacher_ids][]" multiple style="min-width:200px;">
           <?php foreach ($staff as $st): ?>
-          <option value="<?php echo $st['id']; ?>" <?php echo ($existing && $existing->staff_id == $st['id']) ? 'selected' : ''; ?>>
+          <option value="<?php echo $st['id']; ?>"
+            <?php
+            $sel = false;
+            if ($existing && !empty($existing->teacher_ids)) {
+                $sel = in_array($st['id'], $existing->teacher_ids);
+            } elseif ($existing) {
+                $sel = ($existing->staff_id == $st['id'] || $existing->alt_staff_id == $st['id']);
+            }
+            echo $sel ? 'selected' : '';
+            ?>>
             <?php echo htmlspecialchars($st['name'].' '.$st['surname']); ?>
           </option>
           <?php endforeach; ?>
         </select>
         <?php endif; ?>
       </td>
-      <td>
-        <?php if (!$is_joint): ?>
-        <select class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][alt_staff_id]" style="min-width:130px;">
-          <option value="">-- None --</option>
-          <?php foreach ($staff as $st): ?>
-          <option value="<?php echo $st['id']; ?>" <?php echo ($existing && $existing->alt_staff_id == $st['id']) ? 'selected' : ''; ?>>
-            <?php echo htmlspecialchars($st['name'].' '.$st['surname']); ?>
-          </option>
-          <?php endforeach; ?>
-        </select>
-        <?php else: ?><span class="text-muted">—</span><?php endif; ?>
+      <td class="text-center">
+        <?php if ($is_joint): ?>
+        <span class="text-muted">—</span>
+        <?php else: ?>
+        <label style="font-weight:normal;margin:0;" title="Require ALL teachers free simultaneously; ALL marked occupied after placement">
+          <input type="checkbox" name="rows[<?php echo $sub->subject_group_subject_id; ?>][all_teachers_required]" value="1"
+            <?php echo ($existing && !empty($existing->all_teachers_required)) ? 'checked' : ''; ?>>
+        </label>
+        <?php endif; ?>
       </td>
       <td>
         <input type="number" class="form-control input-sm" name="rows[<?php echo $sub->subject_group_subject_id; ?>][periods_per_week]"
@@ -163,12 +177,14 @@
 
 <!-- Column Legend -->
 <div style="background:#f8f9fa;border-top:1px solid #e0e0e0;padding:10px 14px;font-size:12px;color:#555;display:flex;flex-wrap:wrap;gap:18px;">
+  <span><strong>Teachers (Pool)</strong> — Select one or more teachers. Generator picks any free teacher each slot (pool mode). First selected = primary (preferred).</span>
+  <span><i class="fa fa-square" style="font-size:10px;color:#888;"></i> <strong>All Attend</strong> — If checked, ALL selected teachers must be free simultaneously, and ALL are marked occupied. Use for PT/Yoga where every teacher physically attends.</span>
   <span><strong>P/W</strong> — Periods per week for this subject in this class.</span>
   <span><strong>Consecutive</strong> — 1 = normal single periods &nbsp;|&nbsp; 2 = must be placed as a double period (e.g. lab) &nbsp;|&nbsp; 3 = triple block.</span>
   <span><strong>Max/Day</strong> — Hard cap: no more than this many periods of this subject in a single day.</span>
-  <span><i class="fa fa-square text-warning" style="font-size:10px;"></i> <strong>Min/Day</strong> — Soft goal: place at least one period every working day (good for daily-practice subjects like languages, PT).</span>
-  <span><i class="fa fa-square text-primary" style="font-size:10px;"></i> <strong>Spread</strong> — Don't put all periods on the same day; distribute across different days of the week. Recommended to keep ON for most subjects.</span>
-  <span><i class="fa fa-square text-danger" style="font-size:10px;"></i> <strong>Priority 1–10</strong> — Generator schedules higher-priority subjects first. Use <strong>8–10</strong> for labs/practicals (need specific rooms), <strong>5</strong> for normal subjects, <strong>1–3</strong> for electives or flexible subjects.</span>
+  <span><i class="fa fa-square text-warning" style="font-size:10px;"></i> <strong>Min/Day</strong> — Soft goal: place at least one period every working day.</span>
+  <span><i class="fa fa-square text-primary" style="font-size:10px;"></i> <strong>Spread</strong> — Distribute across different days; keep ON for most subjects.</span>
+  <span><i class="fa fa-square text-danger" style="font-size:10px;"></i> <strong>Priority 1–10</strong> — Generator schedules higher-priority subjects first. Use <strong>8–10</strong> for labs/practicals, <strong>5</strong> for normal, <strong>1–3</strong> for electives.</span>
 </div>
 
 <!-- Add Subject Panel -->

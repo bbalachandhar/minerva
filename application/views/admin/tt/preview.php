@@ -150,7 +150,6 @@ $color = $score >= 90 ? 'success' : ($score >= 70 ? 'warning' : 'danger');
               <span class="slot-tag <?php echo $tc; ?>"><?php echo htmlspecialchars($e->subject_code ?: $e->subject_name); ?></span><br>
               <small style="font-size:10px;"><?php echo htmlspecialchars($e->staff_name.' '.$e->staff_surname); ?></small>
               <?php if ($e->room_name): ?><br><small style="font-size:10px;color:#888;"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($e->room_name); ?></small><?php endif; ?>
-              <?php if ($e->batch_name): ?><br><span class="label label-info" style="font-size:9px;">Batch <?php echo $e->batch_name; ?></span><?php endif; ?>
             <?php endforeach; ?>
             <?php if (empty($entries_here)): ?><span class="text-muted">—</span><?php endif; ?>
           </td>

@@ -126,14 +126,12 @@ $(function(){
   });
 
   function updateStatusBadge() {
-    var $staffInputs = $('[name$="][staff_id]"]').filter(function(){
-      return /^rows\[\d+\]\[staff_id\]$/.test($(this).attr('name'));
-    });
-    var total = $staffInputs.length;
+    var $pools = $('#subject-load-rows .sl-teacher-pool');
+    var total = $pools.length;
     if (!total) { $('#sl-status-badge').html(''); return; }
-    var configured = $staffInputs.filter(function(){ return $(this).val() !== ''; }).length;
+    var configured = $pools.filter(function(){ return $(this).val() && $(this).val().length > 0; }).length;
     var color = (configured === total) ? 'success' : (configured > 0 ? 'warning' : 'danger');
-    $('#sl-status-badge').html('<span class="label label-'+color+'" style="font-size:11px;vertical-align:middle;margin-left:6px;">'+configured+'/'+total+' teachers assigned</span>');
+    $('#sl-status-badge').html('<span class="label label-'+color+'" style="font-size:11px;vertical-align:middle;margin-left:6px;">'+configured+'/'+total+' teacher pools assigned</span>');
   }
 
   function loadSubjects() {

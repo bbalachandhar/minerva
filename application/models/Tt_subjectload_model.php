@@ -5,7 +5,7 @@ class Tt_subjectload_model extends MY_Model
 {
     public function getForClassSection($session_id, $class_id, $section_id)
     {
-        return $this->db->select('tt_subject_load.*, subject_group_subjects.subject_id, staff.name as staff_name, staff.surname as staff_surname, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type, tt_joint_lessons.name as joint_lesson_name')
+        $rows = $this->db->select('tt_subject_load.*, subject_group_subjects.subject_id, staff.name as staff_name, staff.surname as staff_surname, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type, tt_joint_lessons.name as joint_lesson_name')
             ->from('tt_subject_load')
             ->join('staff', 'staff.id = tt_subject_load.staff_id', 'left')
             ->join('subject_group_subjects', 'subject_group_subjects.id = tt_subject_load.subject_group_subject_id', 'left')
@@ -16,6 +16,8 @@ class Tt_subjectload_model extends MY_Model
             ->where('tt_subject_load.section_id', $section_id)
             ->order_by('subjects.name', 'ASC')
             ->get()->result();
+        $this->_enrichWithTeachers($rows);
+        return $rows;
     }
 
     public function getSubjectsForClass($session_id, $class_id)
@@ -72,15 +74,27 @@ class Tt_subjectload_model extends MY_Model
         // Exclude joint-linked rows — generator handles them in the joint pre-pass
         $this->db->where('tt_subject_load.joint_lesson_id IS NULL', null, false);
 
-        return $this->db->get()->result();
+        $rows = $this->db->get()->result();
+        $this->_enrichWithTeachers($rows);
+        return $rows;
     }
 
     public function saveRows($session_id, $class_id, $section_id, $rows)
     {
         $this->db->trans_start();
         foreach ($rows as $row) {
-            $sgs_id  = (int) $row['subject_group_subject_id'];
+            $sgs_id   = (int) $row['subject_group_subject_id'];
             $batch_id = !empty($row['batch_id']) ? (int)$row['batch_id'] : null;
+
+            // Build teacher pool from multi-select array; fall back to legacy single fields
+            $teacher_ids_raw = isset($row['teacher_ids']) && is_array($row['teacher_ids'])
+                ? $row['teacher_ids']
+                : [];
+            if (empty($teacher_ids_raw) && !empty($row['staff_id'])) {
+                $teacher_ids_raw = [$row['staff_id']];
+                if (!empty($row['alt_staff_id'])) $teacher_ids_raw[] = $row['alt_staff_id'];
+            }
+            $teacher_ids = array_values(array_filter(array_map('intval', $teacher_ids_raw)));
 
             $existing = $this->db->where('session_id', $session_id)
                 ->where('class_id', $class_id)
@@ -95,8 +109,9 @@ class Tt_subjectload_model extends MY_Model
                 'section_id'               => $section_id,
                 'subject_group_id'         => (int) $row['subject_group_id'],
                 'subject_group_subject_id' => $sgs_id,
-                'staff_id'                 => (int) $row['staff_id'],
-                'alt_staff_id'             => !empty($row['alt_staff_id']) ? (int)$row['alt_staff_id'] : null,
+                'staff_id'                 => $teacher_ids[0] ?? null,
+                'alt_staff_id'             => $teacher_ids[1] ?? null,
+                'all_teachers_required'    => !empty($row['all_teachers_required']) ? 1 : 0,
                 'periods_per_week'         => (int) $row['periods_per_week'],
                 'consecutive_periods'      => (int) ($row['consecutive_periods'] ?? 1),
                 'preferred_room_type'      => $row['preferred_room_type'] ?? 'any',
@@ -110,8 +125,20 @@ class Tt_subjectload_model extends MY_Model
 
             if ($existing) {
                 $this->db->where('id', $existing->id)->update('tt_subject_load', $data);
+                $load_id = $existing->id;
             } else {
                 $this->db->insert('tt_subject_load', $data);
+                $load_id = $this->db->insert_id();
+            }
+
+            // Replace teacher pool
+            $this->db->where('subject_load_id', $load_id)->delete('tt_subject_load_teachers');
+            foreach ($teacher_ids as $order => $t_id) {
+                $this->db->insert('tt_subject_load_teachers', [
+                    'subject_load_id' => $load_id,
+                    'staff_id'        => $t_id,
+                    'sort_order'      => $order,
+                ]);
             }
         }
         $this->db->trans_complete();
@@ -120,6 +147,32 @@ class Tt_subjectload_model extends MY_Model
 
     public function delete($id)
     {
+        $this->db->where('subject_load_id', $id)->delete('tt_subject_load_teachers');
         $this->db->where('id', $id)->delete('tt_subject_load');
+    }
+
+    private function _enrichWithTeachers(&$rows)
+    {
+        if (empty($rows)) return;
+        $ids = array_map(fn($r) => (int)$r->id, $rows);
+
+        $t_rows = $this->db->select('subject_load_id, staff_id')
+            ->where_in('subject_load_id', $ids)
+            ->order_by('sort_order', 'ASC')
+            ->get('tt_subject_load_teachers')->result();
+
+        $t_map = [];
+        foreach ($t_rows as $tr) {
+            $t_map[(int)$tr->subject_load_id][] = (int) $tr->staff_id;
+        }
+
+        foreach ($rows as $row) {
+            $tids = $t_map[$row->id] ?? [];
+            if (empty($tids)) {
+                if (!empty($row->staff_id))     $tids[] = (int) $row->staff_id;
+                if (!empty($row->alt_staff_id)) $tids[] = (int) $row->alt_staff_id;
+            }
+            $row->teacher_ids = $tids;
+        }
     }
 }

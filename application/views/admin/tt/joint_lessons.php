@@ -64,6 +64,9 @@
                   <span class="label label-default" style="margin:1px;display:inline-block;"><?php echo htmlspecialchars($t->name.' '.$t->surname); ?></span>
                 <?php endif; ?>
               <?php endforeach; ?>
+              <?php if (!empty($jl->all_teachers_required)): ?>
+                <br><span class="label label-warning" style="font-size:10px;margin-top:2px;display:inline-block;" title="All teachers must attend simultaneously"><i class="fa fa-users"></i> All Attend</span>
+              <?php endif; ?>
             <?php endif; ?>
           </td>
           <td><?php echo $jl->room_name ? htmlspecialchars($jl->room_name) : '<span class="text-muted">—</span>'; ?></td>
@@ -170,13 +173,20 @@
           <!-- Multi-teacher picker -->
           <div class="form-group">
             <label><strong>Teacher Pool</strong>
-              <small class="text-muted ml-2">Select one or more teachers. The generator picks the first available for each slot. The first selected is treated as primary (preferred).</small>
+              <small class="text-muted ml-2">Select one or more teachers. First selected = primary (preferred).</small>
             </label>
             <select class="form-control" name="teacher_ids[]" id="jl_teachers" multiple style="width:100%;">
               <?php foreach ($staff_list as $st): ?>
               <option value="<?php echo $st['id']; ?>"><?php echo htmlspecialchars($st['name'].' '.$st['surname']); ?> (<?php echo $st['employee_id']; ?>)</option>
               <?php endforeach; ?>
             </select>
+            <div style="margin-top:6px;">
+              <label style="font-weight:normal;margin:0;font-size:13px;" title="When checked: ALL teachers in the pool must be free simultaneously at the same slot, and all are marked occupied. Use for activities where every teacher is physically present (e.g. Yoga, PT).">
+                <input type="checkbox" id="jl_all_attend" name="all_teachers_required" value="1">
+                <strong>All must attend simultaneously</strong>
+                <small class="text-muted">(generator requires ALL free; marks ALL occupied)</small>
+              </label>
+            </div>
             <small class="text-muted"><i class="fa fa-info-circle"></i> Leave empty if no specific teacher is required.</small>
           </div>
 
@@ -275,6 +285,7 @@ $(function(){
     $('#jl-conflict-msg, #jl-class-error').hide();
     $('#jl_subject, #jl_room').val('').trigger('change.select2');
     $('#jl_teachers').val([]).trigger('change.select2');
+    $('#jl_all_attend').prop('checked', false);
     $('#jl_priority').val(7);
     $('#jl_spread').prop('checked', true);
     $('#joint-modal').modal('show');
@@ -298,6 +309,7 @@ $(function(){
         $('#jl_mpd').val(l.max_per_day);
         $('#jl_priority').val(l.priority);
         $('#jl_spread').prop('checked', l.distribute_evenly == 1);
+        $('#jl_all_attend').prop('checked', l.all_teachers_required == 1);
         $('#jl_notes').val(l.notes || '');
 
         // Populate teacher multi-select
@@ -335,18 +347,19 @@ $(function(){
 
     // Build POST data manually to send teacher_ids[] as array
     var postData = {
-      id:                  $('#jl_id').val(),
-      name:                $('#jl_name').val(),
-      subject_id:          $('#jl_subject').val(),
-      room_id:             $('#jl_room').val(),
-      periods_per_week:    $('#jl_ppw').val(),
-      consecutive_periods: $('#jl_consec').val(),
-      max_per_day:         $('#jl_mpd').val(),
-      priority:            $('#jl_priority').val(),
-      distribute_evenly:   $('#jl_spread').is(':checked') ? 1 : 0,
-      notes:               $('#jl_notes').val(),
-      classes_json:        JSON.stringify(classes),
-      'teacher_ids[]':     teacher_ids
+      id:                    $('#jl_id').val(),
+      name:                  $('#jl_name').val(),
+      subject_id:            $('#jl_subject').val(),
+      room_id:               $('#jl_room').val(),
+      periods_per_week:      $('#jl_ppw').val(),
+      consecutive_periods:   $('#jl_consec').val(),
+      max_per_day:           $('#jl_mpd').val(),
+      priority:              $('#jl_priority').val(),
+      distribute_evenly:     $('#jl_spread').is(':checked') ? 1 : 0,
+      all_teachers_required: $('#jl_all_attend').is(':checked') ? 1 : 0,
+      notes:                 $('#jl_notes').val(),
+      classes_json:          JSON.stringify(classes),
+      'teacher_ids[]':       teacher_ids
     };
     postData[csrf_name] = csrf_val;
 

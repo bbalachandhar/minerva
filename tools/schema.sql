@@ -12174,6 +12174,7 @@ CREATE TABLE IF NOT EXISTS `tt_subject_load` (
   `distribute_evenly`        TINYINT(1) NOT NULL DEFAULT 1,
   `min_per_day`              TINYINT(1) NOT NULL DEFAULT 0,
   `joint_lesson_id`          INT(11)            DEFAULT NULL,
+  `all_teachers_required`    TINYINT(1) NOT NULL DEFAULT 0,
   `created_at`               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -12350,8 +12351,9 @@ CREATE TABLE IF NOT EXISTS `tt_joint_lessons` (
   `max_per_day`          INT          NOT NULL DEFAULT 1,
   `distribute_evenly`    TINYINT(1)   NOT NULL DEFAULT 1,
   `priority`             INT          NOT NULL DEFAULT 5,
-  `notes`                VARCHAR(255) NULL,
-  `created_at`           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `notes`                 VARCHAR(255) NULL,
+  `all_teachers_required` TINYINT(1)   NOT NULL DEFAULT 0,
+  `created_at`            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_jl_session` (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -12374,6 +12376,16 @@ CREATE TABLE IF NOT EXISTS `tt_joint_lesson_teachers` (
   PRIMARY KEY (`id`),
   KEY `idx_jlt_joint` (`joint_lesson_id`),
   UNIQUE KEY `uq_jlt` (`joint_lesson_id`,`staff_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `tt_subject_load_teachers` (
+  `id`               INT NOT NULL AUTO_INCREMENT,
+  `subject_load_id`  INT NOT NULL,
+  `staff_id`         INT NOT NULL,
+  `sort_order`       INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_slt_load` (`subject_load_id`),
+  UNIQUE KEY `uq_slt` (`subject_load_id`,`staff_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `permission_group` (`id`, `name`, `short_code`, `is_active`, `system`)

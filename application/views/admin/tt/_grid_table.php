@@ -69,7 +69,6 @@ $type_class = ['theory'=>'slot-theory','practical'=>'slot-practical','project'=>
                 ?>
                 <small style="font-size:10px;" title="<?php echo htmlspecialchars($entry->staff_name.' '.($entry->staff_surname??'')); ?>"><?php echo htmlspecialchars($t_abbr); ?></small>
                 <?php if ($entry->room_name): ?><br><small style="font-size:10px;color:#777;"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($entry->room_name); ?></small><?php endif; ?>
-                <?php if ($entry->batch_name): ?><br><span class="label label-info" style="font-size:9px;">Batch <?php echo $entry->batch_name; ?></span><?php endif; ?>
               <?php endif; ?>
               <?php if ($is_locked): ?><br><i class="fa fa-lock text-danger" style="font-size:10px;"></i><?php endif; ?>
             <?php else: ?>
