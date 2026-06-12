@@ -885,13 +885,49 @@ class Tt extends Admin_Controller
 
         $data = compact('periods','entry_map','subjects','staff','rooms','batches','days','class_id','section_id','session_id');
         $html = $this->load->view('admin/tt/_grid_table', $data, true);
+
+        // Build flat data rows for client-side Excel/PDF export (no colspan issues)
+        $cls_row   = $this->db->select('class')->where('id', $class_id)->get('classes')->row();
+        $sec_row   = $this->db->select('section')->where('id', $section_id)->get('sections')->row();
+        $cls_label = ($cls_row ? $cls_row->class : '') . ' ' . ($sec_row ? $sec_row->section : '');
+        $day_names = array_keys($days);
+        $flat_rows = [];
+        foreach ($periods as $period) {
+            $row = [
+                htmlspecialchars($period->name),
+                date('h:i', strtotime($period->start_time)) . '-' . date('h:i', strtotime($period->end_time)),
+            ];
+            foreach ($day_names as $dk) {
+                if ($period->is_break) {
+                    $row[] = $period->break_label ?: 'Break';
+                } else {
+                    $e = $entry_map[$dk][$period->id][0] ?? null;
+                    if ($e) {
+                        if ($e->is_free_period) {
+                            $row[] = $e->free_period_label ?: 'Free';
+                        } else {
+                            $abbr  = !empty($e->tt_abbr) ? $e->tt_abbr : ($e->subject_code ?: $e->subject_name);
+                            $tname = trim(($e->staff_name ?? '') . ' ' . ($e->staff_surname ?? ''));
+                            $row[] = $abbr . ($tname ? ' (' . $tname . ')' : '');
+                        }
+                    } else {
+                        $row[] = '';
+                    }
+                }
+            }
+            $flat_rows[] = $row;
+        }
+
         echo json_encode([
-            'status'   => '1',
-            'html'     => $html,
-            'subjects' => $subjects,
-            'staff'    => $staff,
-            'rooms'    => $rooms,
-            'batches'  => $batches,
+            'status'    => '1',
+            'html'      => $html,
+            'subjects'  => $subjects,
+            'staff'     => $staff,
+            'rooms'     => $rooms,
+            'batches'   => $batches,
+            'flat_rows' => $flat_rows,
+            'flat_cols' => array_merge(['Period', 'Time'], $day_names),
+            'cls_label' => $cls_label,
         ]);
     }
 

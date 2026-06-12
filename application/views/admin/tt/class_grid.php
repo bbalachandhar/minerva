@@ -38,10 +38,10 @@
             <button class="btn btn-primary btn-block" id="btn-load-grid"><i class="fa fa-table"></i> Load</button>
           </div>
           <div class="col-xs-7 pl-1">
-            <div class="btn-group btn-group-justified" id="export-btns" style="display:none;">
-              <a class="btn btn-default" id="btn-print-grid"  title="Print"><i class="fa fa-print"></i></a>
-              <a class="btn btn-danger"  id="btn-pdf-grid"    title="Export PDF"><i class="fa fa-file-pdf-o"></i></a>
-              <a class="btn btn-success" id="btn-excel-grid"  title="Export Excel"><i class="fa fa-file-excel-o"></i></a>
+            <div class="btn-group" id="export-btns" style="display:none;">
+              <button class="btn btn-default" id="btn-print-grid"  title="Print"><i class="fa fa-print"></i></button>
+              <button class="btn btn-danger"  id="btn-pdf-grid"    title="Export PDF"><i class="fa fa-file-pdf-o"></i></button>
+              <button class="btn btn-success" id="btn-excel-grid"  title="Export Excel"><i class="fa fa-file-excel-o"></i></button>
             </div>
           </div>
         </div>
@@ -58,6 +58,9 @@
   <span class="label label-success" style="font-size:12px;padding:5px 10px;">Free / PT</span>&nbsp;
   <span style="font-size:12px;"><i class="fa fa-lock text-danger"></i> = Locked (won't be moved by auto-gen)</span>
 </div>
+
+<!-- Hidden flat table for DataTables export (no colspan) -->
+<div style="display:none;"><table id="export-flat-table" class="display"></table></div>
 
 <!-- Grid container -->
 <div id="timetable-grid-container">
@@ -191,18 +194,54 @@ $(function(){
   });
 
   var loaded_class_id = 0, loaded_section_id = 0;
+  var schoolName = '<?php echo addslashes($this->sch_setting_detail->name ?? ''); ?>';
+  var exportDT = null;
 
-  function buildExportUrl(action) {
-    return '<?php echo site_url('admin/tt/'); ?>' + action
-      + '?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id;
-  }
+  function initExportDataTable(flat_rows, flat_cols, cls_label) {
+    // Destroy previous instance if any
+    if (exportDT) { exportDT.destroy(); exportDT = null; }
 
-  function updateExportButtons() {
-    if (!loaded_class_id || !loaded_section_id) { $('#export-btns').hide(); return; }
-    $('#btn-print-grid').attr('href', buildExportUrl('print_class_grid'));
-    $('#btn-pdf-grid').attr('href',   buildExportUrl('export_class_grid_pdf'));
-    $('#btn-excel-grid').attr('href', buildExportUrl('export_class_grid_excel'));
-    $('#export-btns').show();
+    // Build hidden flat table HTML
+    var thead = '<thead><tr>' + $.map(flat_cols, function(c){ return '<th>' + c + '</th>'; }).join('') + '</tr></thead>';
+    var tbody = '<tbody>' + $.map(flat_rows, function(row){
+      return '<tr>' + $.map(row, function(c){ return '<td>' + c + '</td>'; }).join('') + '</tr>';
+    }).join('') + '</tbody>';
+    $('#export-flat-table').html(thead + tbody);
+
+    var reportTitle = schoolName + (schoolName ? ' | ' : '') + cls_label + ' — Class Timetable';
+
+    exportDT = $('#export-flat-table').DataTable({
+      dom: 'B',
+      paging: false, searching: false, ordering: false, info: false,
+      buttons: [
+        {
+          extend: 'excelHtml5',
+          title: reportTitle,
+          exportOptions: {
+            format: { body: function(data){ return data.replace(/(<([^>]+)>)/ig,'').trim(); } },
+            stripHtml: true
+          }
+        },
+        {
+          extend: 'pdfHtml5',
+          orientation: 'landscape',
+          title: '',
+          customize: function(doc) {
+            doc.content.splice(0, 0,
+              { text: schoolName,  style: 'dtHeader' },
+              { text: cls_label + ' — Class Timetable', style: 'dtSubHeader' },
+              { text: ' ' }
+            );
+            doc.styles.dtHeader    = { fontSize: 14, bold: true, alignment: 'center' };
+            doc.styles.dtSubHeader = { fontSize: 11, alignment: 'center' };
+          },
+          exportOptions: {
+            format: { body: function(data){ return data.replace(/(<([^>]+)>)/ig,'').trim(); } },
+            stripHtml: true
+          }
+        }
+      ]
+    });
   }
 
   // Load grid
@@ -222,15 +261,27 @@ $(function(){
           current_batches   = res.batches  || [];
           loaded_class_id   = class_id;
           loaded_section_id = section_id;
-          updateExportButtons();
+          initExportDataTable(res.flat_rows || [], res.flat_cols || [], res.cls_label || '');
+          $('#export-btns').show();
         }
       },'json');
   });
 
-  // Print opens in new tab (auto-triggers window.print())
-  $('#btn-print-grid').attr('target', '_blank');
-  // PDF and Excel are direct downloads
-  $('#btn-pdf-grid, #btn-excel-grid').attr('target', '_blank');
+  // Print: server-side page with header, auto-triggers window.print()
+  $('#btn-print-grid').on('click', function(){
+    if (!loaded_class_id) return;
+    window.open('<?php echo site_url('admin/tt/print_class_grid'); ?>?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id, '_blank');
+  });
+
+  // Excel: trigger DataTables excelHtml5 button
+  $('#btn-excel-grid').on('click', function(){
+    if (exportDT) exportDT.button(0).trigger();
+  });
+
+  // PDF: trigger DataTables pdfHtml5 button
+  $('#btn-pdf-grid').on('click', function(){
+    if (exportDT) exportDT.button(1).trigger();
+  });
 
   // Open cell modal
   $(document).on('click', '.tt-cell:not(.break-row)', function(){
