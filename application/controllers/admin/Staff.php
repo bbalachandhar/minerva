@@ -1571,7 +1571,8 @@ class Staff extends Admin_Controller
             $address           = $this->input->post("address");
             $qualification     = $this->input->post("qualification");
             $work_experience          = $this->input->post("work_experience");
-            $basic_salary      = $this->input->post('basic_salary');
+            $basic_salary_raw  = $this->input->post('basic_salary');
+            $basic_salary      = ($basic_salary_raw !== '' && $basic_salary_raw !== false && is_numeric($basic_salary_raw)) ? $basic_salary_raw : null;
             $account_title     = $this->input->post("account_title");
             $bank_account_no   = $this->input->post("bank_account_no");
             $bank_name         = $this->input->post("bank_name");
@@ -1616,7 +1617,8 @@ class Staff extends Admin_Controller
             $state = $this->input->post('state');
             $pincode = $this->input->post('pincode');
 
-            $previous_salary = $this->input->post('previous_salary');
+            $previous_salary_raw = $this->input->post('previous_salary');
+            $previous_salary     = ($previous_salary_raw !== '' && $previous_salary_raw !== false && is_numeric($previous_salary_raw)) ? $previous_salary_raw : null;
             $uan_no = $this->input->post('uan_no');
             $pan_no = $this->input->post('pan_no');
             $category_id = empty2null($this->input->post("category_id"));
@@ -2081,7 +2083,8 @@ class Staff extends Admin_Controller
             $address = $this->input->post("address");
             $qualification = $this->input->post("qualification");
             $work_experience = $this->input->post("work_experience");
-            $basic_salary = $this->input ->post('basic_salary');
+            $basic_salary_raw = $this->input->post('basic_salary');
+            $basic_salary = ($basic_salary_raw !== '' && $basic_salary_raw !== false && is_numeric($basic_salary_raw)) ? $basic_salary_raw : null;
             $account_title = $this->input->post("account_title");
             $bank_account_no = $this->input->post("bank_account_no");
             $bank_name = $this->input->post("bank_name");
@@ -2129,7 +2132,8 @@ class Staff extends Admin_Controller
             $country = $this->input->post("country");
             $state = $this->input->post("state");
             $pincode = $this->input->post("pincode");
-            $previous_salary = $this->input->post("previous_salary");
+            $previous_salary_raw = $this->input->post('previous_salary');
+            $previous_salary = ($previous_salary_raw !== '' && $previous_salary_raw !== false && is_numeric($previous_salary_raw)) ? $previous_salary_raw : null;
             $uan_no = $this->input->post("uan_no");
             $pan_no = $this->input->post("pan_no");
             $previous_institution = $this->input->post("previous_institution");
@@ -2478,7 +2482,8 @@ class Staff extends Admin_Controller
             $address = $this->input->post("address");
             $qualification = $this->input->post("qualification");
             $work_experience = $this->input->post("work_experience");
-            $basic_salary = $this->input ->post('basic_salary');
+            $basic_salary_raw = $this->input->post('basic_salary');
+            $basic_salary = ($basic_salary_raw !== '' && $basic_salary_raw !== false && is_numeric($basic_salary_raw)) ? $basic_salary_raw : null;
             $account_title = $this->input->post("account_title");
             $bank_account_no = $this->input->post("bank_account_no");
             $bank_name = $this->input->post("bank_name");
