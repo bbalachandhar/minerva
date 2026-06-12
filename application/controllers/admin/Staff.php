@@ -1625,10 +1625,35 @@ class Staff extends Admin_Controller
 
             $password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
 
+            $password_hash = $this->enc_lib->passHashEnc($password);
+            $lang_id       = (int)$this->sch_setting_detail->lang_id;
+
+            // Create the login account in users table first so we have the user_id
+            $login_user_data = [
+                'user_id'           => 0,
+                'username'          => $email,
+                'password'          => $password_hash,
+                'childs'            => '',
+                'role'              => 'staff',
+                'lang_id'           => $lang_id,
+                'currency_id'       => 0,
+                'verification_code' => '',
+                'is_active'         => 'yes',
+            ];
+            $login_user_id = $this->user_model->add($login_user_data);
+            if (!$login_user_id) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Staff could not be saved. Please check for duplicate /empty Biometric ID or contact the administrator.</div>');
+                redirect('admin/staff/create');
+            }
+
             $data_insert = array(
-                'password'               => $this->enc_lib->passHashEnc($password),
+                'password'               => $password_hash,
                 'employee_id'            => $employee_id,
                 'biometric_id'           => ($biometric_id == "") ? NULL : $biometric_id,
+                'lang_id'                => $lang_id,
+                'currency_id'            => 0,
+                'user_id'                => $login_user_id,
+                'verification_code'      => '',
                 'name'                   => $name,
                 'email'                  => $email,
                 'dob'                    => date('Y-m-d', $this->customlib->datetostrtotime($dob)),
@@ -1636,6 +1661,15 @@ class Staff extends Admin_Controller
                 'gender'                 => $gender,
                 'payscale'               => '',
                 'is_active'              => 1,
+                'image'                  => '',
+                'qualification'          => ($qualification ?? ''),
+                'work_exp'               => ($work_experience ?? ''),
+                'emergency_contact_no'   => ($emergency_no ?? ''),
+                'resume'                 => '',
+                'joining_letter'         => '',
+                'resignation_letter'     => '',
+                'other_document_name'    => '',
+                'other_document_file'    => '',
                 'prefix'                 => $this->input->post('prefix'),
                 'ug_qualification'       => $this->input->post('ug_qualification'),
                 'pg_qualification'       => $this->input->post('pg_qualification'),
@@ -1843,9 +1877,14 @@ class Staff extends Admin_Controller
                 $staff_id  = $insert_id;
 
                 if (!$staff_id) {
+                    // Roll back the orphaned users record
+                    $this->db->where('id', $login_user_id)->delete('users');
                     $this->session->set_flashdata('msg', '<div class="alert alert-danger">Staff could not be saved. Please check for duplicate /empty Biometric ID or contact the administrator.</div>');
                     redirect('admin/staff/create');
                 }
+
+                // Link the users record back to the newly created staff record
+                $this->db->where('id', $login_user_id)->update('users', ['user_id' => $staff_id]);
 
                 if (!empty($custom_value_array)) {
                     $this->customfield_model->insertRecord($custom_value_array, $insert_id);
