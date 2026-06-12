@@ -152,7 +152,11 @@ $bar_color      = $pct >= 71 ? '#27AE60' : ($pct >= 43 ? '#F39C12' : '#E74C3C');
         <a href="<?php echo site_url('admin/tt/teacher_view'); ?>" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
           <i class="fa fa-user"></i> Teacher View
         </a>
+        <button id="btn-sync-attendance" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" title="Push timetable periods to attendance system so teachers can mark attendance">
+          <i class="fa fa-refresh"></i> Sync to Attendance
+        </button>
       </div>
+      <div id="sync-msg-area" style="width:100%;"></div>
     </div>
   </div>
 </div>
@@ -275,3 +279,24 @@ $bar_color      = $pct >= 71 ? '#27AE60' : ($pct >= 43 ? '#F39C12' : '#E74C3C');
 
 </section>
 </div>
+
+<script>
+$(function(){
+  var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
+  var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
+
+  $('#btn-sync-attendance').on('click', function(){
+    var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Syncing...');
+    $.post('<?php echo site_url('admin/tt/sync_to_attendance'); ?>', {[csrf_name]: csrf_val}, function(res){
+      $btn.prop('disabled', false).html('<i class="fa fa-refresh"></i> Sync to Attendance');
+      var cls = res.status === '1' ? 'alert-success' : 'alert-danger';
+      var msg = res.msg || (res.status === '1' ? 'Done' : 'Sync failed');
+      $('<div class="alert ' + cls + ' alert-dismissible" style="margin-top:10px;"><button type="button" class="close" data-dismiss="alert">&times;</button>' + msg + '</div>')
+        .prependTo('#sync-msg-area').delay(6000).fadeOut(400, function(){ $(this).remove(); });
+    }, 'json').fail(function(){
+      $btn.prop('disabled', false).html('<i class="fa fa-refresh"></i> Sync to Attendance');
+      alert('Sync request failed. Please try again.');
+    });
+  });
+});
+</script>

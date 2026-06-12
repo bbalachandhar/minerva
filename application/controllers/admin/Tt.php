@@ -822,7 +822,10 @@ class Tt extends Admin_Controller
         $staff_id   = $this->customlib->getStaffID();
         $result     = $this->Tt_generator_model->confirmDraft($gen_log_id, $staff_id);
         if ($result) {
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">Timetable confirmed and saved successfully.</div>');
+            $sync = $this->_doSyncToAttendance();
+            $this->session->set_flashdata('msg',
+                '<div class="alert alert-success text-center">Timetable confirmed and saved successfully. ' .
+                'Attendance system synced: ' . $sync['inserted'] . ' new, ' . $sync['updated'] . ' updated.</div>');
         } else {
             $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Something went wrong. Please try again.</div>');
         }
@@ -835,6 +838,83 @@ class Tt extends Admin_Controller
         $this->Tt_generator_model->discardDraft($gen_log_id);
         $this->session->set_flashdata('msg', '<div class="alert alert-info text-center">Draft discarded.</div>');
         redirect('admin/tt/generate');
+    }
+
+    // =========================================================================
+    // SYNC TO ATTENDANCE SYSTEM
+    // =========================================================================
+
+    /**
+     * Sync tt_entries → subject_timetable so teachers can mark period-wise attendance.
+     * Uses tt_entry_id as a stable link: UPDATE if the row already exists, INSERT otherwise.
+     * Never deletes existing subject_timetable rows (preserves FK → student_subject_attendances).
+     */
+    public function sync_to_attendance()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_add')) {
+            echo json_encode(['status' => '0', 'msg' => 'Access denied']); return;
+        }
+        $result = $this->_doSyncToAttendance();
+        echo json_encode($result);
+    }
+
+    private function _doSyncToAttendance()
+    {
+        $session_id = $this->setting_model->getCurrentSession();
+
+        $entries = $this->db
+            ->select('te.id AS tt_entry_id, te.session_id, te.class_id, te.section_id,
+                      te.subject_group_subject_id, te.staff_id, te.day,
+                      sgs.subject_group_id,
+                      tp.start_time, tp.end_time,
+                      COALESCE(tr.room_number, tr.name, "") AS room_no')
+            ->from('tt_entries te')
+            ->join('tt_periods tp',           'tp.id = te.period_id',                   'left')
+            ->join('tt_rooms tr',             'tr.id = te.room_id',                     'left')
+            ->join('subject_group_subjects sgs', 'sgs.id = te.subject_group_subject_id','left')
+            ->where('te.session_id',    $session_id)
+            ->where('te.is_free_period', 0)
+            ->where('tp.is_break',       0)
+            ->where('te.subject_group_subject_id IS NOT NULL', null, false)
+            ->order_by('tp.sort_order', 'ASC')
+            ->get()->result();
+
+        $inserted = 0;
+        $updated  = 0;
+
+        foreach ($entries as $e) {
+            $time_from = $e->start_time ? date('h:i A', strtotime($e->start_time)) : '';
+            $time_to   = $e->end_time   ? date('h:i A', strtotime($e->end_time))   : '';
+
+            $row = [
+                'session_id'               => $e->session_id,
+                'class_id'                 => $e->class_id,
+                'section_id'               => $e->section_id,
+                'subject_group_id'         => $e->subject_group_id,
+                'subject_group_subject_id' => $e->subject_group_subject_id,
+                'staff_id'                 => $e->staff_id,
+                'day'                      => $e->day,
+                'time_from'                => $time_from,
+                'time_to'                  => $time_to,
+                'start_time'               => $e->start_time,
+                'end_time'                 => $e->end_time,
+                'room_no'                  => $e->room_no,
+                'tt_entry_id'              => $e->tt_entry_id,
+            ];
+
+            $existing = $this->db->where('tt_entry_id', $e->tt_entry_id)
+                                  ->get('subject_timetable')->row();
+            if ($existing) {
+                $this->db->where('id', $existing->id)->update('subject_timetable', $row);
+                $updated++;
+            } else {
+                $this->db->insert('subject_timetable', $row);
+                $inserted++;
+            }
+        }
+
+        return ['status' => '1', 'inserted' => $inserted, 'updated' => $updated,
+                'msg' => "Sync complete: {$inserted} new periods added, {$updated} updated."];
     }
 
     // =========================================================================
