@@ -106,6 +106,14 @@ class Vehicle_model extends MY_Model
     public function bulkInsert($rows)
     {
         $inserted = 0; $skipped = [];
+        $dateFields = [
+            'fc_validity_start', 'fc_validity_end',
+            'insurance_start',   'insurance_end',
+            'permit_expiry_start','permit_expiry_end',
+            'road_tax_start',    'road_tax_end',
+            'pollution_cert_start','pollution_cert_end',
+            'green_tax_start',   'green_tax_end',
+        ];
         foreach ($rows as $row) {
             $vehicle_no = trim($row['vehicle_no'] ?? '');
             if ($vehicle_no === '') { $skipped[] = '(empty vehicle_no)'; continue; }
@@ -124,6 +132,11 @@ class Vehicle_model extends MY_Model
                 'driver_contact'       => trim($row['driver_contact'] ?? ''),
                 'note'                 => trim($row['note'] ?? ''),
             ];
+            foreach ($dateFields as $f) {
+                $raw = trim($row[$f] ?? '');
+                $ts  = $raw !== '' ? $this->customlib->datetostrtotime($raw) : null;
+                $data[$f] = $ts ? date('Y-m-d', $ts) : null;
+            }
             $this->db->insert('vehicles', $data);
             $inserted++;
         }

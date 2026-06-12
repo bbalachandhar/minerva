@@ -594,7 +594,11 @@ $("#editvehicleform").on('submit', (function (e) {
                     <div class="form-group">
                         <label>CSV File <small class="req">*</small></label>
                         <input type="file" name="vehicle_csv" id="vehicle_csv" accept=".csv" class="form-control">
-                        <p class="help-block">Required columns: <code>vehicle_no, vehicle_model, manufacture_year, registration_number, chasis_number, engine_number, max_seating_capacity, driver_name, driver_licence, driver_contact, note</code></p>
+                        <p class="help-block">
+                            Required: <code>vehicle_no</code><br>
+                            Optional: <code>vehicle_model, manufacture_year, registration_number, chasis_number, engine_number, max_seating_capacity, driver_name, driver_licence, driver_contact, note</code><br>
+                            Dates (DD-MM-YYYY): <code>fc_validity_start, fc_validity_end, insurance_start, insurance_end, permit_expiry_start, permit_expiry_end, road_tax_start, road_tax_end, pollution_cert_start, pollution_cert_end, green_tax_start, green_tax_end</code>
+                        </p>
                     </div>
                     <a href="<?php echo site_url('admin/vehicle/downloadVehicleTemplate'); ?>" class="btn btn-default btn-sm"><i class="fa fa-download"></i> Download Template</a>
                 </div>
