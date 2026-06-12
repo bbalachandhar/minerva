@@ -432,11 +432,12 @@ class Tt extends Admin_Controller
         $class_id   = (int) $this->input->post('class_id');
         $section_id = (int) $this->input->post('section_id');
 
-        $subjects  = $this->subjectgroup_model->getGroupsubjectsByClassSection($class_id, $section_id, $session_id);
-        $loads     = $this->Tt_subjectload_model->getForClassSection($session_id, $class_id, $section_id);
-        $staff     = $this->staff_model->getStaffbyrole(2);
-        $batches   = $this->Tt_batch_model->getForClassSection($session_id, $class_id, $section_id);
-        $rooms     = $this->Tt_room_model->getAll();
+        // Fetch subjects via subject_groups.class_id (bypasses subject_group_class_sections)
+        $subjects = $this->Tt_subjectload_model->getSubjectsForClass($session_id, $class_id);
+        $loads    = $this->Tt_subjectload_model->getForClassSection($session_id, $class_id, $section_id);
+        $staff    = $this->staff_model->getStaffbyrole(2);
+        $batches  = $this->Tt_batch_model->getForClassSection($session_id, $class_id, $section_id);
+        $rooms    = $this->Tt_room_model->getAll();
 
         $load_map = [];
         foreach ($loads as $l) {
@@ -444,17 +445,110 @@ class Tt extends Admin_Controller
             $load_map[$key] = $l;
         }
 
+        // Build list of subject IDs already in this class's group
+        $used_ids = array_map(fn($s) => $s->subject_id, $subjects);
+
+        // All active subjects not yet in this class's group (for "Add Subject" picker)
+        $all_subjects      = $this->db->where('is_active', 'yes')->order_by('name')->get('subjects')->result();
+        $available_subjects = array_values(array_filter($all_subjects, fn($s) => !in_array($s->id, $used_ids)));
+
         $data = [
-            'subjects'  => $subjects,
-            'load_map'  => $load_map,
-            'staff'     => $staff,
-            'batches'   => $batches,
-            'rooms'     => $rooms,
-            'class_id'  => $class_id,
-            'section_id'=> $section_id,
+            'subjects'           => $subjects,
+            'load_map'           => $load_map,
+            'staff'              => $staff,
+            'batches'            => $batches,
+            'rooms'              => $rooms,
+            'class_id'           => $class_id,
+            'section_id'         => $section_id,
+            'available_subjects' => $available_subjects,
         ];
         $html = $this->load->view('admin/tt/_subject_load_rows', $data, true);
         echo json_encode(['status' => '1', 'html' => $html]);
+    }
+
+    public function add_subjects_to_load()
+    {
+        if (!$this->rbac->hasPrivilege('tt_subject_load', 'can_add')) {
+            echo json_encode(['status' => '0', 'error' => 'Access denied']); return;
+        }
+        $session_id  = $this->setting_model->getCurrentSession();
+        $class_id    = (int) $this->input->post('class_id');
+        $section_id  = (int) $this->input->post('section_id');
+        $subject_ids = $this->input->post('subject_ids');
+
+        if (empty($subject_ids) || !is_array($subject_ids)) {
+            echo json_encode(['status' => '0', 'error' => 'No subjects selected']); return;
+        }
+
+        // Find or create subject_group for this class+session
+        $sg = $this->db->where('class_id', $class_id)->where('session_id', $session_id)
+                        ->get('subject_groups')->row();
+        if (!$sg) {
+            $cls = $this->db->where('id', $class_id)->get('classes')->row();
+            $this->db->insert('subject_groups', [
+                'name'       => ($cls ? $cls->class : 'Class '.$class_id).' – '.$session_id,
+                'session_id' => $session_id,
+                'class_id'   => $class_id,
+            ]);
+            $sg_id = $this->db->insert_id();
+        } else {
+            $sg_id = $sg->id;
+        }
+
+        foreach ($subject_ids as $sid) {
+            $sid = (int) $sid;
+            // Find or create subject_group_subjects entry
+            $sgs = $this->db->where('subject_group_id', $sg_id)
+                             ->where('subject_id', $sid)
+                             ->where('session_id', $session_id)
+                             ->get('subject_group_subjects')->row();
+            if (!$sgs) {
+                $this->db->insert('subject_group_subjects', [
+                    'subject_group_id' => $sg_id,
+                    'session_id'       => $session_id,
+                    'subject_id'       => $sid,
+                ]);
+                $sgs_id = $this->db->insert_id();
+            } else {
+                $sgs_id = $sgs->id;
+            }
+
+            // Insert tt_subject_load if not already there
+            $exists = $this->db->where('session_id', $session_id)
+                                ->where('class_id', $class_id)
+                                ->where('section_id', $section_id)
+                                ->where('subject_group_subject_id', $sgs_id)
+                                ->where('batch_id IS NULL', null, false)
+                                ->count_all_results('tt_subject_load');
+            if (!$exists) {
+                $this->db->insert('tt_subject_load', [
+                    'session_id'               => $session_id,
+                    'class_id'                 => $class_id,
+                    'section_id'               => $section_id,
+                    'subject_group_id'         => $sg_id,
+                    'subject_group_subject_id' => $sgs_id,
+                    'staff_id'                 => 0,
+                    'periods_per_week'         => 4,
+                    'consecutive_periods'      => 1,
+                    'preferred_room_type'      => 'any',
+                    'priority'                 => 5,
+                    'max_per_day'              => 2,
+                    'distribute_evenly'        => 1,
+                    'min_per_day'              => 0,
+                ]);
+            }
+        }
+        echo json_encode(['status' => '1']);
+    }
+
+    public function delete_subject_load_row()
+    {
+        if (!$this->rbac->hasPrivilege('tt_subject_load', 'can_delete')) {
+            echo json_encode(['status' => '0', 'error' => 'Access denied']); return;
+        }
+        $id = (int) $this->input->post('id');
+        $this->db->where('id', $id)->delete('tt_subject_load');
+        echo json_encode(['status' => '1']);
     }
 
     public function get_subject_load_raw()

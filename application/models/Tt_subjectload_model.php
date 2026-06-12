@@ -5,7 +5,7 @@ class Tt_subjectload_model extends MY_Model
 {
     public function getForClassSection($session_id, $class_id, $section_id)
     {
-        return $this->db->select('tt_subject_load.*, staff.name as staff_name, staff.surname as staff_surname, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type')
+        return $this->db->select('tt_subject_load.*, subject_group_subjects.subject_id, staff.name as staff_name, staff.surname as staff_surname, subjects.name as subject_name, subjects.code as subject_code, subjects.type as subject_type')
             ->from('tt_subject_load')
             ->join('staff', 'staff.id = tt_subject_load.staff_id', 'left')
             ->join('subject_group_subjects', 'subject_group_subjects.id = tt_subject_load.subject_group_subject_id', 'left')
@@ -13,8 +13,22 @@ class Tt_subjectload_model extends MY_Model
             ->where('tt_subject_load.session_id', $session_id)
             ->where('tt_subject_load.class_id', $class_id)
             ->where('tt_subject_load.section_id', $section_id)
-            ->order_by('tt_subject_load.priority','DESC')
+            ->order_by('subjects.name', 'ASC')
             ->get()->result();
+    }
+
+    public function getSubjectsForClass($session_id, $class_id)
+    {
+        $sql = "SELECT sgs.id as subject_group_subject_id, sgs.subject_group_id, sgs.subject_id,
+                       sub.name as subject_name, sub.code as subject_code, sub.type as subject_type,
+                       sg.name as group_name
+                FROM subject_group_subjects sgs
+                INNER JOIN subjects sub ON sub.id = sgs.subject_id
+                INNER JOIN subject_groups sg ON sg.id = sgs.subject_group_id
+                WHERE sg.class_id = " . (int)$class_id . "
+                  AND sgs.session_id = " . (int)$session_id . "
+                ORDER BY sub.name ASC";
+        return $this->db->query($sql)->result();
     }
 
     public function getAllForSession($session_id)
