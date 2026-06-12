@@ -1422,20 +1422,20 @@ class Tt extends Admin_Controller
             $teacher_totals = [];
             foreach ($class_scope as $cs) {
                 $loads = $this->Tt_subjectload_model->getForClassSection($session_id, (int)$cs['class_id'], (int)$cs['section_id']);
-                $label = $this->db->select('classes.class, sections.section')
-                    ->from('classes')->join('sections','sections.class_id=classes.id','left')
-                    ->where('classes.id', $cs['class_id'])->where('sections.id', $cs['section_id'])
-                    ->get()->row();
-                $cls_label = $label ? "{$label->class} {$label->section}" : "Class {$cs['class_id']}";
+                $cls_row   = $this->db->select('class')->where('id', $cs['class_id'])->get('classes')->row();
+                $sec_row   = $this->db->select('section')->where('id', $cs['section_id'])->get('sections')->row();
+                $cls_label = ($cls_row && $sec_row) ? "{$cls_row->class} {$sec_row->section}" : "Class {$cs['class_id']}";
 
                 $total_ppw   = 0;
                 $missing_teacher = 0;
                 foreach ($loads as $l) {
                     if ($l->batch_id) continue;
                     $total_ppw += (int)$l->periods_per_week;
-                    if (empty($l->staff_id)) $missing_teacher++;
-                    if (!empty($l->staff_id)) {
-                        $teacher_totals[$l->staff_id] = ($teacher_totals[$l->staff_id] ?? 0) + (int)$l->periods_per_week;
+                    // teacher_ids is populated by _enrichWithTeachers; fall back to staff_id
+                    $t_ids = !empty($l->teacher_ids) ? $l->teacher_ids : (!empty($l->staff_id) ? [$l->staff_id] : []);
+                    if (empty($t_ids)) $missing_teacher++;
+                    foreach ($t_ids as $tid) {
+                        $teacher_totals[$tid] = ($teacher_totals[$tid] ?? 0) + (int)$l->periods_per_week;
                     }
                 }
                 $load_ok = ($total_ppw > 0 && $total_ppw <= $slot_count && $missing_teacher === 0);
