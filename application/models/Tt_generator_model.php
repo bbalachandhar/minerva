@@ -30,6 +30,7 @@ class Tt_generator_model extends MY_Model
     private $teacher_periods_day  = [];
     private $teacher_periods_week = [];
     private $subject_day_count    = [];  // [class_id][section_id][sgs_id][day] = count
+    private $subject_day_periods  = [];  // [class_id][section_id][sgs_id][day] = [period_id, ...]
 
     // Class unavailability: [class_id][section_id][day][period_id] = true
     private $class_unavail   = [];
@@ -73,12 +74,13 @@ class Tt_generator_model extends MY_Model
 
         // Snapshot occupancy after locked entries so each pass starts clean
         $locked_occ_snapshot = [
-            'class_occ'           => $this->class_occ,
-            'teacher_occ'         => $this->teacher_occ,
-            'room_occ'            => $this->room_occ,
-            'teacher_periods_day' => $this->teacher_periods_day,
-            'teacher_periods_week'=> $this->teacher_periods_week,
-            'subject_day_count'   => $this->subject_day_count,
+            'class_occ'            => $this->class_occ,
+            'teacher_occ'          => $this->teacher_occ,
+            'room_occ'             => $this->room_occ,
+            'teacher_periods_day'  => $this->teacher_periods_day,
+            'teacher_periods_week' => $this->teacher_periods_week,
+            'subject_day_count'    => $this->subject_day_count,
+            'subject_day_periods'  => [],  // always start fresh — locked entries don't need adjacency tracking
         ];
 
         $this->CI->load->model('Tt_teacher_model');
@@ -128,6 +130,7 @@ class Tt_generator_model extends MY_Model
             $this->teacher_periods_day  = $locked_occ_snapshot['teacher_periods_day'];
             $this->teacher_periods_week = $locked_occ_snapshot['teacher_periods_week'];
             $this->subject_day_count    = $locked_occ_snapshot['subject_day_count'];
+            $this->subject_day_periods  = $locked_occ_snapshot['subject_day_periods'];
 
             // Shuffle loads slightly on passes > 0 to escape local optima
             $loads = $base_loads;
@@ -330,6 +333,7 @@ class Tt_generator_model extends MY_Model
                             ($this->teacher_periods_week[$assigned_teacher] ?? 0) + 1;
                         $this->subject_day_count[$class_id][$section_id][$sgs_id][$slot['day']] =
                             ($this->subject_day_count[$class_id][$section_id][$sgs_id][$slot['day']] ?? 0) + 1;
+                        $this->subject_day_periods[$class_id][$section_id][$sgs_id][$slot['day']][] = $pid;
 
                         $draft_entries[] = [
                             'gen_log_id'               => $log_id,
@@ -486,7 +490,7 @@ class Tt_generator_model extends MY_Model
                     if (!$all_free) continue;
 
                     $room_id = $this->_findRoom($day, $pid_group, $room_type, $pref_room, $primary, $constraints[$primary] ?? null);
-                    $score   = $day_penalty + $day_on1_bonus;
+                    $score   = $day_penalty + $day_on1_bonus + $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec);
                     if ($room_id && $room_id === $pref_room) $score += 3;
                     $score  -= array_search($day, $this->working_days) * 0.1;
 
@@ -518,7 +522,7 @@ class Tt_generator_model extends MY_Model
                         }
 
                         $room_id = $this->_findRoom($day, $pid_group, $room_type, $pref_room, $t_id, $constraint);
-                        $score   = $day_penalty + $day_on1_bonus;
+                        $score   = $day_penalty + $day_on1_bonus + $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec);
                         if ($t_id === $primary) $score += 5;
                         if ($room_id && $room_id === $pref_room) $score += 3;
                         $score  -= array_search($day, $this->working_days) * 0.1;
@@ -630,6 +634,26 @@ class Tt_generator_model extends MY_Model
             }
         }
         return $best;
+    }
+
+    /**
+     * Returns a negative score when a single-period subject would land
+     * immediately next to one of its already-placed periods on the same day.
+     * Only applies when consecutive_periods <= 1 (non-double subjects).
+     */
+    private function _adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec)
+    {
+        if ($consec > 1) return 0;
+        $placed = $this->subject_day_periods[$class_id][$section_id][$sgs_id][$day] ?? [];
+        if (empty($placed)) return 0;
+
+        $period_idx = array_flip($this->period_order);
+        $candidate_idx = $period_idx[$pid_group[0]] ?? -99;
+        foreach ($placed as $pp) {
+            $placed_idx = $period_idx[$pp] ?? -99;
+            if (abs($candidate_idx - $placed_idx) === 1) return -25;
+        }
+        return 0;
     }
 
     private function _getConsecutiveStarts($consec)
