@@ -4,9 +4,7 @@ $type_class = ['theory'=>'slot-theory','practical'=>'slot-practical','project'=>
 <div class="box box-default" data-class="<?php echo $class_id; ?>" data-section="<?php echo $section_id; ?>">
   <div class="box-header with-border">
     <h3 class="box-title"><i class="fa fa-table"></i> Weekly Timetable</h3>
-    <div class="box-tools pull-right">
-      <button class="btn btn-xs btn-default" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
-    </div>
+    <div class="box-tools pull-right"></div>
   </div>
   <div class="box-body table-responsive p-0">
     <table class="table table-bordered tt-grid">

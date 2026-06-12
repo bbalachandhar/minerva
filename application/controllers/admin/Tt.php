@@ -20,6 +20,7 @@ class Tt extends Admin_Controller
         $this->load->model('department_model');
         $this->load->model('staff_model');
         $this->load->model('subjectgroup_model');
+        $this->load->library('media_storage');
     }
 
     private function _setMenu()
@@ -892,6 +893,161 @@ class Tt extends Admin_Controller
             'rooms'    => $rooms,
             'batches'  => $batches,
         ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Class grid export helpers (shared data loader)
+    // -------------------------------------------------------------------------
+
+    private function _loadClassGridData($class_id, $section_id)
+    {
+        $session_id = $this->setting_model->getCurrentSession();
+        $periods    = $this->Tt_period_model->getAll($session_id);
+        $entries    = $this->Tt_entry_model->getGridEntries($session_id, $class_id, $section_id);
+        $days       = $this->_getWorkingDays();
+        $entry_map  = [];
+        foreach ($entries as $e) {
+            $entry_map[$e->day][$e->period_id][$e->batch_id ?: 0] = $e;
+        }
+        $cls = $this->db->select('class')->where('id', $class_id)->get('classes')->row();
+        $sec = $this->db->select('section')->where('id', $section_id)->get('sections')->row();
+        $header_img     = $this->setting_model->get_general_purpose_header();
+        $header_img_url = $header_img
+            ? $this->media_storage->getImageURL('/uploads/print_headerfooter/general_purpose/' . $header_img)
+            : null;
+        return [
+            'session_id'    => $session_id,
+            'class_id'      => $class_id,
+            'section_id'    => $section_id,
+            'class_label'   => $cls ? $cls->class : "Class $class_id",
+            'section_label' => $sec ? $sec->section : "Section $section_id",
+            'periods'       => $periods,
+            'entry_map'     => $entry_map,
+            'days'          => $days,
+            'header_img_url'=> $header_img_url,
+        ];
+    }
+
+    public function print_class_grid()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_view')) { access_denied(); }
+        $class_id   = (int) $this->input->get('class_id');
+        $section_id = (int) $this->input->get('section_id');
+        $data = $this->_loadClassGridData($class_id, $section_id);
+        $data['for_print'] = true;
+        $this->load->view('admin/tt/print_class_grid', $data);
+    }
+
+    public function export_class_grid_pdf()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_view')) { access_denied(); }
+        $class_id   = (int) $this->input->get('class_id');
+        $section_id = (int) $this->input->get('section_id');
+        $data = $this->_loadClassGridData($class_id, $section_id);
+        $data['for_print'] = false;
+        $html = $this->load->view('admin/tt/print_class_grid', $data, true);
+
+        $this->load->library('m_pdf');
+        $mpdf = $this->m_pdf->load([
+            'tempDir'      => APPPATH . 'tmp',
+            'mode'         => 'utf-8',
+            'default_font' => 'roboto',
+            'margin_left'  => 8,
+            'margin_right' => 8,
+            'margin_top'   => 5,
+            'margin_bottom'=> 8,
+            'format'       => 'A4-L',
+        ]);
+        $mpdf->WriteHTML($html);
+        $fname = 'timetable_' . preg_replace('/[^a-zA-Z0-9]/', '_',
+            $data['class_label'] . '_' . $data['section_label']) . '_' . date('Ymd') . '.pdf';
+        $mpdf->Output($fname, 'D');
+        exit;
+    }
+
+    public function export_class_grid_excel()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_view')) { access_denied(); }
+        $class_id   = (int) $this->input->get('class_id');
+        $section_id = (int) $this->input->get('section_id');
+        $d          = $this->_loadClassGridData($class_id, $section_id);
+        $cls_label  = $d['class_label'] . ' ' . $d['section_label'];
+        $days       = $d['days'];
+        $day_names  = array_keys($days);
+        $n_days     = count($day_names);
+
+        $this->load->library('Excel');
+        $sheet = $this->excel->getActiveSheet();
+        $sheet->setTitle('Timetable');
+
+        $last_col = PHPExcel_Cell::stringFromColumnIndex(1 + $n_days); // Period(0)+Time(1)+days
+
+        // Title
+        $sheet->mergeCells('A1:' . $last_col . '1');
+        $sheet->setCellValue('A1', 'Class Timetable — ' . $cls_label);
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1')->getAlignment()
+            ->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+
+        // Header row
+        $sheet->setCellValue('A2', 'Period');
+        $sheet->setCellValue('B2', 'Time');
+        foreach ($day_names as $i => $dn) {
+            $sheet->setCellValueByColumnAndRow(2 + $i, 2, $dn);
+        }
+        $hdr_range = 'A2:' . $last_col . '2';
+        $sheet->getStyle($hdr_range)->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+        $sheet->getStyle($hdr_range)->getFill()
+            ->setFillType(PHPExcel_Style_Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF3C8DBC');
+        $sheet->getStyle($hdr_range)->getAlignment()
+            ->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+
+        $row = 3;
+        foreach ($d['periods'] as $period) {
+            $sheet->setCellValue('A' . $row, $period->name);
+            $sheet->setCellValue('B' . $row,
+                date('h:i', strtotime($period->start_time)) . '-' . date('h:i', strtotime($period->end_time)));
+
+            if ($period->is_break) {
+                $sheet->mergeCells('C' . $row . ':' . $last_col . $row);
+                $sheet->setCellValue('C' . $row, $period->break_label ?: $period->name);
+                $sheet->getStyle('A' . $row . ':' . $last_col . $row)->getFill()
+                    ->setFillType(PHPExcel_Style_Fill::FILL_SOLID)
+                    ->getStartColor()->setARGB('FFFFFDE7');
+            } else {
+                foreach ($day_names as $i => $dn) {
+                    $entry = $d['entry_map'][$dn][$period->id][0] ?? null;
+                    if ($entry) {
+                        if ($entry->is_free_period) {
+                            $text = $entry->free_period_label ?: 'Free';
+                        } else {
+                            $abbr  = !empty($entry->tt_abbr) ? $entry->tt_abbr : ($entry->subject_code ?: $entry->subject_name);
+                            $tname = trim($entry->staff_name . ' ' . ($entry->staff_surname ?? ''));
+                            $text  = $abbr . ($tname ? "\n" . $tname : '');
+                        }
+                        $sheet->setCellValueByColumnAndRow(2 + $i, $row, $text);
+                        $sheet->getStyleByColumnAndRow(2 + $i, $row)->getAlignment()->setWrapText(true);
+                    }
+                }
+            }
+            $row++;
+        }
+
+        // Column widths
+        $sheet->getColumnDimension('A')->setWidth(14);
+        $sheet->getColumnDimension('B')->setWidth(13);
+        for ($i = 0; $i < $n_days; $i++) {
+            $sheet->getColumnDimensionByColumn(2 + $i)->setWidth(18);
+        }
+
+        $fname = 'timetable_' . preg_replace('/[^a-zA-Z0-9]/', '_', $cls_label) . '_' . date('Ymd') . '.xls';
+        header('Content-Type: application/vnd.ms-excel');
+        header('Content-Disposition: attachment;filename="' . $fname . '"');
+        header('Cache-Control: max-age=0');
+        $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel5');
+        $objWriter->save('php://output');
+        exit;
     }
 
     public function save_cell()

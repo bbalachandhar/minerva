@@ -34,8 +34,16 @@
       </div>
       <div class="col-md-3">
         <div class="row" style="margin-top:25px;">
-          <div class="col-xs-8 pr-0"><button class="btn btn-primary btn-block" id="btn-load-grid"><i class="fa fa-table"></i> Load Timetable</button></div>
-          <div class="col-xs-4 pl-1"><button class="btn btn-default btn-block" id="btn-print-grid" title="Print" disabled><i class="fa fa-print"></i></button></div>
+          <div class="col-xs-5 pr-0">
+            <button class="btn btn-primary btn-block" id="btn-load-grid"><i class="fa fa-table"></i> Load</button>
+          </div>
+          <div class="col-xs-7 pl-1">
+            <div class="btn-group btn-group-justified" id="export-btns" style="display:none;">
+              <a class="btn btn-default" id="btn-print-grid"  title="Print"><i class="fa fa-print"></i></a>
+              <a class="btn btn-danger"  id="btn-pdf-grid"    title="Export PDF"><i class="fa fa-file-pdf-o"></i></a>
+              <a class="btn btn-success" id="btn-excel-grid"  title="Export Excel"><i class="fa fa-file-excel-o"></i></a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -182,6 +190,21 @@ $(function(){
       },'json');
   });
 
+  var loaded_class_id = 0, loaded_section_id = 0;
+
+  function buildExportUrl(action) {
+    return '<?php echo site_url('admin/tt/'); ?>' + action
+      + '?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id;
+  }
+
+  function updateExportButtons() {
+    if (!loaded_class_id || !loaded_section_id) { $('#export-btns').hide(); return; }
+    $('#btn-print-grid').attr('href', buildExportUrl('print_class_grid'));
+    $('#btn-pdf-grid').attr('href',   buildExportUrl('export_class_grid_pdf'));
+    $('#btn-excel-grid').attr('href', buildExportUrl('export_class_grid_excel'));
+    $('#export-btns').show();
+  }
+
   // Load grid
   $('#btn-load-grid').on('click', function(){
     var class_id = $('#cg_class').val(), section_id = $('#cg_section').val();
@@ -189,36 +212,25 @@ $(function(){
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Loading...');
     $.post('<?php echo site_url('admin/tt/load_class_grid'); ?>',
       {class_id: class_id, section_id: section_id, [csrf_name]: csrf_val}, function(res){
-        $btn.prop('disabled',false).html('<i class="fa fa-table"></i> Load Timetable');
+        $btn.prop('disabled',false).html('<i class="fa fa-table"></i> Load');
         if (res.status === '1') {
           $('#grid-placeholder').hide();
           $('#timetable-grid-container').html(res.html);
-          current_subjects = res.subjects || [];
-          current_staff    = res.staff    || [];
-          current_rooms    = res.rooms    || [];
-          current_batches  = res.batches  || [];
-          $('#btn-print-grid').prop('disabled', false);
+          current_subjects  = res.subjects || [];
+          current_staff     = res.staff    || [];
+          current_rooms     = res.rooms    || [];
+          current_batches   = res.batches  || [];
+          loaded_class_id   = class_id;
+          loaded_section_id = section_id;
+          updateExportButtons();
         }
       },'json');
   });
 
-  // Print timetable
-  $('#btn-print-grid').on('click', function(){
-    var printContent = '<html><head><title>Class Timetable</title>'
-      + '<link rel="stylesheet" href="<?php echo base_url('assets/bower_components/bootstrap/dist/css/bootstrap.min.css'); ?>">'
-      + '<style>body{padding:20px;font-size:12px;}.tt-grid th,.tt-grid td{padding:4px 6px;border:1px solid #ccc;white-space:nowrap;}'
-      + '.slot-tag{display:inline-block;border-radius:3px;padding:1px 5px;font-size:11px;font-weight:600;color:#fff;margin:1px;}'
-      + '.slot-theory{background:#3498db;}.slot-practical{background:#e74c3c;}.slot-project{background:#f39c12;}.slot-free{background:#27ae60;}.slot-other{background:#7f8c8d;}'
-      + '.break-row{background:#fffde7 !important;}'
-      + '@media print{.no-print{display:none}}</style></head><body>'
-      + $('#timetable-grid-container').html()
-      + '</body></html>';
-    var w = window.open('','_blank');
-    w.document.write(printContent);
-    w.document.close();
-    w.focus();
-    w.print();
-  });
+  // Print opens in new tab (auto-triggers window.print())
+  $('#btn-print-grid').attr('target', '_blank');
+  // PDF and Excel are direct downloads
+  $('#btn-pdf-grid, #btn-excel-grid').attr('target', '_blank');
 
   // Open cell modal
   $(document).on('click', '.tt-cell:not(.break-row)', function(){
