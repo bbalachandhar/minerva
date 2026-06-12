@@ -449,8 +449,6 @@ class Tt extends Admin_Controller
         $class_id   = (int) $this->input->post('class_id');
         $section_id = (int) $this->input->post('section_id');
 
-        // Fetch subjects via subject_groups.class_id (bypasses subject_group_class_sections)
-        $subjects = $this->Tt_subjectload_model->getSubjectsForClass($session_id, $class_id);
         $loads    = $this->Tt_subjectload_model->getForClassSection($session_id, $class_id, $section_id);
         $staff    = $this->staff_model->getStaffbyrole(2);
         $batches  = $this->Tt_batch_model->getForClassSection($session_id, $class_id, $section_id);
@@ -462,12 +460,18 @@ class Tt extends Admin_Controller
             $load_map[$key] = $l;
         }
 
-        // Build list of subject IDs already in this class's group
-        $used_ids = array_map(fn($s) => $s->subject_id, $subjects);
+        // Only show subjects that have an active load row for this specific section;
+        // this prevents deleted subjects from reappearing via the class-wide subject group.
+        $subjects = $this->Tt_subjectload_model->getSubjectsForClass($session_id, $class_id);
+        $subjects = array_values(array_filter($subjects, function ($sub) use ($load_map) {
+            return isset($load_map[$sub->subject_group_subject_id . '_0'])
+                || isset($load_map[$sub->subject_group_subject_id . '_' . ($sub->batch_id ?? '0')]);
+        }));
 
-        // All active subjects not yet in this class's group (for "Add Subject" picker)
-        $all_subjects      = $this->db->where('is_active', 'yes')->order_by('name')->get('subjects')->result();
-        $available_subjects = array_values(array_filter($all_subjects, fn($s) => !in_array($s->id, $used_ids)));
+        // Available picker: subjects not yet assigned to this section's load
+        $loaded_subject_ids = array_unique(array_map(fn($l) => (int)$l->subject_id, $loads));
+        $all_subjects       = $this->db->where('is_active', 'yes')->order_by('name')->get('subjects')->result();
+        $available_subjects = array_values(array_filter($all_subjects, fn($s) => !in_array((int)$s->id, $loaded_subject_ids)));
 
         $data = [
             'subjects'           => $subjects,
@@ -565,21 +569,12 @@ class Tt extends Admin_Controller
         }
         $id = (int) $this->input->post('id');
 
-        $load = $this->db->where('id', $id)->get('tt_subject_load')->row();
-        if (!$load) {
+        $exists = $this->db->where('id', $id)->count_all_results('tt_subject_load');
+        if (!$exists) {
             echo json_encode(['status' => '0', 'error' => 'Not found']); return;
         }
 
         $this->Tt_subjectload_model->delete($id);
-
-        // If no other load row references this subject_group_subject, remove it from the group
-        // so the subject stops reappearing in the class's subject list on reload
-        $remaining = $this->db
-            ->where('subject_group_subject_id', $load->subject_group_subject_id)
-            ->count_all_results('tt_subject_load');
-        if ($remaining === 0) {
-            $this->db->where('id', $load->subject_group_subject_id)->delete('subject_group_subjects');
-        }
 
         echo json_encode(['status' => '1']);
     }
