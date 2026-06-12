@@ -144,4 +144,37 @@ class Route extends Admin_Controller
         $this->load->view('layout/footer');
     }
 
+    public function downloadRouteTemplate()
+    {
+        $file = FCPATH . 'backend/import/import_route_sample.csv';
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="import_route_sample.csv"');
+        readfile($file);
+        exit;
+    }
+
+    public function import()
+    {
+        if (!$this->rbac->hasPrivilege('routes', 'can_add')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Access denied']);
+            return;
+        }
+        if (empty($_FILES['route_csv']['name'])) {
+            echo json_encode(['status' => 'fail', 'message' => 'No file uploaded']);
+            return;
+        }
+        $this->load->library('csvimport');
+        $csv_array = $this->csvimport->get_array($_FILES['route_csv']['tmp_name']);
+        if (empty($csv_array)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Empty or invalid CSV file']);
+            return;
+        }
+        $result  = $this->route_model->bulkInsert($csv_array);
+        $message = '<div class="alert alert-success text-left">' . $result['inserted'] . ' route(s) imported successfully.</div>';
+        if (!empty($result['skipped'])) {
+            $message .= '<div class="alert alert-warning text-left">Skipped (' . count($result['skipped']) . '): ' . implode(', ', $result['skipped']) . '</div>';
+        }
+        echo json_encode(['status' => 'success', 'message' => $message]);
+    }
+
 }

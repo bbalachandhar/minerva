@@ -27,6 +27,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('pickup_point_list'); ?></h3>
                         <div class="box-tools pull-right">
                             <?php if ($this->rbac->hasPrivilege('pickup_point', 'can_add')) {?>
+                            <button type="button" class="btn btn-default btn-sm" style="margin-right:5px;" data-toggle="modal" data-target="#pickuppointImportModal"><i class="fa fa-upload"></i> Import</button>
                             <button type="button" onclick="add()" class="btn btn-primary btn-sm checkbox-toggle"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add') ?></button>
                             <?php }?>
                         </div>
@@ -249,5 +250,52 @@ $(document).ready(function(){
   }
             });
          }
+
+</script>
+
+<!-- Pickup Point Import Modal -->
+<div class="modal fade" id="pickuppointImportModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"><i class="fa fa-upload"></i> Import Pickup Points</h4>
+            </div>
+            <form id="pickuppointImportForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div id="pickuppointImportMsg"></div>
+                    <div class="form-group">
+                        <label>CSV File <small class="req">*</small></label>
+                        <input type="file" name="pickuppoint_csv" accept=".csv" class="form-control">
+                        <p class="help-block">Required columns: <code>name, latitude, longitude</code></p>
+                    </div>
+                    <a href="<?php echo site_url('admin/pickuppoint/downloadPickuppointTemplate'); ?>" class="btn btn-default btn-sm"><i class="fa fa-download"></i> Download Template</a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" id="pickuppointImportBtn"><i class="fa fa-upload"></i> Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+$(document).on('submit', '#pickuppointImportForm', function(e) {
+    e.preventDefault();
+    var fd = new FormData(this);
+    $('#pickuppointImportBtn').prop('disabled', true).text('Importing...');
+    $.ajax({
+        url: '<?php echo site_url("admin/pickuppoint/import"); ?>',
+        type: 'POST',
+        data: fd, processData: false, contentType: false,
+        success: function(res) {
+            res = $.parseJSON(res);
+            $('#pickuppointImportMsg').html(res.message);
+            if (res.status === 'success') { setTimeout(function(){ location.reload(); }, 1500); }
+        },
+        complete: function() { $('#pickuppointImportBtn').prop('disabled', false).text('Import'); }
+    });
+});
+</script>
 
    </script>

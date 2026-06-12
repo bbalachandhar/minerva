@@ -422,4 +422,38 @@ class Pickuppoint extends Admin_Controller
         $result = $this->pickuppoint_model->getpickup_pointbyid($id);
         echo json_encode($result);
     }
+
+    public function downloadPickuppointTemplate()
+    {
+        $file = FCPATH . 'backend/import/import_pickuppoint_sample.csv';
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="import_pickuppoint_sample.csv"');
+        readfile($file);
+        exit;
+    }
+
+    public function import()
+    {
+        if (!$this->rbac->hasPrivilege('pickup_point', 'can_add')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Access denied']);
+            return;
+        }
+        if (empty($_FILES['pickuppoint_csv']['name'])) {
+            echo json_encode(['status' => 'fail', 'message' => 'No file uploaded']);
+            return;
+        }
+        $this->load->library('csvimport');
+        $csv_array = $this->csvimport->get_array($_FILES['pickuppoint_csv']['tmp_name']);
+        if (empty($csv_array)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Empty or invalid CSV file']);
+            return;
+        }
+        $result  = $this->pickuppoint_model->bulkInsert($csv_array);
+        $message = '<div class="alert alert-success text-left">' . $result['inserted'] . ' pickup point(s) imported successfully.</div>';
+        if (!empty($result['skipped'])) {
+            $message .= '<div class="alert alert-warning text-left">Skipped (' . count($result['skipped']) . '): ' . implode(', ', $result['skipped']) . '</div>';
+        }
+        echo json_encode(['status' => 'success', 'message' => $message]);
+    }
+
 }
