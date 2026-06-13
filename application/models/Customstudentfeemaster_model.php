@@ -443,13 +443,11 @@ class Customstudentfeemaster_model extends MY_Model
         $safe_end_date = $this->db->escape($end_date);
 
         $empty = [
-            'tuition_demand' => 0.0, 'tuition_paid' => 0.0,
-            'other_demand'   => 0.0, 'other_paid'   => 0.0,
-            'hostel_demand'  => 0.0, 'hostel_paid'  => 0.0,
+            'fee_types'        => [],   // [feetype_id => ['id','name','demand','paid']]
             'transport_demand' => 0.0, 'transport_paid' => 0.0,
-            'advance_paid'   => 0.0, 'advance_discount' => 0.0,
-            'last_yr_cf'     => 0.0, 'cf_paid'      => 0.0,
-            'total_fine'     => 0.0, 'total_discount' => 0.0,
+            'advance_paid'     => 0.0, 'advance_discount' => 0.0,
+            'last_yr_cf'       => 0.0, 'cf_paid'      => 0.0,
+            'total_fine'       => 0.0, 'total_discount' => 0.0,
         ];
         $summary = [];
         foreach ($session_ids as $ssid) {
@@ -457,7 +455,7 @@ class Customstudentfeemaster_model extends MY_Model
         }
 
         // 1. Fee demand by type (due_date <= end_date, no Balance Master)
-        $demand_sql = "SELECT sfm.student_session_id, LOWER(ft.type) AS fee_type,
+        $demand_sql = "SELECT sfm.student_session_id, ft.id AS feetype_id, ft.type AS fee_type_name,
             SUM(COALESCE(sfo.override_amount, fgft.amount) - IFNULL(sfd_disc.custom_amount, 0)) AS demand
             FROM student_fees_master sfm
             INNER JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
@@ -469,20 +467,20 @@ class Customstudentfeemaster_model extends MY_Model
             WHERE sfm.student_session_id IN ($ids)
               AND fg.name != 'Balance Master'
               AND (fgft.due_date IS NULL OR YEAR(fgft.due_date) = 0 OR fgft.due_date <= $safe_end_date)
-            GROUP BY sfm.student_session_id, LOWER(ft.type)";
+            GROUP BY sfm.student_session_id, ft.id, ft.type";
         foreach ($this->db->query($demand_sql)->result() as $row) {
             $ssid = (int)$row->student_session_id;
             if (!isset($summary[$ssid])) continue;
-            switch (trim($row->fee_type)) {
-                case 'tuition fee':   $summary[$ssid]['tuition_demand']   += (float)$row->demand; break;
-                case 'other fee':     $summary[$ssid]['other_demand']     += (float)$row->demand; break;
-                case 'hostel fees':   $summary[$ssid]['hostel_demand']    += (float)$row->demand; break;
-                case 'transport fee': $summary[$ssid]['transport_demand'] += (float)$row->demand; break;
+            if (strtolower(trim($row->fee_type_name)) === 'advance payments') continue;
+            $tid = (int)$row->feetype_id;
+            if (!isset($summary[$ssid]['fee_types'][$tid])) {
+                $summary[$ssid]['fee_types'][$tid] = ['id' => $tid, 'name' => $row->fee_type_name, 'demand' => 0.0, 'paid' => 0.0];
             }
+            $summary[$ssid]['fee_types'][$tid]['demand'] += (float)$row->demand;
         }
 
         // 2. Fee payments by type (payment date <= end_date, no Balance Master)
-        $paid_sql = "SELECT sfm.student_session_id, LOWER(ft.type) AS fee_type, sfdep.amount_detail
+        $paid_sql = "SELECT sfm.student_session_id, ft.id AS feetype_id, ft.type AS fee_type_name, sfdep.amount_detail
             FROM student_fees_deposite sfdep
             INNER JOIN student_fees_master sfm ON sfm.id = sfdep.student_fees_master_id
             INNER JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
@@ -506,13 +504,16 @@ class Customstudentfeemaster_model extends MY_Model
             }
             $summary[$ssid]['total_fine']     += $fine;
             $summary[$ssid]['total_discount'] += $disc;
-            $cleared = $paid + $disc;
-            switch (trim($row->fee_type)) {
-                case 'tuition fee':      $summary[$ssid]['tuition_paid']    += $cleared; break;
-                case 'other fee':        $summary[$ssid]['other_paid']      += $cleared; break;
-                case 'hostel fees':      $summary[$ssid]['hostel_paid']     += $cleared; break;
-                case 'transport fee':    $summary[$ssid]['transport_paid']  += $cleared; break;
-                case 'advance payments': $summary[$ssid]['advance_paid']    += $paid; $summary[$ssid]['advance_discount'] += $disc; break;
+            $type_lower = strtolower(trim($row->fee_type_name));
+            if ($type_lower === 'advance payments') {
+                $summary[$ssid]['advance_paid']     += $paid;
+                $summary[$ssid]['advance_discount'] += $disc;
+            } else {
+                $tid = (int)$row->feetype_id;
+                if (!isset($summary[$ssid]['fee_types'][$tid])) {
+                    $summary[$ssid]['fee_types'][$tid] = ['id' => $tid, 'name' => $row->fee_type_name, 'demand' => 0.0, 'paid' => 0.0];
+                }
+                $summary[$ssid]['fee_types'][$tid]['paid'] += $paid + $disc;
             }
         }
 

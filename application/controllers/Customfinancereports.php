@@ -217,25 +217,25 @@ class Customfinancereports extends Admin_Controller
                 $studentlist = $this->student_model->searchByClassSectionWithSession(null, null, $this->current_session, $department_id);
             }
 
-            $student_Array = array();
+            $student_Array    = array();
+            $fee_type_columns = array();
+
             if (!empty($studentlist)) {
                 $all_session_ids = array_column($studentlist, 'student_session_id');
 
-                // Single batch call replaces per-student getTransStudentFees N+1
                 $fee_summary     = $this->customstudentfeemaster_model->getStudentFeesSummaryByEndDateBatch($all_session_ids, $end_date);
                 $discounts_batch = $this->feediscount_model->getStudentFeesDiscountBatch($all_session_ids);
 
+                $empty_d = [
+                    'fee_types' => [], 'transport_demand' => 0, 'transport_paid' => 0,
+                    'advance_paid' => 0, 'advance_discount' => 0,
+                    'last_yr_cf' => 0, 'cf_paid' => 0,
+                    'total_fine' => 0, 'total_discount' => 0,
+                ];
+
                 foreach ($studentlist as $eachstudent) {
                     $ssid = $eachstudent['student_session_id'];
-                    $d    = isset($fee_summary[$ssid]) ? $fee_summary[$ssid] : [
-                        'tuition_demand' => 0, 'tuition_paid' => 0,
-                        'other_demand'   => 0, 'other_paid'   => 0,
-                        'hostel_demand'  => 0, 'hostel_paid'  => 0,
-                        'transport_demand' => 0, 'transport_paid' => 0,
-                        'advance_paid'   => 0, 'advance_discount' => 0,
-                        'last_yr_cf'     => 0, 'cf_paid'      => 0,
-                        'total_fine'     => 0, 'total_discount' => 0,
-                    ];
+                    $d    = isset($fee_summary[$ssid]) ? $fee_summary[$ssid] : $empty_d;
 
                     $obj               = new stdClass();
                     $obj->name         = $this->customlib->getFullName($eachstudent['firstname'], $eachstudent['middlename'], $eachstudent['lastname'], $this->sch_setting_detail->middlename, $this->sch_setting_detail->lastname);
@@ -244,31 +244,33 @@ class Customfinancereports extends Admin_Controller
                     $obj->category     = $eachstudent['category'];
                     $obj->admission_no = $eachstudent['admission_no'];
 
-                    $obj->tuition_demand   = $d['tuition_demand'];
-                    $obj->tuition_paid     = $d['tuition_paid'];
-                    $obj->tuition_balance  = $d['tuition_demand'] - $d['tuition_paid'];
-                    $obj->other_demand     = $d['other_demand'];
-                    $obj->other_paid       = $d['other_paid'];
-                    $obj->other_balance    = $d['other_demand'] - $d['other_paid'];
-                    $obj->hostel_demand    = $d['hostel_demand'];
-                    $obj->hostel_paid      = $d['hostel_paid'];
-                    $obj->hostel_balance   = $d['hostel_demand'] - $d['hostel_paid'];
-                    $obj->transport_demand = $d['transport_demand'];
-                    $obj->transport_paid   = $d['transport_paid'];
+                    $obj->fee_types         = $d['fee_types'];
+                    $obj->transport_demand  = $d['transport_demand'];
+                    $obj->transport_paid    = $d['transport_paid'];
                     $obj->transport_balance = $d['transport_demand'] - $d['transport_paid'];
-                    $obj->advance_paid     = $d['advance_paid'];
-                    $obj->advance_discount = $d['advance_discount'];
-                    $obj->last_yr_cf       = $d['last_yr_cf'];
-                    $obj->cf_paid          = $d['cf_paid'];
-                    $obj->cf_balance       = $d['last_yr_cf'] - $d['cf_paid'];
-                    $obj->fine             = $d['total_fine'];
+                    $obj->advance_paid      = $d['advance_paid'];
+                    $obj->advance_discount  = $d['advance_discount'];
+                    $obj->last_yr_cf        = $d['last_yr_cf'];
+                    $obj->cf_paid           = $d['cf_paid'];
+                    $obj->cf_balance        = $d['last_yr_cf'] - $d['cf_paid'];
+                    $obj->fine              = $d['total_fine'];
 
-                    $totalfee          = $d['tuition_demand'] + $d['other_demand'] + $d['hostel_demand'] + $d['transport_demand'];
-                    $total_paid_sum    = $d['tuition_paid']   + $d['other_paid']   + $d['hostel_paid']   + $d['transport_paid'];
-                    $obj->totalfee     = $totalfee;
-                    $obj->deposit      = $total_paid_sum;
-                    $obj->balance      = $totalfee - $total_paid_sum + $obj->cf_balance;
-                    $obj->net_balance  = $obj->balance - ($d['advance_paid'] + $d['advance_discount']);
+                    // Collect unique fee type columns
+                    foreach ($d['fee_types'] as $tid => $ft) {
+                        if (!isset($fee_type_columns[$tid])) $fee_type_columns[$tid] = $ft['name'];
+                    }
+
+                    $total_ft_demand = $total_ft_paid = 0;
+                    foreach ($d['fee_types'] as $ft) {
+                        $total_ft_demand += $ft['demand'];
+                        $total_ft_paid   += $ft['paid'];
+                    }
+                    $totalfee         = $total_ft_demand + $d['transport_demand'];
+                    $total_paid_sum   = $total_ft_paid   + $d['transport_paid'];
+                    $obj->totalfee    = $totalfee;
+                    $obj->deposit     = $total_paid_sum;
+                    $obj->balance     = $totalfee - $total_paid_sum + $obj->cf_balance;
+                    $obj->net_balance = $obj->balance - ($d['advance_paid'] + $d['advance_discount']);
 
                     $obj->applied_discounts = isset($discounts_batch[$ssid]) ? $discounts_batch[$ssid] : [];
                     $total_student_discount = 0;
@@ -308,7 +310,8 @@ class Customfinancereports extends Admin_Controller
                 }
             }
 
-            $data['student_due_fee'] = $student_Array;
+            $data['student_due_fee']  = $student_Array;
+            $data['fee_type_columns'] = $fee_type_columns;
         }
 
         $this->load->view('layout/header', $data);

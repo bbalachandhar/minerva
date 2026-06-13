@@ -2803,86 +2803,75 @@ $data['department_id_selected'] = $this->input->post('department_id');
                 $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id, $current_session_id, $department_id);
             }
 
-            $category_summary = array();
-            
+            $category_summary  = array();
+            $fee_type_columns  = array();
+
             if (!empty($studentlist)) {
                 foreach ($studentlist as $eachstudent) {
-                    $category_id = $eachstudent['category_id'];
-                    if ($category_id == null) {
-                        $category_id = "N/A";
-                    }
+                    $category_id = $eachstudent['category_id'] ?? "N/A";
 
                     if (!isset($category_summary[$category_id])) {
                         $category_summary[$category_id] = (object) [
-                            'category_id' => $category_id,
-                            'category_name' => $category_id == "N/A" ? "N/A" : $eachstudent['category'],
-                            'number_of_students' => 0,
-                            'tuition_fee_demand' => 0,
-                            'other_fees_demand' => 0,
-                            'govt_fg_discounts' => 0,
-                            'govt_7_5_discounts' => 0,
+                            'category_id'   => $category_id,
+                            'category_name' => ($category_id === "N/A") ? "N/A" : $eachstudent['category'],
+                            'number_of_students'         => 0,
+                            'fee_types'                  => [], // [feetype_id => ['name','demand','paid']]
+                            'govt_fg_discounts'          => 0,
+                            'govt_7_5_discounts'         => 0,
                             'total_management_discounts' => 0,
-                            'total_paid' => 0,
-                            'pending_fee' => 0,
-                            'transport_fee_demand' => 0,
-                            'transport_fee_paid' => 0,
-                            'transport_fee_balance' => 0,
-                            'hostel_fee_demand' => 0,
-                            'hostel_fee_paid' => 0,
-                            'hostel_fee_balance' => 0,
-                            'transport_subsidy_7_5' => 0,
-                            'hostel_subsidy_7_5' => 0,
+                            'total_paid'                 => 0,
+                            'pending_fee'                => 0,
+                            'transport_fee_demand'       => 0,
+                            'transport_fee_paid'         => 0,
+                            'transport_fee_balance'      => 0,
+                            'transport_subsidy_7_5'      => 0,
+                            'hostel_subsidy_7_5'         => 0,
                         ];
                     }
 
                     $category_summary[$category_id]->number_of_students++;
-                    
-                    $student_session_id = $eachstudent['student_session_id'];
-                    $fees_data = $this->customstudentfeemaster_model->getTransStudentFees($student_session_id, $eachstudent['class_id'], $eachstudent['section_id']);
 
-                    $category_summary[$category_id]->tuition_fee_demand += $fees_data->tuition_demand;
-                    $category_summary[$category_id]->other_fees_demand += $fees_data->other_demand;
-                    $category_summary[$category_id]->total_paid += $fees_data->tuition_paid + $fees_data->other_paid;
-                    $category_summary[$category_id]->transport_fee_demand += $fees_data->transport_demand;
-                    $category_summary[$category_id]->transport_fee_paid += $fees_data->transport_paid;
-                    $category_summary[$category_id]->hostel_fee_demand += $fees_data->hostel_demand;
-                    $category_summary[$category_id]->hostel_fee_paid += $fees_data->hostel_paid;
-                    
+                    $student_session_id = $eachstudent['student_session_id'];
+                    $fees_data = $this->customstudentfeemaster_model->getTransStudentFees($student_session_id);
+
+                    // Accumulate dynamic fee types
+                    foreach ($fees_data->fee_types as $tid => $ft) {
+                        if (!isset($fee_type_columns[$tid])) $fee_type_columns[$tid] = $ft['name'];
+                        if (!isset($category_summary[$category_id]->fee_types[$tid])) {
+                            $category_summary[$category_id]->fee_types[$tid] = ['name' => $ft['name'], 'demand' => 0, 'paid' => 0];
+                        }
+                        $category_summary[$category_id]->fee_types[$tid]['demand'] += $ft['demand'];
+                        $category_summary[$category_id]->fee_types[$tid]['paid']   += $ft['paid'];
+                        $category_summary[$category_id]->total_paid                += $ft['paid'];
+                    }
+
+                    $category_summary[$category_id]->transport_fee_demand  += $fees_data->transport_demand;
+                    $category_summary[$category_id]->transport_fee_paid    += $fees_data->transport_paid;
                     $category_summary[$category_id]->transport_fee_balance += $fees_data->transport_demand - $fees_data->transport_paid;
-                    $category_summary[$category_id]->hostel_fee_balance += $fees_data->hostel_demand - $fees_data->hostel_paid;
 
                     $applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
-
                     foreach ($applied_discounts as $student_discount) {
-                        $discount_name = strtolower($student_discount['name']);
-                        $discount_amount = isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null ? $student_discount['custom_amount'] : $student_discount['amount'];
+                        $discount_name   = strtolower($student_discount['name']);
+                        $discount_amount = isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null
+                            ? $student_discount['custom_amount'] : $student_discount['amount'];
 
-                        if (strpos($discount_name, 'govt fg') !== false) {
-                            $category_summary[$category_id]->govt_fg_discounts += $discount_amount;
-                        }
-                        if (strpos($discount_name, 'govt 7.5') !== false) {
-                            $category_summary[$category_id]->govt_7_5_discounts += $discount_amount;
-                        }
-                        if (strpos($discount_name, 'mgmt') !== false) {
-                            $category_summary[$category_id]->total_management_discounts += $discount_amount;
-                        }
-                        if (strpos($discount_name, '7.5 transport subsidy') !== false) {
-                            $category_summary[$category_id]->transport_subsidy_7_5 += $discount_amount;
-                        }
-                        if (strpos($discount_name, '7.5 hostel subsidy') !== false) {
-                            $category_summary[$category_id]->hostel_subsidy_7_5 += $discount_amount;
-                        }
+                        if (strpos($discount_name, 'govt fg') !== false)           $category_summary[$category_id]->govt_fg_discounts          += $discount_amount;
+                        if (strpos($discount_name, 'govt 7.5') !== false)          $category_summary[$category_id]->govt_7_5_discounts         += $discount_amount;
+                        if (strpos($discount_name, 'mgmt') !== false)              $category_summary[$category_id]->total_management_discounts += $discount_amount;
+                        if (strpos($discount_name, '7.5 transport subsidy') !== false) $category_summary[$category_id]->transport_subsidy_7_5  += $discount_amount;
+                        if (strpos($discount_name, '7.5 hostel subsidy') !== false)    $category_summary[$category_id]->hostel_subsidy_7_5     += $discount_amount;
                     }
                 }
 
-                foreach ($category_summary as $category_id => $summary) {
-                    $total_demand = $summary->tuition_fee_demand + $summary->other_fees_demand;
+                foreach ($category_summary as $summary) {
+                    $total_ft_demand = array_sum(array_column($summary->fee_types, 'demand'));
                     $total_discounts = $summary->govt_fg_discounts + $summary->govt_7_5_discounts + $summary->total_management_discounts;
-                    $summary->pending_fee = $total_demand - ($summary->total_paid + $total_discounts);
+                    $summary->pending_fee = $total_ft_demand - ($summary->total_paid + $total_discounts);
                 }
             }
-            
-            $data['category_summary'] = $category_summary;
+
+            $data['category_summary']  = $category_summary;
+            $data['fee_type_columns']  = $fee_type_columns;
         }
 
         $this->load->view('layout/header', $data);

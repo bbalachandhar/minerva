@@ -67,12 +67,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     </div>
                     <div class="box-body table-responsive">
                         <table class="table table-striped table-bordered table-hover" id="report_table">
+                            <?php if (!isset($fee_type_columns)) $fee_type_columns = []; ?>
                             <thead>
                                 <tr>
                                     <th>Student Category</th>
                                     <th>Student Count</th>
-                                    <th class="text-right">Tuition Fee Demand</th>
-                                    <th class="text-right">Other Fees Demand</th>
+                                    <?php foreach ($fee_type_columns as $ft_id => $ft_name): ?>
+                                    <th class="text-right"><?php echo htmlspecialchars($ft_name); ?> Demand</th>
+                                    <th class="text-right"><?php echo htmlspecialchars($ft_name); ?> Paid</th>
+                                    <?php endforeach; ?>
                                     <th class="text-right">Govt FG Discounts</th>
                                     <th class="text-right">Govt 7.5 Discounts</th>
                                     <th class="text-right">Total Management Discounts</th>
@@ -82,15 +85,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <th class="text-right">Transport Fee Paid</th>
                                     <th class="text-right">Transport Fee Balance</th>
                                     <th class="text-right">7.5 Transport Subsidy</th>
-                                    <th class="text-right">Hostel Fee Demand</th>
-                                    <th class="text-right">Hostel Fee Paid</th>
-                                    <th class="text-right">Hostel Fee Balance</th>
                                     <th class="text-right">7.5 Hostel Subsidy</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (empty($category_summary)) { ?>
-                                    <tr><td colspan="17" class="text-center">No Record Found</td></tr>
+                                    <tr><td colspan="<?php echo 12 + (count($fee_type_columns) * 2); ?>" class="text-center">No Record Found</td></tr>
                                 <?php } else {
                                     $total_students = 0;
                                     // Initialize other totals...
@@ -100,8 +100,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <tr>
                                             <td><?php echo $category->category_name; ?></td>
                                             <td><a href="#" class="student-list" data-category-id="<?php echo $category->category_id; ?>"><?php echo $category->number_of_students; ?></a></td>
-                                            <td class="text-right"><?php echo amountFormat($category->tuition_fee_demand); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($category->other_fees_demand); ?></td>
+                                            <?php foreach ($fee_type_columns as $ft_id => $ft_name):
+                                                $ft_d = isset($category->fee_types[$ft_id]) ? $category->fee_types[$ft_id]['demand'] : 0;
+                                                $ft_p = isset($category->fee_types[$ft_id]) ? $category->fee_types[$ft_id]['paid']   : 0;
+                                            ?>
+                                            <td class="text-right"><?php echo amountFormat($ft_d); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($ft_p); ?></td>
+                                            <?php endforeach; ?>
                                             <td class="text-right"><?php echo amountFormat($category->govt_fg_discounts); ?></td>
                                             <td class="text-right"><?php echo amountFormat($category->govt_7_5_discounts); ?></td>
                                             <td class="text-right"><?php echo amountFormat($category->total_management_discounts); ?></td>
@@ -111,9 +116,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <td class="text-right"><?php echo amountFormat($category->transport_fee_paid); ?></td>
                                             <td class="text-right"><?php echo amountFormat($category->transport_fee_balance); ?></td>
                                             <td class="text-right"><?php echo amountFormat($category->transport_subsidy_7_5); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($category->hostel_fee_demand); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($category->hostel_fee_paid); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($category->hostel_fee_balance); ?></td>
                                             <td class="text-right"><?php echo amountFormat($category->hostel_subsidy_7_5); ?></td>
                                         </tr>
                                     <?php }
@@ -123,8 +125,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <tr class="total-bg">
                                         <th>Grand Total</th>
                                         <th><?php echo array_sum(array_column($category_summary, 'number_of_students')); ?></th>
-                                        <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'tuition_fee_demand'))); ?></th>
-                                        <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'other_fees_demand'))); ?></th>
+                                        <?php foreach ($fee_type_columns as $ft_id => $ft_name):
+                                            $gt_d = $gt_p = 0;
+                                            foreach ($category_summary as $cat) {
+                                                $gt_d += isset($cat->fee_types[$ft_id]) ? $cat->fee_types[$ft_id]['demand'] : 0;
+                                                $gt_p += isset($cat->fee_types[$ft_id]) ? $cat->fee_types[$ft_id]['paid']   : 0;
+                                            }
+                                        ?>
+                                        <th class="text-right"><?php echo $currency_symbol . amountFormat($gt_d); ?></th>
+                                        <th class="text-right"><?php echo $currency_symbol . amountFormat($gt_p); ?></th>
+                                        <?php endforeach; ?>
                                         <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'govt_fg_discounts'))); ?></th>
                                         <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'govt_7_5_discounts'))); ?></th>
                                         <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'total_management_discounts'))); ?></th>
@@ -134,9 +144,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'transport_fee_paid'))); ?></th>
                                         <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'transport_fee_balance'))); ?></th>
                                         <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'transport_subsidy_7_5'))); ?></th>
-                                        <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'hostel_fee_demand'))); ?></th>
-                                        <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'hostel_fee_paid'))); ?></th>
-                                        <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'hostel_fee_balance'))); ?></th>
                                         <th class="text-right"><?php echo $currency_symbol . amountFormat(array_sum(array_column($category_summary, 'hostel_subsidy_7_5'))); ?></th>
                                     </tr>
                                 </tfoot>
