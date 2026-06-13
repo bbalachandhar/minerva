@@ -50,20 +50,34 @@ class Tt extends Admin_Controller
         return $days;
     }
 
+    private function _targetMonday(int $week_offset): int
+    {
+        $today       = mktime(0, 0, 0, (int)date('n'), (int)date('j'), (int)date('Y'));
+        $iso_dow     = (int)date('N', $today);
+        $this_monday = $today - ($iso_dow - 1) * 86400;
+        return $this_monday + $week_offset * 7 * 86400;
+    }
+
     private function _calcWeekDates(array $days, int $week_offset = 0): array
     {
-        $dow_num  = [1=>'Monday',2=>'Tuesday',3=>'Wednesday',4=>'Thursday',5=>'Friday',6=>'Saturday',7=>'Sunday'];
-        $name_dow = array_flip($dow_num); // name => ISO day number (Mon=1)
-
-        $today        = mktime(0, 0, 0, (int)date('n'), (int)date('j'), (int)date('Y'));
-        $iso_dow      = (int)date('N', $today); // 1=Mon … 7=Sun
-        $this_monday  = $today - ($iso_dow - 1) * 86400;
-        $target_monday = $this_monday + $week_offset * 7 * 86400;
-
-        $dates = [];
+        $name_dow = ['Monday'=>1,'Tuesday'=>2,'Wednesday'=>3,'Thursday'=>4,'Friday'=>5,'Saturday'=>6,'Sunday'=>7];
+        $monday   = $this->_targetMonday($week_offset);
+        $dates    = [];
         foreach (array_keys($days) as $day_name) {
-            $offset = ($name_dow[$day_name] ?? 1) - 1; // 0-based from Monday
-            $dates[$day_name] = date('d M', $target_monday + $offset * 86400);
+            $offset = ($name_dow[$day_name] ?? 1) - 1;
+            $dates[$day_name] = date('d M', $monday + $offset * 86400);
+        }
+        return $dates;
+    }
+
+    private function _calcWeekFullDates(array $days, int $week_offset = 0): array
+    {
+        $name_dow = ['Monday'=>1,'Tuesday'=>2,'Wednesday'=>3,'Thursday'=>4,'Friday'=>5,'Saturday'=>6,'Sunday'=>7];
+        $monday   = $this->_targetMonday($week_offset);
+        $dates    = [];
+        foreach (array_keys($days) as $day_name) {
+            $offset = ($name_dow[$day_name] ?? 1) - 1;
+            $dates[$day_name] = date('Y-m-d', $monday + $offset * 86400);
         }
         return $dates;
     }
@@ -1020,8 +1034,9 @@ class Tt extends Admin_Controller
         $staff     = $this->staff_model->getStaffbyrole(2);
         $rooms     = $this->Tt_room_model->getActive();
         $batches   = $this->Tt_batch_model->getForClassSection($session_id, $class_id, $section_id);
-        $days      = $this->_getWorkingDays();
-        $day_dates = $this->_calcWeekDates($days, $week_offset);
+        $days           = $this->_getWorkingDays();
+        $day_dates      = $this->_calcWeekDates($days, $week_offset);
+        $day_full_dates = $this->_calcWeekFullDates($days, $week_offset);
 
         $entry_map = [];
         foreach ($entries as $e) {
@@ -1029,7 +1044,13 @@ class Tt extends Admin_Controller
             $entry_map[$e->day][$e->period_id][$batch_key] = $e;
         }
 
-        $data = compact('periods','entry_map','subjects','staff','rooms','batches','days','day_dates','class_id','section_id','session_id');
+        $subst_list = $this->Tt_substitution_model->getForClassWeek($session_id, $class_id, $section_id, array_values($day_full_dates));
+        $subst_map  = [];
+        foreach ($subst_list as $s) {
+            $subst_map[$s->date][$s->period_id] = $s;
+        }
+
+        $data = compact('periods','entry_map','subjects','staff','rooms','batches','days','day_dates','day_full_dates','subst_map','class_id','section_id','session_id');
         $html = $this->load->view('admin/tt/_grid_table', $data, true);
 
         // Build flat data rows for client-side Excel/PDF export (no colspan issues)
@@ -1311,15 +1332,26 @@ class Tt extends Admin_Controller
         $week_offset = (int) $this->input->post('week_offset');
         $periods     = $this->Tt_period_model->getAll($session_id);
         $entries     = $this->Tt_entry_model->getTeacherEntries($session_id, $staff_id);
-        $days        = $this->_getWorkingDays();
-        $day_dates   = $this->_calcWeekDates($days, $week_offset);
+        $days           = $this->_getWorkingDays();
+        $day_dates      = $this->_calcWeekDates($days, $week_offset);
+        $day_full_dates = $this->_calcWeekFullDates($days, $week_offset);
 
         $entry_map = [];
         foreach ($entries as $e) {
             $entry_map[$e->day][$e->period_id] = $e;
         }
 
-        $data = compact('periods','entry_map','days','day_dates','staff_id','session_id');
+        $subst_data  = $this->Tt_substitution_model->getForTeacherWeek($session_id, $staff_id, array_values($day_full_dates));
+        $absent_map  = [];
+        foreach ($subst_data['absent'] as $s) {
+            $absent_map[$s->date][$s->period_id] = $s;
+        }
+        $covering_map = [];
+        foreach ($subst_data['covering'] as $s) {
+            $covering_map[$s->date][$s->period_id] = $s;
+        }
+
+        $data = compact('periods','entry_map','days','day_dates','day_full_dates','absent_map','covering_map','staff_id','session_id');
         $html = $this->load->view('admin/tt/_teacher_grid_table', $data, true);
         echo json_encode(['status' => '1', 'html' => $html]);
     }
@@ -1442,6 +1474,35 @@ class Tt extends Admin_Controller
         $staff_id    = (int) $this->input->post('staff_id') ?: null;
         $data = $this->Tt_substitution_model->getReport($session_id, $from_date, $to_date, $staff_id);
         echo json_encode(['status' => '1', 'data' => $data]);
+    }
+
+    public function duty_chart()
+    {
+        if (!$this->rbac->hasPrivilege('tt_substitution', 'can_view')) {
+            access_denied();
+        }
+        $session_id = $this->setting_model->getCurrentSession();
+        $raw        = $this->input->get('date') ?: date('Y-m-d');
+        $ts         = $this->customlib->datetostrtotime($raw);
+        $date       = $ts ? date('Y-m-d', $ts) : $raw;
+
+        $substitutions = $this->Tt_substitution_model->getByDate($session_id, $date);
+
+        $by_period = [];
+        foreach ($substitutions as $s) {
+            $by_period[$s->period_sort ?? 0][] = $s;
+        }
+        ksort($by_period);
+
+        $school_name = $this->sch_setting_detail->name ?? '';
+
+        $data = [
+            'date'          => $date,
+            'substitutions' => $substitutions,
+            'by_period'     => $by_period,
+            'school_name'   => $school_name,
+        ];
+        $this->load->view('admin/tt/duty_chart_print', $data);
     }
 
     // =========================================================================

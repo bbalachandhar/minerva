@@ -31,10 +31,12 @@ $type_class = ['theory'=>'slot-theory','practical'=>'slot-practical','project'=>
           </td>
           <?php else: foreach ($days as $dk => $dv): ?>
           <?php
-            $entry = $entry_map[$dk][$period->id][0] ?? null; // 0 = full class
+            $entry    = $entry_map[$dk][$period->id][0] ?? null;
             $is_locked = $entry && $entry->is_locked;
+            $dt_full  = $day_full_dates[$dk] ?? null;
+            $subst    = ($dt_full && !empty($subst_map[$dt_full][$period->id])) ? $subst_map[$dt_full][$period->id] : null;
           ?>
-          <td class="tt-cell <?php echo $entry ? 'filled' : ''; ?> <?php echo $is_locked ? 'locked-cell' : ''; ?>"
+          <td class="tt-cell <?php echo ($entry||$subst) ? 'filled' : ''; ?> <?php echo $is_locked ? 'locked-cell' : ''; ?>"
               data-day="<?php echo $dk; ?>"
               data-period="<?php echo $period->id; ?>"
               data-period-name="<?php echo htmlspecialchars($period->name); ?>"
@@ -74,8 +76,23 @@ $type_class = ['theory'=>'slot-theory','practical'=>'slot-practical','project'=>
                 <?php if ($entry->room_name): ?><br><small style="font-size:10px;color:#777;"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($entry->room_name); ?></small><?php endif; ?>
               <?php endif; ?>
               <?php if ($is_locked): ?><br><i class="fa fa-lock text-danger" style="font-size:10px;"></i><?php endif; ?>
+              <?php if ($subst): ?>
+                <div style="margin-top:3px;background:#e67e22;color:#fff;border-radius:3px;padding:1px 4px;font-size:10px;line-height:1.4;" title="Substitution on <?php echo $dt_full; ?>">
+                  <?php if ($subst->sub_name): ?>
+                    <i class="fa fa-exchange"></i> <?php echo htmlspecialchars(mb_substr($subst->sub_name,0,4).'..'.' '.mb_substr($subst->sub_surname??'',0,1).'.'); ?>
+                  <?php else: ?>
+                    <i class="fa fa-exclamation-triangle"></i> Unassigned
+                  <?php endif; ?>
+                </div>
+              <?php endif; ?>
             <?php else: ?>
-              <i class="fa fa-plus-circle text-muted" style="font-size:18px;"></i>
+              <?php if ($subst): ?>
+                <div style="background:#e67e22;color:#fff;border-radius:3px;padding:2px 5px;font-size:10px;" title="Cover duty on <?php echo $dt_full; ?>">
+                  <i class="fa fa-exclamation-triangle"></i> Unassigned
+                </div>
+              <?php else: ?>
+                <i class="fa fa-plus-circle text-muted" style="font-size:18px;"></i>
+              <?php endif; ?>
             <?php endif; ?>
           </td>
           <?php endforeach; endif; ?>

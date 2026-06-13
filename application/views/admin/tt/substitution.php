@@ -45,7 +45,10 @@
         <button class="btn btn-success btn-block" id="btn-auto-assign-all" style="display:none;">
           <i class="fa fa-magic"></i> Auto-Assign All
         </button>
-        <div id="slots-summary" style="font-size:12px;color:#888;padding-top:7px;text-align:center;"></div>
+        <button class="btn btn-default btn-block" id="btn-print-duty" style="margin-top:4px;">
+          <i class="fa fa-print"></i> Print Duty Chart
+        </button>
+        <div id="slots-summary" style="font-size:12px;color:#888;padding-top:4px;text-align:center;"></div>
       </div>
     </div>
   </div>
@@ -287,6 +290,18 @@ $(function(){
       }
     },'json');
   }
+
+  // Print duty chart
+  $('#btn-print-duty').on('click', function(){
+    var raw = $('#absence_date').val();
+    // Convert from school display format to Y-m-d via the date input
+    var d = new Date(raw.split('/').reverse ? raw : raw);
+    // Safest: just open with the raw value and let server parse it — but server expects Y-m-d
+    // So we POST-parse via moment or just open with display date in URL and let the input datepicker tell us
+    // Use a hidden input trick: server converts school date format already in save_substitution
+    // Here we pass as-is; duty_chart() can accept school date format too
+    window.open('<?php echo site_url('admin/tt/duty_chart'); ?>?date=' + encodeURIComponent(raw), '_blank');
+  });
 
   // Cancel substitution
   $(document).on('click', '.btn-cancel-sub', function(){
