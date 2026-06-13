@@ -1148,6 +1148,12 @@ class Tt extends Admin_Controller
         $section_id = (int) $this->input->get('section_id');
         $data = $this->_loadClassGridData($class_id, $section_id);
         $data['for_print'] = false;
+        // Use local path instead of URL so mpdf doesn't need to make an HTTP request
+        $header_img = $this->setting_model->get_general_purpose_header();
+        if ($header_img) {
+            $local_path = FCPATH . 'uploads/print_headerfooter/general_purpose/' . $header_img;
+            $data['header_img_url'] = file_exists($local_path) ? $local_path : null;
+        }
         $html = $this->load->view('admin/tt/print_class_grid', $data, true);
 
         $this->load->library('m_pdf');
@@ -1186,7 +1192,7 @@ class Tt extends Admin_Controller
         $rows  = '';
 
         // Title rows
-        $school_name = $this->sch_setting_detail->name ?? '';
+        $school_name = isset($this->sch_setting_detail->name) ? $this->sch_setting_detail->name : '';
         if ($school_name) {
             $rows .= '<tr><td colspan="' . $col_span . '" style="font-size:15pt;font-weight:bold;text-align:center;background:#2C3E50;color:#FFFFFF;">'
                    . htmlspecialchars($school_name) . '</td></tr>';

@@ -300,13 +300,13 @@ $(function(){
     window.open('<?php echo site_url('admin/tt/print_class_grid'); ?>?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id, '_blank');
   });
 
-  // Excel: server-side export (includes school header)
+  // Excel: use location.href so the file downloads in-place without opening a blank tab
   $('#btn-excel-grid').on('click', function(){
     if (!loaded_class_id) return;
-    window.open('<?php echo site_url('admin/tt/export_class_grid_excel'); ?>?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id, '_blank');
+    window.location.href = '<?php echo site_url('admin/tt/export_class_grid_excel'); ?>?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id;
   });
 
-  // PDF: server-side export (includes school header image)
+  // PDF: open in new tab so the browser can display it inline
   $('#btn-pdf-grid').on('click', function(){
     if (!loaded_class_id) return;
     window.open('<?php echo site_url('admin/tt/export_class_grid_pdf'); ?>?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id, '_blank');
