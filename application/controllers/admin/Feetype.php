@@ -35,6 +35,7 @@ class Feetype extends Admin_Controller
                 'code'        => $this->input->post('code'),
                 'description' => $this->input->post('description'),
                 'sub_merchant_id' => $this->input->post('sub_merchant_id'),
+                'is_active'   => 'yes',
             );
             $this->feetype_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
@@ -88,11 +89,25 @@ class Feetype extends Admin_Controller
                 'code'        => $this->input->post('code'),
                 'description' => $this->input->post('description'),
                 'sub_merchant_id' => $this->input->post('sub_merchant_id'),
+                'is_active'   => $this->input->post('is_active') === 'yes' ? 'yes' : 'no',
             );
             $this->feetype_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
             redirect('admin/feetype/index');
         }
+    }
+
+    public function toggle_active($id)
+    {
+        if (!$this->rbac->hasPrivilege('fees_type', 'can_edit')) {
+            access_denied();
+        }
+        $feetype = $this->feetype_model->get($id);
+        if ($feetype) {
+            $new_status = ($feetype['is_active'] === 'yes') ? 'no' : 'yes';
+            $this->feetype_model->add(array('id' => $id, 'is_active' => $new_status));
+        }
+        redirect('admin/feetype/index');
     }
 
 }

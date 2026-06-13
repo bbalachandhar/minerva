@@ -75,10 +75,9 @@
                             <table class="table table-striped table-bordered table-hover example">
                                 <thead>
                                     <tr>
-                                        <th><?php echo $this->lang->line('name'); ?>
-                                        </th>
+                                        <th><?php echo $this->lang->line('name'); ?></th>
                                         <th><?php echo $this->lang->line('fees_code'); ?></th>
-                                        <th><?php echo $this->lang->line('is_system'); ?></th>
+                                        <th>Active</th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>
@@ -106,7 +105,14 @@
                                             <td class="mailbox-name">
                                                 <?php echo $feetype['code']; ?>
                                             </td>
-                                            <td><?php echo ($feetype['is_system'] == 1) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
+                                            <td>
+                                                <a href="<?php echo base_url(); ?>admin/feetype/toggle_active/<?php echo $feetype['id']; ?>"
+                                                   class="btn btn-xs <?php echo ($feetype['is_active'] === 'yes') ? 'btn-success' : 'btn-default'; ?>"
+                                                   data-toggle="tooltip"
+                                                   title="Click to <?php echo ($feetype['is_active'] === 'yes') ? 'deactivate' : 'activate'; ?>">
+                                                    <?php echo ($feetype['is_active'] === 'yes') ? 'Yes' : 'No'; ?>
+                                                </a>
+                                            </td>
                                             <td class="mailbox-date pull-right">
                                                 <?php
                                                 if ($this->rbac->hasPrivilege('fees_type', 'can_edit')) {

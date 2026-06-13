@@ -50,6 +50,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder=""><?php echo set_value('description'); ?><?php echo set_value('description', $feetype['description']) ?></textarea>
                                     <span class="text-danger"><?php echo form_error('description'); ?></span>
                                 </div>
+                                <div class="form-group">
+                                    <label>Active</label>
+                                    <select name="is_active" class="form-control">
+                                        <option value="yes" <?php echo ($feetype['is_active'] === 'yes') ? 'selected' : ''; ?>>Yes</option>
+                                        <option value="no"  <?php echo ($feetype['is_active'] !== 'yes') ? 'selected' : ''; ?>>No</option>
+                                    </select>
+                                </div>
                             </div><!-- /.box-body -->
                             <div class="box-footer">
                                 <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
