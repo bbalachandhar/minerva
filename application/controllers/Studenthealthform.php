@@ -9,7 +9,6 @@ class Studenthealthform extends CI_Controller
         $this->load->database();
         $this->load->model('Student_health_model');
         $this->load->model('Setting_model');
-        $this->load->library('media_storage');
         $this->load->helper(['url', 'form']);
     }
 
@@ -19,7 +18,7 @@ class Studenthealthform extends CI_Controller
         $sch = $this->db->select('name')->from('sch_settings')->limit(1)->get()->row();
         $header_img = $this->Setting_model->get_general_purpose_header();
         $header_url = $header_img
-            ? $this->media_storage->getImageURL('/uploads/print_headerfooter/general_purpose/' . $header_img)
+            ? base_url('uploads/print_headerfooter/general_purpose/' . $header_img)
             : null;
         return [
             'school_name' => $sch->name ?? '',
@@ -137,7 +136,7 @@ class Studenthealthform extends CI_Controller
         $sch        = $this->db->select('name')->from('sch_settings')->limit(1)->get()->row();
         $header_img = $this->Setting_model->get_general_purpose_header();
         $header_url = $header_img
-            ? $this->media_storage->getImageURL('/uploads/print_headerfooter/general_purpose/' . $header_img)
+            ? base_url('uploads/print_headerfooter/general_purpose/' . $header_img)
             : null;
 
         $data = [
