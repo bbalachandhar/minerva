@@ -124,6 +124,8 @@ $route['enquiry'] = 'enquiry';
 $route['enquiry/(:any)'] = 'enquiry/$1';
 $route['complaint'] = 'complaintform';
 $route['complaint/(:any)'] = 'complaintform/$1';
+$route['studenthealthform'] = 'studenthealthform';
+$route['studenthealthform/(:any)'] = 'studenthealthform/$1';
 
 $route['site/applicantlogin'] = 'site/applicantlogin';
 $route['public_admission/applicant_dashboard'] = 'public_admission/applicant_dashboard';
