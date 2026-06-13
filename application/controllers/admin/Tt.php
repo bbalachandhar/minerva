@@ -1146,30 +1146,98 @@ class Tt extends Admin_Controller
         if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_view')) { access_denied(); }
         $class_id   = (int) $this->input->get('class_id');
         $section_id = (int) $this->input->get('section_id');
-        $data = $this->_loadClassGridData($class_id, $section_id);
-        $data['for_print'] = false;
-        // Use local path instead of URL so mpdf doesn't need to make an HTTP request
+        $d = $this->_loadClassGridData($class_id, $section_id);
+        $day_names   = array_keys($d['days']);
+        $school_name = isset($this->sch_setting_detail->name) ? $this->sch_setting_detail->name : '';
+
+        // Local path for header image — mpdf reads files directly (no HTTP fetch)
         $header_img = $this->setting_model->get_general_purpose_header();
+        $img_local  = null;
         if ($header_img) {
-            $local_path = FCPATH . 'uploads/print_headerfooter/general_purpose/' . $header_img;
-            $data['header_img_url'] = file_exists($local_path) ? $local_path : null;
+            $p = FCPATH . 'uploads/print_headerfooter/general_purpose/' . $header_img;
+            if (file_exists($p)) $img_local = $p;
         }
-        $html = $this->load->view('admin/tt/print_class_grid', $data, true);
+
+        // Build mpdf-safe HTML (avoid object-fit / max-height / inline-block — unsupported in mpdf)
+        $type_bg = ['theory'=>'#3498db','practical'=>'#e74c3c','project'=>'#f39c12','other'=>'#7f8c8d'];
+        $n       = count($day_names);
+
+        $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+body{font-family:dejavusans,Arial,sans-serif;font-size:9pt;color:#333;margin:0;padding:0;}
+table{width:100%;border-collapse:collapse;}
+th{background:#3c8dbc;color:#fff;padding:5px 3px;text-align:center;border:1px solid #2980b9;font-size:9pt;}
+td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center;}
+.tc{background:#f4f4f4;text-align:left;width:68pt;}
+.brk td{background:#fffde7;color:#888;font-style:italic;}
+.stag{color:#fff;font-weight:bold;font-size:8pt;padding:1px 4px;border-radius:3px;}
+.stn{font-size:7pt;color:#555;display:block;margin-top:1px;}
+</style></head><body>';
+
+        // Header image (explicit mm height so mpdf doesn't render at natural pixel size)
+        if ($img_local) {
+            $html .= '<div style="border-bottom:2px solid #3c8dbc;margin-bottom:8pt;padding-bottom:6pt;">'
+                   . '<img src="' . $img_local . '" style="width:100%;height:28mm;display:block;" alt="">'
+                   . '</div>';
+        } elseif ($school_name) {
+            $html .= '<div style="text-align:center;border-bottom:2px solid #3c8dbc;margin-bottom:8pt;padding-bottom:6pt;">'
+                   . '<span style="font-size:15pt;font-weight:bold;color:#2c3e50;">' . htmlspecialchars($school_name) . '</span>'
+                   . '</div>';
+        }
+
+        $html .= '<h2 style="text-align:center;font-size:12pt;margin:6pt 0 8pt;color:#2c3e50;">'
+               . 'Class Timetable &mdash; ' . htmlspecialchars($d['class_label'] . ' ' . $d['section_label'])
+               . '</h2>';
+
+        $html .= '<table><thead><tr><th class="tc">Period / Time</th>';
+        foreach ($day_names as $dn) { $html .= '<th>' . htmlspecialchars($dn) . '</th>'; }
+        $html .= '</tr></thead><tbody>';
+
+        foreach ($d['periods'] as $period) {
+            $t = date('h:i', strtotime($period->start_time)) . ' - ' . date('h:i', strtotime($period->end_time));
+            if ($period->is_break) {
+                $html .= '<tr class="brk"><td class="tc"><b>' . htmlspecialchars($period->name) . '</b><br><small>' . $t . '</small></td>'
+                       . '<td colspan="' . $n . '">' . htmlspecialchars($period->break_label ?: $period->name) . '</td></tr>';
+            } else {
+                $html .= '<tr><td class="tc"><b>' . htmlspecialchars($period->name) . '</b><br><small>' . $t . '</small></td>';
+                foreach ($day_names as $dn) {
+                    $e = $d['entry_map'][$dn][$period->id][0] ?? null;
+                    if ($e) {
+                        if ($e->is_free_period) {
+                            $html .= '<td><span class="stag" style="background:#27ae60;">' . htmlspecialchars($e->free_period_label ?: 'Free') . '</span></td>';
+                        } else {
+                            $abbr  = !empty($e->tt_abbr) ? $e->tt_abbr : ($e->subject_code ?: $e->subject_name);
+                            $tname = trim(($e->staff_name ?? '') . ' ' . ($e->staff_surname ?? ''));
+                            $bg    = !empty($e->tt_color) ? $e->tt_color : ($type_bg[strtolower($e->subject_type ?? 'other')] ?? '#7f8c8d');
+                            $html .= '<td><span class="stag" style="background:' . $bg . ';">' . htmlspecialchars($abbr) . '</span>'
+                                   . ($tname ? '<span class="stn">' . htmlspecialchars($tname) . '</span>' : '')
+                                   . '</td>';
+                        }
+                    } else {
+                        $html .= '<td></td>';
+                    }
+                }
+                $html .= '</tr>';
+            }
+        }
+
+        $html .= '</tbody></table>';
+        $html .= '<p style="text-align:right;font-size:7pt;color:#aaa;margin-top:6pt;">Printed: ' . date('d M Y, h:i A') . '</p>';
+        $html .= '</body></html>';
 
         $this->load->library('m_pdf');
         $mpdf = $this->m_pdf->load([
             'tempDir'      => sys_get_temp_dir(),
             'mode'         => 'utf-8',
-            'default_font' => 'roboto',
+            'default_font' => 'dejavusans',
             'margin_left'  => 8,
             'margin_right' => 8,
-            'margin_top'   => 5,
-            'margin_bottom'=> 8,
+            'margin_top'   => 6,
+            'margin_bottom'=> 6,
             'format'       => 'A4-L',
         ]);
         $mpdf->WriteHTML($html);
         $fname = 'timetable_' . preg_replace('/[^a-zA-Z0-9]/', '_',
-            $data['class_label'] . '_' . $data['section_label']) . '_' . date('Ymd') . '.pdf';
+            $d['class_label'] . '_' . $d['section_label']) . '_' . date('Ymd') . '.pdf';
         $mpdf->Output($fname, 'D');
         exit;
     }
