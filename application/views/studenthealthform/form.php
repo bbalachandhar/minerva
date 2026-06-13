@@ -75,12 +75,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
 .radio-card.active{border-color:#e53935;background:#fdecea;color:#e53935;font-weight:700}
 
 /* Nav buttons */
-.nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);padding:12px 16px;display:flex;gap:10px;justify-content:center;width:100%;max-width:680px;background:transparent;border-top:none;pointer-events:none}
+.nav-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:0 16px;display:flex;gap:10px;justify-content:center;width:100%;max-width:680px;background:transparent;border:none;pointer-events:none}
 .nav-bar button{pointer-events:all}
-.btn-back{flex:1;padding:13px;border:2px solid #e0e0e0;background:#fff;border-radius:10px;font-size:15px;font-weight:600;color:#666;cursor:pointer;max-width:140px}
-.btn-next{flex:2;padding:13px;background:linear-gradient(135deg,#e53935,#b71c1c);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;max-width:300px}
+.btn-back{flex:1;padding:13px;border:2px solid #ccc;background:rgba(255,255,255,0.92);border-radius:10px;font-size:15px;font-weight:600;color:#555;cursor:pointer;max-width:140px;box-shadow:0 4px 14px rgba(0,0,0,.12);backdrop-filter:blur(4px)}
+.btn-next{flex:2;padding:13px;background:linear-gradient(135deg,#e53935,#b71c1c);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;max-width:300px;box-shadow:0 4px 14px rgba(229,57,53,.4)}
 .btn-next:disabled{opacity:.6;cursor:not-allowed}
-.btn-submit{flex:2;padding:13px;background:linear-gradient(135deg,#43a047,#1b5e20);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;max-width:300px}
+.btn-submit{flex:2;padding:13px;background:linear-gradient(135deg,#43a047,#1b5e20);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;max-width:300px;box-shadow:0 4px 14px rgba(67,160,71,.4)}
 
 @media(max-width:480px){
   .form-row{grid-template-columns:1fr}
