@@ -731,24 +731,25 @@ class Tt_generator_model extends MY_Model
      * Returns a negative score when a single-period subject would land
      * immediately next to one of its already-placed periods on the same day.
      *
-     * Only fires when max_per_day = 1 (strict spread — user explicitly said
-     * "one per day", so adjacent is always wrong).
-     *
-     * When max_per_day >= 2 the user has allowed multiple periods on the same
-     * day (e.g. Maths 5 PPW, 2/day OK), so consecutive placement is fine —
-     * no penalty applied.
+     * max_per_day = 1  → strong penalty (-25): back-to-back is always wrong
+     * max_per_day > 1  → soft penalty (-8): same day is allowed but consecutive
+     *                    slots are still undesirable (e.g. Maths 5×/week, 2/day OK
+     *                    but periods 5+6 back-to-back is poor pedagogy — prefer
+     *                    spacing them across non-adjacent slots).
+     * consec > 1       → no penalty: explicitly configured double/triple block.
      */
     private function _adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec, $max_per_day)
     {
-        if ($consec > 1)    return 0;  // intentional double/triple block
-        if ($max_per_day > 1) return 0;  // user allows >1/day → consecutive is acceptable
+        if ($consec > 1) return 0;  // intentional double/triple block
         $placed = $this->subject_day_periods[$class_id][$section_id][$sgs_id][$day] ?? [];
         if (empty($placed)) return 0;
 
         $period_idx    = array_flip($this->period_order);
         $candidate_idx = $period_idx[$pid_group[0]] ?? -99;
         foreach ($placed as $pp) {
-            if (abs($candidate_idx - ($period_idx[$pp] ?? -99)) === 1) return -25;
+            if (abs($candidate_idx - ($period_idx[$pp] ?? -99)) === 1) {
+                return $max_per_day > 1 ? -8 : -25;
+            }
         }
         return 0;
     }
