@@ -62,6 +62,27 @@ class Student_health_model extends CI_Model
         }
     }
 
+    public function getStudentsWithHealthStatus($session_id, $class_id = null, $section_id = null)
+    {
+        $this->db->select('s.id, s.firstname, s.middlename, s.lastname, s.admission_no,
+                           cl.class, sc.section,
+                           shr.id as health_record_id, shr.form_token, shr.declaration_date,
+                           shr.updated_at as submitted_at')
+            ->from('students s')
+            ->join('student_session ss', "ss.student_id = s.id AND ss.is_active = 'yes'", 'left')
+            ->join('classes cl',         'cl.id = ss.class_id',     'left')
+            ->join('sections sc',        'sc.id = ss.section_id',   'left')
+            ->join('student_health_records shr', 'shr.student_id = s.id', 'left')
+            ->where('s.is_active', 'yes')
+            ->where('ss.session_id', $session_id);
+
+        if ($class_id)   $this->db->where('ss.class_id',   $class_id);
+        if ($section_id) $this->db->where('ss.section_id', $section_id);
+
+        return $this->db->order_by('cl.class')->order_by('sc.section')->order_by('s.firstname')
+            ->get()->result_array();
+    }
+
     public function getStudentById($student_id)
     {
         return $this->db
