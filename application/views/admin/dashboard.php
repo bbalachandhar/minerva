@@ -549,8 +549,36 @@ foreach ($notifications as $notice_key => $notice_value) {
             ?>
         </div>
         <style>
-        @media (min-width: 992px) {
-          #dashboard-widgets-row5 > div[class*="col-"] { width: 20%; }
+        /* Auto-fill top widget row regardless of how many widgets are RBAC-visible */
+        .equal-height-row {
+            display: flex !important;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+        .equal-height-row > [class*="col-"] {
+            flex: 1 1 180px;
+            width: auto !important;
+            float: none;
+        }
+        /* Info-box row (monthly fees / income / expense / WhatsApp) */
+        .info-box-row-flex {
+            display: flex !important;
+            flex-wrap: wrap;
+        }
+        .info-box-row-flex > [class*="col-"] {
+            flex: 1 1 200px;
+            width: auto !important;
+            float: none;
+        }
+        /* Stats row (fees-awaiting, leave, complaint, etc.) */
+        #dashboard-widgets-row5 {
+            display: flex !important;
+            flex-wrap: wrap;
+        }
+        #dashboard-widgets-row5 > [class*="col-"] {
+            flex: 1 1 180px;
+            width: auto !important;
+            float: none;
         }
         </style>
         <div class="row" id="dashboard-widgets-row5">
@@ -1079,7 +1107,7 @@ if (!empty($widget_col)) {
 
             <div class="row">
                 <div class="col-lg-9 col-md-9 col-sm-12 col80">
-                    <div class="row">
+                    <div class="row info-box-row-flex">
 <?php
 if ($this->module_lib->hasActive('fees_collection')) {
     if ($this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) {
