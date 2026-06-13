@@ -14,7 +14,7 @@ class Student_health_model extends CI_Model
                       cl.class, sc.section,
                       ss.session_id')
             ->from('students s')
-            ->join('student_session ss', 'ss.student_id = s.id AND ss.is_active = 1', 'left')
+            ->join('student_session ss', 'ss.student_id = s.id AND ss.is_active = \'yes\'', 'left')
             ->join('classes cl',         'cl.id = ss.class_id',                        'left')
             ->join('sections sc',        'sc.id = ss.section_id',                      'left')
             ->where('s.admission_no', $admission_no)
@@ -29,7 +29,7 @@ class Student_health_model extends CI_Model
         return $this->db
             ->select('s.firstname, s.lastname, s.admission_no, cl.class, sc.section')
             ->from('students s')
-            ->join('student_session ss', 'ss.student_id = s.id AND ss.is_active = 1', 'left')
+            ->join('student_session ss', 'ss.student_id = s.id AND ss.is_active = \'yes\'', 'left')
             ->join('classes cl',         'cl.id = ss.class_id',                        'left')
             ->join('sections sc',        'sc.id = ss.section_id',                      'left')
             ->where('s.father_phone', $father_phone)
@@ -73,7 +73,7 @@ class Student_health_model extends CI_Model
                       cl.class, sc.section,
                       se.session as session_name')
             ->from('students s')
-            ->join('student_session ss', 'ss.student_id = s.id AND ss.is_active = 1', 'left')
+            ->join('student_session ss', 'ss.student_id = s.id AND ss.is_active = \'yes\'', 'left')
             ->join('classes cl',         'cl.id = ss.class_id',                        'left')
             ->join('sections sc',        'sc.id = ss.section_id',                      'left')
             ->join('sessions se',        'se.id = ss.session_id',                      'left')
