@@ -313,8 +313,10 @@ class Tt_generator_model extends MY_Model
                             'section_id' => $section_id,
                             'subject'    => $load->subject_name . ' (' . ($load->subject_code ?? '') . ')',
                             'staff'      => $load->staff_name . ' ' . $load->staff_surname,
+                            'staff_id'   => $teacher_ids_load[0] ?? null,
                             'placement'  => ($p + 1) . ' of ' . $placements_needed,
-                            'reason'     => 'No available slot — teacher fully booked, class full, or constraints block all options.',
+                            'reason'     => $this->_diagnoseFailure($class_id, $section_id, $batch_key, $teacher_ids_load, $constraints),
+                            'type'       => 'no_slot',
                         ];
                         continue;
                     }
@@ -372,16 +374,23 @@ class Tt_generator_model extends MY_Model
 
                 // On1 check
                 if ($min_per_day && $placed_count > 0) {
-                    $days_covered = array_unique($subject_days_used);
-                    $missing_days = array_diff($this->working_days, $days_covered);
+                    $days_covered  = array_unique($subject_days_used);
+                    $missing_days  = array_diff($this->working_days, $days_covered);
+                    $wd_count      = count($this->working_days);
+                    $impossible    = $periods_pw < $wd_count;
                     foreach ($missing_days as $md) {
+                        $reason = $impossible
+                            ? "On1 warning: {$md} has no {$load->subject_name} — subject only has {$periods_pw} period(s)/week across {$wd_count} working days, so it cannot appear on every day. Disable the 'Min 1/day' setting for this subject."
+                            : "On1 warning: could not place {$load->subject_name} on {$md} — teacher or class unavailable that day.";
                         $conflicts[] = [
                             'class_id'   => $class_id,
                             'section_id' => $section_id,
                             'subject'    => $load->subject_name . ' (' . ($load->subject_code ?? '') . ')',
                             'staff'      => $load->staff_name . ' ' . $load->staff_surname,
+                            'staff_id'   => $teacher_ids_load[0] ?? null,
                             'placement'  => 'On1',
-                            'reason'     => "On1 violation: no slot placed on {$md}.",
+                            'reason'     => $reason,
+                            'type'       => 'on1',
                         ];
                     }
                 }
@@ -429,6 +438,41 @@ class Tt_generator_model extends MY_Model
             'class_stats'     => $class_stats,
             'dry_run'         => $dry_run,
         ];
+    }
+
+    /**
+     * Produces a specific, human-readable reason why placement failed.
+     * Checks teacher weekly cap, class grid fullness, and general unavailability.
+     */
+    private function _diagnoseFailure($class_id, $section_id, $batch_key, array $teacher_ids, $constraints)
+    {
+        $parts = [];
+
+        foreach ($teacher_ids as $t_id) {
+            $booked = $this->teacher_periods_week[$t_id] ?? 0;
+            $c = $constraints[$t_id] ?? null;
+            if ($c && $c->max_periods_per_week > 0 && $booked >= (int)$c->max_periods_per_week) {
+                $parts[] = "Teacher is at weekly maximum ({$booked} of {$c->max_periods_per_week} periods used)";
+            } elseif ($booked > 0) {
+                $parts[] = "Teacher has {$booked} period(s) booked — no free slot aligns with this class";
+            } else {
+                $parts[] = "Teacher has no bookings but all slots are blocked by unavailability or class constraints";
+            }
+        }
+
+        // Check class grid fullness
+        $used  = 0;
+        $total = count($this->working_days) * count($this->period_order);
+        foreach ($this->working_days as $day) {
+            foreach ($this->period_order as $pid) {
+                if (!empty($this->class_occ[$class_id][$section_id][$day][$pid][$batch_key])) $used++;
+            }
+        }
+        if ($used >= $total) {
+            $parts[] = "Class timetable is completely full ({$used}/{$total} slots)";
+        }
+
+        return implode('; ', $parts) ?: 'No available slot — teacher or class unavailability blocks all options.';
     }
 
     private function _findBestSlot($class_id, $section_id, $batch_key, $sgs_id,

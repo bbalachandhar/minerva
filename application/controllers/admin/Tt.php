@@ -797,6 +797,51 @@ class Tt extends Admin_Controller
         $data['conflicts']   = json_decode($log->conflict_details, true) ?: [];
         $data['periods']     = $this->Tt_period_model->getAll($data['session_id']);
 
+        // Enrich no_slot conflicts with live teacher booking diagnostics
+        $no_slot_staff_ids = [];
+        foreach ($data['conflicts'] as $c) {
+            $is_no_slot = ($c['type'] ?? '') === 'no_slot'
+                || (isset($c['placement']) && $c['placement'] !== 'On1' && strpos($c['reason'] ?? '', 'slot') !== false);
+            if ($is_no_slot && !empty($c['staff_id'])) {
+                $no_slot_staff_ids[] = (int)$c['staff_id'];
+            }
+        }
+        $no_slot_staff_ids = array_unique($no_slot_staff_ids);
+
+        $teacher_diagnostics = [];
+        if (!empty($no_slot_staff_ids)) {
+            $sid = $data['session_id'];
+            // All subject loads for these teachers in this session
+            $load_rows = $this->db->select('tslt.staff_id, c.class as class_name, sec.section as section_name, s.name as subject_name, tsl.periods_per_week, tsl.class_id, tsl.section_id')
+                ->from('tt_subject_load tsl')
+                ->join('tt_subject_load_teachers tslt', 'tslt.subject_load_id = tsl.id')
+                ->join('classes c', 'c.id = tsl.class_id')
+                ->join('sections sec', 'sec.id = tsl.section_id')
+                ->join('subject_group_subjects sgs', 'sgs.id = tsl.subject_group_subject_id')
+                ->join('subjects s', 's.id = sgs.subject_id')
+                ->where('tsl.session_id', $sid)
+                ->where_in('tslt.staff_id', $no_slot_staff_ids)
+                ->get()->result();
+
+            foreach ($load_rows as $row) {
+                $tid = (int)$row->staff_id;
+                $teacher_diagnostics[$tid]['assignments'][] = $row;
+                $teacher_diagnostics[$tid]['total_ppw'] = ($teacher_diagnostics[$tid]['total_ppw'] ?? 0) + (int)$row->periods_per_week;
+            }
+
+            // Teacher name and constraint
+            $staff_rows = $this->db->select('staff.id, staff.name, staff.surname, tc.max_periods_per_week')
+                ->from('staff')
+                ->join('tt_teacher_constraints tc', "tc.staff_id = staff.id AND tc.session_id = {$sid}", 'left')
+                ->where_in('staff.id', $no_slot_staff_ids)
+                ->get()->result();
+            foreach ($staff_rows as $sr) {
+                $teacher_diagnostics[$sr->id]['name']    = $sr->name . ' ' . $sr->surname;
+                $teacher_diagnostics[$sr->id]['max_ppw'] = $sr->max_periods_per_week;
+            }
+        }
+        $data['teacher_diagnostics'] = $teacher_diagnostics;
+
         $all_days    = $this->customlib->getDaysnameWithoutLang();
         $sch_settings = $this->setting_model->getSetting();
         $weekend_str  = isset($sch_settings->weekend_days) ? (string) $sch_settings->weekend_days : '';

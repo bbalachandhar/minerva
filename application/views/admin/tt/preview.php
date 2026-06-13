@@ -75,19 +75,25 @@ $color = $score >= 90 ? 'success' : ($score >= 70 ? 'warning' : 'danger');
 </div>
 
 <!-- Conflicts panel -->
-<?php if (!empty($conflicts)): ?>
-<div class="box box-warning collapsed-box">
+<?php
+$failures  = array_values(array_filter($conflicts, fn($c) => ($c['type'] ?? ($c['placement'] !== 'On1' ? 'no_slot' : 'on1')) === 'no_slot'));
+$warnings  = array_values(array_filter($conflicts, fn($c) => ($c['type'] ?? ($c['placement'] === 'On1'  ? 'on1' : 'no_slot')) === 'on1'));
+$td        = $teacher_diagnostics ?? [];
+?>
+
+<?php if (!empty($failures)): ?>
+<div class="box box-danger">
   <div class="box-header with-border">
-    <h3 class="box-title"><i class="fa fa-exclamation-triangle text-warning"></i>
-      <?php echo count($conflicts); ?> Unplaced Subjects — these could NOT be scheduled automatically</h3>
-    <div class="box-tools"><button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-plus"></i></button></div>
+    <h3 class="box-title"><i class="fa fa-times-circle text-danger"></i>
+      <?php echo count($failures); ?> Subject(s) could NOT be placed — actual missing period(s) in the grid</h3>
+    <div class="box-tools"><button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button></div>
   </div>
-  <div class="box-body" style="display:none;">
-    <table class="table table-sm table-bordered" style="font-size:12px;">
-      <thead><tr><th>Subject</th><th>Teacher</th><th>Placement</th><th>Reason</th></tr></thead>
+  <div class="box-body">
+    <table class="table table-bordered table-condensed" style="font-size:12px;">
+      <thead class="bg-danger"><tr><th>Subject</th><th>Teacher</th><th>Placement</th><th>Specific Reason</th></tr></thead>
       <tbody>
-        <?php foreach ($conflicts as $c): ?>
-        <tr class="warning">
+        <?php foreach ($failures as $c): ?>
+        <tr class="danger">
           <td><?php echo htmlspecialchars($c['subject']); ?></td>
           <td><?php echo htmlspecialchars($c['staff']); ?></td>
           <td><?php echo htmlspecialchars($c['placement']); ?></td>
@@ -96,12 +102,105 @@ $color = $score >= 90 ? 'success' : ($score >= 70 ? 'warning' : 'danger');
         <?php endforeach; ?>
       </tbody>
     </table>
-    <div class="alert alert-info" style="font-size:12px;margin-top:10px;">
-      <i class="fa fa-info-circle"></i>
-      To resolve conflicts: <strong>(1)</strong> Check teacher workload/unavailability, <strong>(2)</strong> Add more period slots, or <strong>(3)</strong> Reduce periods_per_week for affected subjects. Then re-generate.
+
+    <?php if (!empty($td)): ?>
+    <h4 style="margin-top:16px;margin-bottom:8px;"><i class="fa fa-user-times text-danger"></i> Teacher Booking Details</h4>
+    <?php foreach ($td as $tid => $info): ?>
+    <div class="panel panel-default" style="margin-bottom:10px;">
+      <div class="panel-heading" style="padding:8px 12px;">
+        <strong><?php echo htmlspecialchars($info['name'] ?? 'Unknown'); ?></strong>
+        &nbsp;—&nbsp;
+        Total assigned: <strong><?php echo $info['total_ppw'] ?? 0; ?> periods/week</strong>
+        <?php if (!empty($info['max_ppw'])): ?>
+          &nbsp;|&nbsp; Weekly cap: <strong><?php echo $info['max_ppw']; ?></strong>
+        <?php else: ?>
+          &nbsp;|&nbsp; <span class="text-muted">No weekly cap set</span>
+        <?php endif; ?>
+      </div>
+      <div class="panel-body" style="padding:0;">
+        <table class="table table-condensed table-bordered" style="margin:0;font-size:12px;">
+          <thead><tr><th>Class</th><th>Section</th><th>Subject</th><th>Periods/Week</th></tr></thead>
+          <tbody>
+            <?php foreach (($info['assignments'] ?? []) as $a): ?>
+            <tr>
+              <td><?php echo htmlspecialchars($a->class_name); ?></td>
+              <td><?php echo htmlspecialchars($a->section_name); ?></td>
+              <td><?php echo htmlspecialchars($a->subject_name); ?></td>
+              <td><strong><?php echo $a->periods_per_week; ?></strong></td>
+            </tr>
+            <?php endforeach; ?>
+            <tr class="active">
+              <td colspan="3"><strong>Total</strong></td>
+              <td><strong><?php echo $info['total_ppw'] ?? 0; ?></strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <?php endforeach; ?>
+    <div class="alert alert-danger" style="font-size:12px;margin-top:8px;">
+      <i class="fa fa-lightbulb-o"></i>
+      <strong>How to fix:</strong> If the teacher teaches many classes, generate <strong>all classes together</strong> in one run — the generator will distribute their periods optimally. Alternatively, set a Teacher Constraint (max periods/week) and reduce their load.
+    </div>
+    <?php endif; ?>
+  </div>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($warnings)): ?>
+<?php
+// Group On1 warnings by subject to show a clean summary
+$on1_summary = [];
+foreach ($warnings as $w) {
+    $key = $w['subject'] . '||' . $w['staff'];
+    if (!isset($on1_summary[$key])) {
+        $on1_summary[$key] = ['subject' => $w['subject'], 'staff' => $w['staff'], 'days' => [], 'reason' => $w['reason']];
+    }
+    // Extract day name from reason
+    preg_match('/(?:On1 (?:warning|violation)[^:]*: [^\s]+ [^\s]+ [^\s]+ )(\w+)/', $w['reason'], $m);
+    if (!empty($m[1])) $on1_summary[$key]['days'][] = $m[1];
+}
+?>
+<div class="box box-warning collapsed-box">
+  <div class="box-header with-border">
+    <h3 class="box-title"><i class="fa fa-info-circle text-warning"></i>
+      <?php echo count($warnings); ?> Distribution Warning(s) — subjects ARE placed, just not on every day</h3>
+    <div class="box-tools"><button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-plus"></i></button></div>
+  </div>
+  <div class="box-body" style="display:none;">
+    <div class="alert alert-warning" style="font-size:12px;margin-bottom:10px;">
+      <i class="fa fa-check-circle"></i>
+      <strong>These are NOT missing periods.</strong> The subjects below have the <em>Min 1/day</em> (On1) setting enabled, meaning they should appear on every working day. But their period count is too low to cover all days — so some days are skipped. The grid is still correctly filled.
+    </div>
+    <table class="table table-bordered table-condensed" style="font-size:12px;">
+      <thead><tr><th>Subject</th><th>Teacher</th><th>What to do</th></tr></thead>
+      <tbody>
+        <?php foreach ($on1_summary as $row): ?>
+        <tr class="warning">
+          <td><?php echo htmlspecialchars($row['subject']); ?></td>
+          <td><?php echo htmlspecialchars($row['staff']); ?></td>
+          <td><?php
+            // Detect impossible On1 from reason text
+            if (strpos($row['reason'], 'cannot appear on every day') !== false || strpos($row['reason'], 'Disable') !== false) {
+                echo '<span class="text-danger"><i class="fa fa-times"></i> <strong>Disable Min 1/day</strong> — not enough periods/week to appear every day</span>';
+            } else {
+                echo '<span class="text-warning"><i class="fa fa-exclamation-triangle"></i> Teacher/class unavailable on some days — regenerating all classes together may help</span>';
+            }
+          ?></td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+    <div class="alert alert-info" style="font-size:12px;margin-top:6px;">
+      <i class="fa fa-wrench"></i>
+      Go to <strong>Subject Load setup</strong> and uncheck <em>Min 1/day</em> for subjects with fewer periods/week than working days (Library=2, Hindi=3, Computer Science=4, Physical Education=4). This will eliminate all these warnings.
     </div>
   </div>
 </div>
+<?php endif; ?>
+
+<?php if (empty($conflicts)): ?>
+<div class="alert alert-success"><i class="fa fa-check-circle"></i> All subjects placed successfully — no conflicts.</div>
 <?php endif; ?>
 
 <!-- Draft preview per class -->
