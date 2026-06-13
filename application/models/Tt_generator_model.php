@@ -269,10 +269,10 @@ class Tt_generator_model extends MY_Model
                 $pref_room  = !empty($load->preferred_room_id) ? (int)$load->preferred_room_id : null;
                 $sgs_id     = (int) $load->subject_group_subject_id;
 
-                // Adjust max_per_day based on strictness
+                // max_per_day is a hard user constraint — never override it.
+                // strict mode may tighten it to 1; relaxed mode must not loosen it.
                 $max_per_day = (int) ($load->max_per_day ?? 2);
-                if ($gen_strictness === 'strict')  $max_per_day = min($max_per_day, 1);
-                if ($gen_strictness === 'relaxed') $max_per_day = max($max_per_day, 3);
+                if ($gen_strictness === 'strict') $max_per_day = min($max_per_day, 1);
 
                 $min_per_day  = !empty($load->min_per_day) ? 1 : 0;
                 $dist_evenly  = !empty($load->distribute_evenly);
