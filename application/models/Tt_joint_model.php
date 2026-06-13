@@ -216,15 +216,16 @@ class Tt_joint_model extends MY_Model
                 'joint_lesson_id'          => $joint_lesson_id,
             ];
 
-            if ($existing && $existing->joint_lesson_id == $joint_lesson_id) {
+            if ($existing) {
+                if ($existing->joint_lesson_id !== null && (int)$existing->joint_lesson_id !== $joint_lesson_id) {
+                    continue; // Owned by a different joint lesson — skip
+                }
+                // Owned by this joint lesson OR unowned manual row (joint_lesson_id=NULL) — claim/update
                 $this->db->where('id', $existing->id)->update('tt_subject_load', $load_row);
                 $load_id = $existing->id;
-            } elseif (!$existing) {
+            } else {
                 $this->db->insert('tt_subject_load', $load_row);
                 $load_id = $this->db->insert_id();
-            } else {
-                // Owned by a different joint or manual — leave it alone
-                continue;
             }
 
             // Sync teacher pool
