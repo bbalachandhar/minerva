@@ -34,6 +34,17 @@
         <button class="btn btn-default btn-block" id="btn-print-teacher"><i class="fa fa-print"></i> Print</button>
       </div>
     </div>
+    <!-- Week navigation (shown after first load) -->
+    <div class="row" id="week-nav-row" style="display:none;margin-top:8px;">
+      <div class="col-md-12 text-center">
+        <div class="btn-group">
+          <button class="btn btn-sm btn-default" id="btn-week-prev"><i class="fa fa-chevron-left"></i> Prev Week</button>
+          <button class="btn btn-sm btn-default" id="btn-week-cur"><i class="fa fa-calendar"></i> Current Week</button>
+          <button class="btn btn-sm btn-default" id="btn-week-next">Next Week <i class="fa fa-chevron-right"></i></button>
+        </div>
+        <span id="week-label" class="text-muted" style="margin-left:10px;font-size:12px;"></span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -72,6 +83,7 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
   var lastStaffName = '';
+  var weekOffset = 0;
 
   $('#tv_staff').select2({ placeholder: '-- Select Teacher --', allowClear: true, width: '100%' });
 
@@ -82,34 +94,45 @@ $(function(){
     $('#btn-next-teacher').prop('disabled', idx < 0 || idx >= $opts.length - 1);
   }
 
+  function weekLabel(offset) {
+    if (offset === 0) return 'Current Week';
+    return offset > 0 ? ('Next Week +' + offset) : ('Prev Week ' + offset);
+  }
+
   function loadTeacher(){
     var staff_id = $('#tv_staff').val();
     if (!staff_id) { alert('Please select a teacher.'); return; }
     lastStaffName = $('#tv_staff option:selected').text().trim();
     var $btn = $('#btn-load-teacher-grid').prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/load_teacher_grid'); ?>',
-      {staff_id: staff_id, [csrf_name]: csrf_val}, function(res){
+      {staff_id: staff_id, week_offset: weekOffset, [csrf_name]: csrf_val}, function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-search"></i> Load');
         if (res.status === '1') {
           $('#tv-placeholder').hide();
           $('#teacher-grid-container').html(res.html);
+          $('#week-nav-row').show();
+          $('#week-label').text(weekLabel(weekOffset));
           updateNavButtons();
         }
       },'json');
   }
 
-  $('#btn-load-teacher-grid').on('click', loadTeacher);
+  $('#btn-load-teacher-grid').on('click', function(){ weekOffset = 0; loadTeacher(); });
+
+  $('#btn-week-prev').on('click', function(){ weekOffset--; loadTeacher(); });
+  $('#btn-week-cur').on('click',  function(){ weekOffset = 0; loadTeacher(); });
+  $('#btn-week-next').on('click', function(){ weekOffset++; loadTeacher(); });
 
   $('#btn-prev-teacher').on('click', function(){
     var $opts = $('#tv_staff option[value!=""]');
     var idx   = $opts.index($('#tv_staff option:selected'));
-    if (idx > 0) { $('#tv_staff').val($opts.eq(idx-1).val()).trigger('change'); loadTeacher(); }
+    if (idx > 0) { $('#tv_staff').val($opts.eq(idx-1).val()).trigger('change'); weekOffset = 0; loadTeacher(); }
   });
 
   $('#btn-next-teacher').on('click', function(){
     var $opts = $('#tv_staff option[value!=""]');
     var idx   = $opts.index($('#tv_staff option:selected'));
-    if (idx < $opts.length - 1) { $('#tv_staff').val($opts.eq(idx+1).val()).trigger('change'); loadTeacher(); }
+    if (idx < $opts.length - 1) { $('#tv_staff').val($opts.eq(idx+1).val()).trigger('change'); weekOffset = 0; loadTeacher(); }
   });
 
   $('#btn-print-teacher').on('click', function(){

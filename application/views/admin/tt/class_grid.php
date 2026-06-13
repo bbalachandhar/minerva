@@ -47,6 +47,17 @@
         </div>
       </div>
     </div>
+    <!-- Week navigation (shown after first load) -->
+    <div class="row" id="week-nav-row" style="display:none;margin-top:8px;">
+      <div class="col-md-12 text-center">
+        <div class="btn-group">
+          <button class="btn btn-sm btn-default" id="btn-week-prev"><i class="fa fa-chevron-left"></i> Prev Week</button>
+          <button class="btn btn-sm btn-default" id="btn-week-cur"><i class="fa fa-calendar"></i> Current Week</button>
+          <button class="btn btn-sm btn-default" id="btn-week-next">Next Week <i class="fa fa-chevron-right"></i></button>
+        </div>
+        <span id="week-label" class="text-muted" style="margin-left:10px;font-size:12px;"></span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -196,6 +207,12 @@ $(function(){
   var loaded_class_id = 0, loaded_section_id = 0;
   var schoolName = '<?php echo addslashes($this->sch_setting_detail->name ?? ''); ?>';
   var exportDT = null;
+  var weekOffset = 0;
+
+  function weekLabel(offset) {
+    if (offset === 0) return 'Current Week';
+    return offset > 0 ? ('Next Week +' + offset) : ('Prev Week ' + offset);
+  }
 
   function initExportDataTable(flat_rows, flat_cols, cls_label) {
     // Destroy previous instance if any
@@ -244,13 +261,13 @@ $(function(){
     });
   }
 
-  // Load grid
-  $('#btn-load-grid').on('click', function(){
+  function loadGrid(resetWeek) {
     var class_id = $('#cg_class').val(), section_id = $('#cg_section').val();
     if (!class_id || !section_id) { alert('Please select Class and Section.'); return; }
-    var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Loading...');
+    if (resetWeek) weekOffset = 0;
+    var $btn = $('#btn-load-grid').prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Loading...');
     $.post('<?php echo site_url('admin/tt/load_class_grid'); ?>',
-      {class_id: class_id, section_id: section_id, [csrf_name]: csrf_val}, function(res){
+      {class_id: class_id, section_id: section_id, week_offset: weekOffset, [csrf_name]: csrf_val}, function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-table"></i> Load');
         if (res.status === '1') {
           $('#grid-placeholder').hide();
@@ -263,9 +280,18 @@ $(function(){
           loaded_section_id = section_id;
           initExportDataTable(res.flat_rows || [], res.flat_cols || [], res.cls_label || '');
           $('#export-btns').show();
+          $('#week-nav-row').show();
+          $('#week-label').text(weekLabel(weekOffset));
         }
       },'json');
-  });
+  }
+
+  // Load grid
+  $('#btn-load-grid').on('click', function(){ loadGrid(true); });
+
+  $('#btn-week-prev').on('click', function(){ weekOffset--; loadGrid(false); });
+  $('#btn-week-cur').on('click',  function(){ weekOffset = 0; loadGrid(false); });
+  $('#btn-week-next').on('click', function(){ weekOffset++; loadGrid(false); });
 
   // Print: server-side page with header, auto-triggers window.print()
   $('#btn-print-grid').on('click', function(){
@@ -375,7 +401,7 @@ $(function(){
         $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save');
         if (res.status === '1') {
           $('#cell-modal').modal('hide');
-          $('#btn-load-grid').trigger('click');
+          loadGrid(false);
         } else {
           $('#conflict-msg').text(res.message || 'Error saving.').show();
         }
@@ -387,7 +413,7 @@ $(function(){
     if (!confirm('Remove this slot?')) return;
     var id = $('#cell_id').val();
     $.post('<?php echo site_url('admin/tt/delete_cell/'); ?>'+id, {[csrf_name]: csrf_val}, function(res){
-      if (res.status === '1') { $('#cell-modal').modal('hide'); $('#btn-load-grid').trigger('click'); }
+      if (res.status === '1') { $('#cell-modal').modal('hide'); loadGrid(false); }
     },'json');
   });
 
@@ -398,7 +424,7 @@ $(function(){
     var locked = $btn.data('locked') == 1 ? 0 : 1;
     $.post('<?php echo site_url('admin/tt/toggle_lock'); ?>',
       {id: id, locked: locked, [csrf_name]: csrf_val}, function(res){
-        if (res.status === '1') { $('#cell-modal').modal('hide'); $('#btn-load-grid').trigger('click'); }
+        if (res.status === '1') { $('#cell-modal').modal('hide'); loadGrid(false); }
       },'json');
   });
 });

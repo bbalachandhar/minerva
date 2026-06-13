@@ -50,6 +50,24 @@ class Tt extends Admin_Controller
         return $days;
     }
 
+    private function _calcWeekDates(array $days, int $week_offset = 0): array
+    {
+        $dow_num  = [1=>'Monday',2=>'Tuesday',3=>'Wednesday',4=>'Thursday',5=>'Friday',6=>'Saturday',7=>'Sunday'];
+        $name_dow = array_flip($dow_num); // name => ISO day number (Mon=1)
+
+        $today        = mktime(0, 0, 0, (int)date('n'), (int)date('j'), (int)date('Y'));
+        $iso_dow      = (int)date('N', $today); // 1=Mon … 7=Sun
+        $this_monday  = $today - ($iso_dow - 1) * 86400;
+        $target_monday = $this_monday + $week_offset * 7 * 86400;
+
+        $dates = [];
+        foreach (array_keys($days) as $day_name) {
+            $offset = ($name_dow[$day_name] ?? 1) - 1; // 0-based from Monday
+            $dates[$day_name] = date('d M', $target_monday + $offset * 86400);
+        }
+        return $dates;
+    }
+
     // =========================================================================
     // DASHBOARD
     // =========================================================================
@@ -665,8 +683,9 @@ class Tt extends Admin_Controller
             'preferred_room_id'    => (int) $this->input->post('preferred_room_id') ?: null,
             'preferred_start_time' => $this->input->post('preferred_start_time') ?: null,
             'preferred_end_time'   => $this->input->post('preferred_end_time') ?: null,
-            'avoid_first_period'   => (int) $this->input->post('avoid_first_period'),
-            'avoid_last_period'    => (int) $this->input->post('avoid_last_period'),
+            'avoid_first_period'          => (int) $this->input->post('avoid_first_period'),
+            'avoid_last_period'           => (int) $this->input->post('avoid_last_period'),
+            'exclude_from_substitution'   => (int) $this->input->post('exclude_from_substitution'),
         ];
         if ($id > 0) {
             $data['id'] = $id;
@@ -990,9 +1009,10 @@ class Tt extends Admin_Controller
 
     public function load_class_grid()
     {
-        $session_id = $this->setting_model->getCurrentSession();
-        $class_id   = (int) $this->input->post('class_id');
-        $section_id = (int) $this->input->post('section_id');
+        $session_id  = $this->setting_model->getCurrentSession();
+        $class_id    = (int) $this->input->post('class_id');
+        $section_id  = (int) $this->input->post('section_id');
+        $week_offset = (int) $this->input->post('week_offset');
 
         $periods   = $this->Tt_period_model->getAll($session_id);
         $entries   = $this->Tt_entry_model->getGridEntries($session_id, $class_id, $section_id);
@@ -1001,6 +1021,7 @@ class Tt extends Admin_Controller
         $rooms     = $this->Tt_room_model->getActive();
         $batches   = $this->Tt_batch_model->getForClassSection($session_id, $class_id, $section_id);
         $days      = $this->_getWorkingDays();
+        $day_dates = $this->_calcWeekDates($days, $week_offset);
 
         $entry_map = [];
         foreach ($entries as $e) {
@@ -1008,7 +1029,7 @@ class Tt extends Admin_Controller
             $entry_map[$e->day][$e->period_id][$batch_key] = $e;
         }
 
-        $data = compact('periods','entry_map','subjects','staff','rooms','batches','days','class_id','section_id','session_id');
+        $data = compact('periods','entry_map','subjects','staff','rooms','batches','days','day_dates','class_id','section_id','session_id');
         $html = $this->load->view('admin/tt/_grid_table', $data, true);
 
         // Build flat data rows for client-side Excel/PDF export (no colspan issues)
@@ -1285,18 +1306,20 @@ class Tt extends Admin_Controller
 
     public function load_teacher_grid()
     {
-        $session_id = $this->setting_model->getCurrentSession();
-        $staff_id   = (int) $this->input->post('staff_id');
-        $periods    = $this->Tt_period_model->getAll($session_id);
-        $entries    = $this->Tt_entry_model->getTeacherEntries($session_id, $staff_id);
-        $days       = $this->_getWorkingDays();
+        $session_id  = $this->setting_model->getCurrentSession();
+        $staff_id    = (int) $this->input->post('staff_id');
+        $week_offset = (int) $this->input->post('week_offset');
+        $periods     = $this->Tt_period_model->getAll($session_id);
+        $entries     = $this->Tt_entry_model->getTeacherEntries($session_id, $staff_id);
+        $days        = $this->_getWorkingDays();
+        $day_dates   = $this->_calcWeekDates($days, $week_offset);
 
         $entry_map = [];
         foreach ($entries as $e) {
             $entry_map[$e->day][$e->period_id] = $e;
         }
 
-        $data = compact('periods','entry_map','days','staff_id','session_id');
+        $data = compact('periods','entry_map','days','day_dates','staff_id','session_id');
         $html = $this->load->view('admin/tt/_teacher_grid_table', $data, true);
         echo json_encode(['status' => '1', 'html' => $html]);
     }

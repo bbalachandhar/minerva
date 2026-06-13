@@ -11,7 +11,9 @@
       <thead>
         <tr>
           <th class="time-col">Time</th>
-          <?php foreach ($days as $dk => $dv): ?><th><?php echo $dk; ?></th><?php endforeach; ?>
+          <?php foreach ($days as $dk => $dv): ?>
+          <th><?php echo $dk; ?><?php if (!empty($day_dates[$dk])): ?><br><small style="font-weight:normal;font-size:10px;"><?php echo $day_dates[$dk]; ?></small><?php endif; ?></th>
+          <?php endforeach; ?>
         </tr>
       </thead>
       <tbody>

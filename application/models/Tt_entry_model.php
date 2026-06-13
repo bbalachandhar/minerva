@@ -98,7 +98,14 @@ class Tt_entry_model extends MY_Model
             ->get('tt_teacher_unavail')->result_array();
         $unavail_ids = array_column($unavail, 'staff_id');
 
-        $exclude_ids = array_unique(array_merge($busy_ids, $unavail_ids));
+        // Also exclude teachers flagged as exclude_from_substitution in constraints
+        $excl_subst = $this->db->select('staff_id')
+            ->where('session_id', $session_id)
+            ->where('exclude_from_substitution', 1)
+            ->get('tt_teacher_constraints')->result_array();
+        $excl_subst_ids = array_column($excl_subst, 'staff_id');
+
+        $exclude_ids = array_unique(array_merge($busy_ids, $unavail_ids, $excl_subst_ids));
 
         $this->db->select('staff.id, staff.name, staff.surname, staff.employee_id')
             ->from('staff')
