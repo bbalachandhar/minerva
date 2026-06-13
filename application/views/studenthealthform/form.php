@@ -75,7 +75,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
 .radio-card.active{border-color:#e53935;background:#fdecea;color:#e53935;font-weight:700}
 
 /* Nav buttons */
-.nav-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 16px;display:flex;gap:10px;justify-content:center;max-width:680px;margin:0 auto}
+.nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);padding:12px 16px;display:flex;gap:10px;justify-content:center;width:100%;max-width:680px;background:transparent;border-top:none;pointer-events:none}
+.nav-bar button{pointer-events:all}
 .btn-back{flex:1;padding:13px;border:2px solid #e0e0e0;background:#fff;border-radius:10px;font-size:15px;font-weight:600;color:#666;cursor:pointer;max-width:140px}
 .btn-next{flex:2;padding:13px;background:linear-gradient(135deg,#e53935,#b71c1c);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;max-width:300px}
 .btn-next:disabled{opacity:.6;cursor:not-allowed}
@@ -364,7 +365,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
 </div><!-- /.page-body -->
 
 <!-- Fixed nav bar -->
-<div class="nav-bar" style="left:50%;transform:translateX(-50%);width:100%;max-width:680px">
+<div class="nav-bar">
     <button class="btn-back" id="btn-back" onclick="prevStep()" style="display:none">&larr; Back</button>
     <button class="btn-next" id="btn-next" onclick="nextStep()">Next &rarr;</button>
     <button class="btn-submit" id="btn-submit" style="display:none" onclick="submitForm()">Submit &amp; Get PDF</button>
@@ -526,12 +527,17 @@ function updateNav() {
     document.getElementById('btn-submit').style.display = isLast ? 'block' : 'none';
 }
 
+function isValidMobile(v) { return /^\d{10}$/.test(v); }
+
 function validateStep(step) {
     if (step === 4) {
         var name = document.getElementById('f-emg-name').value.trim();
         var mob  = document.getElementById('f-emg-mobile').value.trim();
+        var alt  = document.getElementById('f-emg-alt').value.trim();
         if (!name) { alert('Please enter the emergency contact name.'); return false; }
         if (!mob)  { alert('Please enter the emergency contact mobile number.'); return false; }
+        if (!isValidMobile(mob)) { alert('Mobile Number must be exactly 10 digits.'); document.getElementById('f-emg-mobile').focus(); return false; }
+        if (alt && !isValidMobile(alt)) { alert('Alternate Mobile must be exactly 10 digits.'); document.getElementById('f-emg-alt').focus(); return false; }
     }
     if (step === 11) {
         if (!document.getElementById('f-declaration-name').value.trim()) {
