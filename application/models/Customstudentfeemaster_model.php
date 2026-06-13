@@ -358,15 +358,10 @@ class Customstudentfeemaster_model extends MY_Model
         }
 
         $return_object = new stdClass();
-        $return_object->tuition_demand = 0;
-        $return_object->tuition_paid = 0;
-        $return_object->other_demand = 0;
-        $return_object->other_paid = 0;
-        $return_object->hostel_demand = 0;
-        $return_object->hostel_paid = 0;
+        $return_object->fee_types     = []; // keyed by feetype_id: ['id','name','demand','paid']
         $return_object->transport_demand = 0;
-        $return_object->transport_paid = 0;
-        $return_object->advance_paid = 0; /* Only paid for advance payments as there is no demand */
+        $return_object->transport_paid   = 0;
+        $return_object->advance_paid     = 0;
 
         if (!empty($result_value2)) {
             foreach ($result_value2 as $result_key => $result_value) {
@@ -377,65 +372,51 @@ class Customstudentfeemaster_model extends MY_Model
                 $aggregated_deposit = (object) ['amount_paid' => 0, 'amount_fine' => 0, 'amount_discount' => 0];
 
                 if (empty($result_value->fee_session_group_id)) {
-                    // This block handles transport fees or system fees
-                    // For transport fees, amount_detail is directly in result_value
+                    // Transport module fees (no feetype record — separate table)
                     if (isJSON($result_value->amount_detail)) {
                         $amount_details = json_decode($result_value->amount_detail);
                         if (is_object($amount_details) && !empty($amount_details)) {
                             foreach ($amount_details as $detail_value) {
-                                $aggregated_deposit->amount_paid += $detail_value->amount;
-                                $aggregated_deposit->amount_fine += isset($detail_value->amount_fine) ? $detail_value->amount_fine : 0;
+                                $aggregated_deposit->amount_paid     += $detail_value->amount;
+                                $aggregated_deposit->amount_fine     += isset($detail_value->amount_fine)     ? $detail_value->amount_fine     : 0;
                                 $aggregated_deposit->amount_discount += isset($detail_value->amount_discount) ? $detail_value->amount_discount : 0;
                             }
                         }
-                    } else {
-                        // If amount_detail is not JSON or '0', assume amount is the paid amount
-                        
                     }
-                    // Assign transport fees
                     $return_object->transport_demand += $result_value->amount;
-                    $return_object->transport_paid += ($aggregated_deposit->amount_paid + $aggregated_deposit->amount_discount);
+                    $return_object->transport_paid   += ($aggregated_deposit->amount_paid + $aggregated_deposit->amount_discount);
 
                 } else {
-                    // This block handles regular fees
-                    // We need to get the fee_groups_feetype_id for this specific fee
-                    // Assuming getDueFeeByFeeSessionGroup returns an array of fee_groups_feetype objects
                     $fee_details_array = $this->getDueFeeByFeeSessionGroup($fee_session_group_id, $student_fees_master_id);
-                    $total_due_amount = 0;
+                    $total_due_amount  = 0;
                     if (!empty($fee_details_array)) {
                         foreach ($fee_details_array as $fee_detail) {
-                            $total_due_amount += $fee_detail->amount; // Sum the original due amounts
+                            $total_due_amount += $fee_detail->amount;
                             $deposit_data = $this->_getTotalFeeDeposit($student_fees_master_id, $fee_detail->fee_groups_feetype_id);
-                            $aggregated_deposit->amount_paid += $deposit_data->amount_paid;
-                            $aggregated_deposit->amount_fine += $deposit_data->amount_fine;
+                            $aggregated_deposit->amount_paid     += $deposit_data->amount_paid;
+                            $aggregated_deposit->amount_fine     += $deposit_data->amount_fine;
                             $aggregated_deposit->amount_discount += $deposit_data->amount_discount;
 
-                            // Assign regular fees based on type
-                            switch (strtolower($fee_detail->type)) {
-                                case 'tuition fee':
-                                    $return_object->tuition_demand += $fee_detail->amount;
-                                    $return_object->tuition_paid += ($deposit_data->amount_paid + $deposit_data->amount_discount);
-                                    break;
-                                case 'other fee':
-                                    $return_object->other_demand += $fee_detail->amount;
-                                    $return_object->other_paid += ($deposit_data->amount_paid + $deposit_data->amount_discount);
-                                    break;
-                                case 'hostel fees': /* Using the exact string from the feetype table */
-                                    $return_object->hostel_demand += $fee_detail->amount;
-                                    $return_object->hostel_paid += ($deposit_data->amount_paid + $deposit_data->amount_discount);
-                                    break;
-                                case 'transport fee': /* Using the exact string from the feetype table for regular transport fees */
-                                    $return_object->transport_demand += $fee_detail->amount;
-                                    $return_object->transport_paid += ($deposit_data->amount_paid + $deposit_data->amount_discount);
-                                    break;
-                                case 'advance payments': /* Only paid amount for advance payments */
-                                    $return_object->advance_paid += $deposit_data->amount_paid;
-                                    break;
-                                // Add more cases for other fee types if needed
+                            $type_lower = strtolower(trim($fee_detail->type));
+                            if ($type_lower === 'advance payments') {
+                                $return_object->advance_paid += $deposit_data->amount_paid;
+                            } else {
+                                // Dynamic keying by feetype_id — no hardcoded name matching
+                                $tid = (int)$fee_detail->feetype_id;
+                                if (!isset($return_object->fee_types[$tid])) {
+                                    $return_object->fee_types[$tid] = [
+                                        'id'     => $tid,
+                                        'name'   => $fee_detail->type,
+                                        'demand' => 0.0,
+                                        'paid'   => 0.0,
+                                    ];
+                                }
+                                $return_object->fee_types[$tid]['demand'] += (float)$fee_detail->amount;
+                                $return_object->fee_types[$tid]['paid']   += (float)($deposit_data->amount_paid + $deposit_data->amount_discount);
                             }
                         }
                     }
-                    $result_value->amount = $total_due_amount; // Assign the total due amount to $result_value->amount
+                    $result_value->amount = $total_due_amount;
                 }
 
                 $result_value->total_paid = $aggregated_deposit->amount_paid;

@@ -103,7 +103,9 @@ foreach ($department_list as $department) {
                         </div>
                     </form>
 
-                    <?php if (isset($student_due_fee)) { ?>
+                    <?php
+                    if (!isset($fee_type_columns)) $fee_type_columns = [];
+                    if (isset($student_due_fee)) { ?>
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><i class="fa fa-users"></i> Custom Balance Fees Report</h3>
                     </div>
@@ -121,15 +123,11 @@ foreach ($department_list as $department) {
                                     <th class="text-right">CF-Balance</th>
                                                                          <?php foreach ($discount_list as $discount) { ?>
                                                                             <th class="text-right"><?php echo $discount['name']; ?></th>
-                                                                        <?php } ?>                                    <th class="text-right">Tuition Fee (Demand)</th>
-                                    <th class="text-right">Tuition Fee (Paid)</th>
-                                    <th class="text-right">Tuition Fee (Balance)</th>
-                                    <th class="text-right">Other Fees (Demand)</th>
-                                    <th class="text-right">Other Fees (Paid)</th>
-                                    <th class="text-right">Other Fees (Balance)</th>
-                                    <th class="text-right">Hostel Fees (Demand)</th>
-                                    <th class="text-right">Hostel Fees (Paid)</th>
-                                    <th class="text-right">Hostel Fees (Balance)</th>
+                                                                        <?php } ?>                                    <?php foreach ($fee_type_columns as $ft_id => $ft_name): ?>
+                                    <th class="text-right"><?php echo htmlspecialchars($ft_name); ?> (Demand)</th>
+                                    <th class="text-right"><?php echo htmlspecialchars($ft_name); ?> (Paid)</th>
+                                    <th class="text-right"><?php echo htmlspecialchars($ft_name); ?> (Balance)</th>
+                                    <?php endforeach; ?>
                                     <th class="text-right">Transport Fees (Demand)</th>
                                     <th class="text-right">Transport Fees (Paid)</th>
                                     <th class="text-right">Transport Fees (Balance)</th>
@@ -146,11 +144,9 @@ foreach ($department_list as $department) {
                                 <?php
                                 $total_fees = 0; $total_paid = 0; $total_fine = 0; $total_balance = 0; $total_discount = 0; $total_advance_paid = 0;
                                 $total_last_yr_cf = 0; $total_cf_paid = 0; $total_cf_balance = 0;
-                                $total_tuition_demand = 0; $total_tuition_paid = 0; $total_tuition_balance = 0;
-                                $total_other_demand = 0; $total_other_paid = 0; $total_other_balance = 0;
-                                $total_hostel_demand = 0; $total_hostel_paid = 0; $total_hostel_balance = 0;
                                 $total_transport_demand = 0; $total_transport_paid = 0; $total_transport_balance = 0;
                                 $total_net_balance = 0;
+                                $ft_totals = []; // [feetype_id => ['demand'=>0,'paid'=>0]]
                                 $discount_totals = array_fill_keys(array_column($discount_list, 'id'), 0);
 
                                 if (!empty($student_due_fee)) {
@@ -160,23 +156,19 @@ foreach ($department_list as $department) {
                                         $total_fine += $student->fine;
                                         $total_balance += $student->balance;
                                         $total_last_yr_cf += $student->last_yr_cf;
-                                        $total_cf_paid += $student->cf_paid; // Accumulate CF-Paid
-                                        $total_cf_balance += $student->cf_balance; // Accumulate CF-Balance
-                                        $total_advance_paid += $student->advance_paid; /* Accumulate advance paid */
-                                        $total_tuition_demand += $student->tuition_demand;
-                                        $total_tuition_paid += $student->tuition_paid;
-                                        $total_tuition_balance += $student->tuition_balance;
-                                        $total_other_demand += $student->other_demand;
-                                        $total_other_paid += $student->other_paid;
-                                        $total_other_balance += $student->other_balance;
-                                        $total_hostel_demand += $student->hostel_demand;
-                                        $total_hostel_paid += $student->hostel_paid;
-                                        $total_hostel_balance += $student->hostel_balance;
+                                        $total_cf_paid += $student->cf_paid;
+                                        $total_cf_balance += $student->cf_balance;
+                                        $total_advance_paid += $student->advance_paid;
                                         $total_transport_demand += $student->transport_demand;
-                                        $total_transport_paid += $student->transport_paid;
+                                        $total_transport_paid  += $student->transport_paid;
                                         $total_transport_balance += $student->transport_balance;
                                         $total_discount += $student->discount;
                                         $total_net_balance += $student->net_balance;
+                                        foreach ($student->fee_types as $tid => $ft) {
+                                            if (!isset($ft_totals[$tid])) $ft_totals[$tid] = ['demand' => 0, 'paid' => 0];
+                                            $ft_totals[$tid]['demand'] += $ft['demand'];
+                                            $ft_totals[$tid]['paid']   += $ft['paid'];
+                                        }
                                         ?>
                                         <tr>
                                             <td><?php echo $student->name; ?></td>
@@ -204,15 +196,15 @@ foreach ($department_list as $department) {
                                                                                             }
                                                                                             echo "<td class='text-right'>" . amountFormat($discount_amount) . "</td>";
                                                                                         }
-                                                                                        ?>                                            <td class="text-right"><?php echo amountFormat($student->tuition_demand); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->tuition_paid); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->tuition_balance); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->other_demand); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->other_paid); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->other_balance); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->hostel_demand); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->hostel_paid); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->hostel_balance); ?></td>
+                                                                                        ?>
+                                            <?php foreach ($fee_type_columns as $ft_id => $ft_name):
+                                                $ft_d = isset($student->fee_types[$ft_id]) ? $student->fee_types[$ft_id]['demand'] : 0;
+                                                $ft_p = isset($student->fee_types[$ft_id]) ? $student->fee_types[$ft_id]['paid']   : 0;
+                                            ?>
+                                            <td class="text-right"><?php echo amountFormat($ft_d); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($ft_p); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($ft_d - $ft_p); ?></td>
+                                            <?php endforeach; ?>
                                             <td class="text-right"><?php echo amountFormat($student->transport_demand); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->transport_paid); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->transport_balance); ?></td>
@@ -228,7 +220,7 @@ foreach ($department_list as $department) {
                                     }
                                 } else {
                                     ?>
-                                    <tr><td colspan="<?php echo 26 + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
+                                    <tr><td colspan="<?php echo 16 + (count($fee_type_columns) * 3) + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
                                     <?php
                                 }
                                 ?>
@@ -242,15 +234,14 @@ foreach ($department_list as $department) {
                                     <?php foreach ($discount_totals as $total) { ?>
                                         <td class="text-right"><?php echo $currency_symbol . amountFormat($total); ?></td>
                                     <?php } ?>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_demand); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_paid); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_balance); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_other_demand); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_other_paid); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_other_balance); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_hostel_demand); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_hostel_paid); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_hostel_balance); ?></td>
+                                    <?php foreach ($fee_type_columns as $ft_id => $ft_name):
+                                        $td = isset($ft_totals[$ft_id]) ? $ft_totals[$ft_id]['demand'] : 0;
+                                        $tp = isset($ft_totals[$ft_id]) ? $ft_totals[$ft_id]['paid']   : 0;
+                                    ?>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($td); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($tp); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($td - $tp); ?></td>
+                                    <?php endforeach; ?>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_demand); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_balance); ?></td>

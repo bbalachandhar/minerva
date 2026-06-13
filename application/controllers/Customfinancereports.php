@@ -67,7 +67,9 @@ class Customfinancereports extends Admin_Controller
                 $studentlist = $this->student_model->searchByClassSectionWithSession(null, null, $this->current_session, $department_id);
             }
             
-            $student_Array = array();
+            $student_Array    = array();
+            $fee_type_columns = array(); // collect all unique fee types across all students
+
             if (!empty($studentlist)) {
                 foreach ($studentlist as $key => $eachstudent) {
                     $obj                = new stdClass();
@@ -79,46 +81,45 @@ class Customfinancereports extends Admin_Controller
                     $obj->advance_balance = $eachstudent['advance_balance'] ?? 0;
                     $student_session_id = $eachstudent['student_session_id'];
 
-                    // Get all fees and discounts for the student
                     $fees_data = $this->customstudentfeemaster_model->getTransStudentFees($student_session_id);
-                    $obj->tuition_demand = $fees_data->tuition_demand;
-                    $obj->tuition_paid = $fees_data->tuition_paid;
-                    $obj->tuition_balance = $fees_data->tuition_demand - $fees_data->tuition_paid;
-                    $obj->other_demand = $fees_data->other_demand;
-                    $obj->other_paid = $fees_data->other_paid;
-                    $obj->other_balance = $fees_data->other_demand - $fees_data->other_paid;
-                    $obj->hostel_demand = $fees_data->hostel_demand;
-                    $obj->hostel_paid = $fees_data->hostel_paid;
-                    $obj->hostel_balance = $fees_data->hostel_demand - $fees_data->hostel_paid;
+
+                    // Dynamic fee types from feetype table
+                    $obj->fee_types        = $fees_data->fee_types; // [feetype_id => [id,name,demand,paid]]
                     $obj->transport_demand = $fees_data->transport_demand;
-                    $obj->transport_paid = $fees_data->transport_paid;
+                    $obj->transport_paid   = $fees_data->transport_paid;
                     $obj->transport_balance = $fees_data->transport_demand - $fees_data->transport_paid;
-                    $advance_balances = $this->studentfeemaster_model->get_advance_balance($student_session_id);
-                    $obj->advance_paid = $advance_balances['paid_advance_balance'];
+
+                    // Collect unique fee type columns
+                    foreach ($fees_data->fee_types as $tid => $ft) {
+                        if (!isset($fee_type_columns[$tid])) {
+                            $fee_type_columns[$tid] = $ft['name'];
+                        }
+                    }
+
+                    $advance_balances  = $this->studentfeemaster_model->get_advance_balance($student_session_id);
+                    $obj->advance_paid     = $advance_balances['paid_advance_balance'];
                     $obj->advance_discount = $advance_balances['discount_advance_balance'];
-                    $student_total_fees = $fees_data->fees;
                     $obj->applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
 
-                    // Get the previous session balance (CF-Demand)
                     $previous_session_balance_data = $this->customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
-                    $obj->last_yr_cf = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
+                    $obj->last_yr_cf  = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
+                    $obj->cf_paid     = $this->customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
+                    $obj->cf_balance  = $obj->last_yr_cf - $obj->cf_paid;
 
-                    // Get the amount paid against the previous session balance (CF-Paid)
-                    $obj->cf_paid = $this->customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
+                    // Totals
+                    $total_ft_demand = 0;
+                    $total_ft_paid   = 0;
+                    foreach ($obj->fee_types as $ft) {
+                        $total_ft_demand += $ft['demand'];
+                        $total_ft_paid   += $ft['paid'];
+                    }
+                    $totalfee       = $total_ft_demand + $fees_data->transport_demand;
+                    $total_paid_sum = $total_ft_paid  + $fees_data->transport_paid;
 
-                    // Calculate CF-Balance
-                    $obj->cf_balance = $obj->last_yr_cf - $obj->cf_paid;
-
-                    // Calculate base fee totals
-                    $totalfee = 0;
-                    $total_paid_sum = $obj->tuition_paid + $obj->other_paid + $obj->hostel_paid + $obj->transport_paid;
-                    $total_fine_sum = 0;
-                    $total_discount_sum = 0;
-
+                    $total_fine_sum = $total_discount_sum = 0;
                     if (!empty($fees_data->fees)) {
                         foreach ($fees_data->fees as $fee_item) {
-                            $totalfee += $fee_item->amount;
-                            $total_fine_sum += $fee_item->total_fine;
+                            $total_fine_sum     += $fee_item->total_fine;
                             $total_discount_sum += $fee_item->total_discount;
                         }
                     }
@@ -126,68 +127,42 @@ class Customfinancereports extends Admin_Controller
                     $obj->totalfee = $totalfee;
                     $obj->deposit  = $total_paid_sum;
                     $obj->fine     = $total_fine_sum;
-                    $obj->discount = $total_discount_sum;
-                    $obj->balance  = $totalfee - $total_paid_sum;
-                    $obj->balance += $obj->cf_balance; // Add CF-Balance to the Balance column
-
+                    $obj->balance  = ($totalfee - $total_paid_sum) + $obj->cf_balance;
                     $obj->net_balance = $obj->balance - ($obj->advance_paid + $obj->advance_discount);
 
-                    // NEW LOGIC TO CALCULATE TOTAL DISCOUNT
                     $total_student_discount_dynamic = 0;
                     if (!empty($obj->applied_discounts)) {
                         foreach ($obj->applied_discounts as $student_discount) {
-                            $discount_amount = 0;
-                            if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
-                                $discount_amount = $student_discount['custom_amount'];
-                            } else {
-                                $discount_amount = $student_discount['amount'];
-                            }
+                            $discount_amount = isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null
+                                ? $student_discount['custom_amount'] : $student_discount['amount'];
                             $obj->{"discount_" . $student_discount['fees_discount_id']} = $discount_amount;
                             $total_student_discount_dynamic += $discount_amount;
                         }
                     }
-                    // Overwrite the old discount total with the new dynamic one
                     $obj->discount = $total_student_discount_dynamic;
 
-                    // Filter based on discount type if specified
-                    $has_discount_type = false;
-                    if (!empty($discount_type_filter)) {
-                        // Check if student has the selected discount type
-                        if (!empty($obj->applied_discounts)) {
-                            foreach ($obj->applied_discounts as $student_discount) {
-                                if ((int)$student_discount['fees_discount_id'] == (int)$discount_type_filter) {
-                                    $has_discount_type = true;
-                                    break;
-                                }
+                    $has_discount_type = empty($discount_type_filter);
+                    if (!$has_discount_type && !empty($obj->applied_discounts)) {
+                        foreach ($obj->applied_discounts as $student_discount) {
+                            if ((int)$student_discount['fees_discount_id'] == (int)$discount_type_filter) {
+                                $has_discount_type = true;
+                                break;
                             }
                         }
-                    } else {
-                        // If no discount type is selected, include all students
-                        $has_discount_type = true;
                     }
 
-                    // Filter based on search type
-                    $include_student = false;
-                    if ($search_type == 'all') {
-                        $include_student = true;
-                    } elseif ($search_type == 'balance') {
-                        if ($obj->balance > 0) {
-                            $include_student = true;
-                        }
-                    } elseif ($search_type == 'paid') {
-                        if ($obj->balance <= 0) {
-                            $include_student = true;
-                        }
-                    }
+                    $include_student = ($search_type == 'all')
+                        || ($search_type == 'balance' && $obj->balance > 0)
+                        || ($search_type == 'paid'    && $obj->balance <= 0);
 
-                    // Apply both filters
-                    if($include_student && $has_discount_type){
+                    if ($include_student && $has_discount_type) {
                         $student_Array[] = $obj;
                     }
                 }
             }
 
-            $data['student_due_fee'] = $student_Array;
+            $data['student_due_fee']    = $student_Array;
+            $data['fee_type_columns']   = $fee_type_columns; // [feetype_id => name]
         }
 
         $this->load->view('layout/header', $data);
@@ -373,34 +348,28 @@ class Customfinancereports extends Admin_Controller
 
                 // Get all fees and discounts for the student
                 $fees_data = $this->customstudentfeemaster_model->getTransStudentFees($student_session_id);
-                $obj->tuition_demand = $fees_data->tuition_demand;
-                $obj->tuition_paid = $fees_data->tuition_paid;
-                $obj->tuition_balance = $fees_data->tuition_demand - $fees_data->tuition_paid;
-                $obj->other_demand = $fees_data->other_demand;
-                $obj->other_paid = $fees_data->other_paid;
-                $obj->other_balance = $fees_data->other_demand - $fees_data->other_paid;
-                $obj->hostel_demand = $fees_data->hostel_demand;
-                $obj->hostel_paid = $fees_data->hostel_paid;
-                $obj->hostel_balance = $fees_data->hostel_demand - $fees_data->hostel_paid;
-                $obj->transport_demand = $fees_data->transport_demand;
-                $obj->transport_paid = $fees_data->transport_paid;
+
+                $obj->fee_types         = $fees_data->fee_types;
+                $obj->transport_demand  = $fees_data->transport_demand;
+                $obj->transport_paid    = $fees_data->transport_paid;
                 $obj->transport_balance = $fees_data->transport_demand - $fees_data->transport_paid;
-                $student_total_fees = $fees_data->fees;
                 $obj->applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
 
-                // Get the previous session balance
-                $balance_record = $this->customstudentfeemaster_model->getBalanceMasterRecord($this->balance_group, '(' . $student_session_id . ')');
+                $balance_record  = $this->customstudentfeemaster_model->getBalanceMasterRecord($this->balance_group, '(' . $student_session_id . ')');
                 $obj->last_yr_cf = !empty($balance_record) ? $balance_record[0]->amount : 0;
 
-                $totalfee = 0;
-                $total_paid_sum = $obj->tuition_paid + $obj->other_paid + $obj->hostel_paid + $obj->transport_paid;
-                $total_fine_sum = 0;
-                $total_discount_sum = 0;
+                $total_ft_demand = $total_ft_paid = $totalfee = 0;
+                foreach ($obj->fee_types as $ft) {
+                    $total_ft_demand += $ft['demand'];
+                    $total_ft_paid   += $ft['paid'];
+                }
+                $totalfee       = $total_ft_demand + $fees_data->transport_demand;
+                $total_paid_sum = $total_ft_paid   + $fees_data->transport_paid;
 
+                $total_fine_sum = $total_discount_sum = 0;
                 if (!empty($fees_data->fees)) {
                     foreach ($fees_data->fees as $fee_item) {
-                        $totalfee += $fee_item->amount;
-                        $total_fine_sum += $fee_item->total_fine;
+                        $total_fine_sum     += $fee_item->total_fine;
                         $total_discount_sum += $fee_item->total_discount;
                     }
                 }
@@ -411,39 +380,21 @@ class Customfinancereports extends Admin_Controller
                 $obj->discount = $total_discount_sum;
                 $obj->balance  = $totalfee - $total_paid_sum;
 
-                // Filter based on discount type if specified
-                $has_discount_type = false;
-                if (!empty($discount_type_filter)) {
-                    // Check if student has the selected discount type
-                    if (!empty($obj->applied_discounts)) {
-                        foreach ($obj->applied_discounts as $student_discount) {
-                            if ((int)$student_discount['fees_discount_id'] == (int)$discount_type_filter) {
-                                $has_discount_type = true;
-                                break;
-                            }
+                $has_discount_type = empty($discount_type_filter);
+                if (!$has_discount_type && !empty($obj->applied_discounts)) {
+                    foreach ($obj->applied_discounts as $student_discount) {
+                        if ((int)$student_discount['fees_discount_id'] == (int)$discount_type_filter) {
+                            $has_discount_type = true;
+                            break;
                         }
                     }
-                } else {
-                    // If no discount type is selected, include all students
-                    $has_discount_type = true;
                 }
 
-                // Filter based on search type
-                $include_student = false;
-                if ($search_type == 'all') {
-                    $include_student = true;
-                } elseif ($search_type == 'balance') {
-                    if ($obj->balance > 0) {
-                        $include_student = true;
-                    }
-                } elseif ($search_type == 'paid') {
-                    if ($obj->balance <= 0) {
-                        $include_student = true;
-                    }
-                }
+                $include_student = ($search_type == 'all')
+                    || ($search_type == 'balance' && $obj->balance > 0)
+                    || ($search_type == 'paid'    && $obj->balance <= 0);
 
-                // Apply both filters
-                if($include_student && $has_discount_type){
+                if ($include_student && $has_discount_type) {
                     $student_Array[] = $obj;
                 }
             }
