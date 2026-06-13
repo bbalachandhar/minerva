@@ -282,6 +282,7 @@ $(function(){
           $('#export-btns').show();
           $('#week-nav-row').show();
           $('#week-label').text(weekLabel(weekOffset));
+          $('#timetable-grid-container [data-toggle="tooltip"]').tooltip();
         }
       },'json');
   }

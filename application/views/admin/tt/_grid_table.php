@@ -63,11 +63,14 @@ $type_class = ['theory'=>'slot-theory','practical'=>'slot-practical','project'=>
                 ?>
                 <span class="slot-tag <?php echo $slot_color ? '' : $tc; ?>" style="<?php echo $slot_style; ?>"><?php echo htmlspecialchars($slot_text); ?></span><br>
                 <?php
-                  $emp = $entry->staff_emp_id ?? '';
-                  $t_abbr = (strlen($emp) > 0 && strlen($emp) <= 8) ? $emp
-                           : mb_strtoupper(mb_substr($entry->staff_name,0,1).mb_substr($entry->staff_surname??'',0,2));
+                  $full_name = trim($entry->staff_name.' '.($entry->staff_surname??''));
+                  $t_abbr    = mb_strlen($entry->staff_name) > 4
+                             ? mb_strtoupper(mb_substr($entry->staff_name, 0, 4)) . '..'
+                             : mb_strtoupper($entry->staff_name);
                 ?>
-                <small style="font-size:10px;" title="<?php echo htmlspecialchars($entry->staff_name.' '.($entry->staff_surname??'')); ?>"><?php echo htmlspecialchars($t_abbr); ?></small>
+                <small style="font-size:10px;cursor:default;"
+                       data-toggle="tooltip" data-placement="top"
+                       title="<?php echo htmlspecialchars($full_name); ?>"><?php echo htmlspecialchars($t_abbr); ?></small>
                 <?php if ($entry->room_name): ?><br><small style="font-size:10px;color:#777;"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($entry->room_name); ?></small><?php endif; ?>
               <?php endif; ?>
               <?php if ($is_locked): ?><br><i class="fa fa-lock text-danger" style="font-size:10px;"></i><?php endif; ?>
