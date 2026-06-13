@@ -72,6 +72,17 @@ class Tt_generator_model extends MY_Model
         $this->_loadRoomUnavail($session_id);
         $this->_loadSubjectUnavail($session_id);
 
+        // When generating a subset of classes, the generator would otherwise ignore
+        // confirmed timetable entries for those teachers in OTHER classes, treating
+        // shared teachers (e.g. K.MAHESWARI teaching Grade III A and Grade IV A) as
+        // completely free. This causes them to be double-booked.
+        // Fix: preload other classes' confirmed entries for every teacher who appears
+        // in the current scope's subject loads. Done before the snapshot so all passes
+        // benefit from accurate occupancy.
+        if (!empty($class_scope)) {
+            $this->_preloadSharedTeacherOccupancy($session_id, $class_scope);
+        }
+
         // Snapshot occupancy after locked entries so each pass starts clean
         $locked_occ_snapshot = [
             'class_occ'            => $this->class_occ,
@@ -87,12 +98,48 @@ class Tt_generator_model extends MY_Model
         $constraints = $this->CI->Tt_teacher_model->getAllConstraintsMap($session_id);
         $unavail_map = $this->CI->Tt_teacher_model->getUnavailabilityMap($session_id);
 
+        // Pre-compute how many slots each teacher is unavailable for this session.
+        // Teachers with more blocked slots are harder to schedule and must go first.
+        $teacher_unavail_count = [];
+        foreach ($unavail_map as $t_id => $day_map) {
+            $cnt = 0;
+            foreach ($day_map as $pid_map) { $cnt += count($pid_map); }
+            $teacher_unavail_count[$t_id] = $cnt;
+        }
+
+        // Pre-compute weekly-cap tightness: a teacher whose cap is close to their
+        // total assigned PPW has almost no slack — schedule those subjects first.
+        // tightness = 0 when uncapped; rises as (cap - total_ppw) shrinks toward 0.
+        $teacher_cap_tightness = [];
+        foreach ($constraints as $t_id => $c) {
+            if (!empty($c->max_periods_per_week)) {
+                // Higher tightness when cap is low relative to a "full" week (48 slots).
+                $teacher_cap_tightness[$t_id] = max(0, 48 - (int)$c->max_periods_per_week);
+            }
+        }
+
         $this->CI->load->model('Tt_subjectload_model');
         $base_loads = $this->CI->Tt_subjectload_model->getAllForClassScope($session_id, $class_scope);
-        usort($base_loads, function($a, $b) {
-            $score_a = ($a->consecutive_periods * 10) + $a->periods_per_week + $a->priority;
-            $score_b = ($b->consecutive_periods * 10) + $b->periods_per_week + $b->priority;
-            return $score_b - $score_a;
+        usort($base_loads, function($a, $b) use ($teacher_unavail_count, $teacher_cap_tightness) {
+            // For each load, take the worst-constrained teacher in its pool.
+            $ua = $uca = 0;
+            foreach (($a->teacher_ids ?? []) as $tid) {
+                $ua  = max($ua,  $teacher_unavail_count[$tid] ?? 0);
+                $uca = max($uca, $teacher_cap_tightness[$tid] ?? 0);
+            }
+            $ub = $ucb = 0;
+            foreach (($b->teacher_ids ?? []) as $tid) {
+                $ub  = max($ub,  $teacher_unavail_count[$tid] ?? 0);
+                $ucb = max($ucb, $teacher_cap_tightness[$tid] ?? 0);
+            }
+            // 0.5 per blocked slot: a teacher blocked for 12/48 slots (25% of week)
+            // gains +6, lifting a PPW=1 subject level with PPW=7 — correct behaviour.
+            // 0.3 per cap-tightness unit keeps it secondary to unavailability.
+            $score_a = ($a->consecutive_periods * 10) + $a->periods_per_week + $a->priority
+                     + ($ua * 0.5) + ($uca * 0.3);
+            $score_b = ($b->consecutive_periods * 10) + $b->periods_per_week + $b->priority
+                     + ($ub * 0.5) + ($ucb * 0.3);
+            return $score_b <=> $score_a;
         });
 
         // Load joint lessons (placed first in every pass — hardest constraint)
@@ -755,6 +802,62 @@ class Tt_generator_model extends MY_Model
             if (!empty($this->room_unavail[$room_id][$day][$pid])) return false;
         }
         return true;
+    }
+
+    /**
+     * When regenerating a subset of classes, preload confirmed tt_entries from
+     * OTHER classes for every teacher assigned to the current scope.
+     *
+     * Without this, a teacher like K.MAHESWARI who is confirmed in Grade III A
+     * would appear fully free when generating Grade III A's timetable separately,
+     * causing double-booking and "no available slot" failures for low-PPW subjects
+     * processed last in the greedy order.
+     *
+     * Scope's own entries are skipped — those are about to be replaced.
+     */
+    private function _preloadSharedTeacherOccupancy($session_id, $class_scope)
+    {
+        // Collect teacher IDs from all loads for the current scope
+        $loads = $this->db->select('tslt.staff_id')
+            ->from('tt_subject_load sl')
+            ->join('tt_subject_load_teachers tslt', 'tslt.subject_load_id = sl.id')
+            ->where('sl.session_id', $session_id)
+            ->group_start();
+        foreach ($class_scope as $cs) {
+            $loads->or_group_start()
+                ->where('sl.class_id', (int)$cs['class_id'])
+                ->where('sl.section_id', (int)$cs['section_id'])
+                ->group_end();
+        }
+        $loads = $loads->group_end()->get()->result();
+
+        $teacher_ids = array_unique(array_column($loads, 'staff_id'));
+        if (empty($teacher_ids)) return;
+
+        // Build set of scope class+section keys to exclude
+        $scope_keys = [];
+        foreach ($class_scope as $cs) {
+            $scope_keys[(int)$cs['class_id'] . '_' . (int)$cs['section_id']] = true;
+        }
+
+        // Fetch confirmed entries for these teachers from ALL classes
+        $entries = $this->db->select('staff_id, day, period_id, class_id, section_id')
+            ->from('tt_entries')
+            ->where('session_id', $session_id)
+            ->where_in('staff_id', $teacher_ids)
+            ->get()->result();
+
+        foreach ($entries as $e) {
+            // Skip entries belonging to the classes being regenerated
+            if (isset($scope_keys[$e->class_id . '_' . $e->section_id])) continue;
+
+            $tid = (int)$e->staff_id;
+            $this->teacher_occ[$tid][$e->day][$e->period_id] = true;
+            $this->teacher_periods_day[$tid][$e->day] =
+                ($this->teacher_periods_day[$tid][$e->day] ?? 0) + 1;
+            $this->teacher_periods_week[$tid] =
+                ($this->teacher_periods_week[$tid] ?? 0) + 1;
+        }
     }
 
     private function _loadWorkingDays($settings)
