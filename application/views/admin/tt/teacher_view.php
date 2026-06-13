@@ -136,24 +136,9 @@ $(function(){
   });
 
   $('#btn-print-teacher').on('click', function(){
-    var html = $('#teacher-grid-container').html();
-    if (!html || !html.trim() || html.indexOf('fa-arrow-up') !== -1) { alert('Please load a timetable first.'); return; }
-    var w = window.open('','_blank');
-    w.document.write('<html><head><title>'+lastStaffName+' — Timetable</title>'
-      +'<link rel="stylesheet" href="<?php echo base_url('assets/bower_components/bootstrap/dist/css/bootstrap.min.css'); ?>">'
-      +'<style>body{padding:20px;font-size:12px;}'
-      +'.tt-grid th,.tt-grid td{padding:4px 6px;border:1px solid #ccc;white-space:nowrap;}'
-      +'.tt-grid th{background:#3c8dbc;color:#fff;text-align:center;}'
-      +'.time-col{width:80px;background:#f4f4f4;text-align:center;font-size:11px;}'
-      +'.slot-tag{display:inline-block;border-radius:3px;padding:1px 5px;font-size:11px;font-weight:600;color:#fff;margin:1px;}'
-      +'.slot-theory{background:#3498db;}.slot-practical{background:#e74c3c;}.slot-project{background:#f39c12;}.slot-free{background:#27ae60;}.slot-other{background:#7f8c8d;}'
-      +'.break-row{background:#fffde7 !important;}.box-tools,.box-header .btn{display:none}'
-      +'</style></head><body>'
-      +'<h4>'+lastStaffName+' — Weekly Timetable</h4>'
-      +html+'</body></html>');
-    w.document.close();
-    w.focus();
-    w.print();
+    var staff_id = $('#tv_staff').val();
+    if (!staff_id) { alert('Please load a timetable first.'); return; }
+    window.open('<?php echo site_url('admin/tt/print_teacher_grid'); ?>?staff_id=' + staff_id + '&week_offset=' + weekOffset, '_blank');
   });
 });
 </script>

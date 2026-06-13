@@ -300,14 +300,16 @@ $(function(){
     window.open('<?php echo site_url('admin/tt/print_class_grid'); ?>?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id, '_blank');
   });
 
-  // Excel: trigger DataTables excelHtml5 button
+  // Excel: server-side export (includes school header)
   $('#btn-excel-grid').on('click', function(){
-    if (exportDT) exportDT.button(0).trigger();
+    if (!loaded_class_id) return;
+    window.open('<?php echo site_url('admin/tt/export_class_grid_excel'); ?>?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id, '_blank');
   });
 
-  // PDF: trigger DataTables pdfHtml5 button
+  // PDF: server-side export (includes school header image)
   $('#btn-pdf-grid').on('click', function(){
-    if (exportDT) exportDT.button(1).trigger();
+    if (!loaded_class_id) return;
+    window.open('<?php echo site_url('admin/tt/export_class_grid_pdf'); ?>?class_id=' + loaded_class_id + '&section_id=' + loaded_section_id, '_blank');
   });
 
   // Open cell modal

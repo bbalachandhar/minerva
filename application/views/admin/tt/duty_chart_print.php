@@ -40,8 +40,14 @@ table tr:nth-child(even) td { background: #fafafa; }
 </head>
 <body onload="window.print()">
 
-<div class="page-header">
-  <?php if (!empty($school_name)): ?>
+<?php if (!empty($header_img_url)): ?>
+<div style="border-bottom:2px solid #2c3e50;margin-bottom:14px;padding-bottom:10px;">
+  <img src="<?php echo htmlspecialchars($header_img_url); ?>" style="width:100%;max-height:140px;object-fit:contain;display:block;" alt="Header">
+</div>
+<?php endif; ?>
+
+<div class="page-header" style="<?php echo !empty($header_img_url) ? 'border-top:none;' : ''; ?>">
+  <?php if (empty($header_img_url) && !empty($school_name)): ?>
   <h2><?php echo htmlspecialchars($school_name); ?></h2>
   <?php endif; ?>
   <h3>Substitution Duty Chart</h3>

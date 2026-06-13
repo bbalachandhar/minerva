@@ -1185,8 +1185,13 @@ class Tt extends Admin_Controller
 
         $rows  = '';
 
-        // Title row
-        $rows .= '<tr><td colspan="' . $col_span . '" style="font-size:14pt;font-weight:bold;text-align:center;background:#F0F0F0;">'
+        // Title rows
+        $school_name = $this->sch_setting_detail->name ?? '';
+        if ($school_name) {
+            $rows .= '<tr><td colspan="' . $col_span . '" style="font-size:15pt;font-weight:bold;text-align:center;background:#2C3E50;color:#FFFFFF;">'
+                   . htmlspecialchars($school_name) . '</td></tr>';
+        }
+        $rows .= '<tr><td colspan="' . $col_span . '" style="font-size:13pt;font-weight:bold;text-align:center;background:#F0F0F0;">'
                . htmlspecialchars('Class Timetable — ' . $cls_label) . '</td></tr>';
 
         // Column header row
@@ -1249,6 +1254,41 @@ class Tt extends Admin_Controller
         header('Cache-Control: max-age=0');
         echo $html;
         exit;
+    }
+
+    public function print_teacher_grid()
+    {
+        if (!$this->rbac->hasPrivilege('tt_teacher_view', 'can_view')) { access_denied(); }
+        $session_id  = $this->setting_model->getCurrentSession();
+        $staff_id    = (int) $this->input->get('staff_id');
+        $week_offset = (int) $this->input->get('week_offset');
+
+        $staff      = $this->db->select('name, surname, employee_id')->where('id', $staff_id)->get('staff')->row();
+        $periods    = $this->Tt_period_model->getAll($session_id);
+        $entries    = $this->Tt_entry_model->getTeacherEntries($session_id, $staff_id);
+        $days       = $this->_getWorkingDays();
+        $day_dates  = $this->_calcWeekDates($days, $week_offset);
+
+        $entry_map = [];
+        foreach ($entries as $e) {
+            $entry_map[$e->day][$e->period_id] = $e;
+        }
+
+        $header_img     = $this->setting_model->get_general_purpose_header();
+        $header_img_url = $header_img
+            ? $this->media_storage->getImageURL('/uploads/print_headerfooter/general_purpose/' . $header_img)
+            : null;
+
+        $data = [
+            'staff'          => $staff,
+            'periods'        => $periods,
+            'entry_map'      => $entry_map,
+            'days'           => $days,
+            'day_dates'      => $day_dates,
+            'header_img_url' => $header_img_url,
+            'school_name'    => $this->sch_setting_detail->name ?? '',
+        ];
+        $this->load->view('admin/tt/print_teacher_grid', $data);
     }
 
     public function save_cell()
@@ -1494,13 +1534,18 @@ class Tt extends Admin_Controller
         }
         ksort($by_period);
 
-        $school_name = $this->sch_setting_detail->name ?? '';
+        $school_name    = $this->sch_setting_detail->name ?? '';
+        $header_img     = $this->setting_model->get_general_purpose_header();
+        $header_img_url = $header_img
+            ? $this->media_storage->getImageURL('/uploads/print_headerfooter/general_purpose/' . $header_img)
+            : null;
 
         $data = [
-            'date'          => $date,
-            'substitutions' => $substitutions,
-            'by_period'     => $by_period,
-            'school_name'   => $school_name,
+            'date'           => $date,
+            'substitutions'  => $substitutions,
+            'by_period'      => $by_period,
+            'school_name'    => $school_name,
+            'header_img_url' => $header_img_url,
         ];
         $this->load->view('admin/tt/duty_chart_print', $data);
     }
