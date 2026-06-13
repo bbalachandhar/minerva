@@ -15,13 +15,14 @@ class Studenthealthform extends CI_Controller
 
     private function _headerData()
     {
-        $setting = $this->Setting_model->getSetting();
+        // Query school name directly — avoids language_model dependency in getSetting()
+        $sch = $this->db->select('name')->from('sch_settings')->limit(1)->get()->row();
         $header_img = $this->Setting_model->get_general_purpose_header();
         $header_url = $header_img
             ? $this->media_storage->getImageURL('/uploads/print_headerfooter/general_purpose/' . $header_img)
             : null;
         return [
-            'school_name' => $setting->name ?? '',
+            'school_name' => $sch->name ?? '',
             'header_img'  => $header_url,
         ];
     }
@@ -133,7 +134,7 @@ class Studenthealthform extends CI_Controller
         $student = $this->Student_health_model->getStudentById($record->student_id);
         if (!$student) show_404();
 
-        $setting    = $this->Setting_model->getSetting();
+        $sch        = $this->db->select('name')->from('sch_settings')->limit(1)->get()->row();
         $header_img = $this->Setting_model->get_general_purpose_header();
         $header_url = $header_img
             ? $this->media_storage->getImageURL('/uploads/print_headerfooter/general_purpose/' . $header_img)
@@ -142,7 +143,7 @@ class Studenthealthform extends CI_Controller
         $data = [
             'student'     => $student,
             'record'      => $record,
-            'school_name' => $setting->name ?? '',
+            'school_name' => $sch->name ?? '',
             'header_img'  => $header_url,
         ];
 
