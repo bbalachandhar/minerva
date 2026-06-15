@@ -43,28 +43,31 @@
             <div class="col-sm-6">
               <div class="form-group">
                 <label>Min Free Periods / Day</label>
-                <input type="number" class="form-control" name="min_free_per_day" id="tc_min_free" value="0" min="0" max="4">
+                <input type="number" class="form-control" name="min_free_per_day" id="tc_min_free" value="0" min="0" max="6">
+                <small class="text-muted">Teacher must have at least this many free periods each day (tightens daily cap)</small>
               </div>
             </div>
             <div class="col-sm-6">
               <div class="form-group">
-                <label>Max Gap / Day</label>
+                <label>Max Idle Gap / Day</label>
                 <input type="number" class="form-control" name="max_gap_per_day" id="tc_max_gap" placeholder="No limit" min="0" max="8">
-                <small class="text-muted">Max consecutive free slots between lessons</small>
+                <small class="text-muted">Max free periods allowed between two teaching blocks (prevents long idle windows)</small>
               </div>
             </div>
           </div>
           <div class="row">
             <div class="col-sm-6">
               <div class="form-group">
-                <label>Preferred Start (not before)</label>
+                <label>Teaching Window — Not Before <span class="text-danger">(hard)</span></label>
                 <input type="time" class="form-control" name="preferred_start_time" id="tc_pref_start">
+                <small class="text-muted">Generator will not assign periods that start before this time</small>
               </div>
             </div>
             <div class="col-sm-6">
               <div class="form-group">
-                <label>Preferred End (not after)</label>
+                <label>Teaching Window — Not After <span class="text-danger">(hard)</span></label>
                 <input type="time" class="form-control" name="preferred_end_time" id="tc_pref_end">
+                <small class="text-muted">Generator will not assign periods that end after this time</small>
               </div>
             </div>
           </div>
@@ -106,7 +109,9 @@
     </div>
     <div class="callout callout-info" style="font-size:12px;">
       <h4><i class="fa fa-info-circle"></i> Soft vs Hard Constraints</h4>
-      Max periods are <strong>hard constraints</strong> — strictly enforced. Preferred time and first/last period are <strong>soft constraints</strong> — the scheduler tries to respect them but may skip if no other slot is available.
+      <strong>Hard constraints</strong> (strictly enforced): Max periods/day &amp; week, Min free/day, Max idle gap, Teaching window (not before/after), Avoid first/last period, Max consecutive periods.<br>
+      <strong>Soft constraints</strong> (scoring bonus/penalty, may be overridden if no valid slot exists): Preferred room, Teacher day-spread.<br>
+      <strong>Default limits</strong> apply to all teachers even without a configured row: <strong>6 periods/day, 36 periods/week</strong>.
     </div>
   </div>
 
