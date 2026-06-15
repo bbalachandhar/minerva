@@ -660,6 +660,19 @@ class Tt_generator_model extends MY_Model
                 }
                 if (!$all_cs_free) continue;
 
+                // Subject time-off check — joint lessons share the same subject across all classes,
+                // so checking the first class's sgs_id is sufficient
+                $first_sgs = !empty($jl->classes[0]->sgs_id) ? (int)$jl->classes[0]->sgs_id : 0;
+                if ($first_sgs) {
+                    $subj_ok = true;
+                    foreach ($pid_group as $pid) {
+                        if (!empty($this->subject_unavail[$first_sgs][$day][$pid])) {
+                            $subj_ok = false; break;
+                        }
+                    }
+                    if (!$subj_ok) continue;
+                }
+
                 if ($all_teachers_required && !empty($teacher_ids)) {
                     // ALL teachers must be free simultaneously
                     $all_free = true;
