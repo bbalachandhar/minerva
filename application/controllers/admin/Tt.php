@@ -700,6 +700,8 @@ class Tt extends Admin_Controller
             'avoid_first_period'          => (int) $this->input->post('avoid_first_period'),
             'avoid_last_period'           => (int) $this->input->post('avoid_last_period'),
             'exclude_from_substitution'   => (int) $this->input->post('exclude_from_substitution'),
+            'max_consecutive_periods'     => max(0, (int) $this->input->post('max_consecutive_periods')),
+            'min_break_after_consec'      => max(1, (int) $this->input->post('min_break_after_consec') ?: 1),
         ];
         if ($id > 0) {
             $data['id'] = $id;
@@ -1050,7 +1052,8 @@ class Tt extends Admin_Controller
             $subst_map[$s->date][$s->period_id] = $s;
         }
 
-        $data = compact('periods','entry_map','subjects','staff','rooms','batches','days','day_dates','day_full_dates','subst_map','class_id','section_id','session_id');
+        $joint_teacher_map = $this->Tt_joint_model->getTeacherMapForClass($session_id, $class_id, $section_id);
+        $data = compact('periods','entry_map','subjects','staff','rooms','batches','days','day_dates','day_full_dates','subst_map','class_id','section_id','session_id','joint_teacher_map');
         $html = $this->load->view('admin/tt/_grid_table', $data, true);
 
         // Build flat data rows for client-side Excel/PDF export (no colspan issues)
@@ -1074,7 +1077,10 @@ class Tt extends Admin_Controller
                             $row[] = $e->free_period_label ?: 'Free';
                         } else {
                             $abbr  = !empty($e->tt_abbr) ? $e->tt_abbr : ($e->subject_code ?: $e->subject_name);
-                            $tname = trim(($e->staff_name ?? '') . ' ' . ($e->staff_surname ?? ''));
+                            $sgs   = $e->subject_group_subject_id ?? 0;
+                            $tname = !empty($joint_teacher_map[$sgs])
+                                   ? $joint_teacher_map[$sgs]
+                                   : trim(($e->staff_name ?? '') . ' ' . ($e->staff_surname ?? ''));
                             $row[] = $abbr . ($tname ? ' (' . $tname . ')' : '');
                         }
                     } else {
@@ -1118,16 +1124,18 @@ class Tt extends Admin_Controller
         $header_img_url = $header_img
             ? $this->media_storage->getImageURL('/uploads/print_headerfooter/general_purpose/' . $header_img)
             : null;
+        $joint_teacher_map = $this->Tt_joint_model->getTeacherMapForClass($session_id, $class_id, $section_id);
         return [
-            'session_id'    => $session_id,
-            'class_id'      => $class_id,
-            'section_id'    => $section_id,
-            'class_label'   => $cls ? $cls->class : "Class $class_id",
-            'section_label' => $sec ? $sec->section : "Section $section_id",
-            'periods'       => $periods,
-            'entry_map'     => $entry_map,
-            'days'          => $days,
-            'header_img_url'=> $header_img_url,
+            'session_id'        => $session_id,
+            'class_id'          => $class_id,
+            'section_id'        => $section_id,
+            'class_label'       => $cls ? $cls->class : "Class $class_id",
+            'section_label'     => $sec ? $sec->section : "Section $section_id",
+            'periods'           => $periods,
+            'entry_map'         => $entry_map,
+            'days'              => $days,
+            'header_img_url'    => $header_img_url,
+            'joint_teacher_map' => $joint_teacher_map,
         ];
     }
 
@@ -1206,7 +1214,10 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
                             $html .= '<td><span class="stag" style="background:#27ae60;">' . htmlspecialchars($e->free_period_label ?: 'Free') . '</span></td>';
                         } else {
                             $abbr  = !empty($e->tt_abbr) ? $e->tt_abbr : ($e->subject_code ?: $e->subject_name);
-                            $tname = trim(($e->staff_name ?? '') . ' ' . ($e->staff_surname ?? ''));
+                            $sgs   = $e->subject_group_subject_id ?? 0;
+                            $tname = !empty($d['joint_teacher_map'][$sgs])
+                                   ? $d['joint_teacher_map'][$sgs]
+                                   : trim(($e->staff_name ?? '') . ' ' . ($e->staff_surname ?? ''));
                             $bg    = !empty($e->tt_color) ? $e->tt_color : ($type_bg[strtolower($e->subject_type ?? 'other')] ?? '#7f8c8d');
                             $html .= '<td><span class="stag" style="background:' . $bg . ';">' . htmlspecialchars($abbr) . '</span>'
                                    . ($tname ? '<span class="stn">' . htmlspecialchars($tname) . '</span>' : '')
@@ -1300,7 +1311,10 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
                                   . htmlspecialchars($entry->free_period_label ?: 'Free') . '</span>';
                         } else {
                             $abbr  = !empty($entry->tt_abbr) ? $entry->tt_abbr : ($entry->subject_code ?: $entry->subject_name);
-                            $tname = trim(($entry->staff_name ?? '') . ' ' . ($entry->staff_surname ?? ''));
+                            $sgs   = $entry->subject_group_subject_id ?? 0;
+                            $tname = !empty($d['joint_teacher_map'][$sgs])
+                                   ? $d['joint_teacher_map'][$sgs]
+                                   : trim(($entry->staff_name ?? '') . ' ' . ($entry->staff_surname ?? ''));
                             $cell  = '<strong>' . htmlspecialchars($abbr) . '</strong>'
                                    . ($tname ? '<br><small>' . htmlspecialchars($tname) . '</small>' : '');
                         }

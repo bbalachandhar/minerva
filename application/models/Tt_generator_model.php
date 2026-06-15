@@ -21,6 +21,7 @@ class Tt_generator_model extends MY_Model
     private $working_days   = [];
     private $periods        = [];      // all non-break period objects indexed by id
     private $period_order   = [];      // ordered list of period IDs
+    private $default_tc;               // fallback constraint object for unconfigured teachers
 
     // Occupancy matrices
     private $class_occ      = [];     // [class_id][section_id][day][period_id][batch_key]
@@ -97,6 +98,18 @@ class Tt_generator_model extends MY_Model
         $this->CI->load->model('Tt_teacher_model');
         $constraints = $this->CI->Tt_teacher_model->getAllConstraintsMap($session_id);
         $unavail_map = $this->CI->Tt_teacher_model->getUnavailabilityMap($session_id);
+
+        // Default constraint applied to any teacher with no configured row.
+        // Enforces sensible limits even when admin hasn't explicitly set them.
+        $this->default_tc = (object)[
+            'max_periods_per_day'     => 6,
+            'max_periods_per_week'    => 36,
+            'avoid_first_period'      => 0,
+            'avoid_last_period'       => 0,
+            'preferred_room_id'       => null,
+            'max_consecutive_periods' => 0,  // 0 = no limit
+            'min_break_after_consec'  => 1,
+        ];
 
         // Pre-compute how many slots each teacher is unavailable for this session.
         // Teachers with more blocked slots are harder to schedule and must go first.
@@ -351,7 +364,7 @@ class Tt_generator_model extends MY_Model
                         $consec, $subject_days_used,
                         $constraints, $unavail_map,
                         $room_type, $pref_room,
-                        $max_per_day, $min_per_day, $dist_evenly
+                        $max_per_day, $min_per_day, $dist_evenly, $periods_pw
                     );
 
                     if ($slot === null) {
@@ -527,11 +540,21 @@ class Tt_generator_model extends MY_Model
                                     $consec, $days_used,
                                     $constraints, $unavail_map,
                                     $room_type, $pref_room,
-                                    $max_per_day, $min_per_day, $dist_evenly)
+                                    $max_per_day, $min_per_day, $dist_evenly, $periods_pw = 0)
     {
         $best       = null;
         $best_score = -999;
         $primary    = $teacher_ids[0] ?? null;
+
+        // Overflow mode: PPW > working days → the extra period must land on a day that
+        // already has one, so we flip the adjacency penalty into a small bonus to encourage
+        // the double to be consecutive (e.g. 7 PPW / 6 days → 1 day gets back-to-back).
+        $wd_count       = count($this->working_days);
+        $days_with_subj = count(array_filter(
+            $this->subject_day_count[$class_id][$section_id][$sgs_id] ?? [],
+            fn($c) => $c > 0
+        ));
+        $overflow_mode = ($periods_pw > 0) && ($periods_pw > $wd_count) && ($days_with_subj >= $wd_count);
 
         foreach ($this->working_days as $day) {
             $day_subject_count = $this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0;
@@ -566,13 +589,12 @@ class Tt_generator_model extends MY_Model
                     // ALL teachers must be free simultaneously
                     $all_free = true;
                     foreach ($teacher_ids as $t_id) {
-                        $constraint = $constraints[$t_id] ?? null;
-                        if ($constraint) {
-                            if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > $constraint->max_periods_per_day) { $all_free = false; break; }
-                            if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > $constraint->max_periods_per_week)     { $all_free = false; break; }
-                            if ($constraint->avoid_first_period && $pid_group[0] === $this->period_order[0])                  { $all_free = false; break; }
-                            if ($constraint->avoid_last_period  && end($pid_group) === end($this->period_order))              { $all_free = false; break; }
-                        }
+                        $c = $constraints[$t_id] ?? $this->default_tc;
+                        if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > $c->max_periods_per_day) { $all_free = false; break; }
+                        if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > $c->max_periods_per_week)     { $all_free = false; break; }
+                        if ($c->avoid_first_period && $pid_group[0] === $this->period_order[0])                  { $all_free = false; break; }
+                        if ($c->avoid_last_period  && end($pid_group) === end($this->period_order))              { $all_free = false; break; }
+                        if ($this->_violatesConsecRule($t_id, $day, $pid_group, (int)($c->max_consecutive_periods ?? 0), (int)($c->min_break_after_consec ?? 1))) { $all_free = false; break; }
                         foreach ($pid_group as $pid) {
                             if (!empty($this->teacher_occ[$t_id][$day][$pid])) { $all_free = false; break 2; }
                             if (!empty($unavail_map[$t_id][$day][$pid]))        { $all_free = false; break 2; }
@@ -580,8 +602,10 @@ class Tt_generator_model extends MY_Model
                     }
                     if (!$all_free) continue;
 
-                    $room_id = $this->_findRoom($day, $pid_group, $room_type, $pref_room, $primary, $constraints[$primary] ?? null);
-                    $score   = $day_penalty + $day_on1_bonus + $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec, $max_per_day);
+                    $room_id = $this->_findRoom($day, $pid_group, $room_type, $pref_room, $primary, $constraints[$primary] ?? $this->default_tc);
+                    $adj     = $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec, $max_per_day);
+                    if ($overflow_mode && $adj < 0) $adj = 5;
+                    $score   = $day_penalty + $day_on1_bonus + $adj;
                     if ($room_id && $room_id === $pref_room) $score += 3;
                     $score  -= array_search($day, $this->working_days) * 0.1;
 
@@ -590,30 +614,30 @@ class Tt_generator_model extends MY_Model
                         $best = ['day' => $day, 'period_ids' => $pid_group, 'staff_id' => $primary, 'room_id' => $room_id];
                     }
                 } else {
-                    // Pool mode: try each teacher, pick first free (primary preferred via score)
+                    // Pool mode: try each teacher, pick best scoring
                     $candidates = !empty($teacher_ids) ? $teacher_ids : [null];
                     foreach ($candidates as $t_id) {
                         if ($t_id !== null) {
-                            $constraint = $constraints[$t_id] ?? null;
-                            if ($constraint) {
-                                if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > $constraint->max_periods_per_day) continue;
-                                if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > $constraint->max_periods_per_week)     continue;
-                                if ($constraint->avoid_first_period && $pid_group[0] === $this->period_order[0])                  continue;
-                                if ($constraint->avoid_last_period  && end($pid_group) === end($this->period_order))              continue;
-                            }
+                            $c = $constraints[$t_id] ?? $this->default_tc;
+                            if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > $c->max_periods_per_day) continue;
+                            if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > $c->max_periods_per_week)     continue;
+                            if ($c->avoid_first_period && $pid_group[0] === $this->period_order[0])                  continue;
+                            if ($c->avoid_last_period  && end($pid_group) === end($this->period_order))              continue;
                             $t_free = true;
                             foreach ($pid_group as $pid) {
                                 if (!empty($this->teacher_occ[$t_id][$day][$pid])) { $t_free = false; break; }
                                 if (!empty($unavail_map[$t_id][$day][$pid]))        { $t_free = false; break; }
                             }
                             if (!$t_free) continue;
-                            $constraint = $constraints[$t_id] ?? null;
+                            if ($this->_violatesConsecRule($t_id, $day, $pid_group, (int)($c->max_consecutive_periods ?? 0), (int)($c->min_break_after_consec ?? 1))) continue;
                         } else {
-                            $constraint = null;
+                            $c = null;
                         }
 
-                        $room_id = $this->_findRoom($day, $pid_group, $room_type, $pref_room, $t_id, $constraint);
-                        $score   = $day_penalty + $day_on1_bonus + $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec, $max_per_day);
+                        $room_id = $this->_findRoom($day, $pid_group, $room_type, $pref_room, $t_id, $c);
+                        $adj     = $this->_adjacencyPenalty($class_id, $section_id, $sgs_id, $day, $pid_group, $consec, $max_per_day);
+                        if ($overflow_mode && $adj < 0) $adj = 5;
+                        $score   = $day_penalty + $day_on1_bonus + $adj;
                         if ($t_id === $primary) $score += 5;
                         if ($room_id && $room_id === $pref_room) $score += 3;
                         $score  -= array_search($day, $this->working_days) * 0.1;
@@ -677,13 +701,12 @@ class Tt_generator_model extends MY_Model
                     // ALL teachers must be free simultaneously
                     $all_free = true;
                     foreach ($teacher_ids as $t_id) {
-                        $constraint = $constraints[$t_id] ?? null;
-                        if ($constraint) {
-                            if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > $constraint->max_periods_per_day) { $all_free = false; break; }
-                            if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > $constraint->max_periods_per_week)     { $all_free = false; break; }
-                            if ($constraint->avoid_first_period && $pid_group[0] === $this->period_order[0])                  { $all_free = false; break; }
-                            if ($constraint->avoid_last_period  && end($pid_group) === end($this->period_order))              { $all_free = false; break; }
-                        }
+                        $c = $constraints[$t_id] ?? $this->default_tc;
+                        if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > $c->max_periods_per_day) { $all_free = false; break; }
+                        if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > $c->max_periods_per_week)     { $all_free = false; break; }
+                        if ($c->avoid_first_period && $pid_group[0] === $this->period_order[0])                  { $all_free = false; break; }
+                        if ($c->avoid_last_period  && end($pid_group) === end($this->period_order))              { $all_free = false; break; }
+                        if ($this->_violatesConsecRule($t_id, $day, $pid_group, (int)($c->max_consecutive_periods ?? 0), (int)($c->min_break_after_consec ?? 1))) { $all_free = false; break; }
                         foreach ($pid_group as $pid) {
                             if (!empty($this->teacher_occ[$t_id][$day][$pid])) { $all_free = false; break 2; }
                             if (!empty($unavail_map[$t_id][$day][$pid]))        { $all_free = false; break 2; }
@@ -691,7 +714,7 @@ class Tt_generator_model extends MY_Model
                     }
                     if (!$all_free) continue;
 
-                    $room_id = $this->_findRoom($day, $pid_group, 'any', $pref_room, $primary, $constraints[$primary] ?? null);
+                    $room_id = $this->_findRoom($day, $pid_group, 'any', $pref_room, $primary, $constraints[$primary] ?? $this->default_tc);
                     $score   = $day_penalty;
                     if ($room_id && $room_id === $pref_room) $score += 3;
                     $score  -= array_search($day, $this->working_days) * 0.1;
@@ -701,29 +724,27 @@ class Tt_generator_model extends MY_Model
                         $best = ['day' => $day, 'period_ids' => $pid_group, 'staff_id' => $primary, 'room_id' => $room_id];
                     }
                 } else {
-                    // Pool mode: try each teacher, pick first free
+                    // Pool mode: try each teacher, pick best scoring
                     $candidates = !empty($teacher_ids) ? $teacher_ids : [null];
                     foreach ($candidates as $t_id) {
                         if ($t_id !== null) {
-                            $constraint = $constraints[$t_id] ?? null;
-                            if ($constraint) {
-                                if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > $constraint->max_periods_per_day) continue;
-                                if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > $constraint->max_periods_per_week)     continue;
-                                if ($constraint->avoid_first_period && $pid_group[0] === $this->period_order[0])                  continue;
-                                if ($constraint->avoid_last_period  && end($pid_group) === end($this->period_order))              continue;
-                            }
+                            $c = $constraints[$t_id] ?? $this->default_tc;
+                            if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > $c->max_periods_per_day) continue;
+                            if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > $c->max_periods_per_week)     continue;
+                            if ($c->avoid_first_period && $pid_group[0] === $this->period_order[0])                  continue;
+                            if ($c->avoid_last_period  && end($pid_group) === end($this->period_order))              continue;
                             $t_free = true;
                             foreach ($pid_group as $pid) {
                                 if (!empty($this->teacher_occ[$t_id][$day][$pid])) { $t_free = false; break; }
                                 if (!empty($unavail_map[$t_id][$day][$pid]))        { $t_free = false; break; }
                             }
                             if (!$t_free) continue;
-                            $constraint = $constraints[$t_id] ?? null;
+                            if ($this->_violatesConsecRule($t_id, $day, $pid_group, (int)($c->max_consecutive_periods ?? 0), (int)($c->min_break_after_consec ?? 1))) continue;
                         } else {
-                            $constraint = null;
+                            $c = null;
                         }
 
-                        $room_id = $this->_findRoom($day, $pid_group, 'any', $pref_room, $t_id, $constraint);
+                        $room_id = $this->_findRoom($day, $pid_group, 'any', $pref_room, $t_id, $c);
                         $score   = $day_penalty;
                         if ($t_id === $primary) $score += 5;
                         if ($room_id && $room_id === $pref_room) $score += 3;
@@ -765,6 +786,57 @@ class Tt_generator_model extends MY_Model
             }
         }
         return 0;
+    }
+
+    /**
+     * Returns true if placing $pid_group for teacher $t_id on $day would
+     * exceed their configured max_consecutive_periods or violate the required
+     * break gap after hitting that limit.
+     *
+     * max_consec = 0   → no limit, always returns false.
+     * min_break         → consecutive free slots required after a max-length run.
+     *                     With min_break=1 this is automatically satisfied by the
+     *                     max_consec check alone (adding at position run_end+1 would
+     *                     extend the run beyond max_consec). min_break>1 explicitly
+     *                     enforces a wider gap between teaching blocks.
+     */
+    private function _violatesConsecRule($t_id, $day, $pid_group, $max_consec, $min_break)
+    {
+        if ($max_consec <= 0) return false;
+
+        $period_idx = array_flip($this->period_order);
+
+        // Existing occupied indices for this teacher on this day
+        $occupied = [];
+        foreach ($this->period_order as $idx => $pid) {
+            if (!empty($this->teacher_occ[$t_id][$day][$pid])) $occupied[$idx] = true;
+        }
+        // Add candidate period(s)
+        foreach ($pid_group as $pid) {
+            if (isset($period_idx[$pid])) $occupied[$period_idx[$pid]] = true;
+        }
+        if (empty($occupied)) return false;
+
+        $idxs = array_keys($occupied);
+        sort($idxs);
+
+        $run_len = 1;
+        $prev    = $idxs[0];
+        for ($i = 1; $i < count($idxs); $i++) {
+            $curr = $idxs[$i];
+            if ($curr === $prev + 1) {
+                $run_len++;
+                if ($run_len > $max_consec) return true;
+            } else {
+                // Gap found — if prior run hit the max, check the gap is wide enough
+                if ($run_len === $max_consec && $min_break > 1 && ($curr - $prev - 1) < $min_break) {
+                    return true;
+                }
+                $run_len = 1;
+            }
+            $prev = $curr;
+        }
+        return false;
     }
 
     private function _getConsecutiveStarts($consec)

@@ -65,10 +65,20 @@ $type_class = ['theory'=>'slot-theory','practical'=>'slot-practical','project'=>
                 ?>
                 <span class="slot-tag <?php echo $slot_color ? '' : $tc; ?>" style="<?php echo $slot_style; ?>"><?php echo htmlspecialchars($slot_text); ?></span><br>
                 <?php
-                  $full_name = trim($entry->staff_name.' '.($entry->staff_surname??''));
-                  $t_abbr    = mb_strlen($entry->staff_name) > 4
-                             ? mb_strtoupper(mb_substr($entry->staff_name, 0, 4)) . '..'
-                             : mb_strtoupper($entry->staff_name);
+                  $sgs_key   = $entry->subject_group_subject_id ?? 0;
+                  if (!empty($joint_teacher_map[$sgs_key])) {
+                      $full_name = $joint_teacher_map[$sgs_key];
+                      // Abbreviate each teacher to 3 chars, joined with "+"
+                      $t_abbr = implode('+', array_map(
+                          fn($n) => mb_strtoupper(mb_substr(trim(explode(' ', trim($n))[0]), 0, 3)) . '.',
+                          explode(', ', $full_name)
+                      ));
+                  } else {
+                      $full_name = trim($entry->staff_name.' '.($entry->staff_surname??''));
+                      $t_abbr    = mb_strlen($entry->staff_name ?? '') > 4
+                                 ? mb_strtoupper(mb_substr($entry->staff_name, 0, 4)) . '..'
+                                 : mb_strtoupper($entry->staff_name ?? '');
+                  }
                 ?>
                 <small style="font-size:10px;cursor:default;"
                        data-toggle="tooltip" data-placement="top"

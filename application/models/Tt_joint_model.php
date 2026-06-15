@@ -63,6 +63,37 @@ class Tt_joint_model extends MY_Model
             ->get()->result();
     }
 
+    /**
+     * For class timetable display: returns a map of sgs_id → "Name1, Name2"
+     * covering all teachers assigned to any joint lesson that this class-section
+     * participates in.  Used so the class grid shows ALL teachers for joint slots
+     * (individual teacher timetable still shows only that teacher's own entries).
+     */
+    public function getTeacherMapForClass($session_id, $class_id, $section_id)
+    {
+        $rows = $this->db
+            ->select('sl.subject_group_subject_id as sgs_id, staff.name, staff.surname, jlt.sort_order')
+            ->from('tt_subject_load sl')
+            ->join('tt_joint_lesson_teachers jlt', 'jlt.joint_lesson_id = sl.joint_lesson_id')
+            ->join('staff', 'staff.id = jlt.staff_id', 'left')
+            ->where('sl.session_id', $session_id)
+            ->where('sl.class_id', $class_id)
+            ->where('sl.section_id', $section_id)
+            ->where('sl.joint_lesson_id IS NOT NULL', null, false)
+            ->order_by('jlt.sort_order', 'ASC')
+            ->get()->result();
+
+        $map = [];
+        foreach ($rows as $r) {
+            $name = trim($r->name . ' ' . ($r->surname ?? ''));
+            if ($name) $map[$r->sgs_id][] = $name;
+        }
+        foreach ($map as $sgs_id => $names) {
+            $map[$sgs_id] = implode(', ', array_unique($names));
+        }
+        return $map;
+    }
+
     public function save($session_id, $data, $classes, $teacher_ids = [])
     {
         $this->db->trans_start();

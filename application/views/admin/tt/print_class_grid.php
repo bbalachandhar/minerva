@@ -93,7 +93,10 @@ $type_class = [
             ?>
             <span class="slot-tag <?php echo $slot_class; ?>" <?php echo $slot_style; ?>><?php echo htmlspecialchars($slot_text); ?></span>
             <?php
-              $tname = trim(($entry->staff_name ?? '') . ' ' . ($entry->staff_surname ?? ''));
+              $sgs_k = $entry->subject_group_subject_id ?? 0;
+              $tname = !empty($joint_teacher_map[$sgs_k])
+                      ? $joint_teacher_map[$sgs_k]
+                      : trim(($entry->staff_name ?? '') . ' ' . ($entry->staff_surname ?? ''));
               if ($tname): ?>
               <span class="teacher-name"><?php echo htmlspecialchars($tname); ?></span>
             <?php endif; ?>

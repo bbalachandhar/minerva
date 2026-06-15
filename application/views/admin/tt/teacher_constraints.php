@@ -78,6 +78,22 @@
             </select>
             <small class="text-muted">Scheduler will prefer this room for this teacher's lessons</small>
           </div>
+          <div class="row">
+            <div class="col-sm-6">
+              <div class="form-group">
+                <label>Max Consecutive Periods <small class="text-muted">(0 = no limit)</small></label>
+                <input type="number" class="form-control" name="max_consecutive_periods" id="tc_max_consec" value="0" min="0" max="12">
+                <small class="text-muted">e.g. 3 → teacher gets a break after every 3 teaching periods</small>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-group">
+                <label>Min Break After Max Consec <small class="text-muted">(periods)</small></label>
+                <input type="number" class="form-control" name="min_break_after_consec" id="tc_min_break" value="1" min="1" max="4">
+                <small class="text-muted">Free periods required before teacher can teach again</small>
+              </div>
+            </div>
+          </div>
           <div class="form-group">
             <label><input type="checkbox" name="avoid_first_period" id="tc_avoid_first" value="1"> Avoid First Period of Day</label><br>
             <label><input type="checkbox" name="avoid_last_period"  id="tc_avoid_last"  value="1"> Avoid Last Period of Day</label><br>
@@ -104,6 +120,8 @@
               <th>Teacher</th>
               <th>Max/Day</th>
               <th>Max/Week</th>
+              <th>Max Consec.</th>
+              <th>Break After</th>
               <th>Min Free</th>
               <th>Max Gap</th>
               <th>Pref. Room</th>
@@ -121,6 +139,8 @@
               <td><strong><?php echo htmlspecialchars($c->name.' '.$c->surname); ?></strong><br><small><?php echo $c->employee_id; ?></small></td>
               <td><?php echo $c->max_periods_per_day; ?></td>
               <td><?php echo $c->max_periods_per_week; ?></td>
+              <td><?php echo $c->max_consecutive_periods > 0 ? $c->max_consecutive_periods : '-'; ?></td>
+              <td><?php echo $c->max_consecutive_periods > 0 ? $c->min_break_after_consec : '-'; ?></td>
               <td><?php echo $c->min_free_per_day; ?></td>
               <td><?php echo isset($c->max_gap_per_day) && $c->max_gap_per_day !== null ? $c->max_gap_per_day : '-'; ?></td>
               <td><?php echo !empty($c->preferred_room_name) ? htmlspecialchars($c->preferred_room_name) : '-'; ?></td>
@@ -142,7 +162,9 @@
                   data-prefend="<?php echo $c->preferred_end_time ?? ''; ?>"
                   data-avoidfirst="<?php echo $c->avoid_first_period; ?>"
                   data-avoidlast="<?php echo $c->avoid_last_period; ?>"
-                  data-exclsubst="<?php echo $c->exclude_from_substitution ?? 0; ?>">
+                  data-exclsubst="<?php echo $c->exclude_from_substitution ?? 0; ?>"
+                  data-maxconsec="<?php echo $c->max_consecutive_periods ?? 0; ?>"
+                  data-minbreak="<?php echo $c->min_break_after_consec ?? 1; ?>">
                   <i class="fa fa-edit"></i>
                 </button>
                 <a href="<?php echo site_url('admin/tt/delete_teacher_constraint/'.$c->id); ?>"
@@ -153,7 +175,7 @@
             </tr>
             <?php endforeach; ?>
             <?php if (empty($constraints)): ?>
-            <tr><td colspan="12" class="text-center text-muted p-4">No constraints configured yet. Default max is used during auto-generation.</td></tr>
+            <tr><td colspan="14" class="text-center text-muted p-4">No constraints configured yet. Default limits (6/day, 36/week) apply to all teachers during auto-generation.</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
@@ -185,6 +207,8 @@ $(function(){
     $('#tc_avoid_first').prop('checked', d.avoidfirst == 1);
     $('#tc_avoid_last').prop('checked', d.avoidlast == 1);
     $('#tc_excl_subst').prop('checked', d.exclsubst == 1);
+    $('#tc_max_consec').val(d.maxconsec || 0);
+    $('#tc_min_break').val(d.minbreak || 1);
     $('html,body').animate({scrollTop:0}, 400);
   });
 
