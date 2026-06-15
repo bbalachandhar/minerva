@@ -1198,9 +1198,9 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                         <td>
                                                             <?php
                                                             if ($fee_value->is_system) {
-                                                                echo $this->lang->line($fee_value->type) . " (" . $this->lang->line($fee_value->code) . ")";
+                                                                echo $this->lang->line($fee_value->type) . (!empty($fee_value->code) ? " (" . $this->lang->line($fee_value->code) . ")" : "");
                                                             } else {
-                                                                echo $fee_value->type . " (" . $fee_value->code . ")";
+                                                                echo $fee_value->type . (!empty($fee_value->code) ? " (" . $fee_value->code . ")" : "");
                                                             }
                                                             ?>
                                                         </td>
