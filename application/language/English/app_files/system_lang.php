@@ -3318,3 +3318,4 @@ $lang['tt_class_grid']             = "Class Timetable";
 $lang['tt_teacher_avail']          = "Teacher Availability";
 $lang['tt_teacher_constr']         = "Teacher Constraints";
 $lang['tt_teacher_view']           = "Teacher Timetable";
+$lang['tt_workload_dashboard']     = "Workload Dashboard";

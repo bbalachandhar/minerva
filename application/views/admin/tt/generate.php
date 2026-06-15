@@ -339,9 +339,19 @@ $(function(){
       var html = '<div style="padding:10px;">';
       var icon  = res.ok ? '<i class="fa fa-check-circle text-success"></i> Ready to Generate' : '<i class="fa fa-exclamation-triangle text-warning"></i> Warnings Found';
       html += '<div class="alert alert-'+(res.ok?'success':'warning')+' text-left" style="font-size:12px;">';
+      var hasTeacherOverload = false;
       $.each(res.items, function(i, item){
         html += '<div style="margin-bottom:4px;"><i class="fa '+(item.ok?'fa-check text-success':'fa-times text-danger')+'" style="width:16px;"></i> '+item.msg+'</div>';
+        if (!item.ok && item.msg.indexOf('periods/week but max') !== -1) hasTeacherOverload = true;
       });
+      if (hasTeacherOverload) {
+        html += '<div style="margin-top:8px;padding:8px;background:#fff3cd;border-radius:4px;border-left:4px solid #f39c12;">'
+              + '<i class="fa fa-info-circle text-warning"></i> '
+              + 'One or more teachers are over their weekly cap. Use the '
+              + '<a href="<?php echo site_url('admin/tt/teacher_workload_dashboard'); ?>" target="_blank"><strong>Workload Dashboard</strong></a>'
+              + ' to see the full breakdown and reassign subjects before generating.'
+              + '</div>';
+      }
       html += '</div></div>';
       $('#result-header').find('.box-title').html(icon);
       $('#result-body').html(html);

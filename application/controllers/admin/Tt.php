@@ -662,6 +662,124 @@ class Tt extends Admin_Controller
     }
 
     // =========================================================================
+    // TEACHER WORKLOAD DASHBOARD (pre-generation planning)
+    // =========================================================================
+
+    public function teacher_workload_dashboard()
+    {
+        if (!$this->rbac->hasPrivilege('tt_subject_load', 'can_view')) {
+            access_denied();
+        }
+        $this->_setMenu();
+        $data = $this->_baseData();
+        $data['staff_list'] = $this->staff_model->getStaffbyrole(2);
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/tt/workload_dashboard', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function get_pregeneration_workload()
+    {
+        $session_id  = $this->setting_model->getCurrentSession();
+        $constraints = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
+        $default_cap = 36;
+
+        $agg = $this->db->query("
+            SELECT slt.staff_id, s.name, s.surname, s.employee_id,
+                   SUM(sl.periods_per_week) AS total_ppw
+            FROM tt_subject_load sl
+            JOIN tt_subject_load_teachers slt ON slt.subject_load_id = sl.id
+            JOIN staff s ON s.id = slt.staff_id
+            WHERE sl.session_id = ?
+            GROUP BY slt.staff_id, s.name, s.surname, s.employee_id
+            ORDER BY total_ppw DESC
+        ", [$session_id])->result();
+
+        $details = $this->db->query("
+            SELECT sl.id AS load_id, sl.periods_per_week, sl.joint_lesson_id,
+                   sl.class_id, sl.section_id,
+                   sub.name AS subject_name, sub.code AS subject_code,
+                   c.class AS class_name, sec.section AS section_name,
+                   slt.staff_id AS teacher_id
+            FROM tt_subject_load sl
+            JOIN tt_subject_load_teachers slt ON slt.subject_load_id = sl.id
+            JOIN subject_group_subjects sgs ON sgs.id = sl.subject_group_subject_id
+            JOIN subjects sub ON sub.id = sgs.subject_id
+            JOIN classes c ON c.id = sl.class_id
+            JOIN sections sec ON sec.id = sl.section_id
+            WHERE sl.session_id = ?
+            ORDER BY slt.staff_id, sub.name ASC
+        ", [$session_id])->result();
+
+        $detail_map = [];
+        foreach ($details as $d) {
+            $detail_map[(int)$d->teacher_id][] = $d;
+        }
+
+        $result = [];
+        foreach ($agg as $t) {
+            $cap = isset($constraints[(int)$t->staff_id])
+                ? (int)$constraints[(int)$t->staff_id]->max_periods_per_week
+                : $default_cap;
+            $assignments = [];
+            foreach ($detail_map[(int)$t->staff_id] ?? [] as $a) {
+                $assignments[] = [
+                    'load_id'  => (int)$a->load_id,
+                    'class'    => $a->class_name . ' ' . $a->section_name,
+                    'subject'  => $a->subject_name . ($a->subject_code ? " ({$a->subject_code})" : ''),
+                    'ppw'      => (int)$a->periods_per_week,
+                    'is_joint' => !empty($a->joint_lesson_id),
+                ];
+            }
+            $result[] = [
+                'staff_id'    => (int)$t->staff_id,
+                'name'        => trim($t->name . ' ' . ($t->surname ?? '')),
+                'employee_id' => $t->employee_id,
+                'total_ppw'   => (int)$t->total_ppw,
+                'cap'         => $cap,
+                'assignments' => $assignments,
+            ];
+        }
+
+        echo json_encode(['status' => '1', 'data' => $result]);
+    }
+
+    public function reassign_subject_teacher()
+    {
+        if (!$this->rbac->hasPrivilege('tt_subject_load', 'can_add')) {
+            echo json_encode(['status' => '0', 'message' => 'Access denied']);
+            return;
+        }
+        $session_id  = $this->setting_model->getCurrentSession();
+        $load_id     = (int)$this->input->post('load_id');
+        $new_teacher = (int)$this->input->post('new_teacher_id');
+        $old_teacher = (int)$this->input->post('old_teacher_id');
+
+        if (!$load_id || !$new_teacher || !$old_teacher) {
+            echo json_encode(['status' => '0', 'message' => 'Invalid input']);
+            return;
+        }
+
+        $row = $this->db->where('id', $load_id)->where('session_id', $session_id)
+                        ->where('joint_lesson_id IS NULL', null, false)
+                        ->get('tt_subject_load')->row();
+        if (!$row) {
+            echo json_encode(['status' => '0', 'message' => 'Record not found or is a joint lesson']);
+            return;
+        }
+
+        $this->db->trans_start();
+        if ((int)$row->staff_id === $old_teacher) {
+            $this->db->where('id', $load_id)->update('tt_subject_load', ['staff_id' => $new_teacher]);
+        }
+        $this->db->where('subject_load_id', $load_id)->where('staff_id', $old_teacher)
+                 ->update('tt_subject_load_teachers', ['staff_id' => $new_teacher]);
+        $this->db->trans_complete();
+
+        echo json_encode(['status' => $this->db->trans_status() ? '1' : '0']);
+    }
+
+    // =========================================================================
     // TEACHER CONSTRAINTS
     // =========================================================================
 
@@ -1983,7 +2101,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
                 $this->load->model('Tt_teacher_model');
                 $constraints = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
                 foreach ($teacher_totals as $tid => $total) {
-                    $max_week = isset($constraints[$tid]) ? (int)$constraints[$tid]->max_periods_per_week : $slot_count;
+                    $max_week = isset($constraints[$tid]) ? (int)$constraints[$tid]->max_periods_per_week : 36;
                     if ($total > $max_week) {
                         $overall_ok = false;
                         $t = $this->db->select('name, surname')->where('id', $tid)->get('staff')->row();
