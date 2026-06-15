@@ -108,9 +108,7 @@ class Admin extends Admin_Controller
         $summary = [];
 
         $zero = [
-            'tuition_demand'   => 0.0, 'tuition_paid'     => 0.0,
-            'other_demand'     => 0.0, 'other_paid'       => 0.0,
-            'hostel_demand'    => 0.0, 'hostel_paid'      => 0.0,
+            'fee_types'        => [],
             'transport_demand' => 0.0, 'transport_paid'   => 0.0,
             'advance_paid'     => 0.0, 'advance_discount' => 0.0,
             'cf_demand'        => 0.0, 'cf_paid'          => 0.0,
@@ -159,10 +157,10 @@ class Admin extends Admin_Controller
         $in_ids = implode(',', array_map('intval', $valid_ids));
 
         // Q1 — Regular fee DEMAND grouped by student + feetype (excludes Balance Master and Advance Payments).
-        // 'advance payments' has no demand in the original getTransStudentFees() switch — it only tracks paid.
-        // COALESCE(sfo.override_amount, fgf.amount) applies hostel fee per-student overrides stored in student_fee_overrides.
+        // COALESCE(sfo.override_amount, fgf.amount) applies per-student fee overrides stored in student_fee_overrides.
         $q1 = $this->db->query("
-            SELECT sfm.student_session_id, ft.type AS fee_type, SUM(COALESCE(sfo.override_amount, fgf.amount)) AS amount
+            SELECT sfm.student_session_id, ft.id AS feetype_id, ft.type AS fee_type,
+                   SUM(COALESCE(sfo.override_amount, fgf.amount)) AS amount
             FROM student_fees_master sfm
             INNER JOIN fee_session_groups fsg ON fsg.id  = sfm.fee_session_group_id
             INNER JOIN fee_groups         fg  ON fg.id   = fsg.fee_groups_id
@@ -175,26 +173,22 @@ class Admin extends Admin_Controller
               AND ss.id IN ($in_ids)
               AND fg.name != 'Balance Master'
               AND LOWER(ft.type) NOT IN ('advance payments', 'previous session balance')
-            GROUP BY sfm.student_session_id, ft.type
+            GROUP BY sfm.student_session_id, ft.id, ft.type
         ");
         foreach ($q1->result() as $row) {
             $ssid = (int)$row->student_session_id;
             $ensure($ssid);
-            $type = strtolower((string)$row->fee_type);
-            $amt  = (float)$row->amount;
-            if ($type === 'tuition fee') {
-                $summary[$ssid]['tuition_demand'] += $amt;
-            } elseif (in_array($type, ['hostel fee', 'hostel fees'], true)) {
-                $summary[$ssid]['hostel_demand'] += $amt;
-            } else {
-                $summary[$ssid]['other_demand'] += $amt;
+            $tid = (int)$row->feetype_id;
+            $amt = (float)$row->amount;
+            if (!isset($summary[$ssid]['fee_types'][$tid])) {
+                $summary[$ssid]['fee_types'][$tid] = ['id' => $tid, 'name' => (string)$row->fee_type, 'demand' => 0.0, 'paid' => 0.0];
             }
+            $summary[$ssid]['fee_types'][$tid]['demand'] += $amt;
         }
 
         // Q2 — Regular fee PAID from student_fees_deposite (excludes Balance Master and Advance Payments).
-        // 'advance payments' deposits go into advance_paid (Q5), not into the fee-type paid buckets.
         $q2 = $this->db->query("
-            SELECT sfm.student_session_id, ft.type AS fee_type, sfd.amount_detail
+            SELECT sfm.student_session_id, ft.id AS feetype_id, ft.type AS fee_type, sfd.amount_detail
             FROM student_fees_deposite sfd
             INNER JOIN student_fees_master sfm ON sfm.id  = sfd.student_fees_master_id
             INNER JOIN fee_session_groups  fsg ON fsg.id  = sfm.fee_session_group_id
@@ -210,16 +204,13 @@ class Admin extends Admin_Controller
         foreach ($q2->result() as $row) {
             $ssid = (int)$row->student_session_id;
             $ensure($ssid);
+            $tid = (int)$row->feetype_id;
             [$paid, $disc] = $parseDetail($row->amount_detail);
             $total = $paid + $disc;
-            $type  = strtolower((string)$row->fee_type);
-            if ($type === 'tuition fee') {
-                $summary[$ssid]['tuition_paid'] += $total;
-            } elseif (in_array($type, ['hostel fee', 'hostel fees'], true)) {
-                $summary[$ssid]['hostel_paid'] += $total;
-            } else {
-                $summary[$ssid]['other_paid'] += $total;
+            if (!isset($summary[$ssid]['fee_types'][$tid])) {
+                $summary[$ssid]['fee_types'][$tid] = ['id' => $tid, 'name' => (string)$row->fee_type, 'demand' => 0.0, 'paid' => 0.0];
             }
+            $summary[$ssid]['fee_types'][$tid]['paid'] += $total;
         }
 
         // Q3 & Q4 — Transport demand + paid
@@ -694,10 +685,14 @@ class Admin extends Admin_Controller
             // Iterate directly over fee_summary (no getStudentsBySession() needed).
             foreach ($fee_summary as $ssid => $fs) {
 
-                $totalfee = $fs['tuition_demand'] + $fs['other_demand']
-                          + $fs['hostel_demand']  + $fs['transport_demand'];
-                $total_paid_sum = $fs['tuition_paid'] + $fs['other_paid']
-                                + $fs['hostel_paid']  + $fs['transport_paid'];
+                $ft_demand = 0.0;
+                $ft_paid   = 0.0;
+                foreach ($fs['fee_types'] as $ft) {
+                    $ft_demand += (float)$ft['demand'];
+                    $ft_paid   += (float)$ft['paid'];
+                }
+                $totalfee       = $ft_demand + $fs['transport_demand'];
+                $total_paid_sum = $ft_paid   + $fs['transport_paid'];
                 $cf_demand  = $fs['cf_demand'];
                 $cf_paid    = $fs['cf_paid'];
                 $cf_balance = $cf_demand - $cf_paid;
@@ -852,7 +847,7 @@ class Admin extends Admin_Controller
         $this->load->model('Finalyearclass_model');
         $final_year_ids = $this->Finalyearclass_model->getClassIds();
         $final_hash = md5(implode(',', $final_year_ids));
-        $cache_key = 'dash_fees_classwise_' . $current_session . '_' . $final_hash;
+        $cache_key = 'dash_fees_classwise_v2_' . $current_session . '_' . $final_hash;
 
         $response = $this->getDashboardCache($cache_key, 1800, function () use ($current_session, $final_year_ids) {
             // Lightweight query: only student_session_id + class_id (no student personal data).
@@ -874,9 +869,13 @@ class Admin extends Admin_Controller
                 }
             }
 
-            // All feetype/module lookups and the 7 bulk queries are handled
-            // (and internally cached) by _bulkFeeSummaryForSession().
-            $fee_summary = $this->_bulkFeeSummaryForSession($current_session);
+            // Resolve transport module once so we can include it in the response.
+            $tm = $this->Module_model->getPermissionByModulename('transport');
+            $transport_active = !empty($tm['is_active']);
+
+            $fee_summary = $this->_bulkFeeSummaryForSession($current_session, $transport_active);
+
+            $fee_type_columns = []; // ft_id => ft_name, ordered by first appearance
 
             if (!empty($sessions_map) && !empty($fee_summary)) {
                 foreach ($sessions_map as $row) {
@@ -884,7 +883,7 @@ class Admin extends Admin_Controller
                     $ssid     = (int)$row->student_session_id;
 
                     if (!isset($fee_summary[$ssid])) {
-                        continue; // student has no fee records
+                        continue;
                     }
                     $fs = $fee_summary[$ssid];
 
@@ -892,14 +891,21 @@ class Admin extends Admin_Controller
                         $class_rows[$class_id] = $this->initClasswiseRow($class_id, $class_names[$class_id] ?? '');
                     }
 
-                    $class_rows[$class_id]['tuition_demand']   += $fs['tuition_demand'];
-                    $class_rows[$class_id]['tuition_paid']     += $fs['tuition_paid'];
+                    foreach ($fs['fee_types'] as $ft_id => $ft) {
+                        if (!isset($fee_type_columns[$ft_id])) {
+                            $fee_type_columns[$ft_id] = $ft['name'];
+                        }
+                        if (!isset($class_rows[$class_id]['fee_types'][$ft_id])) {
+                            $class_rows[$class_id]['fee_types'][$ft_id] = [
+                                'id' => $ft_id, 'name' => $ft['name'],
+                                'demand' => 0.0, 'paid' => 0.0, 'pending' => 0.0,
+                            ];
+                        }
+                        $class_rows[$class_id]['fee_types'][$ft_id]['demand'] += $ft['demand'];
+                        $class_rows[$class_id]['fee_types'][$ft_id]['paid']   += $ft['paid'];
+                    }
                     $class_rows[$class_id]['transport_demand'] += $fs['transport_demand'];
                     $class_rows[$class_id]['transport_paid']   += $fs['transport_paid'];
-                    $class_rows[$class_id]['hostel_demand']    += $fs['hostel_demand'];
-                    $class_rows[$class_id]['hostel_paid']      += $fs['hostel_paid'];
-                    $class_rows[$class_id]['other_demand']     += $fs['other_demand'];
-                    $class_rows[$class_id]['other_paid']       += $fs['other_paid'];
                 }
             } // end if sessions_map && fee_summary
 
@@ -941,6 +947,8 @@ class Admin extends Admin_Controller
                         'all' => $all_totals,
                         'exclude_final' => $exclude_totals,
                     ),
+                    'fee_type_columns' => $fee_type_columns,
+                    'transport_active' => $transport_active,
                 ),
             );
         });
@@ -953,37 +961,30 @@ class Admin extends Admin_Controller
     private function initClasswiseRow($class_id, $class_name)
     {
         return array(
-            'class_id' => $class_id,
-            'class_name' => $class_name,
-            'tuition_demand' => 0,
-            'tuition_paid' => 0,
-            'tuition_pending' => 0,
-            'transport_demand' => 0,
-            'transport_paid' => 0,
-            'transport_pending' => 0,
-            'hostel_demand' => 0,
-            'hostel_paid' => 0,
-            'hostel_pending' => 0,
-            'other_demand' => 0,
-            'other_paid' => 0,
-            'other_pending' => 0,
+            'class_id'         => $class_id,
+            'class_name'       => $class_name,
+            'fee_types'        => [],
+            'transport_demand' => 0.0,
+            'transport_paid'   => 0.0,
+            'transport_pending'=> 0.0,
         );
     }
 
     private function finalizeClasswiseRow(&$row)
     {
-        $row['tuition_pending'] = max(0, $row['tuition_demand'] - $row['tuition_paid']);
-        $row['transport_pending'] = max(0, $row['transport_demand'] - $row['transport_paid']);
-        $row['hostel_pending'] = max(0, $row['hostel_demand'] - $row['hostel_paid']);
-        $row['other_pending'] = max(0, $row['other_demand'] - $row['other_paid']);
+        foreach ($row['fee_types'] as $ft_id => &$ft) {
+            $ft['pending'] = max(0.0, $ft['demand'] - $ft['paid']);
+        }
+        unset($ft);
+        $row['transport_pending'] = max(0.0, $row['transport_demand'] - $row['transport_paid']);
     }
 
     private function rowHasAmounts($row)
     {
-        $total = $row['tuition_demand'] + $row['tuition_paid'] +
-            $row['transport_demand'] + $row['transport_paid'] +
-            $row['hostel_demand'] + $row['hostel_paid'] +
-            $row['other_demand'] + $row['other_paid'];
+        $total = $row['transport_demand'] + $row['transport_paid'];
+        foreach ($row['fee_types'] as $ft) {
+            $total += $ft['demand'] + $ft['paid'];
+        }
         return $total > 0;
     }
 
@@ -991,18 +992,20 @@ class Admin extends Admin_Controller
     {
         $total = $this->initClasswiseRow(0, 'Grand Total');
         foreach ($rows as $row) {
-            $total['tuition_demand'] += $row['tuition_demand'];
-            $total['tuition_paid'] += $row['tuition_paid'];
-            $total['tuition_pending'] += $row['tuition_pending'];
-            $total['transport_demand'] += $row['transport_demand'];
-            $total['transport_paid'] += $row['transport_paid'];
+            foreach ($row['fee_types'] as $ft_id => $ft) {
+                if (!isset($total['fee_types'][$ft_id])) {
+                    $total['fee_types'][$ft_id] = [
+                        'id' => $ft_id, 'name' => $ft['name'],
+                        'demand' => 0.0, 'paid' => 0.0, 'pending' => 0.0,
+                    ];
+                }
+                $total['fee_types'][$ft_id]['demand']  += $ft['demand'];
+                $total['fee_types'][$ft_id]['paid']    += $ft['paid'];
+                $total['fee_types'][$ft_id]['pending'] += $ft['pending'];
+            }
+            $total['transport_demand']  += $row['transport_demand'];
+            $total['transport_paid']    += $row['transport_paid'];
             $total['transport_pending'] += $row['transport_pending'];
-            $total['hostel_demand'] += $row['hostel_demand'];
-            $total['hostel_paid'] += $row['hostel_paid'];
-            $total['hostel_pending'] += $row['hostel_pending'];
-            $total['other_demand'] += $row['other_demand'];
-            $total['other_paid'] += $row['other_paid'];
-            $total['other_pending'] += $row['other_pending'];
         }
 
         return $total;
@@ -1019,18 +1022,15 @@ class Admin extends Admin_Controller
 
     private function formatClasswiseRow($row, $currency_symbol)
     {
-        $row['tuition_demand_formatted'] = $currency_symbol . number_format($row['tuition_demand'], 2);
-        $row['tuition_paid_formatted'] = $currency_symbol . number_format($row['tuition_paid'], 2);
-        $row['tuition_pending_formatted'] = $currency_symbol . number_format($row['tuition_pending'], 2);
-        $row['transport_demand_formatted'] = $currency_symbol . number_format($row['transport_demand'], 2);
-        $row['transport_paid_formatted'] = $currency_symbol . number_format($row['transport_paid'], 2);
+        foreach ($row['fee_types'] as $ft_id => &$ft) {
+            $ft['demand_formatted']  = $currency_symbol . number_format($ft['demand'],  2);
+            $ft['paid_formatted']    = $currency_symbol . number_format($ft['paid'],    2);
+            $ft['pending_formatted'] = $currency_symbol . number_format($ft['pending'], 2);
+        }
+        unset($ft);
+        $row['transport_demand_formatted']  = $currency_symbol . number_format($row['transport_demand'],  2);
+        $row['transport_paid_formatted']    = $currency_symbol . number_format($row['transport_paid'],    2);
         $row['transport_pending_formatted'] = $currency_symbol . number_format($row['transport_pending'], 2);
-        $row['hostel_demand_formatted'] = $currency_symbol . number_format($row['hostel_demand'], 2);
-        $row['hostel_paid_formatted'] = $currency_symbol . number_format($row['hostel_paid'], 2);
-        $row['hostel_pending_formatted'] = $currency_symbol . number_format($row['hostel_pending'], 2);
-        $row['other_demand_formatted'] = $currency_symbol . number_format($row['other_demand'], 2);
-        $row['other_paid_formatted'] = $currency_symbol . number_format($row['other_paid'], 2);
-        $row['other_pending_formatted'] = $currency_symbol . number_format($row['other_pending'], 2);
 
         return $row;
     }

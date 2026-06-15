@@ -954,7 +954,7 @@ if ($this->module_lib->hasActive('expense')) {
             $class_label = ($this->sch_setting_detail->institution_type === 'college') ? 'Department' : 'Class';
         ?>
             <div class="col-md-12 col-sm-12 mb10">
-                <div class="topprograssstart flex-card" id="fees-classwise-widget" data-url="<?php echo site_url('admin/admin/fees_classwise_summary_widget'); ?>" style="position: relative; z-index: 1;">
+                <div class="topprograssstart flex-card" id="fees-classwise-widget" data-url="<?php echo site_url('admin/admin/fees_classwise_summary_widget'); ?>" data-class-label="<?php echo htmlspecialchars($class_label, ENT_QUOTES); ?>" style="position: relative; z-index: 1;">
                     <h5 class="pro-border">Class Wise Fee Summary</h5>
                     <ul class="nav nav-tabs" role="tablist">
                         <li class="active"><a href="#classwise-all" role="tab" data-toggle="tab">All Classes</a></li>
@@ -964,32 +964,10 @@ if ($this->module_lib->hasActive('expense')) {
                         <div class="tab-pane active" id="classwise-all">
                             <div class="table-responsive">
                                 <table class="table table-striped table-bordered classwise-fees-table" data-scope="all">
-                                    <thead>
-                                        <tr>
-                                            <th rowspan="2" style="min-width: 140px;"><?php echo $class_label; ?></th>
-                                            <th colspan="3">Tuition Fee</th>
-                                            <th colspan="3">Transport Fee</th>
-                                            <th colspan="3">Hostel Fee</th>
-                                            <th colspan="3">Other Fee</th>
-                                        </tr>
-                                        <tr>
-                                            <th>Demand</th>
-                                            <th>Paid</th>
-                                            <th>Pending</th>
-                                            <th>Demand</th>
-                                            <th>Paid</th>
-                                            <th>Pending</th>
-                                            <th>Demand</th>
-                                            <th>Paid</th>
-                                            <th>Pending</th>
-                                            <th>Demand</th>
-                                            <th>Paid</th>
-                                            <th>Pending</th>
-                                        </tr>
-                                    </thead>
+                                    <thead></thead>
                                     <tbody>
                                         <tr>
-                                            <td colspan="13" class="text-center classwise-fees-loading">
+                                            <td colspan="4" class="text-center classwise-fees-loading">
                                                 <div class="loading-spinner"></div>
                                                 <div>Loading fee summary...</div>
                                             </td>
@@ -1002,32 +980,10 @@ if ($this->module_lib->hasActive('expense')) {
                         <div class="tab-pane" id="classwise-exclude-final">
                             <div class="table-responsive">
                                 <table class="table table-striped table-bordered classwise-fees-table" data-scope="exclude_final">
-                                    <thead>
-                                        <tr>
-                                            <th rowspan="2" style="min-width: 140px;"><?php echo $class_label; ?></th>
-                                            <th colspan="3">Tuition Fee</th>
-                                            <th colspan="3">Transport Fee</th>
-                                            <th colspan="3">Hostel Fee</th>
-                                            <th colspan="3">Other Fee</th>
-                                        </tr>
-                                        <tr>
-                                            <th>Demand</th>
-                                            <th>Paid</th>
-                                            <th>Pending</th>
-                                            <th>Demand</th>
-                                            <th>Paid</th>
-                                            <th>Pending</th>
-                                            <th>Demand</th>
-                                            <th>Paid</th>
-                                            <th>Pending</th>
-                                            <th>Demand</th>
-                                            <th>Paid</th>
-                                            <th>Pending</th>
-                                        </tr>
-                                    </thead>
+                                    <thead></thead>
                                     <tbody>
                                         <tr>
-                                            <td colspan="13" class="text-center classwise-fees-loading">
+                                            <td colspan="4" class="text-center classwise-fees-loading">
                                                 <div class="loading-spinner"></div>
                                                 <div>Loading fee summary...</div>
                                             </td>
@@ -1891,53 +1847,61 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
             return;
         }
 
-        function renderRows($table, rows, totals) {
+        // feeTypeCols: ordered array of {id, name}
+        // transportActive: bool
+        // classLabel: string ("Class" or "Department")
+        function renderRows($table, rows, totals, feeTypeCols, transportActive, classLabel) {
+            var $thead = $table.find('thead');
             var $tbody = $table.find('tbody');
             var $tfoot = $table.find('tfoot');
 
+            // Build header
+            var head1 = '<tr><th rowspan="2" style="min-width:140px;">' + classLabel + '</th>';
+            var head2 = '<tr>';
+            $.each(feeTypeCols, function(i, ft) {
+                head1 += '<th colspan="3">' + ft.name + '</th>';
+                head2 += '<th>Demand</th><th>Paid</th><th>Pending</th>';
+            });
+            if (transportActive) {
+                head1 += '<th colspan="3">Transport</th>';
+                head2 += '<th>Demand</th><th>Paid</th><th>Pending</th>';
+            }
+            head1 += '</tr>';
+            head2 += '</tr>';
+            $thead.html(head1 + head2);
+
+            var totalCols = 1 + (feeTypeCols.length * 3) + (transportActive ? 3 : 0);
+
             if (!rows || !rows.length) {
-                $tbody.html('<tr><td colspan="13" class="text-center">No data available.</td></tr>');
+                $tbody.html('<tr><td colspan="' + totalCols + '" class="text-center">No data available.</td></tr>');
                 $tfoot.empty();
                 return;
             }
 
+            function buildDataCells(row) {
+                var html = '';
+                $.each(feeTypeCols, function(i, ft) {
+                    var ftData = row.fee_types && row.fee_types[ft.id] ? row.fee_types[ft.id] : null;
+                    html += '<td>' + (ftData ? ftData.demand_formatted  : '-') + '</td>';
+                    html += '<td>' + (ftData ? ftData.paid_formatted    : '-') + '</td>';
+                    html += '<td>' + (ftData ? ftData.pending_formatted : '-') + '</td>';
+                });
+                if (transportActive) {
+                    html += '<td>' + (row.transport_demand_formatted  || '-') + '</td>';
+                    html += '<td>' + (row.transport_paid_formatted    || '-') + '</td>';
+                    html += '<td>' + (row.transport_pending_formatted || '-') + '</td>';
+                }
+                return html;
+            }
+
             var bodyHtml = '';
-            $.each(rows, function(index, row) {
-                bodyHtml += '<tr>';
-                bodyHtml += '<td>' + row.class_name + '</td>';
-                bodyHtml += '<td>' + row.tuition_demand_formatted + '</td>';
-                bodyHtml += '<td>' + row.tuition_paid_formatted + '</td>';
-                bodyHtml += '<td>' + row.tuition_pending_formatted + '</td>';
-                bodyHtml += '<td>' + row.transport_demand_formatted + '</td>';
-                bodyHtml += '<td>' + row.transport_paid_formatted + '</td>';
-                bodyHtml += '<td>' + row.transport_pending_formatted + '</td>';
-                bodyHtml += '<td>' + row.hostel_demand_formatted + '</td>';
-                bodyHtml += '<td>' + row.hostel_paid_formatted + '</td>';
-                bodyHtml += '<td>' + row.hostel_pending_formatted + '</td>';
-                bodyHtml += '<td>' + row.other_demand_formatted + '</td>';
-                bodyHtml += '<td>' + row.other_paid_formatted + '</td>';
-                bodyHtml += '<td>' + row.other_pending_formatted + '</td>';
-                bodyHtml += '</tr>';
+            $.each(rows, function(i, row) {
+                bodyHtml += '<tr><td>' + row.class_name + '</td>' + buildDataCells(row) + '</tr>';
             });
             $tbody.html(bodyHtml);
 
             if (totals) {
-                var footHtml = '<tr>';
-                footHtml += '<th>Grand Total</th>';
-                footHtml += '<th>' + totals.tuition_demand_formatted + '</th>';
-                footHtml += '<th>' + totals.tuition_paid_formatted + '</th>';
-                footHtml += '<th>' + totals.tuition_pending_formatted + '</th>';
-                footHtml += '<th>' + totals.transport_demand_formatted + '</th>';
-                footHtml += '<th>' + totals.transport_paid_formatted + '</th>';
-                footHtml += '<th>' + totals.transport_pending_formatted + '</th>';
-                footHtml += '<th>' + totals.hostel_demand_formatted + '</th>';
-                footHtml += '<th>' + totals.hostel_paid_formatted + '</th>';
-                footHtml += '<th>' + totals.hostel_pending_formatted + '</th>';
-                footHtml += '<th>' + totals.other_demand_formatted + '</th>';
-                footHtml += '<th>' + totals.other_paid_formatted + '</th>';
-                footHtml += '<th>' + totals.other_pending_formatted + '</th>';
-                footHtml += '</tr>';
-                $tfoot.html(footHtml);
+                $tfoot.html('<tr><th>Grand Total</th>' + buildDataCells(totals) + '</tr>');
             } else {
                 $tfoot.empty();
             }
@@ -1952,23 +1916,34 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                 return;
             }
 
-            var allRows = resp.data.all || [];
+            var allRows     = resp.data.all || [];
             var excludeRows = resp.data.exclude_final || [];
-            var totalsAll = resp.data.totals ? resp.data.totals.all : null;
+            var totalsAll     = resp.data.totals ? resp.data.totals.all          : null;
             var totalsExclude = resp.data.totals ? resp.data.totals.exclude_final : null;
+
+            // fee_type_columns from PHP: object {ft_id: ft_name, ...}
+            // Convert to ordered array for rendering
+            var rawCols = resp.data.fee_type_columns || {};
+            var feeTypeCols = [];
+            $.each(rawCols, function(ftId, ftName) {
+                feeTypeCols.push({id: ftId, name: ftName});
+            });
+
+            var transportActive = resp.data.transport_active ? true : false;
+            var classLabel = $classwiseWidget.data('class-label') || 'Class';
 
             var $tables = $classwiseWidget.find('.classwise-fees-table');
             $tables.each(function() {
                 var $table = $(this);
-                var scope = $table.data('scope');
+                var scope  = $table.data('scope');
                 if (scope === 'exclude_final') {
-                    renderRows($table, excludeRows, totalsExclude);
+                    renderRows($table, excludeRows, totalsExclude, feeTypeCols, transportActive, classLabel);
                 } else {
-                    renderRows($table, allRows, totalsAll);
+                    renderRows($table, allRows, totalsAll, feeTypeCols, transportActive, classLabel);
                 }
             });
         }).fail(function() {
-            $classwiseWidget.find('tbody').html('<tr><td colspan="13" class="text-center">Unable to load data.</td></tr>');
+            $classwiseWidget.find('tbody').html('<tr><td colspan="4" class="text-center">Unable to load data.</td></tr>');
         });
     });
 </script>
