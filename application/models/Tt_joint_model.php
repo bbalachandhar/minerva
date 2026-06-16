@@ -218,7 +218,10 @@ class Tt_joint_model extends MY_Model
             $sgs_id = $sgs_map[$class_id]['sgs_id'];
             $sg_id  = $sgs_map[$class_id]['sg_id'];
 
-            $kept_keys[] = $class_id . '_' . $section_id;
+            // Keyed by sgs_id too — if this lesson's subject is later changed,
+            // the old subject's row must NOT look "kept" just because the same
+            // class+section got a fresh row under the new subject.
+            $kept_keys[] = $class_id . '_' . $section_id . '_' . $sgs_id;
 
             $existing = $this->db
                 ->where('session_id',               $session_id)
@@ -278,7 +281,7 @@ class Tt_joint_model extends MY_Model
             ->get('tt_subject_load')->result();
 
         foreach ($orphans as $o) {
-            $key = $o->class_id . '_' . $o->section_id;
+            $key = $o->class_id . '_' . $o->section_id . '_' . $o->subject_group_subject_id;
             if (!in_array($key, $kept_keys)) {
                 $this->db->where('subject_load_id', $o->id)->delete('tt_subject_load_teachers');
                 $this->db->where('id', $o->id)->delete('tt_subject_load');
