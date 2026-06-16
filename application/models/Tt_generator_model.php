@@ -221,7 +221,43 @@ class Tt_generator_model extends MY_Model
             $class_stats    = [];  // [class_id.'_'.section_id] => {label, required, placed}
 
             // ---- JOINT LESSON PRE-PASS ----
-            foreach ($joint_lessons as $jl) {
+            // Dynamic most-constrained-first, same principle as the regular-subject
+            // loop below: priority alone leaves ties (e.g. two priority-10 lessons
+            // sharing the same six sections) broken by undefined SQL order, so
+            // whichever happened to come back first got first claim on the shared
+            // slots. Re-score remaining joint lessons before every pick using
+            // class-count (more classes = harder), periods/week, and each
+            // candidate teacher's LIVE remaining weekly capacity.
+            $remaining_jl = $joint_lessons;
+            while (!empty($remaining_jl)) {
+                $pick_key = null; $pick_score = -INF;
+                foreach ($remaining_jl as $rk => $cand) {
+                    $cand_t_ids = $cand->teacher_ids ?? [];
+                    $cand_ua = 0; $cand_dyn_tight = 0;
+                    foreach ($cand_t_ids as $tid) {
+                        $cand_ua = max($cand_ua, $teacher_unavail_count[$tid] ?? 0);
+                        $cap = (int) (($constraints[$tid] ?? $this->default_tc)->max_periods_per_week ?? 0);
+                        if (empty($cap)) $cap = (int) $this->default_tc->max_periods_per_week;
+                        $remaining_cap  = max(0, $cap - ($this->teacher_periods_week[$tid] ?? 0));
+                        $cand_dyn_tight = max($cand_dyn_tight, max(0, 48 - $remaining_cap));
+                    }
+                    $n_classes  = count($cand->classes ?? []);
+                    $pool_size  = count($cand_t_ids);
+                    // Fewer alternative teachers means fewer chances the search finds
+                    // one free at any given slot — more constrained, so it should claim
+                    // the shared slot pool before a same-priority lesson with a bigger
+                    // pool. Needed as a tiebreak: two lessons can otherwise score
+                    // identically (same priority/classes/periods/consecutive) and would
+                    // fall back to undefined array order, same problem as before.
+                    $cand_score = ((int)$cand->priority * 100) + ($n_classes * 10)
+                                + ((int)$cand->periods_per_week) + ((int)$cand->consecutive_periods * 5)
+                                + ($cand_ua * 0.5) + ($cand_dyn_tight * 0.3)
+                                - ($pool_size * 0.1);
+                    if ($cand_score > $pick_score) { $pick_score = $cand_score; $pick_key = $rk; }
+                }
+                $jl = $remaining_jl[$pick_key];
+                unset($remaining_jl[$pick_key]);
+
                 $jl_consec          = (int) $jl->consecutive_periods;
                 $jl_ppw             = (int) $jl->periods_per_week;
                 $jl_teacher_ids     = $jl->teacher_ids ?? [];
