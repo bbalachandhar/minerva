@@ -2170,8 +2170,12 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
                     // teacher_ids is populated by _enrichWithTeachers; fall back to staff_id
                     $t_ids = !empty($l->teacher_ids) ? $l->teacher_ids : (!empty($l->staff_id) ? [$l->staff_id] : []);
                     if (empty($t_ids)) $missing_teacher++;
+                    // Just collect which teachers are relevant here — their actual
+                    // total comes from _getTeacherWorkloadTotals() below, which
+                    // correctly counts joint lessons once instead of once per
+                    // participating section.
                     foreach ($t_ids as $tid) {
-                        $teacher_totals[$tid] = ($teacher_totals[$tid] ?? 0) + (int)$l->periods_per_week;
+                        $teacher_totals[$tid] = true;
                     }
                 }
                 $load_ok = ($total_ppw > 0 && $total_ppw <= $slot_count && $missing_teacher === 0);
@@ -2185,8 +2189,10 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
             // 4. Teacher overload check
             if (!empty($teacher_totals)) {
                 $this->load->model('Tt_teacher_model');
-                $constraints = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
-                foreach ($teacher_totals as $tid => $total) {
+                $constraints     = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
+                $correct_totals  = $this->_getTeacherWorkloadTotals($session_id);
+                foreach (array_keys($teacher_totals) as $tid) {
+                    $total    = $correct_totals[$tid] ?? 0;
                     $max_week = isset($constraints[$tid]) ? (int)$constraints[$tid]->max_periods_per_week : 36;
                     if ($total > $max_week) {
                         $overall_ok = false;
