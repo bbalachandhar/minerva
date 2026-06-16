@@ -116,19 +116,32 @@ class Tt extends Admin_Controller
         // Recent confirmed timetable (last confirmed_at)
         $last_confirmed = $this->db->where('session_id', $session_id)->where('confirmed_at IS NOT NULL', null, false)->order_by('confirmed_at', 'DESC')->limit(1)->get('tt_gen_log')->row();
 
+        // Teacher workload quick-check
+        $workload_totals     = $this->_getTeacherWorkloadTotals($session_id);
+        $workload_overloaded = 0;
+        if (!empty($workload_totals)) {
+            $wl_constraints = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
+            foreach ($workload_totals as $tid => $ppw) {
+                $cap = isset($wl_constraints[$tid]) ? (int)$wl_constraints[$tid]->max_periods_per_week : 36;
+                if ($ppw > $cap) $workload_overloaded++;
+            }
+        }
+
         $data = [
-            'session_id'       => $session_id,
-            'period_count'     => $period_count,
-            'break_count'      => $break_count,
-            'room_count'       => $room_count,
-            'batch_count'      => $batch_count,
-            'teacher_const_ct' => $teacher_const_ct,
-            'load_class_count' => $load_class_count,
-            'total_load_rows'  => $total_load_rows,
-            'missing_teacher'  => $missing_teacher,
-            'colored_subjects' => $colored_subjects,
-            'last_gen'         => $last_gen,
-            'last_confirmed'   => $last_confirmed,
+            'session_id'          => $session_id,
+            'period_count'        => $period_count,
+            'break_count'         => $break_count,
+            'room_count'          => $room_count,
+            'batch_count'         => $batch_count,
+            'teacher_const_ct'    => $teacher_const_ct,
+            'load_class_count'    => $load_class_count,
+            'total_load_rows'     => $total_load_rows,
+            'missing_teacher'     => $missing_teacher,
+            'colored_subjects'    => $colored_subjects,
+            'last_gen'            => $last_gen,
+            'last_confirmed'      => $last_confirmed,
+            'workload_teachers'   => count($workload_totals),
+            'workload_overloaded' => $workload_overloaded,
         ];
 
         $this->load->view('layout/header', $data);
@@ -702,6 +715,40 @@ class Tt extends Admin_Controller
     // TEACHER WORKLOAD DASHBOARD (pre-generation planning)
     // =========================================================================
 
+    /**
+     * Total committed periods/week per teacher.
+     *
+     * A joint lesson gets one tt_subject_load row synced per participating
+     * class-section, each carrying the lesson's full periods_per_week — so
+     * summing tt_subject_load directly overcounts a teacher's real time by
+     * however many sections share that single weekly slot. Joint contribution
+     * is summed separately, once per joint lesson, from tt_joint_lessons.
+     */
+    private function _getTeacherWorkloadTotals($session_id)
+    {
+        $totals = [];
+        foreach ($this->db->query("
+            SELECT slt.staff_id, SUM(sl.periods_per_week) AS ppw
+            FROM tt_subject_load sl
+            JOIN tt_subject_load_teachers slt ON slt.subject_load_id = sl.id
+            WHERE sl.session_id = ? AND sl.joint_lesson_id IS NULL
+            GROUP BY slt.staff_id
+        ", [$session_id])->result() as $r) {
+            $totals[(int) $r->staff_id] = (int) $r->ppw;
+        }
+        foreach ($this->db->query("
+            SELECT jlt.staff_id, SUM(jl.periods_per_week) AS ppw
+            FROM tt_joint_lessons jl
+            JOIN tt_joint_lesson_teachers jlt ON jlt.joint_lesson_id = jl.id
+            WHERE jl.session_id = ?
+            GROUP BY jlt.staff_id
+        ", [$session_id])->result() as $r) {
+            $tid = (int) $r->staff_id;
+            $totals[$tid] = ($totals[$tid] ?? 0) + (int) $r->ppw;
+        }
+        return $totals;
+    }
+
     public function teacher_workload_dashboard()
     {
         if (!$this->rbac->hasPrivilege('tt_subject_load', 'can_view')) {
@@ -721,16 +768,15 @@ class Tt extends Admin_Controller
         $constraints = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
         $default_cap = 36;
 
-        $agg = $this->db->query("
-            SELECT slt.staff_id, s.name, s.surname, s.employee_id,
-                   SUM(sl.periods_per_week) AS total_ppw
-            FROM tt_subject_load sl
-            JOIN tt_subject_load_teachers slt ON slt.subject_load_id = sl.id
-            JOIN staff s ON s.id = slt.staff_id
-            WHERE sl.session_id = ?
-            GROUP BY slt.staff_id, s.name, s.surname, s.employee_id
-            ORDER BY total_ppw DESC
-        ", [$session_id])->result();
+        $totals = $this->_getTeacherWorkloadTotals($session_id);
+        if (empty($totals)) {
+            echo json_encode(['status' => '1', 'data' => []]);
+            return;
+        }
+
+        $staff_rows = $this->db->select('id, name, surname, employee_id')
+            ->where_in('id', array_keys($totals))
+            ->get('staff')->result();
 
         $details = $this->db->query("
             SELECT sl.id AS load_id, sl.periods_per_week, sl.joint_lesson_id,
@@ -754,12 +800,13 @@ class Tt extends Admin_Controller
         }
 
         $result = [];
-        foreach ($agg as $t) {
-            $cap = isset($constraints[(int)$t->staff_id])
-                ? (int)$constraints[(int)$t->staff_id]->max_periods_per_week
+        foreach ($staff_rows as $t) {
+            $tid = (int) $t->id;
+            $cap = isset($constraints[$tid])
+                ? (int)$constraints[$tid]->max_periods_per_week
                 : $default_cap;
             $assignments = [];
-            foreach ($detail_map[(int)$t->staff_id] ?? [] as $a) {
+            foreach ($detail_map[$tid] ?? [] as $a) {
                 $assignments[] = [
                     'load_id'  => (int)$a->load_id,
                     'class'    => $a->class_name . ' ' . $a->section_name,
@@ -769,14 +816,16 @@ class Tt extends Admin_Controller
                 ];
             }
             $result[] = [
-                'staff_id'    => (int)$t->staff_id,
+                'staff_id'    => $tid,
                 'name'        => trim($t->name . ' ' . ($t->surname ?? '')),
                 'employee_id' => $t->employee_id,
-                'total_ppw'   => (int)$t->total_ppw,
+                'total_ppw'   => $totals[$tid] ?? 0,
                 'cap'         => $cap,
                 'assignments' => $assignments,
             ];
         }
+
+        usort($result, fn($a, $b) => $b['total_ppw'] <=> $a['total_ppw']);
 
         echo json_encode(['status' => '1', 'data' => $result]);
     }

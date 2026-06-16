@@ -12527,3 +12527,17 @@ CREATE TABLE IF NOT EXISTS `tt_subject_load_teachers` (
   KEY `idx_slt_load` (`subject_load_id`),
   UNIQUE KEY `uq_slt` (`subject_load_id`,`staff_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- "Teacher Workload" sidebar submenu link (previously only reachable from
+-- inside the Auto Generate screen).
+SET @tt_menu_id = (SELECT id FROM sidebar_menus WHERE activate_menu = 'tt' LIMIT 1);
+
+INSERT INTO `sidebar_sub_menus`
+  (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT @tt_menu_id, 'Teacher Workload', 'tt_workload_dashboard', 'tt_workload_dashboard',
+       'admin/tt/teacher_workload_dashboard', 95, "('tt_subject_load','can_view')", 3000, 'tt',
+       'teacher_workload_dashboard,get_pregeneration_workload,reassign_subject_teacher', 1
+WHERE @tt_menu_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM sidebar_sub_menus WHERE sidebar_menu_id = @tt_menu_id AND `key` = 'tt_workload_dashboard'
+  );

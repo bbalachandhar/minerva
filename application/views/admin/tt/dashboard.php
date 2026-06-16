@@ -171,10 +171,15 @@ $bar_color      = $pct >= 71 ? '#27AE60' : ($pct >= 43 ? '#F39C12' : '#E74C3C');
     ['val'=> $load_class_count, 'lbl'=> 'Classes Loaded', 'icon'=> 'fa-table',    'col'=>'#CB4335','bg'=>'#FDEDEC'],
     ['val'=> !empty($last_gen) ? $last_gen->quality_score.'%' : '—',
                                 'lbl'=> 'Last Quality',   'icon'=> 'fa-star',     'col'=> !empty($last_gen) ? ($last_gen->quality_score >= 90 ? '#1E8449' : '#D68910') : '#95A5A6','bg'=> !empty($last_gen) ? ($last_gen->quality_score >= 90 ? '#EAFAF1' : '#FEF9E7') : '#F2F3F4'],
+    ['val'=> $workload_overloaded > 0 ? $workload_overloaded.' Over' : ($workload_teachers > 0 ? 'OK' : '—'),
+                                'lbl'=> 'Teacher Workload', 'icon'=> 'fa-bar-chart', 'col'=> $workload_overloaded > 0 ? '#CB4335' : '#1E8449', 'bg'=> $workload_overloaded > 0 ? '#FDEDEC' : '#EAFAF1',
+                                'url'=> site_url('admin/tt/teacher_workload_dashboard')],
   ];
-  foreach ($stats as $st): ?>
+  foreach ($stats as $st):
+    $is_link = !empty($st['url']);
+  ?>
   <div class="col-xs-6 col-sm-3">
-    <div style="background:<?php echo $st['bg']; ?>;border-radius:10px;padding:16px;border:1px solid <?php echo $st['col']; ?>22;margin-bottom:18px;display:flex;align-items:center;gap:14px;">
+    <<?php echo $is_link ? 'a href="'.$st['url'].'"' : 'div'; ?> style="background:<?php echo $st['bg']; ?>;border-radius:10px;padding:16px;border:1px solid <?php echo $st['col']; ?>22;margin-bottom:18px;display:flex;align-items:center;gap:14px;<?php echo $is_link ? 'text-decoration:none;' : ''; ?>">
       <div style="background:<?php echo $st['col']; ?>22;border-radius:10px;width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
         <i class="fa <?php echo $st['icon']; ?>" style="color:<?php echo $st['col']; ?>;font-size:18px;"></i>
       </div>
@@ -182,7 +187,7 @@ $bar_color      = $pct >= 71 ? '#27AE60' : ($pct >= 43 ? '#F39C12' : '#E74C3C');
         <div style="font-size:22px;font-weight:800;color:<?php echo $st['col']; ?>;line-height:1.1;"><?php echo $st['val']; ?></div>
         <div style="font-size:11px;color:<?php echo $st['col']; ?>bb;margin-top:2px;font-weight:600;"><?php echo $st['lbl']; ?></div>
       </div>
-    </div>
+    <?php echo $is_link ? '</a>' : '</div>'; ?>
   </div>
   <?php endforeach; ?>
 </div>
@@ -272,6 +277,7 @@ $bar_color      = $pct >= 71 ? '#27AE60' : ($pct >= 43 ? '#F39C12' : '#E74C3C');
     <a href="<?php echo site_url('admin/tt/teacher_view'); ?>"   class="btn btn-default  btn-sm"><i class="fa fa-user"></i> Teacher View</a>
     <a href="<?php echo site_url('admin/tt/lesson_browser'); ?>" class="btn btn-default  btn-sm"><i class="fa fa-search"></i> Lesson Browser</a>
     <a href="<?php echo site_url('admin/tt/joint_lessons'); ?>"  class="btn btn-default  btn-sm"><i class="fa fa-link"></i> Joint Lessons</a>
+    <a href="<?php echo site_url('admin/tt/teacher_workload_dashboard'); ?>" class="btn btn-default  btn-sm"><i class="fa fa-bar-chart"></i> Teacher Workload</a>
     <a href="<?php echo site_url('admin/tt/substitution'); ?>"   class="btn btn-default  btn-sm"><i class="fa fa-exchange"></i> Substitution</a>
     <a href="<?php echo site_url('admin/tt/instructions'); ?>"   class="btn btn-info     btn-sm"><i class="fa fa-book"></i> User Guide</a>
   </div>
