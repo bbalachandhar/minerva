@@ -732,6 +732,7 @@ class Tt extends Admin_Controller
             FROM tt_subject_load sl
             JOIN tt_subject_load_teachers slt ON slt.subject_load_id = sl.id
             WHERE sl.session_id = ? AND sl.joint_lesson_id IS NULL
+              AND EXISTS (SELECT 1 FROM subject_group_subjects sgs WHERE sgs.id = sl.subject_group_subject_id)
             GROUP BY slt.staff_id
         ", [$session_id])->result() as $r) {
             $totals[(int) $r->staff_id] = (int) $r->ppw;
@@ -2171,8 +2172,14 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
 
                 $total_ppw   = 0;
                 $missing_teacher = 0;
+                $orphaned = 0;
                 foreach ($loads as $l) {
                     if ($l->batch_id) continue;
+                    // subject_id comes from a LEFT JOIN through subject_group_subjects —
+                    // null means that row was deleted from the class's curriculum (e.g.
+                    // via Subject Groups) but the tt_subject_load row referencing it was
+                    // never cleaned up. Ignore it rather than count/schedule a ghost.
+                    if (empty($l->subject_id)) { $orphaned++; continue; }
                     $total_ppw += (int)$l->periods_per_week;
                     // teacher_ids is populated by _enrichWithTeachers; fall back to staff_id
                     $t_ids = !empty($l->teacher_ids) ? $l->teacher_ids : (!empty($l->staff_id) ? [$l->staff_id] : []);
@@ -2185,10 +2192,11 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
                         $teacher_totals[$tid] = true;
                     }
                 }
-                $load_ok = ($total_ppw > 0 && $total_ppw <= $slot_count && $missing_teacher === 0);
+                $load_ok = ($total_ppw > 0 && $total_ppw <= $slot_count && $missing_teacher === 0 && $orphaned === 0);
                 if (!$load_ok) $overall_ok = false;
                 $msg = "{$cls_label}: {$total_ppw}/{$slot_count} slots assigned";
                 if ($missing_teacher > 0) $msg .= " — {$missing_teacher} subject(s) missing teacher";
+                if ($orphaned > 0) $msg .= " — {$orphaned} row(s) reference a subject removed from the curriculum — delete from Subject Load";
                 if ($total_ppw > $slot_count) $msg .= " — OVERFLOW: more loads than slots";
                 $items[] = ['ok' => $load_ok, 'msg' => $msg];
             }

@@ -74,6 +74,12 @@ class Tt_subjectload_model extends MY_Model
         // Exclude joint-linked rows — generator handles them in the joint pre-pass
         $this->db->where('tt_subject_load.joint_lesson_id IS NULL', null, false);
 
+        // Exclude orphaned rows whose subject_group_subjects entry was deleted
+        // from the class's curriculum elsewhere (e.g. Subject Groups) without
+        // the tt_subject_load row being cleaned up — never schedule a ghost
+        // subject with no name into a real timetable slot.
+        $this->db->where('subjects.id IS NOT NULL', null, false);
+
         $rows = $this->db->get()->result();
         $this->_enrichWithTeachers($rows);
         return $rows;
