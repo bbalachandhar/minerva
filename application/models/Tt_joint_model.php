@@ -114,6 +114,7 @@ class Tt_joint_model extends MY_Model
             'priority'              => max(1, min(10, (int) ($data['priority'] ?? 5))),
             'notes'                 => $data['notes'] ?? null,
             'all_teachers_required' => !empty($data['all_teachers_required']) ? 1 : 0,
+            'fixed_slots'           => !empty($data['fixed_slots']) ? $data['fixed_slots'] : null,
         ];
 
         $id = !empty($data['id']) ? (int) $data['id'] : 0;

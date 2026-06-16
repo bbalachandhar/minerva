@@ -227,6 +227,22 @@ class Tt_generator_model extends MY_Model
                 $jl_spread          = !empty($jl->distribute_evenly);
                 $placements         = ($jl_consec > 1) ? (int) ceil($jl_ppw / $jl_consec) : $jl_ppw;
 
+                // Fixed Slot(s): admin-pinned day+period(s) per placement index, bypassing full-week search
+                $jl_fixed_map = [];
+                if (!empty($jl->fixed_slots)) {
+                    $decoded_fixed = json_decode($jl->fixed_slots, true);
+                    if (is_array($decoded_fixed)) {
+                        foreach ($decoded_fixed as $fs) {
+                            if (isset($fs['placement'], $fs['day'], $fs['period_ids'])) {
+                                $jl_fixed_map[(int) $fs['placement']] = [
+                                    'day'        => $fs['day'],
+                                    'period_ids' => array_map('intval', $fs['period_ids']),
+                                ];
+                            }
+                        }
+                    }
+                }
+
                 // Track per-class stats
                 foreach ($jl->classes as $cs) {
                     $ck = $cs->class_id . '_' . $cs->section_id;
@@ -240,20 +256,30 @@ class Tt_generator_model extends MY_Model
                 $jl_days_used = [];
 
                 for ($p = 0; $p < $placements; $p++) {
+                    $fixed = $jl_fixed_map[$p] ?? null;
+
                     $slot = $this->_findJointSlot($jl, $jl_teacher_ids, $jl_all_req, $jl_room,
                         $jl_consec, $jl_days_used, $jl_max_day, $jl_spread,
-                        $constraints, $unavail_map);
+                        $constraints, $unavail_map,
+                        $fixed['day'] ?? null, $fixed['period_ids'] ?? null);
 
                     if ($slot === null) {
                         $class_labels = implode('+', array_map(fn($cs) => "C{$cs->class_id}/S{$cs->section_id}", $jl->classes));
                         $teacher_label = !empty($jl_teacher_ids) ? count($jl_teacher_ids).' teacher(s)' : 'No teacher';
+                        if ($fixed) {
+                            $period_labels = implode('-', array_map(fn($pid) => $this->periods[$pid]->name ?? $pid, $fixed['period_ids']));
+                            $why = $this->_diagnoseJointFixedFailure($jl, $jl_teacher_ids, $jl_all_req, $fixed['day'], $fixed['period_ids'], $constraints, $unavail_map, $jl_room);
+                            $reason = "Joint lesson [{$jl->name}] for {$class_labels}: fixed slot {$fixed['day']} {$period_labels} is unavailable — {$why}";
+                        } else {
+                            $reason = "Joint lesson [{$jl->name}] for {$class_labels}: no slot where all classes are simultaneously free.";
+                        }
                         $conflicts[] = [
                             'class_id'   => 0,
                             'section_id' => 0,
                             'subject'    => $jl->subject_name . ' (Joint)',
                             'staff'      => $teacher_label,
                             'placement'  => ($p + 1) . ' of ' . $placements,
-                            'reason'     => "Joint lesson [{$jl->name}] for {$class_labels}: no slot where all classes are simultaneously free.",
+                            'reason'     => $reason,
                         ];
                         continue;
                     }
@@ -684,20 +710,24 @@ class Tt_generator_model extends MY_Model
 
     /**
      * Find a slot where ALL participating class-sections + teacher are simultaneously free.
+     * If $fixed_day/$fixed_pids are given, only that exact day+period combination is tried
+     * (an admin-pinned Fixed Slot) instead of searching the whole week.
      * Returns ['day', 'period_ids', 'staff_id', 'room_id'] or null.
      */
     private function _findJointSlot($jl, array $teacher_ids, $all_teachers_required, $pref_room,
                                      $consec, $days_used, $max_per_day, $dist_evenly,
-                                     $constraints, $unavail_map)
+                                     $constraints, $unavail_map, $fixed_day = null, $fixed_pids = null)
     {
         $best       = null;
         $best_score = -999;
         $primary    = $teacher_ids[0] ?? null;
 
         foreach ($this->working_days as $day) {
+            if ($fixed_day !== null && $day !== $fixed_day) continue;
             $day_penalty = ($dist_evenly && in_array($day, $days_used)) ? -10 : 0;
 
             foreach ($this->_getConsecutiveStarts($consec) as $pid_group) {
+                if ($fixed_pids !== null && $pid_group != $fixed_pids) continue;
                 // ALL class-sections must be free in this slot
                 $all_cs_free = true;
                 foreach ($jl->classes as $cs) {
@@ -803,6 +833,112 @@ class Tt_generator_model extends MY_Model
             }
         }
         return $best;
+    }
+
+    /**
+     * Explains why an admin-pinned Fixed Slot could not be used for a joint lesson,
+     * so the conflict report tells the admin exactly what to fix instead of just
+     * saying "no slot found".
+     */
+    private function _diagnoseJointFixedFailure($jl, array $teacher_ids, $all_teachers_required, $day, array $pid_group, $constraints, $unavail_map, $pref_room)
+    {
+        foreach ($jl->classes as $cs) {
+            foreach ($pid_group as $pid) {
+                if (!empty($this->class_occ[(int)$cs->class_id][(int)$cs->section_id][$day][$pid][0])) {
+                    return "class C{$cs->class_id}/S{$cs->section_id} already has another lesson scheduled at this slot";
+                }
+                if (!empty($this->class_unavail[(int)$cs->class_id][(int)$cs->section_id][$day][$pid])) {
+                    return "class C{$cs->class_id}/S{$cs->section_id} is marked unavailable at this slot (Class Availability settings)";
+                }
+            }
+        }
+
+        $first_sgs = !empty($jl->classes[0]->sgs_id) ? (int)$jl->classes[0]->sgs_id : 0;
+        if ($first_sgs) {
+            foreach ($pid_group as $pid) {
+                if (!empty($this->subject_unavail[$first_sgs][$day][$pid])) {
+                    return 'this subject is BLOCKED at this slot in Subject Time-Off — unblock it there first';
+                }
+            }
+        }
+
+        if (empty($teacher_ids)) {
+            $room_id = $this->_findRoom($day, $pid_group, 'any', $pref_room, null, $this->default_tc);
+            if ($pref_room && !$room_id) return 'the preferred room is already booked at this slot';
+            return 'slot should be available — please re-check teacher pool and try again';
+        }
+
+        $teacher_reasons  = [];
+        $any_teacher_free = false;
+        foreach ($teacher_ids as $t_id) {
+            $why = $this->_diagnoseTeacherAtSlot($t_id, $day, $pid_group, $constraints, $unavail_map);
+            if ($why === null) {
+                $any_teacher_free = true;
+                if (!$all_teachers_required) break;
+            } else {
+                $teacher_reasons[] = "teacher (ID {$t_id}) {$why}";
+            }
+        }
+
+        if ($all_teachers_required && !empty($teacher_reasons)) {
+            return 'all teachers must attend together, but ' . $teacher_reasons[0];
+        }
+        if (!$all_teachers_required && !$any_teacher_free) {
+            return 'every teacher in the pool is unavailable at this slot — ' . implode('; ', $teacher_reasons);
+        }
+
+        $primary = $teacher_ids[0] ?? null;
+        $room_id = $this->_findRoom($day, $pid_group, 'any', $pref_room, $primary, $constraints[$primary] ?? $this->default_tc);
+        if ($pref_room && !$room_id) return 'the preferred room is already booked at this slot';
+
+        return 'slot should be available — please re-check and try generating again';
+    }
+
+    private function _diagnoseTeacherAtSlot($t_id, $day, array $pid_group, $constraints, $unavail_map)
+    {
+        $c         = $constraints[$t_id] ?? $this->default_tc;
+        $consec    = count($pid_group);
+        $n_periods = count($this->period_order);
+        $eff_cap   = min((int)$c->max_periods_per_day, $n_periods - max(0, (int)($c->min_free_per_day ?? 0)));
+
+        if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > $eff_cap) {
+            return "would exceed their daily period cap on {$day}";
+        }
+        if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > $c->max_periods_per_week) {
+            return 'would exceed their weekly period cap';
+        }
+
+        $first_pid = $pid_group[0];
+        $last_pid  = end($pid_group);
+        if ($c->avoid_first_period && $first_pid === $this->period_order[0]) {
+            return 'is set to avoid the first period of the day';
+        }
+        if ($c->avoid_last_period && $last_pid === end($this->period_order)) {
+            return 'is set to avoid the last period of the day';
+        }
+        if ($c->preferred_start_time && isset($this->periods[$first_pid]) &&
+            $this->periods[$first_pid]->start_time < $c->preferred_start_time) {
+            return 'this slot starts earlier than their preferred start time';
+        }
+        if ($c->preferred_end_time && isset($this->periods[$last_pid]) &&
+            $this->periods[$last_pid]->end_time > $c->preferred_end_time) {
+            return 'this slot ends later than their preferred end time';
+        }
+        foreach ($pid_group as $pid) {
+            if (!empty($this->teacher_occ[$t_id][$day][$pid])) {
+                return 'is already booked elsewhere at this slot';
+            }
+            if (!empty($unavail_map[$t_id][$day][$pid])) {
+                return 'marked themselves unavailable at this slot';
+            }
+        }
+        if ($this->_violatesConsecRule($t_id, $day, $pid_group, (int)($c->max_consecutive_periods ?? 0), (int)($c->min_break_after_consec ?? 1))) {
+            return 'would exceed their max-consecutive-periods rule';
+        }
+        if ($c->max_gap_per_day !== null && $this->_violatesGapRule($t_id, $day, $pid_group, (int)$c->max_gap_per_day)) {
+            return 'would violate their max-gap-per-day rule';
+        }
+        return null;
     }
 
     /**

@@ -240,6 +240,20 @@ class Tt extends Admin_Controller
         $data['staff_list']    = $this->staff_model->getStaffbyrole(2);
         $data['rooms']         = $this->Tt_room_model->getAll();
 
+        // Periods + working days for the Fixed Slot picker
+        $data['periods'] = $this->Tt_period_model->getAllNonBreak($session_id);
+        $all_days     = $this->customlib->getDaysnameWithoutLang();
+        $sch_settings = $this->setting_model->getSetting();
+        $weekend_str  = isset($sch_settings->weekend_days) ? (string) $sch_settings->weekend_days : '';
+        if ($weekend_str !== '') {
+            $dow_map = [0 => 'Sunday', 1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday',
+                        4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday'];
+            foreach (array_map('intval', explode(',', $weekend_str)) as $dow) {
+                if (isset($dow_map[$dow])) unset($all_days[$dow_map[$dow]]);
+            }
+        }
+        $data['days'] = $all_days;
+
         $this->load->view('layout/header', $data);
         $this->load->view('admin/tt/joint_lessons', $data);
         $this->load->view('layout/footer', $data);
@@ -268,6 +282,20 @@ class Tt extends Admin_Controller
         if (!is_array($teacher_ids_raw)) $teacher_ids_raw = [$teacher_ids_raw];
         $teacher_ids = array_values(array_filter(array_map('intval', $teacher_ids_raw)));
 
+        // Fixed Slot(s): sanitize to [{placement:int, day:string, period_ids:[int,...]}, ...]
+        $fixed_slots_raw = json_decode((string) $this->input->post('fixed_slots_json'), true);
+        $fixed_slots     = [];
+        if (is_array($fixed_slots_raw)) {
+            foreach ($fixed_slots_raw as $fs) {
+                if (empty($fs['day']) || empty($fs['period_ids']) || !is_array($fs['period_ids'])) continue;
+                $fixed_slots[] = [
+                    'placement'  => (int) ($fs['placement'] ?? 0),
+                    'day'        => (string) $fs['day'],
+                    'period_ids' => array_values(array_map('intval', $fs['period_ids'])),
+                ];
+            }
+        }
+
         $data = [
             'id'                    => (int) $this->input->post('id'),
             'name'                  => trim($this->input->post('name')),
@@ -280,6 +308,7 @@ class Tt extends Admin_Controller
             'priority'              => (int) $this->input->post('priority')            ?: 5,
             'notes'                 => $this->input->post('notes'),
             'all_teachers_required' => $this->input->post('all_teachers_required') ? 1 : 0,
+            'fixed_slots'           => !empty($fixed_slots) ? json_encode($fixed_slots) : null,
         ];
         if (empty($data['name']) || empty($data['subject_id'])) {
             echo json_encode(['status' => '0', 'message' => 'Name and subject are required.']); return;

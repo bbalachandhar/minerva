@@ -12473,7 +12473,8 @@ ALTER TABLE `tt_subject_load`
 
 -- tt_joint_lessons: columns added after initial release
 ALTER TABLE `tt_joint_lessons`
-  ADD COLUMN IF NOT EXISTS `all_teachers_required` TINYINT(1) NOT NULL DEFAULT 0 AFTER `notes`;
+  ADD COLUMN IF NOT EXISTS `all_teachers_required` TINYINT(1) NOT NULL DEFAULT 0 AFTER `notes`,
+  ADD COLUMN IF NOT EXISTS `fixed_slots` TEXT NULL DEFAULT NULL AFTER `all_teachers_required`;
 
 -- tt_subject_load_teachers: new table for multi-teacher pool per load row
 CREATE TABLE IF NOT EXISTS `tt_subject_load_teachers` (

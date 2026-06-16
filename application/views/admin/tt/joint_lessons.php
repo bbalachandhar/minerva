@@ -1,4 +1,8 @@
 <?php if (isset($msg)) { echo $msg; } ?>
+<?php
+$period_name_map = [];
+foreach ($periods as $p) { $period_name_map[$p->id] = $p->name; }
+?>
 <div class="content-wrapper">
 <section class="content-header">
     <h1>Joint / Cross-Class Lessons <small>Schedule multiple teachers with multiple classes at the same slot</small></h1>
@@ -45,7 +49,15 @@
         <?php foreach ($joint_lessons as $jl): ?>
         <tr>
           <td><strong><?php echo htmlspecialchars($jl->name); ?></strong>
-              <?php if ($jl->notes): ?><br><small class="text-muted"><?php echo htmlspecialchars($jl->notes); ?></small><?php endif; ?></td>
+              <?php if ($jl->notes): ?><br><small class="text-muted"><?php echo htmlspecialchars($jl->notes); ?></small><?php endif; ?>
+              <?php $fs = !empty($jl->fixed_slots) ? json_decode($jl->fixed_slots, true) : null; ?>
+              <?php if (!empty($fs)): ?>
+                <br><?php foreach ($fs as $f):
+                  $plabels = array_map(function($pid) use ($period_name_map) { return $period_name_map[$pid] ?? $pid; }, $f['period_ids'] ?? []);
+                ?>
+                <span class="label label-info" style="margin:1px;display:inline-block;font-size:10px;" title="Pinned to this exact slot"><i class="fa fa-thumb-tack"></i> <?php echo htmlspecialchars($f['day']); ?> <?php echo htmlspecialchars(implode('-', $plabels)); ?></span>
+                <?php endforeach; ?>
+              <?php endif; ?></td>
           <td>
             <?php if ($jl->tt_color): ?>
             <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:<?php echo $jl->tt_color; ?>;margin-right:4px;"></span>
@@ -98,8 +110,9 @@
 <div class="callout callout-info" style="font-size:12px;">
   <h4><i class="fa fa-info-circle"></i> How joint lessons work</h4>
   <ul style="margin:6px 0 0 0;padding-left:20px;">
-    <li>During Auto Generate, joint lessons are placed <strong>first</strong> (harder constraint: all classes must be free simultaneously).</li>
+    <li>During Auto Generate, joint lessons are placed <strong>first</strong>, in priority order (harder constraint: all classes must be free simultaneously).</li>
     <li>The generator picks the <strong>first available teacher</strong> from the pool for each placement (primary teacher preferred).</li>
+    <li>Need a joint lesson at an exact day/period (e.g. a fixed assembly slot)? Use <strong>Fixed Slot(s)</strong> in the edit form — don't use Subject Time-Off for this, since Time-Off only <em>blocks</em> a slot, it doesn't reserve one.</li>
     <li>After generation, each class-section's timetable will show the lesson independently.</li>
     <li>The subject must ideally exist in each class's Subject Group for correct display in the grid.</li>
     <li>Example: Silambam with 7 teachers (3 external + 4 internal) — assign all 7 as the teacher pool.</li>
@@ -220,6 +233,15 @@
             </div>
           </div>
 
+          <!-- Fixed Slot(s) -->
+          <div class="form-group">
+            <label><strong>Fixed Slot(s)</strong> <span class="label label-default">Optional</span>
+              <small class="text-muted ml-2">Pin a placement to an exact day/period instead of letting the generator search the whole week</small>
+            </label>
+            <div id="jl-fixed-rows" style="border:1px solid #ddd;border-radius:4px;padding:8px;"></div>
+            <small class="text-muted"><i class="fa fa-info-circle"></i> Leave a placement on "Auto" to let the generator choose as usual. If a fixed slot can't be used (teacher/class clash), generation will report a clear conflict instead of placing it elsewhere — make sure the Subject Time-Off grid does <strong>not</strong> block the slot you pin here.</small>
+          </div>
+
           <!-- Participating Classes -->
           <div class="form-group">
             <label><strong>Participating Class-Sections <span class="text-danger">*</span></strong>
@@ -268,6 +290,84 @@ $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
+  var TT_PERIODS = <?php echo json_encode(array_map(function($p){ return ['id' => (int)$p->id, 'name' => $p->name]; }, $periods)); ?>;
+  var TT_DAYS    = <?php echo json_encode(array_keys($days)); ?>;
+  var jlFixedModel = {}; // {placementIndex: {day:'Tuesday', period_ids:[3,4]}}
+
+  function jlPlacements() {
+    var ppw    = parseInt($('#jl_ppw').val(), 10)    || 1;
+    var consec = parseInt($('#jl_consec').val(), 10) || 1;
+    return consec > 1 ? Math.ceil(ppw / consec) : ppw;
+  }
+
+  function jlPeriodGroups(consec) {
+    var groups = [];
+    for (var i = 0; i + consec <= TT_PERIODS.length; i++) {
+      var slice = TT_PERIODS.slice(i, i + consec);
+      groups.push({
+        period_ids: slice.map(function(p){ return p.id; }),
+        label: slice.map(function(p){ return p.name; }).join(' - ')
+      });
+    }
+    return groups;
+  }
+
+  function renderFixedRows() {
+    var placements = jlPlacements();
+    var consec      = parseInt($('#jl_consec').val(), 10) || 1;
+    var groups      = jlPeriodGroups(consec);
+    var html = '';
+    for (var i = 0; i < placements; i++) {
+      var sel = jlFixedModel[i] || null;
+      html += '<div class="row jl-fixed-row" data-placement="'+i+'" style="margin-bottom:6px;">';
+      html += '<div class="col-xs-3" style="padding-top:6px;"><small>Placement #'+(i+1)+'</small></div>';
+      html += '<div class="col-xs-4"><select class="form-control input-sm jl-fixed-day">';
+      html += '<option value="">— Auto —</option>';
+      TT_DAYS.forEach(function(d){
+        html += '<option value="'+d+'"'+((sel && sel.day===d) ? ' selected' : '')+'>'+d+'</option>';
+      });
+      html += '</select></div>';
+      html += '<div class="col-xs-5"><select class="form-control input-sm jl-fixed-group"'+(!sel ? ' disabled' : '')+'>';
+      html += '<option value="">— Select period(s) —</option>';
+      groups.forEach(function(g){
+        var val   = g.period_ids.join(',');
+        var isSel = sel && sel.period_ids && sel.period_ids.join(',') === val;
+        html += '<option value="'+val+'"'+(isSel ? ' selected' : '')+'>'+g.label+'</option>';
+      });
+      html += '</select></div>';
+      html += '</div>';
+    }
+    $('#jl-fixed-rows').html(html || '<small class="text-muted">Set Periods/Week first.</small>');
+  }
+
+  $('#jl_ppw, #jl_consec').on('change', function(){
+    jlFixedModel = {}; // groups/placement count changed — selections no longer line up safely
+    renderFixedRows();
+  });
+
+  $(document).on('change', '.jl-fixed-day', function(){
+    var $row = $(this).closest('.jl-fixed-row');
+    var i    = $row.data('placement');
+    var day  = $(this).val();
+    var $group = $row.find('.jl-fixed-group');
+    if (day) {
+      $group.prop('disabled', false);
+      jlFixedModel[i] = jlFixedModel[i] || { day: day, period_ids: [] };
+      jlFixedModel[i].day = day;
+    } else {
+      delete jlFixedModel[i];
+      $group.prop('disabled', true).val('');
+    }
+  });
+
+  $(document).on('change', '.jl-fixed-group', function(){
+    var $row = $(this).closest('.jl-fixed-row');
+    var i    = $row.data('placement');
+    var val  = $(this).val();
+    if (!jlFixedModel[i]) return;
+    jlFixedModel[i].period_ids = val ? val.split(',').map(Number) : [];
+  });
+
   $('#jl_subject').select2({ placeholder: '-- Select Subject --', allowClear: true, width: '100%' });
   $('#jl_room').select2({ placeholder: '-- Any Room --', allowClear: true, width: '100%' });
   $('#jl_teachers').select2({
@@ -288,6 +388,8 @@ $(function(){
     $('#jl_all_attend').prop('checked', false);
     $('#jl_priority').val(7);
     $('#jl_spread').prop('checked', true);
+    jlFixedModel = {};
+    renderFixedRows();
     $('#joint-modal').modal('show');
   }
 
@@ -324,6 +426,15 @@ $(function(){
         $.each(l.classes, function(i, cs){
           $('.jl-class-chk[data-class="'+cs.class_id+'"][data-section="'+cs.section_id+'"]').prop('checked', true);
         });
+
+        // Rebuild fixed-slot model from saved JSON, then render rows
+        jlFixedModel = {};
+        var savedFixed = l.fixed_slots ? JSON.parse(l.fixed_slots) : [];
+        $.each(savedFixed, function(i, f){
+          jlFixedModel[f.placement] = { day: f.day, period_ids: f.period_ids };
+        });
+        renderFixedRows();
+
         $('#jl-conflict-msg, #jl-class-error').hide();
         $('#joint-modal').modal('show');
       },'json');
@@ -343,6 +454,14 @@ $(function(){
     // Collect teacher IDs in selection order
     var teacher_ids = $('#jl_teachers').val() || [];
 
+    // Collect fixed slots (only placements where both day + period(s) are set)
+    var fixedSlots = [];
+    $.each(jlFixedModel, function(idx, v){
+      if (v && v.day && v.period_ids && v.period_ids.length) {
+        fixedSlots.push({ placement: parseInt(idx, 10), day: v.day, period_ids: v.period_ids });
+      }
+    });
+
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
 
     // Build POST data manually to send teacher_ids[] as array
@@ -359,6 +478,7 @@ $(function(){
       all_teachers_required: $('#jl_all_attend').is(':checked') ? 1 : 0,
       notes:                 $('#jl_notes').val(),
       classes_json:          JSON.stringify(classes),
+      fixed_slots_json:      JSON.stringify(fixedSlots),
       'teacher_ids[]':       teacher_ids
     };
     postData[csrf_name] = csrf_val;

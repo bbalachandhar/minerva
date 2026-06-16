@@ -398,6 +398,7 @@
     <li>Set <strong>Periods / Week</strong> and <strong>Consecutive</strong> (e.g. 2 for a double period)</li>
     <li>Under <strong>Participating Classes</strong>, tick all class-sections that share this lesson</li>
     <li>Set a <strong>Priority</strong> (1–10) — higher priority joint lessons are placed first in the generator's pre-pass</li>
+    <li>Optionally pin one or more placements to an exact day/period using <strong>Fixed Slot(s)</strong> (see below)</li>
     <li>Save. The generator finds a slot where ALL selected classes and ALL assigned teachers are simultaneously free</li>
   </ol>
 
@@ -407,8 +408,22 @@
   </div>
 
   <div class="new-box" style="margin-top:8px;">
+    <strong><i class="fa fa-thumb-tack"></i> Fixed Slot(s) — pin a joint lesson to an exact day/period <span style="background:#28a745;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-left:4px;">New</span></strong><br>
+    Need a joint lesson to land on one specific slot every time (e.g. a combined assembly that must always be Tuesday Period 3–4)? Open the lesson's edit form and set <strong>Fixed Slot(s)</strong> for that placement — choose the Day and the Period(s). The generator will try <em>only</em> that exact slot for that placement instead of searching the whole week. Placements left on "Auto" are still placed by the normal full-week search.
+    <ul style="margin:6px 0 0 18px;">
+      <li>If the pinned slot can't actually be used (a class or teacher is already busy there, or a hard constraint blocks it), generation reports a specific conflict explaining <em>why</em> — it will not silently place the lesson somewhere else.</li>
+      <li>Make sure the slot you pin is <strong>not</strong> also blocked for that subject in <strong>Subject Time-Off</strong> (see the warning below) — a slot that's both "fixed" and "blocked" can never be used.</li>
+    </ul>
+  </div>
+
+  <div class="warn-box" style="margin-top:8px;">
+    <strong><i class="fa fa-exclamation-triangle"></i> Subject Time-Off blocks a slot — it does not reserve one</strong><br>
+    The <strong>Subject Time-Off</strong> grid (Auto Timetable → Subject Time-Off) is a pure <em>blocking</em> tool: every cell defaults to Allowed (green check), and clicking a cell marks it Blocked (red X) so that subject can <strong>never</strong> be scheduled there. Clicking a cell does <strong>not</strong> restrict the subject to only that slot — it does the opposite. If you want a lesson to land on one particular slot, use <strong>Fixed Slot(s)</strong> on the Joint Lesson itself (above), not Subject Time-Off.
+  </div>
+
+  <div class="new-box" style="margin-top:8px;">
     <strong><i class="fa fa-ban"></i> Subject Time-Off is Respected for Joint Lessons</strong><br>
-    If a subject has a time-off block configured in <strong>Subject Unavailability</strong>, the joint lesson generator now correctly skips those slots, just like regular lessons do.
+    If a subject has a time-off block configured in <strong>Subject Unavailability</strong>, the joint lesson generator correctly skips those slots, just like regular lessons do.
   </div>
 
   <div class="warn-box"><i class="fa fa-exclamation-triangle"></i> Joint lessons are the hardest constraint to satisfy — the more classes and teachers involved, the fewer valid slots exist. Keep joint lessons minimal and set priority 8–10 so they are placed before regular subjects.</div>
