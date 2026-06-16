@@ -12466,15 +12466,56 @@ ON DUPLICATE KEY UPDATE `can_view`=VALUES(`can_view`), `can_add`=VALUES(`can_add
 -- UPGRADE PATCHES — safe to run on existing installations (idempotent)
 -- =============================================================================
 
--- tt_subject_load: columns added after initial tt_* release
-ALTER TABLE `tt_subject_load`
-  ADD COLUMN IF NOT EXISTS `joint_lesson_id`       INT(11)     DEFAULT NULL AFTER `min_per_day`,
-  ADD COLUMN IF NOT EXISTS `all_teachers_required` TINYINT(1)  NOT NULL DEFAULT 0 AFTER `joint_lesson_id`;
+-- tt_subject_load / tt_joint_lessons: columns added after initial tt_* release.
+-- Uses PREPARE/EXECUTE instead of `ADD COLUMN IF NOT EXISTS` because that
+-- clause is a MariaDB-only extension and errors on real MySQL.
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_subject_load' AND COLUMN_NAME = 'joint_lesson_id'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_subject_load` ADD COLUMN `joint_lesson_id` INT(11) DEFAULT NULL AFTER `min_per_day`',
+  'SELECT 1 -- joint_lesson_id already exists'
+);
+PREPARE _stmt FROM @sql;
+EXECUTE _stmt;
+DEALLOCATE PREPARE _stmt;
 
--- tt_joint_lessons: columns added after initial release
-ALTER TABLE `tt_joint_lessons`
-  ADD COLUMN IF NOT EXISTS `all_teachers_required` TINYINT(1) NOT NULL DEFAULT 0 AFTER `notes`,
-  ADD COLUMN IF NOT EXISTS `fixed_slots` TEXT NULL DEFAULT NULL AFTER `all_teachers_required`;
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_subject_load' AND COLUMN_NAME = 'all_teachers_required'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_subject_load` ADD COLUMN `all_teachers_required` TINYINT(1) NOT NULL DEFAULT 0 AFTER `joint_lesson_id`',
+  'SELECT 1 -- all_teachers_required already exists'
+);
+PREPARE _stmt FROM @sql;
+EXECUTE _stmt;
+DEALLOCATE PREPARE _stmt;
+
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_joint_lessons' AND COLUMN_NAME = 'all_teachers_required'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_joint_lessons` ADD COLUMN `all_teachers_required` TINYINT(1) NOT NULL DEFAULT 0 AFTER `notes`',
+  'SELECT 1 -- all_teachers_required already exists'
+);
+PREPARE _stmt FROM @sql;
+EXECUTE _stmt;
+DEALLOCATE PREPARE _stmt;
+
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_joint_lessons' AND COLUMN_NAME = 'fixed_slots'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_joint_lessons` ADD COLUMN `fixed_slots` TEXT NULL DEFAULT NULL AFTER `all_teachers_required`',
+  'SELECT 1 -- fixed_slots already exists'
+);
+PREPARE _stmt FROM @sql;
+EXECUTE _stmt;
+DEALLOCATE PREPARE _stmt;
 
 -- tt_subject_load_teachers: new table for multi-teacher pool per load row
 CREATE TABLE IF NOT EXISTS `tt_subject_load_teachers` (
