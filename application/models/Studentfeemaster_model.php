@@ -311,7 +311,7 @@ class Studentfeemaster_model extends MY_Model
         if (empty($student_session_id)) {
             return [];
         }
-        $sql    = "SELECT `student_fees_master`.*,fee_groups.name FROM `student_fees_master` INNER JOIN fee_session_groups on student_fees_master.fee_session_group_id=fee_session_groups.id INNER JOIN fee_groups on fee_groups.id=fee_session_groups.fee_groups_id  WHERE `student_session_id` = " . (int)$student_session_id . " ORDER BY `student_fees_master`.`id`";
+        $sql    = "SELECT `student_fees_master`.*,fee_groups.name,fee_session_groups.fee_groups_id as `fsg_fee_groups_id` FROM `student_fees_master` INNER JOIN fee_session_groups on student_fees_master.fee_session_group_id=fee_session_groups.id INNER JOIN fee_groups on fee_groups.id=fee_session_groups.fee_groups_id  WHERE `student_session_id` = " . (int)$student_session_id . " ORDER BY `student_fees_master`.`id`";
         $query  = $this->db->query($sql);
         if (!$query) {
             return [];
@@ -327,6 +327,23 @@ class Studentfeemaster_model extends MY_Model
                 if ($result_value->is_system != 0) {
                     $result_value->fees[0]->amount = $result_value->amount;
                 }
+            }
+
+            // When a fee group has exactly two installments (e.g. Odd/Even semester),
+            // label them so identically-named fee rows aren't shown as indistinguishable duplicates.
+            $by_fee_group = [];
+            foreach ($result as $result_value) {
+                $by_fee_group[$result_value->fsg_fee_groups_id][] = $result_value;
+            }
+            foreach ($by_fee_group as $rows) {
+                if (count($rows) != 2) {
+                    continue;
+                }
+                usort($rows, function ($a, $b) {
+                    return $a->fee_session_group_id - $b->fee_session_group_id;
+                });
+                $rows[0]->installment_label = 'Odd Sem';
+                $rows[1]->installment_label = 'Even Sem';
             }
         }
 

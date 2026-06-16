@@ -699,6 +699,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                     } else {
                                                                         echo $fee_value->type . " (" . $fee_value->code . ")";
                                                                     }
+                                                                    if (!empty($fee->installment_label)) {
+                                                                        echo ' <small class="text-muted">(' . $fee->installment_label . ')</small>';
+                                                                    }
                                                                     ?>
                                                                 </td>
                                                                 <td class="text text-left">

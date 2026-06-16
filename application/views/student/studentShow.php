@@ -1202,6 +1202,9 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                             } else {
                                                                 echo $fee_value->type . (!empty($fee_value->code) ? " (" . $fee_value->code . ")" : "");
                                                             }
+                                                            if (!empty($fee->installment_label)) {
+                                                                echo ' <small class="text-muted">(' . $fee->installment_label . ')</small>';
+                                                            }
                                                             ?>
                                                         </td>
 
