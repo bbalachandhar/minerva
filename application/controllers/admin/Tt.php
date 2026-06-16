@@ -1050,6 +1050,11 @@ class Tt extends Admin_Controller
         $teacher_diagnostics = [];
         if (!empty($no_slot_staff_ids)) {
             $sid = $data['session_id'];
+            // Real total committed periods/week — NOT summed from the query
+            // below, which lists one row per participating section of a
+            // joint lesson and would overcount a shared teacher's true time.
+            $correct_totals = $this->_getTeacherWorkloadTotals($sid);
+
             // All subject loads for these teachers in this session
             $load_rows = $this->db->select('tslt.staff_id, c.class as class_name, sec.section as section_name, s.name as subject_name, tsl.periods_per_week, tsl.class_id, tsl.section_id')
                 ->from('tt_subject_load tsl')
@@ -1065,7 +1070,9 @@ class Tt extends Admin_Controller
             foreach ($load_rows as $row) {
                 $tid = (int)$row->staff_id;
                 $teacher_diagnostics[$tid]['assignments'][] = $row;
-                $teacher_diagnostics[$tid]['total_ppw'] = ($teacher_diagnostics[$tid]['total_ppw'] ?? 0) + (int)$row->periods_per_week;
+            }
+            foreach ($no_slot_staff_ids as $tid) {
+                $teacher_diagnostics[$tid]['total_ppw'] = $correct_totals[$tid] ?? 0;
             }
 
             // Teacher name and constraint

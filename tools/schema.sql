@@ -12270,7 +12270,7 @@ CREATE TABLE IF NOT EXISTS `tt_gen_log` (
   `total_placed`     INT(11)      NOT NULL DEFAULT 0,
   `total_conflicts`  INT(11)      NOT NULL DEFAULT 0,
   `quality_score`    DECIMAL(5,2) NOT NULL DEFAULT 0.00,
-  `conflict_details` TEXT                  DEFAULT NULL,
+  `conflict_details` MEDIUMTEXT            DEFAULT NULL,
   `settings_json`    TEXT                  DEFAULT NULL,
   `confirmed_at`     TIMESTAMP             NULL DEFAULT NULL,
   `confirmed_by`     INT(11)               DEFAULT NULL,
@@ -12527,6 +12527,10 @@ CREATE TABLE IF NOT EXISTS `tt_subject_load_teachers` (
   KEY `idx_slt_load` (`subject_load_id`),
   UNIQUE KEY `uq_slt` (`subject_load_id`,`staff_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- tt_gen_log.conflict_details: TEXT (64KB) truncates on runs with many
+-- conflicts, leaving invalid JSON that silently fails to parse client-side.
+ALTER TABLE `tt_gen_log` MODIFY COLUMN `conflict_details` MEDIUMTEXT DEFAULT NULL;
 
 -- "Teacher Workload" sidebar submenu link (previously only reachable from
 -- inside the Auto Generate screen).
