@@ -15,7 +15,7 @@
       <th>Max/Day</th>
       <th title="Min 1/Day — If checked, the generator tries to place at least one period of this subject on every working day (never skips a day). Useful for languages and daily practice subjects.">Min/Day <i class="fa fa-question-circle text-warning" style="font-size:11px;"></i></th>
       <th title="Spread across days — If checked, periods are distributed across different days of the week (no double-booking on the same day unless necessary). Uncheck only if you want back-to-back days allowed.">Spread <i class="fa fa-question-circle text-warning" style="font-size:11px;"></i></th>
-      <th title="Scheduling priority (1–10). Higher number = scheduled first by the generator. Set 8–10 for labs, practicals, or subjects with strict room/teacher constraints. Default is 5.">Priority <i class="fa fa-question-circle text-warning" style="font-size:11px;"></i></th>
+      <th title="Scheduling priority (1–10). Higher number = scheduled first by the generator. Auto-set to 8 for practical/integrated subjects and 5 for theory — override anytime.">Priority <i class="fa fa-question-circle text-warning" style="font-size:11px;"></i></th>
       <th width="36"></th>
     </tr>
   </thead>
@@ -184,7 +184,7 @@
   <span><strong>Max/Day</strong> — Hard cap per day. <strong>Max/Day=1</strong>: strictly one per day, never consecutive. <strong>Max/Day=2</strong>: up to two per day; back-to-back is allowed (generator won't penalise adjacency). Use 2 for subjects like Maths where a double is acceptable.</span>
   <span><i class="fa fa-square text-warning" style="font-size:10px;"></i> <strong>Min/Day</strong> — Soft goal: place at least one period every working day.</span>
   <span><i class="fa fa-square text-primary" style="font-size:10px;"></i> <strong>Spread</strong> — Distribute across different days; keep ON for most subjects.</span>
-  <span><i class="fa fa-square text-danger" style="font-size:10px;"></i> <strong>Priority 1–10</strong> — Generator schedules higher-priority subjects first. Use <strong>8–10</strong> for labs/practicals, <strong>5</strong> for normal, <strong>1–3</strong> for electives.</span>
+  <span><i class="fa fa-square text-danger" style="font-size:10px;"></i> <strong>Priority 1–10</strong> — Generator schedules higher-priority subjects first. Auto-set to <strong>8</strong> for practical/integrated subjects and <strong>5</strong> for theory when added; override per-row anytime (use <strong>1–3</strong> for electives).</span>
 </div>
 
 <!-- Add Subject Panel -->

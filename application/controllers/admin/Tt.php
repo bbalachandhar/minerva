@@ -563,6 +563,13 @@ class Tt extends Admin_Controller
             echo json_encode(['status' => '0', 'error' => 'No subjects selected']); return;
         }
 
+        // Default priority by subject type: practical/integrated subjects need
+        // labs/specific rooms and are harder to schedule, so they go first.
+        $subject_types = [];
+        foreach ($this->db->select('id, type')->where_in('id', array_map('intval', $subject_ids))->get('subjects')->result() as $tr) {
+            $subject_types[(int) $tr->id] = $tr->type;
+        }
+
         // Find or create subject_group for this class+session
         $sg = $this->db->where('class_id', $class_id)->where('session_id', $session_id)
                         ->get('subject_groups')->row();
@@ -604,6 +611,7 @@ class Tt extends Admin_Controller
                                 ->where('batch_id IS NULL', null, false)
                                 ->count_all_results('tt_subject_load');
             if (!$exists) {
+                $default_priority = in_array($subject_types[$sid] ?? '', ['practical', 'integrated']) ? 8 : 5;
                 $this->db->insert('tt_subject_load', [
                     'session_id'               => $session_id,
                     'class_id'                 => $class_id,
@@ -614,7 +622,7 @@ class Tt extends Admin_Controller
                     'periods_per_week'         => 4,
                     'consecutive_periods'      => 1,
                     'preferred_room_type'      => 'any',
-                    'priority'                 => 5,
+                    'priority'                 => $default_priority,
                     'max_per_day'              => 2,
                     'distribute_evenly'        => 1,
                     'min_per_day'              => 0,

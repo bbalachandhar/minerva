@@ -5,7 +5,11 @@ if (!defined('BASEPATH')) { exit('No direct script access allowed'); }
  * Auto Timetable Generator
  *
  * Algorithm: Greedy CSP with soft-constraint scoring.
- * Subjects sorted hardest-first (consecutive > periods/week > priority).
+ * Subjects picked most-constrained-first, dynamically: before every placement,
+ * remaining loads are re-scored by (consecutive > periods/week > priority) plus
+ * each candidate teacher's LIVE remaining weekly capacity, so a teacher who
+ * fills up mid-pass becomes more urgent in real time rather than relying on
+ * a one-time pre-sort.
  * For each subject, find best available slot respecting:
  *   - Teacher hard constraints (max/day, max/week, unavailability, avoid first/last)
  *   - Class time-off (tt_class_unavail)
@@ -346,7 +350,35 @@ class Tt_generator_model extends MY_Model
             }
             // ---- END JOINT LESSON PRE-PASS ----
 
-            foreach ($loads as $load) {
+            // Dynamic most-constrained-first selection: re-score remaining loads
+            // before every pick using each teacher's LIVE remaining weekly capacity
+            // (cap minus periods already placed this pass), not just their static cap.
+            // A teacher who has filled up from earlier picks this pass becomes more
+            // urgent in real time, instead of relying on a one-time pre-sort.
+            $remaining = $loads;
+            while (!empty($remaining)) {
+                $pick_key = null; $pick_score = -INF;
+                foreach ($remaining as $rk => $cand) {
+                    $cand_t_ids = $cand->teacher_ids ?? [];
+                    if (empty($cand_t_ids)) {
+                        if (!empty($cand->staff_id))     $cand_t_ids[] = (int) $cand->staff_id;
+                        if (!empty($cand->alt_staff_id)) $cand_t_ids[] = (int) $cand->alt_staff_id;
+                    }
+                    $cand_ua = 0; $cand_dyn_tight = 0;
+                    foreach ($cand_t_ids as $tid) {
+                        $cand_ua = max($cand_ua, $teacher_unavail_count[$tid] ?? 0);
+                        $cap = (int) (($constraints[$tid] ?? $this->default_tc)->max_periods_per_week ?? 0);
+                        if (empty($cap)) $cap = (int) $this->default_tc->max_periods_per_week;
+                        $remaining_cap  = max(0, $cap - ($this->teacher_periods_week[$tid] ?? 0));
+                        $cand_dyn_tight = max($cand_dyn_tight, max(0, 48 - $remaining_cap));
+                    }
+                    $cand_score = ($cand->consecutive_periods * 10) + $cand->periods_per_week + $cand->priority
+                                + ($cand_ua * 0.5) + ($cand_dyn_tight * 0.3);
+                    if ($cand_score > $pick_score) { $pick_score = $cand_score; $pick_key = $rk; }
+                }
+                $load = $remaining[$pick_key];
+                unset($remaining[$pick_key]);
+
                 $class_id   = (int) $load->class_id;
                 $section_id = (int) $load->section_id;
                 $teacher_ids_load     = $load->teacher_ids ?? [];
