@@ -581,10 +581,117 @@ class Tt_generator_model extends MY_Model
                 }
             }
 
+            // ---- SWAP REPAIR PASS ----
+            // For each no_slot conflict, try to resolve it by finding a slot
+            // where the TEACHER is free but the CLASS is occupied by entry E,
+            // then check if E can be moved to a different slot where both E's
+            // teacher AND the class are free. If so, swap E out and place the
+            // unfilled subject in E's old slot. This is the "Local Search"
+            // component that the greedy algorithm lacks.
+            $swap_resolved = 0;
+            $new_conflicts = [];
+            foreach ($conflicts as $ci => $conf) {
+                if (($conf['type'] ?? '') !== 'no_slot') { $new_conflicts[] = $conf; continue; }
+                $c_id = (int) ($conf['class_id'] ?? 0);
+                $s_id = (int) ($conf['section_id'] ?? 0);
+                $t_id = (int) ($conf['staff_id'] ?? 0);
+                if (!$c_id || !$s_id || !$t_id) { $new_conflicts[] = $conf; continue; }
+
+                $resolved = false;
+                foreach ($this->working_days as $day) {
+                    if ($resolved) break;
+                    foreach ($this->period_order as $pid) {
+                        if ($resolved) break;
+                        // Teacher must be free at this slot
+                        if (!empty($this->teacher_occ[$t_id][$day][$pid])) continue;
+                        if (!empty($unavail_map[$t_id][$day][$pid])) continue;
+                        // Class must be occupied (we want to swap the occupant out)
+                        if (empty($this->class_occ[$c_id][$s_id][$day][$pid][0])) continue;
+
+                        // Find the draft entry occupying this cell
+                        $blocker_idx = null;
+                        foreach ($draft_entries as $di => $de) {
+                            if ((int)$de['class_id'] === $c_id && (int)$de['section_id'] === $s_id
+                                && $de['day'] === $day && (int)$de['period_id'] === $pid
+                                && empty($de['is_free_period'])) {
+                                $blocker_idx = $di; break;
+                            }
+                        }
+                        if ($blocker_idx === null) continue;
+                        $blocker = $draft_entries[$blocker_idx];
+                        $b_tid = (int) ($blocker['staff_id'] ?? 0);
+                        if (!$b_tid) continue;
+
+                        // Can the blocker move to a different empty slot?
+                        foreach ($this->working_days as $day2) {
+                            if ($resolved) break;
+                            foreach ($this->period_order as $pid2) {
+                                if ($day2 === $day && $pid2 === $pid) continue;
+                                // Both class AND blocker's teacher must be free at (day2, pid2)
+                                if (!empty($this->class_occ[$c_id][$s_id][$day2][$pid2][0])) continue;
+                                if (!empty($this->class_unavail[$c_id][$s_id][$day2][$pid2])) continue;
+                                if (!empty($this->teacher_occ[$b_tid][$day2][$pid2])) continue;
+                                if (!empty($unavail_map[$b_tid][$day2][$pid2])) continue;
+
+                                // Swap: move blocker to (day2, pid2), place unfilled at (day, pid)
+                                // Update blocker's entry
+                                $draft_entries[$blocker_idx]['day']       = $day2;
+                                $draft_entries[$blocker_idx]['period_id'] = $pid2;
+
+                                // Update occupancy for blocker move
+                                unset($this->class_occ[$c_id][$s_id][$day][$pid][0]);
+                                $this->class_occ[$c_id][$s_id][$day2][$pid2][0] = true;
+                                unset($this->teacher_occ[$b_tid][$day][$pid]);
+                                $this->teacher_occ[$b_tid][$day2][$pid2] = true;
+                                $this->teacher_periods_day[$b_tid][$day]  = max(0, ($this->teacher_periods_day[$b_tid][$day] ?? 1) - 1);
+                                $this->teacher_periods_day[$b_tid][$day2] = ($this->teacher_periods_day[$b_tid][$day2] ?? 0) + 1;
+
+                                // Find the load matching this conflict to get sgs_id etc
+                                $conf_sgs = 0; $conf_sgid = 0;
+                                foreach ($base_loads as $bl) {
+                                    $bl_tids = $bl->teacher_ids ?? [];
+                                    if (empty($bl_tids) && $bl->staff_id) $bl_tids[] = (int)$bl->staff_id;
+                                    if ((int)$bl->class_id === $c_id && (int)$bl->section_id === $s_id && in_array($t_id, $bl_tids)) {
+                                        $conf_sgs  = (int) $bl->subject_group_subject_id;
+                                        $conf_sgid = (int) $bl->subject_group_id;
+                                        break;
+                                    }
+                                }
+
+                                // Place unfilled subject at (day, pid)
+                                $draft_entries[] = [
+                                    'gen_log_id'               => $log_id,
+                                    'session_id'               => $session_id,
+                                    'class_id'                 => $c_id,
+                                    'section_id'               => $s_id,
+                                    'subject_group_id'         => $conf_sgid,
+                                    'subject_group_subject_id' => $conf_sgs,
+                                    'staff_id'                 => $t_id,
+                                    'period_id'                => $pid,
+                                    'day'                      => $day,
+                                    'room_id'                  => null,
+                                    'batch_id'                 => null,
+                                    'is_free_period'           => 0,
+                                    'free_period_label'        => null,
+                                ];
+                                $this->class_occ[$c_id][$s_id][$day][$pid][0] = true;
+                                $this->teacher_occ[$t_id][$day][$pid] = true;
+                                $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                                $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+
+                                $total_placed++;
+                                $swap_resolved++;
+                                $resolved = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!$resolved) $new_conflicts[] = $conf;
+            }
+            $conflicts = $new_conflicts;
+
             // ---- GAP FILL (opt-in via fill_free_periods) ----
-            // Genuine constraint-satisfaction is scored above via total_placed;
-            // gap-fill runs after so it can't inflate that quality metric — it
-            // only touches cells nothing above could place at all.
             $gap_filled_subject = 0; $gap_filled_free = 0;
             if (!empty($settings['fill_free_periods'])) {
                 $this->_fillEmptyCells($class_stats, $base_loads, $constraints, $unavail_map,
