@@ -327,9 +327,11 @@ $(function(){
       $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill Empty Cells');
       if (res.status === '1') {
         loadGrid(false);
-        var subj = res.filled_subject||0, free = res.filled_free||0;
-        if (subj + free === 0) { alert('No empty cells found — grid is already full.'); return; }
-        var html = '<p><strong>Filled ' + subj + ' cell(s) with subjects, ' + free + ' with Free Period.</strong></p>';
+        var subj = res.filled_subject||0, free = res.filled_free||0, xswap = res.cross_swapped||0;
+        if (subj + free + xswap === 0) { alert('No empty cells found — grid is already full.'); return; }
+        var html = '';
+        if (xswap > 0) html += '<p><strong>' + xswap + ' cell(s) filled via cross-class teacher swap</strong> <span class="text-muted">(moved entries in other classes to free up teachers)</span></p>';
+        html += '<p><strong>Filled ' + subj + ' cell(s) with subjects, ' + free + ' with Free Period.</strong></p>';
         if (res.diagnostics && res.diagnostics.length > 0) {
           html += '<p class="text-danger"><strong>Could not auto-fill these slots (marked Free Period):</strong></p>';
           html += '<div style="max-height:350px;overflow-y:auto;font-size:12px;">';
