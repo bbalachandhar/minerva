@@ -410,7 +410,12 @@ class Tt_generator_model extends MY_Model
                         $remaining_cap  = max(0, $cap - ($this->teacher_periods_week[$tid] ?? 0));
                         $cand_dyn_tight = max($cand_dyn_tight, max(0, 48 - $remaining_cap));
                     }
-                    $cand_score = ($cand->consecutive_periods * 10) + $cand->periods_per_week + $cand->priority
+                    // Low PPW subjects go first: a shared teacher teaching Hindi
+                    // (3/week) across 8 classes must get slots reserved across ALL
+                    // classes before a 7/week subject consumes all that teacher's
+                    // availability. (10 - ppw) inverts the weight so PPW=1 → +9,
+                    // PPW=7 → +3. Consecutive-block subjects still dominate via ×10.
+                    $cand_score = ($cand->consecutive_periods * 10) + (10 - $cand->periods_per_week) + $cand->priority
                                 + ($cand_ua * 0.5) + ($cand_dyn_tight * 0.3);
                     if ($cand_score > $pick_score) { $pick_score = $cand_score; $pick_key = $rk; }
                 }
