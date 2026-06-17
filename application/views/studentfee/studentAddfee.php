@@ -246,6 +246,10 @@ foreach ($student_due_fee as $key => $fee) {
             // get cumulative fine amount as delay days
         }
 
+        if ($fee_value->amount == 0 && $fee_paid == 0 && $fee_discount == 0) {
+            continue;
+        }
+
         $total_amount += $fee_value->amount;
         $total_discount_amount += $fee_discount;
         $total_deposite_amount += $fee_paid;
