@@ -667,6 +667,14 @@ class Tt_generator_model extends MY_Model
                     foreach ($candidates as $load) {
                         $sgs_id = (int) $load->subject_group_subject_id;
                         $subj_label = $load->subject_name ?? "sgs#{$sgs_id}";
+
+                        // Never exceed the configured periods_per_week for any subject
+                        $already_placed = $placed_per_load[$ck . '_' . $sgs_id] ?? 0;
+                        if ($already_placed >= (int)$load->periods_per_week) {
+                            $slot_reasons[] = "{$subj_label}: already at {$already_placed}/{$load->periods_per_week} periods this week";
+                            continue;
+                        }
+
                         if (!empty($this->subject_unavail[$sgs_id][$day][$pid])) {
                             $slot_reasons[] = "{$subj_label}: blocked by Subject Time-Off";
                             continue;
