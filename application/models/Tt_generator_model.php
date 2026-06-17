@@ -350,6 +350,8 @@ class Tt_generator_model extends MY_Model
                                 'day'                      => $slot['day'],
                                 'room_id'                  => $slot['room_id'],
                                 'batch_id'                 => null,
+                                'is_free_period'           => 0,
+                                'free_period_label'        => null,
                             ];
                         }
 
@@ -512,6 +514,8 @@ class Tt_generator_model extends MY_Model
                             'day'                      => $slot['day'],
                             'room_id'                  => $slot['room_id'],
                             'batch_id'                 => $batch_id,
+                            'is_free_period'           => 0,
+                            'free_period_label'        => null,
                         ];
                     }
 
