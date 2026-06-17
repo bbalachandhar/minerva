@@ -108,10 +108,11 @@
               <input type="hidden" name="subject_group_id" id="cell_sgroup_id">
             </div>
             <div class="form-group">
-              <label>Teacher</label>
+              <label>Teacher <small id="avail-hint" class="text-success" style="display:none;"></small></label>
               <select class="form-control" name="staff_id" id="cell_staff">
                 <option value="">-- Select Teacher --</option>
               </select>
+              <small class="text-muted"><i class="fa fa-circle text-success"></i> = Free at this slot &nbsp; <i class="fa fa-circle text-danger"></i> = Busy/Blocked</small>
             </div>
             <div class="form-group">
               <label>Room</label>
@@ -432,6 +433,26 @@ $(function(){
     } else {
       $('#btn-delete-cell, #btn-toggle-lock').hide();
     }
+
+    // Load teacher availability for this exact slot
+    var slotDay = $('#cell_day').val(), slotPid = $('#cell_period_id').val();
+    $.post('<?php echo site_url('admin/tt/get_available_teachers'); ?>', {
+      day: slotDay, period_id: slotPid, [csrf_name]: csrf_val
+    }, function(res) {
+      if (res.status !== '1') return;
+      var $sel = $('#cell_staff');
+      var curVal = $sel.val();
+      $sel.find('option').not(':first').remove();
+      var freeCount = 0;
+      $.each(res.teachers, function(_, t) {
+        var icon = t.free ? '✓ ' : '✗ ';
+        var style = t.free ? 'color:#27ae60;font-weight:bold;' : 'color:#ccc;';
+        $sel.append('<option value="'+t.id+'" style="'+style+'">' + icon + t.name + (t.free ? ' (Free)' : ' (Busy)') + '</option>');
+        if (t.free) freeCount++;
+      });
+      if (curVal) $sel.val(curVal);
+      $('#avail-hint').text(freeCount + ' teacher(s) free at ' + slotDay + ' ' + slotPid).show();
+    }, 'json');
 
     $('#cell-modal').modal('show');
   });

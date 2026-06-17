@@ -1662,6 +1662,47 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         echo json_encode($result);
     }
 
+    public function get_available_teachers()
+    {
+        $session_id = $this->setting_model->getCurrentSession();
+        $day        = $this->input->post('day');
+        $period_id  = (int) $this->input->post('period_id');
+
+        if (!$day || !$period_id) {
+            echo json_encode(['status' => '0']); return;
+        }
+
+        // All teaching staff
+        $all_staff = $this->staff_model->getStaffbyrole(2);
+
+        // Who's busy teaching at this exact slot?
+        $busy = $this->db->select('staff_id')
+            ->where('session_id', $session_id)->where('day', $day)->where('period_id', $period_id)
+            ->get('tt_entries')->result();
+        $busy_ids = array_column($busy, 'staff_id');
+
+        // Who has a time-off block at this slot?
+        $blocked = $this->db->select('staff_id')
+            ->where('session_id', $session_id)->where('day', $day)->where('period_id', $period_id)
+            ->get('tt_teacher_unavail')->result();
+        $blocked_ids = array_column($blocked, 'staff_id');
+
+        $unavail = array_unique(array_merge(array_map('intval', $busy_ids), array_map('intval', $blocked_ids)));
+
+        $result = [];
+        foreach ($all_staff as $s) {
+            $id = (int) $s['id'];
+            $free = !in_array($id, $unavail);
+            $result[] = [
+                'id'   => $id,
+                'name' => trim($s['name'] . ' ' . ($s['surname'] ?? '')),
+                'free' => $free,
+            ];
+        }
+
+        echo json_encode(['status' => '1', 'teachers' => $result]);
+    }
+
     // =========================================================================
     // TEACHER TIMETABLE VIEW
     // =========================================================================
