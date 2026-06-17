@@ -2090,6 +2090,7 @@ class Tt_generator_model extends MY_Model
         }
 
         $cross_swapped = 0;
+        $swap_debug = ['unmet_count' => count($unmet), 'attempts' => []];
         for ($iter = 0; $iter < 10 && !empty($unmet); $iter++) {
             $swapped_this_round = 0;
             $still_unmet = [];
@@ -2098,16 +2099,32 @@ class Tt_generator_model extends MY_Model
                 $t_id = (int) $u['staff_id'];
                 $tc   = $constraints[$t_id] ?? $this->default_tc;
 
+                $dbg = ['staff_id' => $t_id, 'sgs_id' => $u['sgs_id'],
+                    'teacher' => $this->_staffName($t_id),
+                    'week_count' => $this->teacher_periods_week[$t_id] ?? 0,
+                    'week_cap' => (int)$tc->max_periods_per_week,
+                    'day_counts' => $this->teacher_periods_day[$t_id] ?? [],
+                ];
+
                 if ((int)$tc->max_periods_per_week > 0
                     && ($this->teacher_periods_week[$t_id] ?? 0) >= (int)$tc->max_periods_per_week) {
+                    $dbg['skip'] = 'weekly_cap_full';
+                    $swap_debug['attempts'][] = $dbg;
                     continue;
                 }
 
                 $n_periods = count($this->period_order);
                 $eff_cap = min((int)$tc->max_periods_per_day,
                     $n_periods - max(0, (int)($tc->min_free_per_day ?? 0)));
+                $dbg['eff_cap'] = $eff_cap;
+                $dbg['n_periods'] = $n_periods;
+                $dbg['max_per_day'] = (int)$tc->max_periods_per_day;
+                $dbg['min_free'] = (int)($tc->min_free_per_day ?? 0);
 
                 $resolved = false;
+                $dbg['slots_tried'] = 0;
+                $dbg['blockers_found'] = 0;
+                $dbg['dest_tried'] = 0;
 
                 foreach ($this->working_days as $day) {
                     if ($resolved) break;
@@ -2124,6 +2141,9 @@ class Tt_generator_model extends MY_Model
                         $need_diff_day = ($day_count + 1 > $eff_cap);
 
                         if (!$t_busy_here && !$need_diff_day) continue;
+
+                        $dbg['slots_tried']++;
+                        $dbg['last_slot'] = "{$day} P{$pid} busy={$t_busy_here} daycount={$day_count} need_diff={$need_diff_day}";
 
                         // Build candidate blockers
                         $blocker_candidates = [];
@@ -2142,7 +2162,8 @@ class Tt_generator_model extends MY_Model
                                 $blocker_candidates[] = $bl;
                             }
                         }
-                        if (empty($blocker_candidates)) continue;
+                        if (empty($blocker_candidates)) { $dbg['no_blockers_at'] = ($dbg['no_blockers_at'] ?? '') . "{$day} P{$pid}; "; continue; }
+                        $dbg['blockers_found'] += count($blocker_candidates);
 
                         foreach ($blocker_candidates as $blocker) {
                             if ($resolved) break;
@@ -2236,7 +2257,13 @@ class Tt_generator_model extends MY_Model
                     }
                 }
 
-                if (!$resolved) $still_unmet[] = $u;
+                if (!$resolved) {
+                    $dbg['result'] = 'failed';
+                    $still_unmet[] = $u;
+                } else {
+                    $dbg['result'] = 'swapped';
+                }
+                $swap_debug['attempts'][] = $dbg;
             }
 
             $cross_swapped += $swapped_this_round;
@@ -2265,6 +2292,7 @@ class Tt_generator_model extends MY_Model
             'status'         => '1',
             'diagnostics'    => $diagnostics,
             'cross_swapped'  => $cross_swapped,
+            'swap_debug'     => $swap_debug,
             'filled_subject' => $filled_subject,
             'filled_free'    => $filled_free,
         ];
