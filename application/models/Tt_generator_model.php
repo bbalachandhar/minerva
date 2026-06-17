@@ -1648,10 +1648,14 @@ class Tt_generator_model extends MY_Model
             'min_break_after_consec'  => 1,
         ];
 
+        // Load ALL subject loads for this class — including joint-lesson-linked
+        // rows — as gap-fill candidates. getAllForClassScope excludes joint rows
+        // (since the generator handles them separately), but for gap-filling a
+        // single cell, any teacher who teaches ANY subject to this class is a
+        // valid candidate regardless of whether it's a joint or regular subject.
         $this->CI->load->model('Tt_subjectload_model');
-        $base_loads = $this->CI->Tt_subjectload_model->getAllForClassScope($session_id, [
-            ['class_id' => $class_id, 'section_id' => $section_id]
-        ]);
+        $base_loads = $this->CI->Tt_subjectload_model->getForClassSection($session_id, $class_id, $section_id);
+        $base_loads = array_values(array_filter($base_loads, fn($l) => !empty($l->subject_id)));
 
         $class_stats = [$class_id . '_' . $section_id => ['class_id' => $class_id, 'section_id' => $section_id]];
 
