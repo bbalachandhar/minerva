@@ -87,13 +87,22 @@
                 <small class="text-muted">Tries to distribute each subject across different days.</small>
               </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-3">
               <div class="form-group">
                 <label>
                   <input type="checkbox" name="allow_saturday" value="1">
                   Include Saturday
                 </label><br>
-                <small class="text-muted">Check if Saturday is a working day for this institution.</small>
+                <small class="text-muted">Check if Saturday is a working day.</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" name="fill_free_periods" value="1" checked>
+                  Fill Empty Cells
+                </label><br>
+                <small class="text-muted">Backfill any empty slots with an available subject or Free Period.</small>
               </div>
             </div>
           </div>
