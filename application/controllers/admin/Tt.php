@@ -1692,9 +1692,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         $teaching_count = 0;
         foreach ($periods as $p) { if (!$p->is_break) $teaching_count++; }
 
-        $settings = $this->db->where('session_id', $session_id)->get('tt_settings')->row();
-        $days = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-        if (!empty($settings->allow_saturday)) $days[] = 'Saturday';
+        $days = $this->_getWorkingDays();
         $total_slots = count($days) * $teaching_count;
 
         $entries = $this->db->select('class_id, section_id, is_free_period, COUNT(*) as cnt')
