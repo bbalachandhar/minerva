@@ -30,7 +30,7 @@ class Result extends MY_Addon_CBSEController
         $this->load->library('m_pdf');
         $mpdf = $this->m_pdf->load('P');
 
-        $stylesheet = file_get_contents(base_url() . 'backend/cbse_pdf_style.css'); // external css
+        $stylesheet = file_get_contents(FCPATH . 'backend/cbse_pdf_style.css'); // read from disk, not via self HTTP request
         if ($data['template']['background_img'] != "") {
 
             $mpdf->SetDefaultBodyCSS('background', "url('" . $this->media_storage->getImageURL("uploads/cbseexam/template/background_img/" . $data['template']['background_img']) . "')");
@@ -2305,7 +2305,7 @@ class Result extends MY_Addon_CBSEController
                 'orientation'=>$data['template']['orientation']
             ]);
 
-            $stylesheet = file_get_contents(base_url() . 'backend/cbse_pdf_style.css'); // external css
+            $stylesheet = file_get_contents(FCPATH . 'backend/cbse_pdf_style.css'); // read from disk, not via self HTTP request
             if ($data['template']['background_img'] != "") {
 
                 $mpdf->SetDefaultBodyCSS('background', "url('" . $this->media_storage->getImageURL("uploads/cbseexam/template/background_img/" . $data['template']['background_img']) . "')");

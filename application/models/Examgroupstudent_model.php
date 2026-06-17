@@ -130,6 +130,9 @@ class Examgroupstudent_model extends CI_Model
 
     public function searchStudentExams($student_session_id, $is_active = false, $is_publish = false)
     {
+        if (empty($student_session_id)) {
+            return [];
+        }
         $inner_sql = "";
         if ($is_active) {
             $inner_sql = "and exam_group_class_batch_exams.is_active=1 ";
@@ -139,7 +142,7 @@ class Examgroupstudent_model extends CI_Model
         }
         $sql = "SELECT exam_group_class_batch_exam_students.*,exam_group_class_batch_exams.exam_group_id,exam_group_class_batch_exams.exam,exam_group_class_batch_exams.date_from,exam_group_class_batch_exams.date_to,exam_group_class_batch_exams.description,exam_groups.name,exam_groups.exam_type,exam_group_class_batch_exams.passing_percentage FROM `exam_group_class_batch_exam_students` INNER JOIN exam_group_class_batch_exams on exam_group_class_batch_exams.id=exam_group_class_batch_exam_students.exam_group_class_batch_exam_id  INNER JOIN exam_groups on exam_groups.id=exam_group_class_batch_exams.exam_group_id WHERE student_session_id=" . $this->db->escape($student_session_id) . $inner_sql . " ORDER BY id asc";
         $query        = $this->db->query($sql);
-        $student_exam = $query->result();
+        $student_exam = $query ? $query->result() : [];
         if (!empty($student_exam)) {
             foreach ($student_exam as $student_exam_key => $student_exam_value) {
                 $student_exam_value->exam_result = $this->examresult_model->getStudentExamResults($student_exam_value->exam_group_class_batch_exam_id, $student_exam_value->exam_group_id, $student_exam_value->id, $student_exam_value->student_id);
@@ -150,9 +153,12 @@ class Examgroupstudent_model extends CI_Model
 
     public function studentExams($student_session_id)
     {
+        if (empty($student_session_id)) {
+            return [];
+        }
         $sql = "SELECT exam_group_class_batch_exam_students.*,exam_group_class_batch_exams.id as `exam_group_class_batch_exam_id`,exam_group_class_batch_exams.exam,exam_group_class_batch_exams.description,exam_group_class_batch_exams.exam_group_id FROM `exam_group_class_batch_exam_students` INNER JOIN exam_group_class_batch_exams on exam_group_class_batch_exam_students.exam_group_class_batch_exam_id=exam_group_class_batch_exams.id WHERE student_session_id=" . $this->db->escape($student_session_id) . " and exam_group_class_batch_exams.is_active=1";
         $query        = $this->db->query($sql);
-        $student_exam = $query->result();
+        $student_exam = $query ? $query->result() : [];
         return $student_exam;
     }
     public function updateExamStudent($data)

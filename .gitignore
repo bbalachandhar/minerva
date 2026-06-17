@@ -82,6 +82,11 @@ minerva_flutter/
 *.bak
 *.bak_*
 dist/
+!/backend/dist/
+!/backend/dist/css/
+!/backend/dist/js/
+!/backend/dist/css/profile-v2.css
+!/backend/dist/js/profile-v2.js
 "minerva logos/"
 
 # Data import/export files — never commit raw data, cleaned CSVs, or xlsx dumps

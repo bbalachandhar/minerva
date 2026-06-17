@@ -1733,7 +1733,7 @@ class User extends Student_Controller
 
         $this->load->library('m_pdf');
         $mpdf       = $this->m_pdf->load();
-        $stylesheet = file_get_contents(base_url() . 'backend/resume_pdf_style.css'); // external css        
+        $stylesheet = file_get_contents(FCPATH . 'backend/resume_pdf_style.css'); // read from disk, not via self HTTP request
         $mpdf->WriteHTML($stylesheet, 1); // Writing style to pdf         
         $mpdf->SetWatermarkText("", .2); // add watermark text to be show in marksheet
         $mpdf->SetDisplayMode('fullpage');
@@ -1757,7 +1757,7 @@ class User extends Student_Controller
         $html   =    $this->load->view('print/printStudentDetails', $data, true);  
         $this->load->library('m_pdf');
         $mpdf       = $this->m_pdf->load();
-        $stylesheet = file_get_contents(base_url() . 'backend/dist/css/ss-print.css'); // external css        
+        $stylesheet = file_get_contents(FCPATH . 'backend/dist/css/ss-print.css'); // read from disk, not via self HTTP request
         $mpdf->WriteHTML($stylesheet, 1); // Writing style to pdf         
         $mpdf->SetWatermarkText("", .2); // add watermark text to be show in marksheet
         $mpdf->SetDisplayMode('fullpage');

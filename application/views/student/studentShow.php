@@ -77,206 +77,165 @@ $currency_symbol = $admin_session['currency_symbol'];
     </div>
 
     <section class="content">
-        <div class="row">
-            <div class="col-lg-3 col-md-4 col-sm-12">
-                <div class="box box-primary transparent_bg" <?php
-                                                if ($student["is_active"] == "no") {
-                                                    echo "style='background-color:#f0dddd;'";
-                                                }
-                                                ?>>
-                    <div class="box box-widget widget-user-2 mb0">
-                        <div class="widget-user-header bg-gray-light overflow-hidden">
-                            <div class="widget-user-image">
-                                <?php if ($sch_setting->student_photo) {
-                                    $gender_icon = 'fa-user';
-                                    if (!empty($student["gender"])) {
-                                        if (strtolower($student["gender"]) === 'male') {
-                                            $gender_icon = 'fa-male';
-                                        } elseif (strtolower($student["gender"]) === 'female') {
-                                            $gender_icon = 'fa-female';
-                                        }
-                                    }
+        <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/profile-v2.css">
+        <script src="<?php echo base_url(); ?>backend/dist/js/profile-v2.js?v=<?php echo time(); ?>"></script>
+        <div class="mn-profile-v2">
+            <section class="student-hero-card">
+                <div class="hero-left">
+                    <div class="profile-image-container">
+                        <?php
+                        $gender_icon = 'fa-user';
+                        if (!empty($student["gender"])) {
+                            if (strtolower($student["gender"]) === 'male') {
+                                $gender_icon = 'fa-male';
+                            } elseif (strtolower($student["gender"]) === 'female') {
+                                $gender_icon = 'fa-female';
+                            }
+                        }
 
-                                    if (!empty($student["image"])) {
-                                        $image_url = $this->media_storage->getImageURL($student["image"]);
-                                        echo '<img class="profile-user-img img-responsive img-rounded" src="' . $image_url . '" alt="User profile picture">';
-                                    } else {
-                                        echo '<div style="display: flex; align-items: center; justify-content: center; width: 90px; height: 90px; background: #f8f9fa; border-radius: 50%;margin: 20px auto;">';
-                                        echo '<i class="fa ' . $gender_icon . '" style="font-size: 45px; color: #999;"></i>';
-                                        echo '</div>';
-                                    }
-                                } ?>
-                            </div>
-                            <h3 class="widget-user-username"><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></h3>
-                            <h5 class="widget-user-desc mb5"><?php echo $this->lang->line('admission_no'); ?> <span class="text-aqua"><?php echo $student['admission_no']; ?></span></h5>
-                            <h5 class="widget-user-desc"><?php echo $this->lang->line('roll_number'); ?> <span class="text-aqua"><?php echo $student['roll_no']; ?></h5>
-                        </div>
+                        if ($sch_setting->student_photo && !empty($student["image"])) {
+                            $image_url = $this->media_storage->getImageURL($student["image"]);
+                            echo '<img src="' . $image_url . '" alt="User profile picture">';
+                        } else {
+                            echo '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><i class="fa ' . $gender_icon . '" style="font-size:42px;color:#94a3b8;"></i></div>';
+                        }
+                        ?>
+                        <div class="profile-status-badge <?php echo ($student['is_active'] == 'yes') ? 'active' : 'inactive'; ?>"><?php echo ($student['is_active'] == 'yes') ? 'Active' : 'Inactive'; ?></div>
                     </div>
 
-                    <ul class="nav nav-tabs theme-shadow iconnav">
-<?php if ($student["is_active"] == "yes") {
+                    <div class="student-main-details">
+                        <div class="name-section">
+                            <h1><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></h1>
+                            <?php if ($sch_setting->rte && $student['rte']) { ?>
+                                <span class="rte-badge"><?php echo $this->lang->line(strtolower($student['rte'])); ?></span>
+                            <?php } ?>
+                            <?php if ($this->module_lib->hasModule('behaviour_records') && $this->rbac->hasPrivilege('behaviour_records_assign_incident', 'can_view')) { ?>
+                                <span class="behaviour-score-badge"><?php echo $this->lang->line('behaviour_score'); ?>: <?php echo $student['total_points']; ?></span>
+                            <?php } ?>
+                        </div>
+
+                        <div class="primary-specs-grid">
+                            <div class="spec-item">
+                                <span class="spec-lbl"><?php echo $this->lang->line('admission_no'); ?></span>
+                                <span class="spec-val highlight"><?php echo $student['admission_no']; ?></span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-lbl"><?php echo $this->lang->line('roll_number'); ?></span>
+                                <span class="spec-val"><?php echo $student['roll_no']; ?></span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-lbl"><?php echo $this->lang->line('class'); ?> / <?php echo $this->lang->line('section'); ?></span>
+                                <span class="spec-val"><?php echo $student['class'] . " / " . $student['section']; ?></span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-lbl"><?php echo $this->lang->line('gender'); ?></span>
+                                <span class="spec-val"><?php echo $this->lang->line(strtolower((string) $student['gender'])); ?></span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-lbl"><?php echo $this->lang->line('session'); ?></span>
+                                <span class="spec-val"><?php echo $session; ?></span>
+                            </div>
+                        </div>
+
+                        <?php if ($sch_setting->student_barcode == 1):
+                            $bc_exists = file_exists("uploads/student_id_card/barcodes/" . $student['id'] . ".png");
+                            $qr_exists = file_exists("./uploads/student_id_card/qrcode/" . $student['id'] . ".png");
                         ?>
-                            <?php
-                            if ($this->rbac->hasPrivilege('disable_student', 'can_view')) {
-                            ?>
-                                <li class="pull-right dropdown rtl-dropdown">
-                                    <a href="#" class="dropdown-toggle" type="button" data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i></a>
-                                    <ul class="dropdown-menu">
-                                        <li><a style="cursor: pointer;" onclick="send_password()"><?php echo $this->lang->line('send_student_password'); ?></a></li>
-                                        <li><a style="cursor: pointer;" onclick="send_parent_password()"> <?php echo $this->lang->line('send_parent_password'); ?></a></li>
-                                    </ul>
-                                </li>
-                                <li class="">
-                                    <a style="cursor: pointer;" onclick="disable_student('<?php echo $student["id"] ?>')" class="text-red" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line("disable"); ?>">
-                                        <i class="fa fa-thumbs-o-down"></i><?php //echo "Disable Student";   
-                                                                            ?>
-                                    </a>
-                                </li>
-                            <?php
-                            }
-                            if ($this->rbac->hasPrivilege('student_login_credential_report', 'can_view')) {
-                            ?>
-                                <li class="">
-                                    <a href="#" class="schedule_modal" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('login_details'); ?>"><i class="fa fa-key"></i>
-                                    </a>
-                                </li>
-                            <?php
-                            }
-                            ?>
-
-                            <?php if ($this->module_lib->hasActive('fees_collection')) { ?>
-                                <li class="">
-                                    <a href="<?php echo site_url('studentfee/addfee/' . $student["student_session_id"]) ?>" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('collect_fees'); ?>"><b><?php echo $currency_symbol; ?> </b>
-                                    </a>
-                                </li>
-
-                            <?php } ?>
-                            <?php
-                            if ($this->rbac->hasPrivilege('student', 'can_edit')) {
-                            ?>
-                                <li class="">
-                                    <a href="<?php echo base_url() . "student/edit/" . $student["id"] ?>" class="" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i>
-
-                                    </a>
-                                </li>
-                            <?php
-                            }
-                        } else {
-                            ?>
-                            <li class="">
-                                <a href="#" onclick="enable('<?php echo $student["id"] ?>')" class="text-green" data-placement="bottom" data-toggle="tooltip" title="<?php echo $this->lang->line('enable'); ?>">
-                                    <i class="fa fa-thumbs-o-up"></i><?php ?>
-                                </a>
-                            </li>
-                        <?php } ?>
-                        
-                            <li class="">
-                                <a type="button" class="btn btn-xs print_student_details shadow-none" data-student_id="<?php echo $student['id'] ?>" data-student_name="<?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?>" data-admission_no="<?php echo $student['admission_no']; ?>" data-action="download" data-placement="bottom" data-toggle="tooltip" data-original-title="print" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i>" autocomplete="off"><i class="fa fa-print"></i></a>
-                            </li>
-   
-                        
-                    </ul>
-
-                    <div class="box-body box-profile pt0 bg-white">
-                        <ul class="list-group list-group-unbordered">
-                            <?php
-                            if ($student['is_active'] == 'no') {
-                            ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('disable_reason'); ?></b> <span class="pull-right text-aqua"><?php echo $reason_data['reason'] ?></span>
-                                </li>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('disable_note'); ?></b> <span class="pull-right text-aqua"><?php echo $student['dis_note'] ?></span>
-                                </li>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('disable_date'); ?></b> <span class="pull-right text-aqua"><?php echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($student['disable_at'])); ?></span>
-                                </li>
-                            <?php } ?>
-
-                            <?php
-                            if ($sch_setting->roll_no) {
-                            ?>
-                            <?php
-                            } ?>
-                            <li class="list-group-item listnoback border0">
-                                <b><?php echo $this->lang->line('class'); ?></b> <a class="pull-right text-aqua"><?php echo $student['class'] . " (" . $session . ")"; ?></a>
-                            </li>
-                            <li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('section'); ?></b> <a class="pull-right text-aqua"><?php echo $student['section']; ?></a>
-                            </li>
-							<li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('gender'); ?></b> <a class="pull-right text-aqua"><?php echo $this->lang->line(strtolower((string) $student['gender'])); ?></a>
-                            </li>
-                            <?php if ($sch_setting->rte) { ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('rte'); ?></b> <a class="pull-right text-aqua"><?php if($student['rte']){ echo $this->lang->line(strtolower($student['rte'])); } ?></a>
-                                </li>
-                            <?php } ?>                            
-                            <?php if ($sch_setting->student_barcode == 1):
-                                $bc_exists = file_exists("uploads/student_id_card/barcodes/" . $student['id'] . ".png");
-                                $qr_exists = file_exists("./uploads/student_id_card/qrcode/" . $student['id'] . ".png");
-                            ?>
+                        <div class="codes-flex-container hero-codes">
                             <?php if ($bc_exists): ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('barcode'); ?></b>
-                                    <a class="pull-right text-aqua" id="barcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/barcodes/' . $student['id'] . '.png'); ?>" target="_blank">
-                                        <img class="h-36" id="student-barcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/barcodes/' . $student['id'] . '.png'); ?>" width="auto" height="auto" />
+                                <div class="code-wrapper">
+                                    <span class="code-title"><?php echo $this->lang->line('barcode'); ?></span>
+                                    <a id="barcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/barcodes/' . $student['id'] . '.png'); ?>" target="_blank">
+                                        <img id="student-barcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/barcodes/' . $student['id'] . '.png'); ?>">
                                     </a>
-                                </li>
+                                </div>
                             <?php endif; ?>
                             <?php if ($qr_exists): ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('qrcode'); ?></b>
-                                    <a class="pull-right text-aqua" id="qrcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/qrcode/' . $student['id'] . '.png'); ?>" target="_blank">
-                                        <img class="h-50" id="student-qrcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/qrcode/' . $student['id'] . '.png'); ?>" width="auto" height="auto" />
+                                <div class="code-wrapper">
+                                    <span class="code-title"><?php echo $this->lang->line('qrcode'); ?></span>
+                                    <a id="qrcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/qrcode/' . $student['id'] . '.png'); ?>" target="_blank">
+                                        <img id="student-qrcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/student_id_card/qrcode/' . $student['id'] . '.png'); ?>">
                                     </a>
-                                </li>
+                                </div>
                             <?php endif; ?>
                             <?php if (!$bc_exists && !$qr_exists): ?>
-                                <li class="list-group-item listnoback" id="generate-codes-row">
-                                    <b>Barcode / QR</b>
-                                    <span class="pull-right">
-                                        <button type="button" class="btn btn-xs btn-default" id="btn-generate-codes"
-                                            data-student-id="<?php echo $student['id']; ?>"
-                                            style="border:1px solid #d2d6de;border-radius:3px;padding:2px 8px;font-size:11px;color:#555;">
-                                            <i class="fa fa-qrcode"></i> Generate
-                                        </button>
-                                    </span>
-                                </li>
-                                <li class="list-group-item listnoback" id="generated-barcode-row" style="display:none;">
-                                    <b><?php echo $this->lang->line('barcode'); ?></b>
-                                    <a class="pull-right text-aqua" id="barcode-img-link" href="#" target="_blank">
-                                        <img class="h-36" id="student-barcode-img" src="" width="auto" height="auto" />
-                                    </a>
-                                </li>
-                                <li class="list-group-item listnoback" id="generated-qrcode-row" style="display:none;">
-                                    <b><?php echo $this->lang->line('qrcode'); ?></b>
-                                    <a class="pull-right text-aqua" id="qrcode-img-link" href="#" target="_blank">
-                                        <img class="h-50" id="student-qrcode-img" src="" width="auto" height="auto" />
-                                    </a>
-                                </li>
+                                <div class="code-wrapper" id="generate-codes-row">
+                                    <span class="code-title">Barcode / QR</span>
+                                    <button type="button" class="mnp-btn" id="btn-generate-codes" data-student-id="<?php echo $student['id']; ?>">
+                                        <i class="fa fa-qrcode"></i> Generate
+                                    </button>
+                                </div>
+                                <div class="code-wrapper" id="generated-barcode-row" style="display:none;">
+                                    <span class="code-title"><?php echo $this->lang->line('barcode'); ?></span>
+                                    <a id="barcode-img-link" href="#" target="_blank"><img id="student-barcode-img" src=""></a>
+                                </div>
+                                <div class="code-wrapper" id="generated-qrcode-row" style="display:none;">
+                                    <span class="code-title"><?php echo $this->lang->line('qrcode'); ?></span>
+                                    <a id="qrcode-img-link" href="#" target="_blank"><img id="student-qrcode-img" src=""></a>
+                                </div>
                             <?php endif; ?>
-                            <?php endif; ?>
-
-                            <!------- Behaviour Report Start-------->
-                            <?php
-                            if ($this->module_lib->hasModule('behaviour_records')) {
-                                if ($this->rbac->hasPrivilege('behaviour_records_assign_incident', 'can_view')) {
-
-                            ?>
-                                    <li class="list-group-item listnoback">
-                                        <b><?php echo $this->lang->line('behaviour_score'); ?></b> <a class="pull-right text-aqua"><?php echo $student['total_points']; ?></a>
-                                    </li>
-                            <?php
-
-                                }
-                            }
-                            ?>
-                            <!------- Behaviour Report End--------->
-
-                        </ul>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
+
+                <div class="hero-right-actions">
+                    <div class="actions-header"><?php echo $this->lang->line('action'); ?></div>
+                    <div class="actions-buttons-grid">
+                        <?php if ($this->rbac->hasPrivilege('student', 'can_edit')) { ?>
+                            <a href="<?php echo base_url() . "student/edit/" . $student["id"] ?>" class="action-btn mnp-primary">
+                                <i class="fa fa-pencil"></i><span><?php echo $this->lang->line('edit'); ?></span>
+                            </a>
+                        <?php } ?>
+
+                        <a href="javascript:void(0)" class="action-btn print_student_details" data-student_id="<?php echo $student['id'] ?>" data-student_name="<?php echo htmlspecialchars($this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname), ENT_QUOTES); ?>" data-admission_no="<?php echo $student['admission_no']; ?>" data-action="download" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i>" autocomplete="off">
+                            <i class="fa fa-print"></i><span>Print</span>
+                        </a>
+
+                        <?php if ($this->module_lib->hasActive('fees_collection')) { ?>
+                            <a href="<?php echo site_url('studentfee/addfee/' . $student["student_session_id"]) ?>" class="action-btn mnp-success">
+                                <i class="fa fa-money"></i><span><?php echo $this->lang->line('collect_fees'); ?></span>
+                            </a>
+                        <?php } ?>
+
+                        <?php if ($this->rbac->hasPrivilege('student_login_credential_report', 'can_view')) { ?>
+                            <a href="javascript:void(0)" class="action-btn schedule_modal">
+                                <i class="fa fa-key"></i><span><?php echo $this->lang->line('login_details'); ?></span>
+                            </a>
+                        <?php } ?>
+
+                        <?php if ($this->rbac->hasPrivilege('disable_student', 'can_view')) { ?>
+                            <?php if ($student["is_active"] == "yes") { ?>
+                                <a href="javascript:void(0)" onclick="disable_student('<?php echo $student["id"] ?>')" class="action-btn mnp-danger">
+                                    <i class="fa fa-thumbs-o-down"></i><span><?php echo $this->lang->line('disable'); ?></span>
+                                </a>
+                                <a href="javascript:void(0)" onclick="send_password()" class="action-btn">
+                                    <i class="fa fa-envelope"></i><span><?php echo $this->lang->line('send_student_password'); ?></span>
+                                </a>
+                                <a href="javascript:void(0)" onclick="send_parent_password()" class="action-btn">
+                                    <i class="fa fa-envelope-o"></i><span><?php echo $this->lang->line('send_parent_password'); ?></span>
+                                </a>
+                            <?php } else { ?>
+                                <a href="javascript:void(0)" onclick="enable('<?php echo $student["id"] ?>')" class="action-btn mnp-success">
+                                    <i class="fa fa-thumbs-o-up"></i><span><?php echo $this->lang->line('enable'); ?></span>
+                                </a>
+                            <?php } ?>
+                        <?php } ?>
+                    </div>
+                </div>
+            </section>
+
+                    <?php if ($student['is_active'] == 'no') { ?>
+                        <div class="info-card" style="margin-top:18px;">
+                            <div class="card-body">
+                                <div class="details-list">
+                                    <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('disable_reason'); ?></span><span class="mnp-value"><?php echo $reason_data['reason'] ?></span></div>
+                                    <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('disable_note'); ?></span><span class="mnp-value"><?php echo $student['dis_note'] ?></span></div>
+                                    <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('disable_date'); ?></span><span class="mnp-value"><?php echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($student['disable_at'])); ?></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php } ?>
                 <?php
                 if (!empty($siblings)) {
                 ?>
@@ -360,11 +319,11 @@ $currency_symbol = $admin_session['currency_symbol'];
                 <?php
                 }
                 ?>
-            </div>
-            <div class="col-lg-9 col-md-8 col-sm-12">
-                <div class="nav-tabs-custom theme-shadow">
-                    <ul class="nav nav-tabs">
-                        <li class="active"><a href="#activity" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('profile'); ?></a></li>
+            <div>
+                <div>
+                    <nav class="navigation-tabs-bar">
+                    <div class="tab-bar-links">
+                        <button class="tab-link active" data-tab-target="activity"><?php echo $this->lang->line('profile'); ?></button>
 
                         <?php
                         if ($this->module_lib->hasActive('fees_collection')) {
@@ -383,21 +342,21 @@ $currency_symbol = $admin_session['currency_symbol'];
 
                             )) {
                         ?>
-                                <li class=""><a href="#fee" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('fees'); ?></a></li>
+                                <button class="tab-link" data-tab-target="fee"><?php echo $this->lang->line('fees'); ?></button>
                         <?php
                             }
                         }
                         ?>
 
                         <?php if ($this->module_lib->hasActive('examination')) { ?>
-                            <li><a href="#exam" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('exam'); ?></a></li>
+                            <button class="tab-link" data-tab-target="exam"><?php echo $this->lang->line('exam'); ?></button>
                         <?php } ?>
 
                         <!------- CBSE Exam Start-------->
                         <?php
                         if ($this->module_lib->hasModule('cbseexam') && $sch_setting->institution_type != 'college') {
                         ?>
-                            <li class=""><a href="#cbseexam" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('cbse_exam'); ?></a></li>
+                            <button class="tab-link" data-tab-target="cbseexam"><?php echo $this->lang->line('cbse_exam'); ?></button>
                         <?php
                         }
                         ?>
@@ -406,21 +365,20 @@ $currency_symbol = $admin_session['currency_symbol'];
                         <?php if ($this->module_lib->hasActive('student_attendance')) {
                             if (!$sch_setting->attendence_type) {
                         ?>
-                                <li class=""><a href="#attendance" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('attendance'); ?></a>
-                                </li>
+                                <button class="tab-link" data-tab-target="attendance"><?php echo $this->lang->line('attendance'); ?></button>
                         <?php
                             }
                         }
                         ?>
                         <?php if ($sch_setting->upload_documents) {
                         ?>
-                            <li class=""><a href="#documents" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('documents'); ?></a></li>
+                            <button class="tab-link" data-tab-target="documents"><?php echo $this->lang->line('documents'); ?></button>
                         <?php
                         } ?>
 
                         <?php if ($this->rbac->hasPrivilege('student_timeline', 'can_view')) { ?>
 
-                            <li class=""><a href="#timelineh" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('timeline') ?></a></li>
+                            <button class="tab-link" data-tab-target="timelineh"><?php echo $this->lang->line('timeline') ?></button>
                         <?php } ?>
 
                         <!------- Behaviour Report Start-------->
@@ -429,464 +387,369 @@ $currency_symbol = $admin_session['currency_symbol'];
                             if ($this->rbac->hasPrivilege('behaviour_records_assign_incident', 'can_view')) {
 
                         ?>
-                                <li class=""><a href="#incident" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('student_behaviour'); ?></a></li>
+                                <button class="tab-link" data-tab-target="incident"><?php echo $this->lang->line('student_behaviour'); ?></button>
                         <?php
 
                             }
                         }
                         ?>
                         <!------- Behaviour Report End-------->
+                    </div>
 
-                        
-						
-                    </ul>
+                    <div class="tab-bar-actions">
+                        <?php if ($this->module_lib->hasActive('examination') && !empty($exam_result)) { ?>
+                            <a class="action-btn no_print" id="print" data-tab-actions="exam" title="Print" onclick="printDiv()"><i class="fa fa-print"></i><span><?php echo $this->lang->line('print'); ?></span></a>
+                        <?php } ?>
+
+                        <?php if ($this->module_lib->hasModule('cbseexam') && $sch_setting->institution_type != 'college') { ?>
+                            <a class="action-btn no_print" id="print-cbse" data-tab-actions="cbseexam" title="Print" onclick="printDivCbse()"><i class="fa fa-print"></i><span><?php echo $this->lang->line('print'); ?></span></a>
+                        <?php } ?>
+
+                        <?php if ($sch_setting->upload_documents && $this->rbac->hasPrivilege('student', 'can_add')) { ?>
+                            <button type="button" data-tab-actions="documents" data-student-session-id="<?php echo $student['student_session_id'] ?>" class="action-btn mnp-primary myTransportFeeBtn"><i class="fa fa-upload"></i> <span><?php echo $this->lang->line('upload_documents'); ?></span></button>
+                        <?php } ?>
+
+                        <?php if ($this->rbac->hasPrivilege('student_timeline', 'can_view') && $this->rbac->hasPrivilege('student_timeline', 'can_add')) { ?>
+                            <button type="button" id="myTimelineButton" data-tab-actions="timelineh" class="action-btn mnp-primary"><i class="fa fa-plus"></i> <span><?php echo $this->lang->line('add') ?></span></button>
+                        <?php } ?>
+                    </div>
+                    </nav>
 
                     <div class="tab-content">
                         <div class="tab-pane active" id="activity">
-                            <div class="tshadow mb25 bozero">
-                                <div class="table-responsive around10 pt0">
-                                    <table class="table3 table-hover table-striped tmb0">
-                                        <tbody>
-                                            <?php if ($sch_setting->admission_date) {
-                                            ?>
-                                                <tr>
-                                                    <td width="35%"><?php echo $this->lang->line('admission_date'); ?></td>
-                                                    <td class="col-md-5">
-                                                        <?php
+                            <div class="profile-grid">
+                                <div class="grid-column">
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <h2>Personal &amp; General Details</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
+                                            <?php if ($sch_setting->admission_date) { ?>
+                                                <div class="detail-row">
+                                                    <span class="mnp-label"><?php echo $this->lang->line('admission_date'); ?></span>
+                                                    <span class="mnp-value"><?php
                                                         if (!empty($student['admission_date'])) {
                                                             echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat(date("Y-m-d", strtotime($student['admission_date']))));
                                                         }
-                                                        ?></td>
-                                                </tr>
+                                                    ?></span>
+                                                </div>
                                             <?php } ?>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('date_of_birth'); ?></td>
-                                                <td><?php
+                                            <div class="detail-row">
+                                                <span class="mnp-label"><?php echo $this->lang->line('date_of_birth'); ?></span>
+                                                <span class="mnp-value"><?php
                                                     if (!empty($student['dob']) && $student['dob'] != '0000-00-00') {
                                                         echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($student['dob']));
                                                     }
-                                                    ?></td>
-                                            </tr>
-                                            <?php if ($sch_setting->category) {
-                                            ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('category'); ?></td>
-                                                    <td>
-                                                        <?php
+                                                ?></span>
+                                            </div>
+                                            <?php if ($sch_setting->category) { ?>
+                                                <div class="detail-row">
+                                                    <span class="mnp-label"><?php echo $this->lang->line('category'); ?></span>
+                                                    <span class="mnp-value"><?php
                                                         foreach ($category_list as $value) {
                                                             if ($student['category_id'] == $value['id']) {
                                                                 echo $value['category'];
                                                             }
                                                         }
-                                                        ?>
-                                                    </td>
-                                                </tr>
+                                                    ?></span>
+                                                </div>
                                             <?php }
                                             if ($sch_setting->mobile_no) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('mobile_number'); ?></td>
-                                                    <td><?php echo $student['mobileno']; ?></td>
-                                                </tr>
+                                                <div class="detail-row">
+                                                    <span class="mnp-label"><?php echo $this->lang->line('mobile_number'); ?></span>
+                                                    <span class="mnp-value copyable" onclick="mnpCopyText('<?php echo htmlspecialchars($student['mobileno'], ENT_QUOTES); ?>', 'Mobile Number')"><?php echo $student['mobileno']; ?>
+                                                        <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                                    </span>
+                                                </div>
                                             <?php }
-                                            if ($sch_setting->cast) {
-                                            ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('caste'); ?></td>
-                                                    <td><?php echo $student['cast']; ?></td>
-                                                </tr>
-                                            <?php
-                                            }
+                                            if ($sch_setting->cast) { ?>
+                                                <div class="detail-row">
+                                                    <span class="mnp-label"><?php echo $this->lang->line('caste'); ?></span>
+                                                    <span class="mnp-value"><?php echo $student['cast']; ?></span>
+                                                </div>
+                                            <?php }
                                             if ($sch_setting->religion) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('religion'); ?></td>
-                                                    <td><?php echo $student['religion']; ?></td>
-                                                </tr>
+                                                <div class="detail-row">
+                                                    <span class="mnp-label"><?php echo $this->lang->line('religion'); ?></span>
+                                                    <span class="mnp-value"><?php echo $student['religion']; ?></span>
+                                                </div>
                                             <?php }
-                                            if ($sch_setting->student_email) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('email'); ?></td>
-                                                    <td><?php echo $student['email']; ?></td>
-                                                </tr>
+                                            if ($sch_setting->student_email && !empty($student['email'])) { ?>
+                                                <div class="detail-row">
+                                                    <span class="mnp-label"><?php echo $this->lang->line('email'); ?></span>
+                                                    <span class="mnp-value copyable" onclick="mnpCopyText('<?php echo htmlspecialchars($student['email'], ENT_QUOTES); ?>', 'Email')"><?php echo $student['email']; ?>
+                                                        <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                                    </span>
+                                                </div>
                                             <?php }
-
-                                            ?>
-                                            <?php
                                             $cutom_fields_data = get_custom_table_values($student['id'], 'students');
                                             if (!empty($cutom_fields_data)) {
                                                 foreach ($cutom_fields_data as $field_key => $field_value) {
                                             ?>
-                                                    <tr>
-                                                        <td><?php echo $field_value->name; ?></td>
-                                                        <td>
-                                                            <?php
-                                                            if (is_string($field_value->field_value) && is_array(json_decode($field_value->field_value, true)) && (json_last_error() == JSON_ERROR_NONE)) {
-                                                                $field_array = json_decode($field_value->field_value);
-                                                                echo "<ul class='student_custom_field'>";
-                                                                foreach ($field_array as $each_key => $each_value) {
-                                                                    echo "<li>" . $each_value . "</li>";
-                                                                }
-                                                                echo "</ul>";
-                                                            } else {
-                                                                $display_field = $field_value->field_value;
-
-                                                                if ($field_value->type == "link") {
-                                                                    $display_field = "<a href=" . $field_value->field_value . " target='_blank'>" . $field_value->field_value . "</a>";
-                                                                }
-                                                                echo $display_field;
+                                                <div class="detail-row">
+                                                    <span class="mnp-label"><?php echo $field_value->name; ?></span>
+                                                    <span class="mnp-value">
+                                                        <?php
+                                                        if (is_string($field_value->field_value) && is_array(json_decode($field_value->field_value, true)) && (json_last_error() == JSON_ERROR_NONE)) {
+                                                            $field_array = json_decode($field_value->field_value);
+                                                            echo "<ul>";
+                                                            foreach ($field_array as $each_key => $each_value) {
+                                                                echo "<li>" . $each_value . "</li>";
                                                             }
-                                                            ?>
-                                                        </td>
-                                                    </tr>
+                                                            echo "</ul>";
+                                                        } else {
+                                                            $display_field = $field_value->field_value;
+                                                            if ($field_value->type == "link") {
+                                                                $display_field = "<a href=" . $field_value->field_value . " target='_blank'>" . $field_value->field_value . "</a>";
+                                                            }
+                                                            echo $display_field;
+                                                        }
+                                                        ?>
+                                                    </span>
+                                                </div>
                                                 <?php
                                                 }
                                             }
-
-                                            if ($sch_setting->student_note) {
-                                                ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('note'); ?></td>
-                                                    <td><?php echo $student['note']; ?></td>
-                                                </tr>
-                                            <?php
-                                            }
-                                            ?>
-                                        </tbody>
-                                    </table>
+                                            if ($sch_setting->student_note && !empty($student['note'])) { ?>
+                                                <div class="detail-row full-width">
+                                                    <span class="mnp-label"><?php echo $this->lang->line('note'); ?></span>
+                                                    <span class="mnp-value note-text"><?php echo $student['note']; ?></span>
+                                                </div>
+                                            <?php } ?>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="tshadow mb25 bozero">
-                                <h3 class="pagetitleh2"><?php echo $this->lang->line('address'); ?></h3>
-                                <div class="table-responsive around10 pt0">
-                                    <table class="table3 table-hover table-striped tmb0">
-                                        <tbody>
+
+                                <?php if ($sch_setting->current_address || $sch_setting->permanent_address) { ?>
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                        <h2><?php echo $this->lang->line('address'); ?></h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
                                             <?php if ($sch_setting->current_address) { ?>
-                                                <tr>
-                                                    <td width="35%"><?php echo $this->lang->line('current_address'); ?></td>
-                                                    <td class="col-md-5"><?php echo $student['current_address']; ?></td>
-                                                </tr>
+                                                <div class="detail-row full-width">
+                                                    <span class="mnp-label"><?php echo $this->lang->line('current_address'); ?></span>
+                                                    <span class="mnp-value address-val"><?php echo $student['current_address']; ?></span>
+                                                </div>
                                             <?php }
                                             if ($sch_setting->permanent_address) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('permanent_address'); ?></td>
-                                                    <td><?php echo $student['permanent_address']; ?></td>
-                                                </tr>
+                                                <div class="detail-row full-width">
+                                                    <span class="mnp-label"><?php echo $this->lang->line('permanent_address'); ?></span>
+                                                    <span class="mnp-value address-val"><?php echo $student['permanent_address']; ?></span>
+                                                </div>
                                             <?php } ?>
-                                        </tbody>
-                                    </table>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                                <?php } ?>
 
-                            <div class="tshadow mb25 bozero">
                                 <?php if (($sch_setting->father_name) || ($sch_setting->father_phone) || ($sch_setting->father_occupation) || ($sch_setting->father_pic) || ($sch_setting->mother_name) || ($sch_setting->mother_phone) || ($sch_setting->mother_occupation) || ($sch_setting->mother_pic) || ($sch_setting->guardian_name) || ($sch_setting->guardian_occupation) || ($sch_setting->guardian_relation) || ($sch_setting->guardian_phone) || ($sch_setting->guardian_email) || ($sch_setting->guardian_pic) || ($sch_setting->guardian_address)) {
                                 ?>
-                                    <h3 class="pagetitleh2"><?php echo $this->lang->line('parent_guardian_detail'); ?> </h3>
-                                    <div class="table-responsive around10 pt10">
-                                        <table class="table3 table-hover table-striped tmb0">
-                                            <?php if ($sch_setting->father_name) {
-                                            ?>
-                                                <tr>
-                                                    <td width="35%"><?php echo $this->lang->line('father_name'); ?></td>
-                                                    <td class="col-md-5"><?php echo $student['father_name']; ?></td>
-                                                    <td rowspan="3"><img class="profile-user-img img-responsive img-rounded" src="<?php
-                                                                                                                                    if (!empty($student["father_pic"])) {
-                                                                                                                                        echo $this->media_storage->getImageURL($student["father_pic"]);
-                                                                                                                                    } else {
-                                                                                                                                        echo $this->media_storage->getImageURL("uploads/student_images/no_image.png");
-                                                                                                                                    }
-                                                                                                                                    ?>"></td>
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->father_phone) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('father_phone'); ?></td>
-                                                    <td><?php echo $student['father_phone']; ?></td>
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->father_occupation) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('father_occupation'); ?></td>
-                                                    <td><?php echo $student['father_occupation']; ?></td>
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->mother_name) {
-                                            ?>
-                                                <tr class="bordertop">
-                                                    <td><?php echo $this->lang->line('mother_name'); ?></td>
-                                                    <td><?php echo $student['mother_name']; ?></td>
-                                                    <td rowspan="3"><img class="profile-user-img img-responsive img-rounded" src="<?php
-                                                                                                                                    if (!empty($student["mother_pic"])) {
-                                                                                                                                        echo $this->media_storage->getImageURL($student["mother_pic"]);
-                                                                                                                                    } else {
-                                                                                                                                        echo $this->media_storage->getImageURL("uploads/student_images/no_image.png");
-                                                                                                                                    }
-                                                                                                                                    ?>"></td>
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->mother_phone) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('mother_phone'); ?></td>
-                                                    <td><?php echo $student['mother_phone']; ?></td>
-
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->mother_occupation) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('mother_occupation'); ?></td>
-                                                    <td><?php echo $student['mother_occupation']; ?></td>
-                                                </tr>
-                                            <?php } ?>
-                                            <tr class="bordertop">
-                                                <td><?php if ($sch_setting->guardian_name) { ?><?php echo $this->lang->line('guardian_name');
-                                                                                            } ?></td>
-                                                <td><?php if ($sch_setting->guardian_name) { ?><?php echo $student['guardian_name'];
-                                                                                            } ?></td>
-                                                <td rowspan="3">
-                                                    <?php if ($sch_setting->guardian_pic) {
-                                                    ?><img class="profile-user-img img-responsive img-rounded" src="<?php
-                                                                        if (!empty($student["guardian_pic"])) {
-                                                                            echo $this->media_storage->getImageURL($student["guardian_pic"]);
-                                                                        } else {
-                                                                            echo $this->media_storage->getImageURL("uploads/student_images/no_image.png");
-                                                                        }
-                                                                        ?>"> <?php } ?></td>
-                                            </tr>
-                                            <?php if ($sch_setting->guardian_email) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('guardian_email'); ?></td>
-                                                    <td><?php echo $student['guardian_email']; ?></td>
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->guardian_relation) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('guardian_relation'); ?></td>
-                                                    <td><?php echo $student['guardian_relation']; ?></td>
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->guardian_phone) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('guardian_phone'); ?></td>
-                                                    <td><?php echo $student['guardian_phone']; ?></td>
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->guardian_occupation) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('guardian_occupation'); ?></td>
-                                                    <td><?php echo $student['guardian_occupation']; ?></td>
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->guardian_address) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('guardian_address'); ?></td>
-                                                    <td><?php echo $student['guardian_address']; ?></td>
-                                                </tr>
-                                            <?php } ?>
-                                            </tbody>
-                                        </table>
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                        <h2><?php echo $this->lang->line('parent_guardian_detail'); ?></h2>
                                     </div>
+                                    <div class="card-body">
+                                        <div class="parent-cards-wrapper">
+                                            <?php if ($sch_setting->father_name || $sch_setting->father_phone || $sch_setting->father_occupation) { ?>
+                                            <div class="parent-sub-card">
+                                                <div class="sub-card-title">Father's Profile</div>
+                                                <div class="details-list">
+                                                    <?php if ($sch_setting->father_name) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('father_name'); ?></span><span class="mnp-value font-semi"><?php echo $student['father_name']; ?></span></div>
+                                                    <?php } ?>
+                                                    <?php if ($sch_setting->father_phone) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('father_phone'); ?></span><span class="mnp-value copyable" onclick="mnpCopyText('<?php echo htmlspecialchars($student['father_phone'], ENT_QUOTES); ?>', 'Father Phone')"><?php echo $student['father_phone']; ?></span></div>
+                                                    <?php } ?>
+                                                    <?php if ($sch_setting->father_occupation) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('father_occupation'); ?></span><span class="mnp-value"><?php echo $student['father_occupation']; ?></span></div>
+                                                    <?php } ?>
+                                                </div>
+                                            </div>
+                                            <?php } ?>
+
+                                            <?php if ($sch_setting->mother_name || $sch_setting->mother_phone || $sch_setting->mother_occupation) { ?>
+                                            <div class="parent-sub-card">
+                                                <div class="sub-card-title">Mother's Profile</div>
+                                                <div class="details-list">
+                                                    <?php if ($sch_setting->mother_name) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('mother_name'); ?></span><span class="mnp-value font-semi"><?php echo $student['mother_name']; ?></span></div>
+                                                    <?php } ?>
+                                                    <?php if ($sch_setting->mother_phone) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('mother_phone'); ?></span><span class="mnp-value copyable" onclick="mnpCopyText('<?php echo htmlspecialchars($student['mother_phone'], ENT_QUOTES); ?>', 'Mother Phone')"><?php echo $student['mother_phone']; ?></span></div>
+                                                    <?php } ?>
+                                                    <?php if ($sch_setting->mother_occupation) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('mother_occupation'); ?></span><span class="mnp-value"><?php echo $student['mother_occupation']; ?></span></div>
+                                                    <?php } ?>
+                                                </div>
+                                            </div>
+                                            <?php } ?>
+
+                                            <?php if ($sch_setting->guardian_name || $sch_setting->guardian_relation || $sch_setting->guardian_phone || $sch_setting->guardian_email || $sch_setting->guardian_occupation || $sch_setting->guardian_address) { ?>
+                                            <div class="parent-sub-card primary-guardian">
+                                                <div class="sub-card-title">Guardian / Emergency Contact</div>
+                                                <div class="details-list">
+                                                    <?php if ($sch_setting->guardian_name) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('guardian_name'); ?></span><span class="mnp-value font-semi"><?php echo $student['guardian_name']; ?></span></div>
+                                                    <?php }
+                                                    if ($sch_setting->guardian_relation) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('guardian_relation'); ?></span><span class="mnp-value"><?php echo $student['guardian_relation']; ?></span></div>
+                                                    <?php }
+                                                    if ($sch_setting->guardian_phone) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('guardian_phone'); ?></span><span class="mnp-value copyable" onclick="mnpCopyText('<?php echo htmlspecialchars($student['guardian_phone'], ENT_QUOTES); ?>', 'Guardian Phone')"><?php echo $student['guardian_phone']; ?></span></div>
+                                                    <?php }
+                                                    if ($sch_setting->guardian_email) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('guardian_email'); ?></span><span class="mnp-value"><?php echo $student['guardian_email']; ?></span></div>
+                                                    <?php }
+                                                    if ($sch_setting->guardian_occupation) { ?>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('guardian_occupation'); ?></span><span class="mnp-value"><?php echo $student['guardian_occupation']; ?></span></div>
+                                                    <?php }
+                                                    if ($sch_setting->guardian_address) { ?>
+                                                        <div class="detail-row full-width"><span class="mnp-label"><?php echo $this->lang->line('guardian_address'); ?></span><span class="mnp-value address-val"><?php echo $student['guardian_address']; ?></span></div>
+                                                    <?php } ?>
+                                                </div>
+                                            </div>
+                                            <?php } ?>
+                                        </div>
+                                    </div>
+                                </div>
                                 <?php } ?>
-                            </div>
-                            <?php if ($sch_setting->route_list) {
-                            ?>
-                                <?php
-                                if ($this->module_lib->hasActive('transport')) {
 
-                                    if ($student['pickup_point_name'] != '') {
-                                ?>
-                                        <div class="tshadow mb25  bozero">
-                                            <h3 class="pagetitleh2"><?php echo $this->lang->line('route_details'); ?></h3>
-                                            <div class="table-responsive around10 pt0">
-                                                <table class="table3 table-hover table-striped tmb0">
-                                                    <tbody>
-                                                        <tr>
-                                                            <td width="35%"><?php echo $this->lang->line('pick_up_point'); ?></td>
-                                                            <td class="col-md-5"><?php echo $student['pickup_point_name']; ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><?php echo $this->lang->line('route'); ?></td>
-                                                            <td><?php echo $student['route_title']; ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><?php echo $this->lang->line('vehicle_number'); ?></td>
-                                                            <td><?php echo $student['vehicle_no']; ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><?php echo $this->lang->line('driver_name'); ?></td>
-                                                            <td><?php echo $student['driver_name']; ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><?php echo $this->lang->line('driver_contact'); ?></td>
-                                                            <td><?php echo $student['driver_contact']; ?></td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                <?php if ($sch_setting->route_list && $this->module_lib->hasActive('transport') && $student['pickup_point_name'] != '') { ?>
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                                        <h2><?php echo $this->lang->line('route_details'); ?></h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('pick_up_point'); ?></span><span class="mnp-value"><?php echo $student['pickup_point_name']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('route'); ?></span><span class="mnp-value"><?php echo $student['route_title']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('vehicle_number'); ?></span><span class="mnp-value"><?php echo $student['vehicle_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('driver_name'); ?></span><span class="mnp-value"><?php echo $student['driver_name']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('driver_contact'); ?></span><span class="mnp-value"><?php echo $student['driver_contact']; ?></span></div>
                                         </div>
-                            <?php
-                                    }
-                                }
-                            }
-                            ?>
-                            <?php if ($sch_setting->hostel_id) {
-                                if ($this->module_lib->hasActive('hostel')) {
+                                    </div>
+                                </div>
+                                <?php } ?>
 
-                                    if ($student['hostel_room_id'] != 0) {
-                            ?>
-                                        <div class="tshadow mb25  bozero">
-                                            <h3 class="pagetitleh2"><?php echo $this->lang->line('hostel_details'); ?></h3>
-                                            <div class="table-responsive around10 pt0">
-                                                <table class="table3 table-hover table-striped tmb0">
-                                                    <tbody>
-                                                        <tr>
-                                                            <td width="35%"><?php echo $this->lang->line('hostel'); ?></td>
-                                                            <td><?php echo $student['hostel_name']; ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><?php echo $this->lang->line('room_no'); ?></td>
-                                                            <td><?php echo $student['room_no']; ?></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><?php echo $this->lang->line('room_type'); ?></td>
-                                                            <td><?php echo $student['room_type']; ?></td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                <?php if ($sch_setting->hostel_id && $this->module_lib->hasActive('hostel') && $student['hostel_room_id'] != 0) { ?>
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+                                        <h2><?php echo $this->lang->line('hostel_details'); ?></h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('hostel'); ?></span><span class="mnp-value"><?php echo $student['hostel_name']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('room_no'); ?></span><span class="mnp-value"><?php echo $student['room_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('room_type'); ?></span><span class="mnp-value"><?php echo $student['room_type']; ?></span></div>
                                         </div>
-                            <?php
-                                    }
-                                }
-                            }
-                            ?>
-                            <div class="tshadow mb25  bozero">
-                                <h3 class="pagetitleh2"><?php echo $this->lang->line('miscellaneous_details'); ?></h3>
-                                <div class="table-responsive around10 pt0">
-                                    <table class="table3 table-hover table-striped tmb0">
-                                        <tbody>
+                                    </div>
+                                </div>
+                                <?php } ?>
+                                </div>
+
+                                <div class="grid-column">
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                                        <h2><?php echo $this->lang->line('miscellaneous_details'); ?></h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
                                             <?php if ($sch_setting->is_blood_group) { ?>
-                                                <tr>
-                                                    <td width="35%"><?php echo $this->lang->line('blood_group'); ?></td>
-                                                    <td class="col-md-5"><?php echo $student['blood_group']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('blood_group'); ?></span><span class="mnp-value badge-blue"><?php echo $student['blood_group']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->is_student_house) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('house'); ?></td>
-                                                    <td><?php echo $student['house_name']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('house'); ?></span><span class="mnp-value"><?php echo $student['house_name']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->student_height) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('height'); ?></td>
-                                                    <td><?php echo $student['height']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('height'); ?></span><span class="mnp-value"><?php echo $student['height']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->student_weight) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('weight'); ?></td>
-                                                    <td><?php echo $student['weight']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('weight'); ?></span><span class="mnp-value"><?php echo $student['weight']; ?></span></div>
                                             <?php }
-                                            if ($sch_setting->measurement_date) {
-                                            ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('measurement_date'); ?></td>
-                                                    <td><?php
-                                                        if (!empty($student['measurement_date']) && $student['measurement_date'] != '0000-00-00') {
-                                                            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($student['measurement_date']));
-                                                        }
-                                                        ?></td>
-                                                </tr>
+                                            if ($sch_setting->measurement_date) { ?>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('measurement_date'); ?></span><span class="mnp-value"><?php
+                                                    if (!empty($student['measurement_date']) && $student['measurement_date'] != '0000-00-00') {
+                                                        echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($student['measurement_date']));
+                                                    }
+                                                ?></span></div>
                                             <?php }
                                             if ($sch_setting->previous_school_details) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('previous_school_details'); ?></td>
-                                                    <td><?php echo $student['previous_school']; ?></td>
-                                                </tr>
-                                            <?php }
-                                            if ($sch_setting->national_identification_no) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('national_identification_number'); ?></td>
-                                                    <td class="col-md-5"><?php echo $student['adhar_no']; ?></td>
-                                                </tr>
+                                                <div class="detail-row full-width"><span class="mnp-label"><?php echo $this->lang->line('previous_school_details'); ?></span><span class="mnp-value"><?php echo $student['previous_school']; ?></span></div>
+                                            <?php } ?>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                        <h2>Academic Credentials &amp; System Codes</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
+                                            <?php if ($sch_setting->national_identification_no) { ?>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('national_identification_number'); ?></span><span class="mnp-value"><?php echo $student['adhar_no']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->local_identification_no) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('local_identification_number'); ?></td>
-                                                    <td><?php echo $student['samagra_id']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('local_identification_number'); ?></span><span class="mnp-value"><?php echo $student['samagra_id']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->bank_account_no) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('bank_account_number'); ?></td>
-                                                    <td><?php echo $student['bank_account_no']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('bank_account_number'); ?></span><span class="mnp-value"><?php echo $student['bank_account_no']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->ifsc_code) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('bank_name'); ?></td>
-                                                    <td><?php echo $student['bank_name']; ?></td>
-                                                </tr>
-                                            <?php } if ($sch_setting->ifsc_code) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('ifsc_code'); ?></td>
-                                                    <td><?php echo $student['ifsc_code']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('bank_name'); ?></span><span class="mnp-value"><?php echo $student['bank_name']; ?></span></div>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('ifsc_code'); ?></span><span class="mnp-value"><?php echo $student['ifsc_code']; ?></span></div>
                                             <?php } ?>
-                                            <tr>
-                                                <td>Register No</td>
-                                                <td><?php echo $student['register_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Regulation</td>
-                                                <td><?php echo $student['regulation_id']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>EMIS Number</td>
-                                                <td><?php echo $student['emis_num']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>HSC Reg No</td>
-                                                <td><?php echo $student['hsc_reg_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>UG Reg No</td>
-                                                <td><?php echo $student['ug_reg_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>ABC ID</td>
-                                                <td><?php echo $student['abc_id']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Father Adhar No</td>
-                                                <td><?php echo $student['father_adhar_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Mother Adhar No</td>
-                                                <td><?php echo $student['mother_adhar_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Migration Certificate Number</td>
-                                                <td><?php echo $student['migration_cert_num']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Medium</td>
-                                                <td><?php echo $student['medium']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Allotment No</td>
-                                                <td><?php echo $student['allotment_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Consortium No</td>
-                                                <td><?php echo $student['consortium_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Application No</td>
-                                                <td><?php echo $student['application_no']; ?></td>
-                                            </tr>
+                                            <div class="detail-row"><span class="mnp-label">Register No</span><span class="mnp-value"><?php echo $student['register_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">Regulation</span><span class="mnp-value"><?php echo $student['regulation_id']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">EMIS Number</span><span class="mnp-value"><?php echo $student['emis_num']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">HSC Reg No</span><span class="mnp-value"><?php echo $student['hsc_reg_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">UG Reg No</span><span class="mnp-value"><?php echo $student['ug_reg_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">ABC ID</span><span class="mnp-value"><?php echo $student['abc_id']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">Father Adhar No</span><span class="mnp-value"><?php echo $student['father_adhar_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">Mother Adhar No</span><span class="mnp-value"><?php echo $student['mother_adhar_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">Migration Certificate Number</span><span class="mnp-value"><?php echo $student['migration_cert_num']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">Medium</span><span class="mnp-value"><?php echo $student['medium']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">Allotment No</span><span class="mnp-value"><?php echo $student['allotment_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">Consortium No</span><span class="mnp-value"><?php echo $student['consortium_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label">Application No</span><span class="mnp-value"><?php echo $student['application_no']; ?></span></div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                        </tbody>
-                                    </table>
+                                <?php if (!empty($siblings)) { ?>
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                        <h2><?php echo $this->lang->line('sibling'); ?></h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="parent-cards-wrapper">
+                                            <?php foreach ($siblings as $sibling_key => $sibling_value) { ?>
+                                                <div class="parent-sub-card">
+                                                    <div class="sub-card-title"><a href="<?php echo site_url('student/view/' . $sibling_value->id) ?>"><?php echo $this->customlib->getFullName($sibling_value->firstname, $sibling_value->middlename, $sibling_value->lastname, $sch_setting->middlename, $sch_setting->lastname); ?></a></div>
+                                                    <div class="details-list">
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('admission_no'); ?></span><span class="mnp-value"><?php echo $sibling_value->admission_no; ?></span></div>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('roll_number'); ?></span><span class="mnp-value"><?php echo $sibling_value->roll_no; ?></span></div>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('class'); ?></span><span class="mnp-value"><?php echo $sibling_value->class; ?></span></div>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('section'); ?></span><span class="mnp-value"><?php echo $sibling_value->section; ?></span></div>
+                                                        <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('gender'); ?></span><span class="mnp-value"><?php echo $this->lang->line(strtolower($sibling_value->gender)); ?></span></div>
+                                                    </div>
+                                                </div>
+                                            <?php } ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php } ?>
                                 </div>
                             </div>
                         </div>
@@ -968,9 +831,6 @@ $currency_symbol = $admin_session['currency_symbol'];
                         <?php
                         if ($this->module_lib->hasModule('cbseexam') && $sch_setting->institution_type != 'college') {  ?>
                             <div class="tab-pane" id="cbseexam">
-                                <div class="dt-buttons btn-group pull-right miusDM42">
-                                    <a class="btn btn-default btn-xs dt-button no_print border0" id="print" data-toggle="tooltip" data-placement="bottom" title="Print" onclick="printDivCbse()"><i class="fa fa-print"></i></a>
-                                </div>
 
                                 <div class="row">
                                     <div class="col-md-12">
@@ -1107,7 +967,6 @@ $currency_symbol = $admin_session['currency_symbol'];
 
 
                         <div class="tab-pane" id="fee">
-                           
                             <?php
                             if (empty($student_due_fee) && empty($student_discount_fee) && empty($transport_fees)) {
                             ?>
@@ -1117,8 +976,8 @@ $currency_symbol = $admin_session['currency_symbol'];
                             <?php
                             } else {
                             ?>
-                                <div class="table-responsive">
-                                    <table class="table table-hover table-striped">
+                                <div class="erp-table-wrap">
+                                    <table class="erp-table">
                                         <thead>
                                             <tr>
                                                 <th><?php echo $this->lang->line('fees'); ?></th>
@@ -1223,11 +1082,11 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                         <td class="text text-left">
                                                             <?php
                                                             if ($feetype_balance == 0) {
-                                                            ?><span class="label label-success"><?php echo $this->lang->line('paid'); ?></span><?php
+                                                            ?><span class="status-badge success"><?php echo $this->lang->line('paid'); ?></span><?php
                                                                                                 } else if (!empty($fee_value->amount_detail)) {
-                                                                                                    ?><span class="label label-warning"><?php echo $this->lang->line('partial'); ?></span><?php
+                                                                                                    ?><span class="status-badge warning"><?php echo $this->lang->line('partial'); ?></span><?php
                                                                                                     } else {
-                                                                                                        ?><span class="label label-danger"><?php echo $this->lang->line('unpaid'); ?></span><?php
+                                                                                                        ?><span class="status-badge danger"><?php echo $this->lang->line('unpaid'); ?></span><?php
                                                                                                     }
                                                                                                     ?>
                                                         </td>
@@ -1400,11 +1259,11 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                             <td align="left" class="text text-left width85">
                                                                 <?php
                                                                 if ($feetype_balance == 0) {
-                                                                ?><span class="label label-success"><?php echo $this->lang->line('paid'); ?></span><?php
+                                                                ?><span class="status-badge success"><?php echo $this->lang->line('paid'); ?></span><?php
                                                                                                 } else if (!empty($transport_fee_value->amount_detail)) {
-                                                                                                    ?><span class="label label-warning"><?php echo $this->lang->line('partial'); ?></span><?php
+                                                                                                    ?><span class="status-badge warning"><?php echo $this->lang->line('partial'); ?></span><?php
                                                                                                     } else {
-                                                                                                        ?><span class="label label-danger"><?php echo $this->lang->line('unpaid'); ?></span><?php
+                                                                                                        ?><span class="status-badge danger"><?php echo $this->lang->line('unpaid'); ?></span><?php
                                                                                                     }
                                                                                                     ?>
                                                             </td>
@@ -1555,11 +1414,8 @@ $currency_symbol = $admin_session['currency_symbol'];
                                         ?>
                                     </div>
                                 <?php } ?>
-                                <?php if ($this->rbac->hasPrivilege('student', 'can_add')) { ?>
-                                    <button type="button" data-student-session-id="<?php echo $student['student_session_id'] ?>" class="btn btn-xs btn-primary pull-right myTransportFeeBtn"> <i class="fa fa-upload"></i> <?php echo $this->lang->line('upload_documents'); ?></button>
-                                <?php } ?>
-                                <div class="table-responsive" style="clear: both;">
-                                    <table class="table table-striped table-bordered table-hover">
+                                <div class="erp-table-wrap" style="clear: both;">
+                                    <table class="erp-table">
                                         <thead>
                                             <tr>
                                                 <th>
@@ -1611,63 +1467,40 @@ $currency_symbol = $admin_session['currency_symbol'];
                             </table>
                         </div>
                         <div class="tab-pane" id="timelineh">
-                            <div>
-                                <?php if ($this->rbac->hasPrivilege('student_timeline', 'can_add')) { ?>
-                                    <button type="button" id="myTimelineButton" class="btn btn-sm btn-primary pull-right"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add') ?></button>
-                                <?php } ?>
-                            </div>
-                            <br />
-                            <div class="timeline-header no-border">
-                                <div id="timeline_list">
-                                    <?php
-                                    if (empty($timeline_list)) {
-                                    ?>
-                                        <br />
-                                        <div class="alert alert-info"><?php echo $this->lang->line("no_record_found") ?></div>
-
-                                    <?php } else {
-                                    ?>
-                                        <ul class="timeline timeline-inverse">
-                                            <?php
-                                            foreach ($timeline_list as $key => $value) {
-                                            ?>
-                                                <li class="time-label">
-                                                    <span class="bg-blue">
-
-                                                        <?php
-                                                        if (!empty($value['timeline_date'])) {
-
-                                                            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat(date("Y-m-d", strtotime($value['timeline_date']))));
-                                                        }
-                                                        ?>
-                                                    </span>
-                                                </li>
-                                                <li>
-                                                    <i class="fa fa-list-alt bg-blue"></i>
-                                                    <div class="timeline-item">
-                                                        <?php if ($this->rbac->hasPrivilege('student_timeline', 'can_delete')) { ?>
-                                                            <span class="time"><a class="defaults-c text-right" data-toggle="tooltip" onclick="delete_timeline('<?php echo $value['id']; ?>')" data-original-title="<?php echo $this->lang->line('delete'); ?>"><i class="fa fa-trash"></i></a></span>
-                                                        <?php } ?>
+                            <div id="timeline_list">
+                                <?php
+                                if (empty($timeline_list)) {
+                                ?>
+                                    <div class="alert alert-info"><?php echo $this->lang->line("no_record_found") ?></div>
+                                <?php } else { ?>
+                                    <div class="timeline-container">
+                                        <?php foreach ($timeline_list as $key => $value) { ?>
+                                            <div class="timeline-event">
+                                                <div class="event-marker blue"></div>
+                                                <div class="event-content">
+                                                    <div class="event-actions">
                                                         <?php if ($this->rbac->hasPrivilege('student_timeline', 'can_edit')) { ?>
-                                                            <span class="time">
-                                                                <a data-toggle="tooltip" class="pull-right edit_timeline defaults-c text-right" data-id="<?php echo $value["id"]; ?>" data-original-title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i></a>
-                                                            </span>
+                                                            <a data-toggle="tooltip" class="edit_timeline" data-id="<?php echo $value["id"]; ?>" data-original-title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i></a>
                                                         <?php } ?>
                                                         <?php if (!empty($value["document"])) { ?>
-                                                            <span class="time"><a class="defaults-c text-right" style="color:#0084B4" data-toggle="tooltip" href="<?php echo base_url() . "admin/timeline/download/" . $value["id"]; ?>" data-original-title="<?php echo $this->lang->line('download'); ?>"><i class="fa fa-download"></i></a></span>
+                                                            <a data-toggle="tooltip" href="<?php echo base_url() . "admin/timeline/download/" . $value["id"]; ?>" data-original-title="<?php echo $this->lang->line('download'); ?>"><i class="fa fa-download"></i></a>
                                                         <?php } ?>
-                                                        <h3 class="timeline-header text-aqua text-break"> <?php echo $value['title']; ?> </h3>
-                                                        <div class="timeline-body text-break">
-                                                            <?php echo $value['description']; ?>
-
-                                                        </div>
+                                                        <?php if ($this->rbac->hasPrivilege('student_timeline', 'can_delete')) { ?>
+                                                            <a data-toggle="tooltip" onclick="delete_timeline('<?php echo $value['id']; ?>')" data-original-title="<?php echo $this->lang->line('delete'); ?>"><i class="fa fa-trash"></i></a>
+                                                        <?php } ?>
                                                     </div>
-                                                </li>
-                                            <?php } ?>
-                                            <li><i class="fa fa-clock-o bg-blue"></i></li>
+                                                    <span class="event-time"><?php
+                                                        if (!empty($value['timeline_date'])) {
+                                                            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat(date("Y-m-d", strtotime($value['timeline_date']))));
+                                                        }
+                                                    ?></span>
+                                                    <h4><?php echo $value['title']; ?></h4>
+                                                    <p><?php echo $value['description']; ?></p>
+                                                </div>
+                                            </div>
                                         <?php } ?>
-                                        </ul>
-                                </div>
+                                    </div>
+                                <?php } ?>
                             </div>
                         </div>
                         <?php
@@ -1675,105 +1508,40 @@ $currency_symbol = $admin_session['currency_symbol'];
                         if (!$sch_setting->attendence_type) {
                         ?>
                             <div class="tab-pane" id="attendance">
-                                <div class="row">
-                                    <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                        <div class="staffprofile">
-                                            <h5><?php echo $this->lang->line('total_present'); ?></h5>
-                                            <h4><?php
-                                                if (!empty($countAttendance[1])) {
-                                                    echo $countAttendance[1];
-                                                } else {
-                                                    echo "0";
-                                                }
-                                                ?></h4>
-                                            <div class="icon">
-                                                <i class="fa fa-check-square-o"></i>
-                                            </div>
-                                        </div>
-                                    </div><!--./col-md-3-->
-                                    <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                        <div class="staffprofile">
-                                            <h5><?php echo $this->lang->line('total_late'); ?></h5>
-                                            <h4><?php
-                                                if (!empty($countAttendance[3])) {
-                                                    echo $countAttendance[3];
-                                                } else {
-                                                    echo "0";
-                                                }
-                                                ?></h4>
-                                            <div class="icon">
-                                                <i class="fa  fa-check-square-o"></i>
-                                            </div>
-                                        </div>
-                                    </div><!--./col-md-3-->
-                                    <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                        <div class="staffprofile">
-                                            <h5><?php echo $this->lang->line('total_absent'); ?></h5>
-                                            <h4><?php
-                                                if (!empty($countAttendance[4])) {
-                                                    echo $countAttendance[4];
-                                                } else {
-                                                    echo "0";
-                                                }
-                                                ?></h4>
-                                            <div class="icon">
-                                                <i class="fa  fa-check-square-o"></i>
-                                            </div>
-                                        </div>
-                                    </div><!--./col-md-3-->
-                                    <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                        <div class="staffprofile">
-                                            <h5><?php echo $this->lang->line('total_half_day'); ?></h5>
-                                            <h4><?php
-                                                if (!empty($countAttendance[6])) {
-                                                    echo $countAttendance[6];
-                                                } else {
-                                                    echo "0";
-                                                }
-                                                ?></h4>
-                                            <div class="icon">
-                                                <i class="fa  fa-check-square-o"></i>
-                                            </div>
-                                        </div>
-                                    </div><!--./col-md-3-->
-                                    <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                        <div class="staffprofile">
-                                            <h5><?php echo $this->lang->line('total_holiday'); ?></h5>
-                                            <h4><?php
-                                                if (!empty($countAttendance[5])) {
-                                                    echo $countAttendance[5];
-                                                } else {
-                                                    echo "0";
-                                                }
-                                                ?></h4>
-                                            <div class="icon">
-                                                <i class="fa  fa-check-square-o"></i>
-                                            </div>
-                                        </div>
-                                    </div><!--./col-md-3-->
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-12 col-sm-12">
-                                        <div class="halfday pull-right">
-                                            <?php
-                                            foreach ($attendencetypeslist as $key_type => $value_type) {
-                                            ?>
-                                                <b>
-                                                    <?php
-                                                    $att_type = str_replace(" ", "_", strtolower($value_type['type']));
-                                                    echo $this->lang->line($att_type) . ": " . $value_type['key_value'] . "";
-                                                    ?>
-                                                </b>
-                                            <?php
-                                            }
-                                            ?>
-                                        </div>
+                                <div class="summary-cards-row">
+                                    <div class="summary-card info">
+                                        <span class="summary-lbl"><?php echo $this->lang->line('total_present'); ?></span>
+                                        <span class="summary-val"><?php echo !empty($countAttendance[1]) ? $countAttendance[1] : "0"; ?></span>
                                     </div>
+                                    <div class="summary-card warning">
+                                        <span class="summary-lbl"><?php echo $this->lang->line('total_late'); ?></span>
+                                        <span class="summary-val"><?php echo !empty($countAttendance[3]) ? $countAttendance[3] : "0"; ?></span>
+                                    </div>
+                                    <div class="summary-card pending">
+                                        <span class="summary-lbl"><?php echo $this->lang->line('total_absent'); ?></span>
+                                        <span class="summary-val"><?php echo !empty($countAttendance[4]) ? $countAttendance[4] : "0"; ?></span>
+                                    </div>
+                                    <div class="summary-card warning">
+                                        <span class="summary-lbl"><?php echo $this->lang->line('total_half_day'); ?></span>
+                                        <span class="summary-val"><?php echo !empty($countAttendance[6]) ? $countAttendance[6] : "0"; ?></span>
+                                    </div>
+                                    <div class="summary-card info">
+                                        <span class="summary-lbl"><?php echo $this->lang->line('total_holiday'); ?></span>
+                                        <span class="summary-val"><?php echo !empty($countAttendance[5]) ? $countAttendance[5] : "0"; ?></span>
+                                    </div>
+                                </div>
+                                <div class="details-list" style="margin-bottom:18px;">
+                                    <?php
+                                    foreach ($attendencetypeslist as $key_type => $value_type) {
+                                        $att_type = str_replace(" ", "_", strtolower($value_type['type']));
+                                    ?>
+                                        <div class="detail-row"><span class="mnp-value font-semi"><?php echo $this->lang->line($att_type) . ": " . $value_type['key_value']; ?></span></div>
+                                    <?php } ?>
                                 </div>
                                 <div>
                                     <div class="download_label"><?php echo $this->lang->line('student_attendance_report'); ?> <?php echo $student["firstname"] . " " . $student["lastname"] . ' (' . $student["admission_no"] . ')'; ?></div>
-                                    <div id="ajaxattendance" class="table-responsive">
-                                        <table class="table table-bordered table-hover example">
+                                    <div id="ajaxattendance" class="erp-table-wrap">
+                                        <table class="erp-table compact example">
                                             <thead>
                                                 <tr>
                                                     <th>
@@ -1872,9 +1640,6 @@ $currency_symbol = $admin_session['currency_symbol'];
                                 }
                                 if (!empty($exam_result)) {
                                 ?>
-                                    <div class="dt-buttons btn-group pull-right miusDM42">
-                                        <a class="btn btn-default btn-xs dt-button no_print border0" id="print" data-toggle="tooltip" data-placement="bottom" title="Print" onclick="printDiv()"><i class="fa fa-print"></i></a>
-                                    </div>
                                     <?php
                                     foreach ($exam_result as $exam_key => $exam_value) {
                                     ?>
@@ -3647,6 +3412,7 @@ $currency_symbol = $admin_session['currency_symbol'];
 		 
         beforeSend: function() {
             $button_.button('loading');  // Change button state to loading
+            if (window.mnpShowToast) window.mnpShowToast('Preparing PDF…');
         },
         xhr: function() {
             var xhr = new XMLHttpRequest();  // Fixed the typo here
@@ -3665,11 +3431,13 @@ $currency_symbol = $admin_session['currency_symbol'];
             link.click();
             document.body.removeChild(link);  // Clean up by removing the link
 
+            if (window.mnpShowToast) window.mnpShowToast('PDF downloaded.');
             $button_.button('reset');  // Reset the button to its original state
         },
         error: function(xhr, status, error) {
             // If an error occurs, reset the button
-            console.error("Error occurred:", status, error);  // You can log errors for debugging
+            console.error("Error occurred:", status, error, xhr && xhr.status);  // You can log errors for debugging
+            if (window.mnpShowToast) window.mnpShowToast('Print failed (' + (xhr && xhr.status ? xhr.status : status) + '). Check console for details.');
             $button_.button('reset');
         },
         complete: function() {

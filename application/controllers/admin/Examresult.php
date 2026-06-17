@@ -173,7 +173,7 @@ class Examresult extends Admin_Controller
         $type = $this->input->post('type');
         $this->load->library('m_pdf');
         $mpdf       = $this->m_pdf->load();
-        $stylesheet = file_get_contents(base_url() . 'backend/pdf_style.css'); // external css
+        $stylesheet = file_get_contents(FCPATH . 'backend/pdf_style.css'); // read from disk, not via self HTTP request
         if ($template->background_img != "") {
 
             $mpdf->SetDefaultBodyCSS('background', "url('".$this->customlib->getFolderPath()."./uploads/marksheet/" . $template->background_img . "')");
@@ -253,7 +253,7 @@ class Examresult extends Admin_Controller
             $this->load->library('m_pdf');
 
             $mpdf       = $this->m_pdf->load();
-            $stylesheet = file_get_contents(base_url() . 'backend/pdf_style.css'); // external css
+            $stylesheet = file_get_contents(FCPATH . 'backend/pdf_style.css'); // read from disk, not via self HTTP request
             if ($template->background_img != "") {
 
 				$mpdf->SetDefaultBodyCSS('background', "url('".$this->customlib->getFolderPath()."./uploads/marksheet/" . $template->background_img . "')");

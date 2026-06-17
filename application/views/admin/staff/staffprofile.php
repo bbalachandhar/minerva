@@ -84,270 +84,188 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         </div>
     </div>
     <section class="content">
-        <div class="row">
-            <div class="col-md-12">
-                <?php if ($this->session->flashdata('msg')) {
-                    echo $this->session->flashdata('msg');
-                    $this->session->unset_userdata('msg');
-                } ?>
-            </div>
-            <div class="col-md-3">
-                <div class="box box-primary" <?php
-                                                if ($staff["is_active"] == 0) {
-                                                    echo "style='background-color:#f0dddd;'";
-                                                }
-                                                ?>>
-                    <div class="box-body box-profile">
-                        <?php
+        <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/profile-v2.css">
+        <script src="<?php echo base_url(); ?>backend/dist/js/profile-v2.js?v=<?php echo time(); ?>"></script>
+        <div class="mn-profile-v2">
+            <?php if ($this->session->flashdata('msg')) {
+                echo $this->session->flashdata('msg');
+                $this->session->unset_userdata('msg');
+            } ?>
 
-                        $image = $staff['image'];
-                        if (!empty($image)) {
-                            $file = ltrim($staff['image'], '/');
-                            if (strpos($file, 'uploads/staff_images/') !== 0) {
-                                $file = 'uploads/staff_images/' . $file;
-                            }
-                        } else {
-                            if ($staff['gender'] == 'Male') {
-                                $file = "uploads/staff_images/default_male.jpg";
-                            } else {
-                                $file = "uploads/staff_images/default_female.jpg";
-                            }
-                        }
-                        ?>
-                        <img class="profile-user-img img-responsive img-circle" src="<?php echo $this->media_storage->getImageURL($file); ?>" alt="User profile picture">
-                        <h3 class="profile-username text-center"><?php echo $staff['name'] . " " . $staff['surname']; ?></h3>
-                        <?php if ($staff['user_type'] == 'Teacher') {
-                        ?>
+            <?php
+            $userdata            = $this->customlib->getUserData();
+            $logged_in_User      = $this->customlib->getLoggedInUserData();
+            $logged_in_User_Role = json_decode($this->customlib->getStaffRole());
+            $a                   = false;
+            if ($staff['id'] == $logged_in_User['id']) {
+                $a = true;
+            } elseif ($logged_in_User_Role->id == 7 && $logged_in_User_Role->name == "Super Admin") {
+                if ($staff["role_id"] == 7) {
+                    if ($staff["role_id"] == 7 && $staff['id'] != $logged_in_User['id']) {
+                        $a = false;
+                    } else {
+                        $a = true;
+                    }
+                } else {
+                    $a = true;
+                }
+            }
+            $logged_in_staff_id = $this->customlib->getStaffID();
+            $logged_in_user_role_id = $logged_in_User_Role->id;
 
-                            <?php if ($rate_canview == 1) { ?><center>
-                                    <h3><?php
-                                        $stage     = (int) ($rate);
-                                        $stagehalf = "";
-                                        $half      = fmod($rate, 1);
-                                        if ($half != 0) {
-                                            $stagehalf = $stage + 1;
-                                        }
+            $image = $staff['image'];
+            if (!empty($image)) {
+                $file = ltrim($staff['image'], '/');
+                if (strpos($file, 'uploads/staff_images/') !== 0) {
+                    $file = 'uploads/staff_images/' . $file;
+                }
+            } else {
+                if ($staff['gender'] == 'Male') {
+                    $file = "uploads/staff_images/default_male.jpg";
+                } else {
+                    $file = "uploads/staff_images/default_female.jpg";
+                }
+            }
+            ?>
 
-                                        for ($i = 1; $i <= 5; $i++) {
-                                        ?>
-                                            <span class="fa fa-star<?php
-                                                                    if ($i == $stagehalf && ($half > 0 && $half < 1)) {
-                                                                        echo '-half-o checked';
-                                                                    }
-                                                                    ?> " <?php if ($stage >= $i) { ?> style="color:orange;" <?php } ?>></span>
-                                        <?php
-                                        }
-                                        ?>
-                                    </h3>
-                                </center>
-                                <center>
-                                    <h5><?php echo substr($rate, 0, 3); ?> average based on <?php echo $reviews; ?> <?php echo $this->lang->line('reviews'); ?>.</h5>
-                                </center> <?php }
-                                    } ?>
-                        <ul class="list-group list-group-unbordered">
+            <section class="student-hero-card">
+                <div class="hero-left">
+                    <div class="profile-image-container">
+                        <img src="<?php echo $this->media_storage->getImageURL($file); ?>" alt="User profile picture">
+                        <div class="profile-status-badge <?php echo ($staff['is_active'] == 1) ? 'active' : 'inactive'; ?>"><?php echo ($staff['is_active'] == 1) ? 'Active' : 'Inactive'; ?></div>
+                    </div>
 
-                            <li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('staff_id'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['employee_id']; ?></a>
-                            </li>
-                            <li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('biometric_id'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['biometric_id']; ?></a>
-                            </li>
-                            <?php if (!empty($staff['au_fin_no'])): ?>
-                            <li class="list-group-item listnoback">
-                                <b>AU FIN No.</b> <a class="pull-right text-aqua"><?php echo htmlspecialchars($staff['au_fin_no']); ?></a>
-                            </li>
+                    <div class="student-main-details">
+                        <div class="name-section">
+                            <h1><?php echo $staff['name'] . " " . $staff['surname']; ?></h1>
+                            <?php if (!empty($staff['staff_type'])): ?>
+                                <span class="rte-badge" style="background-color:transparent;border-color:<?php echo $staff['staff_type_color'] ?? '#ccc'; ?>;color:<?php echo $staff['staff_type_color'] ?? '#666'; ?>;">
+                                    <i class="fa <?php echo $staff['staff_type_icon'] ?? 'fa-folder'; ?>"></i> <?php echo $staff['staff_type']; ?>
+                                </span>
                             <?php endif; ?>
-                            <?php if (!empty($staff['aicte_coa_id'])): ?>
-                            <li class="list-group-item listnoback">
-                                <b>AICTE / COA ID</b> <a class="pull-right text-aqua"><?php echo htmlspecialchars($staff['aicte_coa_id']); ?></a>
-                            </li>
-                            <?php endif; ?>
-                            <li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('prefix'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['prefix']; ?></a>
-                            </li>
-                            <li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('role'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['user_type']; ?></a>
-                            </li>
+                            <?php if ($staff['user_type'] == 'Teacher' && $rate_canview == 1) {
+                                $stage     = (int) ($rate);
+                                $stagehalf = "";
+                                $half      = fmod($rate, 1);
+                                if ($half != 0) { $stagehalf = $stage + 1; }
+                            ?>
+                                <span class="behaviour-score-badge">
+                                    <?php for ($i = 1; $i <= 5; $i++) { ?>
+                                        <span class="fa fa-star<?php if ($i == $stagehalf && ($half > 0 && $half < 1)) { echo '-half-o'; } ?>" <?php if ($stage >= $i) { ?>style="color:#f59e0b;"<?php } ?>></span>
+                                    <?php } ?>
+                                    <?php echo substr($rate, 0, 3); ?> (<?php echo $reviews; ?> <?php echo $this->lang->line('reviews'); ?>)
+                                </span>
+                            <?php } ?>
+                        </div>
+
+                        <div class="primary-specs-grid">
+                            <div class="spec-item">
+                                <span class="spec-lbl"><?php echo $this->lang->line('staff_id'); ?></span>
+                                <span class="spec-val highlight"><?php echo $staff['employee_id']; ?></span>
+                            </div>
+                            <div class="spec-item">
+                                <span class="spec-lbl"><?php echo $this->lang->line('role'); ?></span>
+                                <span class="spec-val"><?php echo $staff['user_type']; ?></span>
+                            </div>
                             <?php if ($sch_setting->staff_designation) { ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('designation'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['designation']; ?></a>
-                                </li>
-                                <li class="list-group-item listnoback">
-                                    <b>Staff Type / Category</b> 
-                                    <?php if (!empty($staff['staff_type'])): ?>
-                                        <a class="pull-right" style="border-left: 4px solid <?php echo $staff['staff_type_color'] ?? '#ccc'; ?>; padding-left: 8px;">
-                                            <i class="fa <?php echo $staff['staff_type_icon'] ?? 'fa-folder'; ?>" style="color: <?php echo $staff['staff_type_color'] ?? '#ccc'; ?>; margin-right: 5px;"></i>
-                                            <span style="font-weight: 500;"><?php echo $staff['staff_type']; ?></span>
-                                        </a>
-                                    <?php else: ?>
-                                        <a class="pull-right text-muted"><span style="font-style: italic;">Not Assigned</span></a>
-                                    <?php endif; ?>
-                                </li>
-                            <?php }
-                            if ($sch_setting->staff_department) { ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('department'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['department']; ?></a>
-                                </li>
+                                <div class="spec-item">
+                                    <span class="spec-lbl"><?php echo $this->lang->line('designation'); ?></span>
+                                    <span class="spec-val"><?php echo $staff['designation']; ?></span>
+                                </div>
                             <?php } ?>
-                            <li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('esi_no') ?: ($this->lang->line('epf_no') ?: 'ESI No.'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['esi_no']; ?></a>
-                            </li>
-                            <li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('contract_basic_salary') ?: ($this->lang->line('basic_salary') . ' (Contract)'); ?></b> 
-                                <small class="text-muted" style="font-size: 10px;"><i class="fa fa-info-circle" title="This is the contracted basic salary. Actual monthly salary may vary with increments."></i></small>
-                                <a class="pull-right text-aqua"><?php if (!empty($staff['basic_salary'])) {
-                                                                                                                            echo amountFormat($staff['basic_salary']);
-                                                                                                                        } ?></a>
-                            </li>
-                            <?php if ($sch_setting->staff_contract_type) {
-                            ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('contract_type'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['contract_type']; ?></a>
-                                </li>
-                            <?php }
-                            if ($sch_setting->staff_work_shift) { ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('work_shift'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['shift']; ?></a>
-                                </li>
-                            <?php }
-                            if ($sch_setting->staff_work_location) { ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('work_location'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['location']; ?></a>
-                                </li>
-                            <?php }
-                            if ($sch_setting->staff_date_of_joining) {
-                            ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('date_of_joining'); ?></b> <a class="pull-right text-aqua"><?php
-                                                                                                                                if (!empty($staff["date_of_joining"]) && $staff["date_of_joining"] != '0000-00-00') {
-                                                                                                                                    echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($staff['date_of_joining']));
-                                                                                                                                }
-                                                                                                                                ?></a>
-                                </li>
+                            <?php if ($sch_setting->staff_department) { ?>
+                                <div class="spec-item">
+                                    <span class="spec-lbl"><?php echo $this->lang->line('department'); ?></span>
+                                    <span class="spec-val"><?php echo $staff['department']; ?></span>
+                                </div>
                             <?php } ?>
+                            <?php if ($sch_setting->staff_date_of_joining) { ?>
+                                <div class="spec-item">
+                                    <span class="spec-lbl"><?php echo $this->lang->line('date_of_joining'); ?></span>
+                                    <span class="spec-val"><?php
+                                        if (!empty($staff["date_of_joining"]) && $staff["date_of_joining"] != '0000-00-00') {
+                                            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($staff['date_of_joining']));
+                                        }
+                                    ?></span>
+                                </div>
+                            <?php } ?>
+                        </div>
 
-                            <?php if ($sch_setting->staff_barcode):
-                                $bc_exists = file_exists("./uploads/staff_id_card/barcodes/" . $staff['id'] . ".png");
-                                $qr_exists = file_exists("./uploads/staff_id_card/qrcode/" . $staff['id'] . ".png");
-                            ?>
+                        <?php if ($sch_setting->staff_barcode):
+                            $bc_exists = file_exists("./uploads/staff_id_card/barcodes/" . $staff['id'] . ".png");
+                            $qr_exists = file_exists("./uploads/staff_id_card/qrcode/" . $staff['id'] . ".png");
+                        ?>
+                        <div class="codes-flex-container hero-codes">
                             <?php if ($bc_exists): ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('barcode'); ?></b>
-                                    <a class="pull-right text-aqua" id="staff-barcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/barcodes/' . $staff['id'] . '.png'); ?>" target="_blank">
-                                        <img id="staff-barcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/barcodes/' . $staff['id'] . '.png'); ?>" width="auto" height="auto" />
+                                <div class="code-wrapper">
+                                    <span class="code-title"><?php echo $this->lang->line('barcode'); ?></span>
+                                    <a id="staff-barcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/barcodes/' . $staff['id'] . '.png'); ?>" target="_blank">
+                                        <img id="staff-barcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/barcodes/' . $staff['id'] . '.png'); ?>">
                                     </a>
-                                </li>
+                                </div>
                             <?php endif; ?>
                             <?php if ($qr_exists): ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('qrcode'); ?></b>
-                                    <a class="pull-right text-aqua" id="staff-qrcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/qrcode/' . $staff['id'] . '.png'); ?>" target="_blank">
-                                        <img class="h-50" id="staff-qrcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/qrcode/' . $staff['id'] . '.png'); ?>" width="auto" height="auto" />
+                                <div class="code-wrapper">
+                                    <span class="code-title"><?php echo $this->lang->line('qrcode'); ?></span>
+                                    <a id="staff-qrcode-img-link" href="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/qrcode/' . $staff['id'] . '.png'); ?>" target="_blank">
+                                        <img id="staff-qrcode-img" src="<?php echo $this->media_storage->getImageURL('uploads/staff_id_card/qrcode/' . $staff['id'] . '.png'); ?>">
                                     </a>
-                                </li>
+                                </div>
                             <?php endif; ?>
                             <?php if (!$bc_exists && !$qr_exists): ?>
-                                <li class="list-group-item listnoback" id="staff-generate-codes-row">
-                                    <b>Barcode / QR</b>
-                                    <span class="pull-right">
-                                        <button type="button" class="btn btn-xs btn-default" id="btn-generate-staff-codes"
-                                            data-staff-id="<?php echo $staff['id']; ?>"
-                                            style="border:1px solid #d2d6de;border-radius:3px;padding:2px 8px;font-size:11px;color:#555;">
-                                            <i class="fa fa-qrcode"></i> Generate
-                                        </button>
-                                    </span>
-                                </li>
-                                <li class="list-group-item listnoback" id="staff-generated-barcode-row" style="display:none;">
-                                    <b><?php echo $this->lang->line('barcode'); ?></b>
-                                    <a class="pull-right text-aqua" id="staff-barcode-img-link" href="#" target="_blank">
-                                        <img id="staff-barcode-img" src="" width="auto" height="auto" />
-                                    </a>
-                                </li>
-                                <li class="list-group-item listnoback" id="staff-generated-qrcode-row" style="display:none;">
-                                    <b><?php echo $this->lang->line('qrcode'); ?></b>
-                                    <a class="pull-right text-aqua" id="staff-qrcode-img-link" href="#" target="_blank">
-                                        <img class="h-50" id="staff-qrcode-img" src="" width="auto" height="auto" />
-                                    </a>
-                                </li>
+                                <div class="code-wrapper" id="staff-generate-codes-row">
+                                    <span class="code-title">Barcode / QR</span>
+                                    <button type="button" class="mnp-btn" id="btn-generate-staff-codes" data-staff-id="<?php echo $staff['id']; ?>">
+                                        <i class="fa fa-qrcode"></i> Generate
+                                    </button>
+                                </div>
+                                <div class="code-wrapper" id="staff-generated-barcode-row" style="display:none;">
+                                    <span class="code-title"><?php echo $this->lang->line('barcode'); ?></span>
+                                    <a id="staff-barcode-img-link" href="#" target="_blank"><img id="staff-barcode-img" src=""></a>
+                                </div>
+                                <div class="code-wrapper" id="staff-generated-qrcode-row" style="display:none;">
+                                    <span class="code-title"><?php echo $this->lang->line('qrcode'); ?></span>
+                                    <a id="staff-qrcode-img-link" href="#" target="_blank"><img id="staff-qrcode-img" src=""></a>
+                                </div>
                             <?php endif; ?>
-                            <?php endif; ?>
-
-                            <?php if (($staff["is_active"] == 0)) {
-                            ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('date_of_leaving'); ?></b> <a class="pull-right text-aqua"><?php
-
-                                                                                                                                echo $this->customlib->dateformat($staff['date_of_leaving']);
-
-                                                                                                                                ?></a>
-                                </li>
-                            <?php }
-                            if (($staff["is_active"] == 0)) {
-                            ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('disable_date'); ?></b> <a class="pull-right text-aqua"><?php
-
-                                                                                                                            echo $this->customlib->dateformat($staff['disable_at']);
-
-                                                                                                                            ?></a>
-                                </li>
-                            <?php } ?>
-                        </ul>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-md-9">
-                <div class="nav-tabs-custom theme-shadow">
-                    <ul class="nav nav-tabs">
-                        <li class="active"><a href="#activity" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('profile'); ?></a></li>
-                        <li class=""><a href="#payroll" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('payroll'); ?></a></li>
-                        <li class=""><a href="#leaves" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('leaves'); ?></a></li>
-                        <li class=""><a href="#attendance" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('attendance'); ?></a></li>
-                        <?php if ($sch_setting->staff_upload_documents) { ?>
-                            <li class=""><a href="#documents" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('documents'); ?></a></li>
-                        <?php } ?>
-                        <?php if ($this->rbac->hasPrivilege('staff_timeline', 'can_view')) { ?>
-                            <li class=""><a href="#timelineh" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('timeline'); ?></a></li>
-                        <?php } ?>
-                        <?php if ($staff['user_type'] == 2) {
-                        ?>
-                            <li class=""><a href="#reviews" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('reviews'); ?></a></li>
+                <div class="hero-right-actions">
+                    <div class="actions-header"><?php echo $this->lang->line('action'); ?></div>
+                    <div class="actions-buttons-grid">
                         <?php
-                        }
-                        $userdata            = $this->customlib->getUserData();
-                        $logged_in_User      = $this->customlib->getLoggedInUserData();
-                        $logged_in_User_Role = json_decode($this->customlib->getStaffRole());
-                        $a                   = false;
-                        if ($staff['id'] == $logged_in_User['id']) {
-                            $a = true;
-                        } elseif ($logged_in_User_Role->id == 7 && $logged_in_User_Role->name == "Super Admin") {
-                            if ($staff["role_id"] == 7) {
-                                if ($staff["role_id"] == 7 && $staff['id'] != $logged_in_User['id']) {
-                                    $a = false;
-                                } else {
-                                    $a = true;
-                                }
-                            } else {
-                                $a = true;
+                        if ($this->rbac->hasPrivilege('staff', 'can_edit')) {
+                            if ($logged_in_User_Role->id != 7 || $a) {
+                        ?>
+                                <a href="<?php echo base_url('admin/staff/edit/' . $id); ?>" class="action-btn mnp-primary"><i class="fa fa-pencil"></i><span><?php echo $this->lang->line('edit'); ?></span></a>
+                        <?php
                             }
                         }
-
+                        if ($sch_setting->staff_self_edit == 1 && $logged_in_staff_id == $id && $logged_in_user_role_id != 7) {
                         ?>
-                        <?php
+                            <a href="<?php echo base_url('admin/staff/selfedit/' . $id); ?>" class="action-btn mnp-primary"><i class="fa fa-pencil"></i><span><?php echo $this->lang->line('edit_my_profile'); ?></span></a>
+                        <?php } ?>
 
+                        <?php if ($a) { ?>
+                            <a href="javascript:void(0)" class="action-btn change_password"><i class="fa fa-key"></i><span><?php echo $this->lang->line('change_password'); ?></span></a>
+                        <?php } ?>
+
+                        <?php
                         if ($enable_disable == 1) {
                             if ($staff["is_active"] == 1) {
                                 if ($this->rbac->hasPrivilege('disable_staff', 'can_view')) {
                                     if ($logged_in_User_Role->id == 7) {
                                         if ($a) {
                         ?>
-                                            <li class="pull-right"><a class="text-red" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('disable'); ?>" onclick="disable_staff('<?php echo $id; ?>');"></i> <i class="fa fa-thumbs-o-down"></i></a></li>
+                                            <a href="javascript:void(0)" class="action-btn mnp-danger" onclick="disable_staff('<?php echo $id; ?>');"><i class="fa fa-thumbs-o-down"></i><span><?php echo $this->lang->line('disable'); ?></span></a>
                                         <?php
                                         }
                                     } else {
                                         ?>
-                                        <li class="pull-right"><a href="<?php echo base_url('admin/staff/disablestaff/' . $id); ?>" class="text-red" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('disable'); ?>" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_you_want_to_disable_this_record'); ?>')"></i> <i class="fa fa-thumbs-o-down"></i></a></li>
+                                        <a href="<?php echo base_url('admin/staff/disablestaff/' . $id); ?>" class="action-btn mnp-danger" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_you_want_to_disable_this_record'); ?>')"><i class="fa fa-thumbs-o-down"></i><span><?php echo $this->lang->line('disable'); ?></span></a>
                                     <?php
                                     }
                                 }
@@ -355,339 +273,255 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 if ($logged_in_User_Role->id == 7) {
                                     if ($a) {
                                     ?>
-
-                                        <li class="pull-right"><a href="<?php echo base_url('admin/staff/delete/' . $id); ?>" class="text-red" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_want_to_delete'); ?>');"></i><i class="fa fa-trash"></i></a></li>
-                                        <li class="pull-right"><a href="<?php echo base_url('admin/staff/enablestaff/' . $id); ?>" class="text-green" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('enable'); ?>" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_you_want_to_enable_this_record'); ?>');"><i class="fa fa-thumbs-o-up"></i></a></li>
-
+                                        <a href="<?php echo base_url('admin/staff/delete/' . $id); ?>" class="action-btn mnp-danger" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_want_to_delete'); ?>');"><i class="fa fa-trash"></i><span><?php echo $this->lang->line('delete'); ?></span></a>
+                                        <a href="<?php echo base_url('admin/staff/enablestaff/' . $id); ?>" class="action-btn mnp-success" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_you_want_to_enable_this_record'); ?>');"><i class="fa fa-thumbs-o-up"></i><span><?php echo $this->lang->line('enable'); ?></span></a>
                                     <?php
                                     }
                                 } else {
                                     if ($this->rbac->hasPrivilege('staff', 'can_delete')) {
                                     ?>
-
-                                        <li class="pull-right"><a href="<?php echo base_url('admin/staff/delete/' . $id); ?>" class="text-red" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_want_to_delete'); ?>');"></i><i class="fa fa-trash"></i></a></li>
+                                        <a href="<?php echo base_url('admin/staff/delete/' . $id); ?>" class="action-btn mnp-danger" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_want_to_delete'); ?>');"><i class="fa fa-trash"></i><span><?php echo $this->lang->line('delete'); ?></span></a>
                                     <?php }
                                     if ($this->rbac->hasPrivilege('disable_staff', 'can_view')) {
                                     ?>
-
-                                        <li class="pull-right"><a href="<?php echo base_url('admin/staff/enablestaff/' . $id); ?>" class="text-green" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('enable'); ?>" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_you_want_to_enable_this_record'); ?>');"><i class="fa fa-thumbs-o-up"></i></a></li>
-
-                        <?php
+                                        <a href="<?php echo base_url('admin/staff/enablestaff/' . $id); ?>" class="action-btn mnp-success" onclick="return confirm('<?php echo $this->lang->line('are_you_sure_you_want_to_enable_this_record'); ?>');"><i class="fa fa-thumbs-o-up"></i><span><?php echo $this->lang->line('enable'); ?></span></a>
+                                    <?php
                                     }
                                 }
                             }
                         }
                         ?>
+                    </div>
+                </div>
+            </section>
 
-                        <li class="pull-right">
-                            <?php if ($a) {
-                            ?>
-                                <a href="#" class="change_password text-green" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('change_password'); ?>"></i> <i class="fa fa-key"></i></a>
+            <?php if ($staff["is_active"] == 0) { ?>
+                <div class="info-card" style="margin-top:-4px;">
+                    <div class="card-body">
+                        <div class="details-list">
+                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('date_of_leaving'); ?></span><span class="mnp-value"><?php echo $this->customlib->dateformat($staff['date_of_leaving']); ?></span></div>
+                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('disable_date'); ?></span><span class="mnp-value"><?php echo $this->customlib->dateformat($staff['disable_at']); ?></span></div>
+                        </div>
+                    </div>
+                </div>
+            <?php } ?>
 
-                            <?php
-                            }
-                            ?>
-                        </li>
-                        <?php
-                        if ($this->rbac->hasPrivilege('staff', 'can_edit')) {
+            <nav class="navigation-tabs-bar">
+            <div class="tab-bar-links">
+                <button class="tab-link active" data-tab-target="activity"><?php echo $this->lang->line('profile'); ?></button>
+                <button class="tab-link" data-tab-target="payroll"><?php echo $this->lang->line('payroll'); ?></button>
+                <button class="tab-link" data-tab-target="leaves"><?php echo $this->lang->line('leaves'); ?></button>
+                <button class="tab-link" data-tab-target="attendance"><?php echo $this->lang->line('attendance'); ?></button>
+                <?php if ($sch_setting->staff_upload_documents) { ?>
+                    <button class="tab-link" data-tab-target="documents"><?php echo $this->lang->line('documents'); ?></button>
+                <?php } ?>
+                <?php if ($this->rbac->hasPrivilege('staff_timeline', 'can_view')) { ?>
+                    <button class="tab-link" data-tab-target="timelineh"><?php echo $this->lang->line('timeline'); ?></button>
+                <?php } ?>
+                <?php if ($staff['user_type'] == 2) { ?>
+                    <button class="tab-link" data-tab-target="reviews"><?php echo $this->lang->line('reviews'); ?></button>
+                <?php } ?>
+            </div>
+            <div class="tab-bar-actions">
+                <?php if ($this->rbac->hasPrivilege('staff_timeline', 'can_view') && $this->rbac->hasPrivilege('staff_timeline', 'can_add')) { ?>
+                    <button type="button" id="myTimelineButton" data-tab-actions="timelineh" class="action-btn mnp-primary"><i class="fa fa-plus"></i> <span><?php echo $this->lang->line('add') ?></span></button>
+                <?php } ?>
+            </div>
+            </nav>
 
-                            if ($logged_in_User_Role->id == 7) {
-                                if ($a) {
-                        ?>
-
-                                    <li class="pull-right"><a href="<?php echo base_url('admin/staff/edit/' . $id); ?>" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('edit'); ?>" class="text-light"><i class="fa fa-pencil"></i></a></li>
-                                <?php
-                                }
-                            } else {
-                                ?>
-
-                                <li class="pull-right"><a href="<?php echo base_url('admin/staff/edit/' . $id); ?>" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('edit'); ?>" class="text-light"><i class="fa fa-pencil"></i></a></li>
-                        <?php
-                            }
-                        }
-
-                        // New condition for staff self-edit
-                        $logged_in_staff_id = $this->customlib->getStaffID();
-                        $logged_in_user_role_id = $logged_in_User_Role->id;
-
-                        if ($sch_setting->staff_self_edit == 1 && $logged_in_staff_id == $id && $logged_in_user_role_id != 7) {
-                        ?>
-                            <li class="pull-right">
-                                <a href="<?php echo base_url('admin/staff/selfedit/' . $id); ?>" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('edit_my_profile'); ?>" class="text-light">
-                                    <i class="fa fa-pencil"></i>
-                                </a>
-                            </li>
-                        <?php
-                        }
-                        ?>
-                    </ul>
+            <div>
+                <div>
                     <div class="tab-content">
                         <div class="tab-pane active" id="activity">
-                            <div class="tshadow mb25 bozero">
-                                <div class="table-responsive around10 pt0">
-                                    <table class="table table-hover table-striped tmb0">
-                                        <tbody>
+                            <div class="profile-grid">
+                                <div class="grid-column">
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <h2>Contact &amp; Personal Details</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
                                             <?php if ($sch_setting->staff_phone) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('phone'); ?></td>
-                                                    <td><?php echo $staff['contact_no']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('phone'); ?></span><span class="mnp-value copyable" onclick="mnpCopyText('<?php echo htmlspecialchars($staff['contact_no'], ENT_QUOTES); ?>', 'Phone')"><?php echo $staff['contact_no']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->staff_emergency_contact) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('emergency_contact_number'); ?></td>
-                                                    <td><?php echo $staff['emergency_contact_no']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('emergency_contact_number'); ?></span><span class="mnp-value"><?php echo $staff['emergency_contact_no']; ?></span></div>
                                             <?php } ?>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('email'); ?></td>
-                                                <td><?php echo $staff['email']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('gender'); ?></td>
-                                                <td><?php echo $this->lang->line(strtolower($staff['gender'])); ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('date_of_birth'); ?></td>
-                                                <td><?php
-                                                    if (!empty($staff["dob"]) && $staff["dob"] != '0000-00-00') {
-                                                        echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($staff['dob']));
-                                                    }
-                                                    ?></td>
-                                            </tr>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('email'); ?></span><span class="mnp-value copyable" onclick="mnpCopyText('<?php echo htmlspecialchars($staff['email'], ENT_QUOTES); ?>', 'Email')"><?php echo $staff['email']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('gender'); ?></span><span class="mnp-value"><?php echo $this->lang->line(strtolower($staff['gender'])); ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('date_of_birth'); ?></span><span class="mnp-value"><?php
+                                                if (!empty($staff["dob"]) && $staff["dob"] != '0000-00-00') {
+                                                    echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($staff['dob']));
+                                                }
+                                            ?></span></div>
                                             <?php if ($sch_setting->staff_marital_status) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('marital_status'); ?></td>
-                                                    <td><?php echo $staff['marital_status']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('marital_status'); ?></span><span class="mnp-value"><?php echo $staff['marital_status']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->staff_father_name) { ?>
-                                                <tr>
-                                                    <td class="col-md-4"><?php echo $this->lang->line('father_name'); ?></td>
-                                                    <td class="col-md-5"><?php echo $staff['father_name']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('father_name'); ?></span><span class="mnp-value"><?php echo $staff['father_name']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->staff_mother_name) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('mother_name'); ?></td>
-                                                    <td><?php echo $staff['mother_name']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('mother_name'); ?></span><span class="mnp-value"><?php echo $staff['mother_name']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->staff_qualification) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('qualification'); ?></td>
-                                                    <td><?php echo $staff['qualification']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('qualification'); ?></span><span class="mnp-value"><?php echo $staff['qualification']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->staff_work_experience) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('work_experience'); ?></td>
-                                                    <td><?php echo $staff['work_exp']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('ug_qualification'); ?></td>
-                                                    <td><?php echo $staff['ug_qualification']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('pg_qualification'); ?></td>
-                                                    <td><?php echo $staff['pg_qualification']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('higher_qualification'); ?></td>
-                                                    <td><?php echo $staff['higher_qualification']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('qualified_exam'); ?></td>
-                                                    <td><?php echo $staff['qualified_exam']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('subject_specialization'); ?></td>
-                                                    <td><?php echo $staff['subject_specialization']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('additional_qualification'); ?></td>
-                                                    <td><?php echo $staff['additional_qualification']; ?></td>
-                                                </tr>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('work_experience'); ?></span><span class="mnp-value"><?php echo $staff['work_exp']; ?></span></div>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('ug_qualification'); ?></span><span class="mnp-value"><?php echo $staff['ug_qualification']; ?></span></div>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('pg_qualification'); ?></span><span class="mnp-value"><?php echo $staff['pg_qualification']; ?></span></div>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('higher_qualification'); ?></span><span class="mnp-value"><?php echo $staff['higher_qualification']; ?></span></div>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('qualified_exam'); ?></span><span class="mnp-value"><?php echo $staff['qualified_exam']; ?></span></div>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('subject_specialization'); ?></span><span class="mnp-value"><?php echo $staff['subject_specialization']; ?></span></div>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('additional_qualification'); ?></span><span class="mnp-value"><?php echo $staff['additional_qualification']; ?></span></div>
                                             <?php }
-                                            if ($sch_setting->staff_note) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('note'); ?></td>
-                                                    <td><?php echo $staff['note']; ?></td>
-                                                </tr>
-                                                <?php }
+                                            if ($sch_setting->staff_note && !empty($staff['note'])) { ?>
+                                                <div class="detail-row full-width"><span class="mnp-label"><?php echo $this->lang->line('note'); ?></span><span class="mnp-value note-text"><?php echo $staff['note']; ?></span></div>
+                                            <?php }
                                             $cutom_fields_data = get_custom_table_values($staff['id'], 'staff');
                                             if (!empty($cutom_fields_data)) {
                                                 foreach ($cutom_fields_data as $field_key => $field_value) {
-                                                ?>
-                                                    <tr>
-                                                        <td><?php echo $field_value->name; ?></td>
-                                                        <td>
-                                                            <?php
-                                                            if (is_string($field_value->field_value) && is_array(json_decode($field_value->field_value, true)) && (json_last_error() == JSON_ERROR_NONE)) {
-                                                                $field_array = json_decode($field_value->field_value);
-                                                                echo "<ul class='student_custom_field'>";
-                                                                foreach ($field_array as $each_key => $each_value) {
-                                                                    echo "<li>" . $each_value . "</li>";
-                                                                }
-                                                                echo "</ul>";
-                                                            } else {
-
-                                                                $display_field = $field_value->field_value;
-                                                                if ($field_value->type == "link") {
-                                                                    $display_field = "<a href=" . $field_value->field_value . " target='_blank'>" . $field_value->field_value . "</a>";
-                                                                }
-                                                                echo $display_field;
+                                            ?>
+                                                <div class="detail-row">
+                                                    <span class="mnp-label"><?php echo $field_value->name; ?></span>
+                                                    <span class="mnp-value">
+                                                        <?php
+                                                        if (is_string($field_value->field_value) && is_array(json_decode($field_value->field_value, true)) && (json_last_error() == JSON_ERROR_NONE)) {
+                                                            $field_array = json_decode($field_value->field_value);
+                                                            echo "<ul>";
+                                                            foreach ($field_array as $each_key => $each_value) {
+                                                                echo "<li>" . $each_value . "</li>";
                                                             }
-                                                            ?>
-                                                        </td>
-                                                    </tr>
+                                                            echo "</ul>";
+                                                        } else {
+                                                            $display_field = $field_value->field_value;
+                                                            if ($field_value->type == "link") {
+                                                                $display_field = "<a href=" . $field_value->field_value . " target='_blank'>" . $field_value->field_value . "</a>";
+                                                            }
+                                                            echo $display_field;
+                                                        }
+                                                        ?>
+                                                    </span>
+                                                </div>
                                             <?php
                                                 }
                                             }
                                             ?>
-                                        </tbody>
-                                    </table>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="tshadow mb25 bozero">
-                                <h3 class="pagetitleh2"><?php echo $this->lang->line('address_details'); ?></h3>
-                                <div class="table-responsive around10 pt0">
-                                    <table class="table table-hover table-striped tmb0">
-                                        <tbody>
+
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                        <h2><?php echo $this->lang->line('address_details'); ?></h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
                                             <?php if ($sch_setting->staff_current_address) { ?>
-                                                <tr>
-                                                    <td class="col-md-4"><?php echo $this->lang->line('current_address'); ?></td>
-                                                    <td class="col-md-5"><?php echo $staff['local_address']; ?></td>
-                                                </tr>
+                                                <div class="detail-row full-width"><span class="mnp-label"><?php echo $this->lang->line('current_address'); ?></span><span class="mnp-value address-val"><?php echo $staff['local_address']; ?></span></div>
                                             <?php }
                                             if ($sch_setting->staff_permanent_address) { ?>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('permanent_address'); ?></td>
-                                                    <td><?php echo $staff['permanent_address']; ?></td>
-                                                </tr>
+                                                <div class="detail-row full-width"><span class="mnp-label"><?php echo $this->lang->line('permanent_address'); ?></span><span class="mnp-value address-val"><?php echo $staff['permanent_address']; ?></span></div>
                                             <?php } ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <?php if ($sch_setting->staff_account_details) { ?>
-                                <div class="tshadow mb25 bozero">
-                                    <h3 class="pagetitleh2"><?php echo $this->lang->line('bank_account_details'); ?></h3>
-                                    <div class="table-responsive around10 pt10">
-                                        <table class="table table-hover table-striped tmb0">
-                                            <tbody>
-                                                <tr>
-                                                    <td class="col-md-4"><?php echo $this->lang->line('account_title'); ?></td>
-                                                    <td class="col-md-5"><?php echo $staff['account_title']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('bank_name'); ?></td>
-                                                    <td><?php echo $staff['bank_name']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('bank_branch_name'); ?></td>
-                                                    <td><?php echo $staff['bank_branch']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('bank_account_number'); ?></td>
-                                                    <td><?php echo $staff['bank_account_no']; ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('ifsc_code'); ?></td>
-                                                    <td><?php echo $staff['ifsc_code']; ?></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                        </div>
                                     </div>
                                 </div>
-                            <?php }
-                            if ($sch_setting->staff_social_media) { ?>
-                                <div class="tshadow mb25  bozero">
-                                    <h3 class="pagetitleh2"><?php echo $this->lang->line('social_media_link'); ?></h3>
-                                    <div class="table-responsive around10 pt0">
-                                        <table class="table table-hover table-striped tmb0">
-                                            <tbody>
-                                                <tr>
-                                                    <td class="col-md-4"><?php echo $this->lang->line('facebook_url'); ?></td>
-                                                    <td class="col-md-5"><a href="<?php echo $staff['facebook']; ?>" target="_blank"><?php echo $staff['facebook']; ?></a></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('twitter_url'); ?></td>
-                                                    <td><a href="<?php echo $staff['twitter']; ?>" target="_blank"><?php echo $staff['twitter']; ?></a></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('linkedin_url'); ?></td>
-                                                    <td><a href="<?php echo $staff['linkedin']; ?>" target="_blank"><?php echo $staff['linkedin']; ?></a></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><?php echo $this->lang->line('instagram_url'); ?></td>
-                                                    <td><a href="<?php echo $staff['instagram']; ?>" target="_blank"><?php echo $staff['instagram']; ?></a></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+
+                                <?php if ($sch_setting->staff_account_details) { ?>
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                        <h2><?php echo $this->lang->line('bank_account_details'); ?></h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('account_title'); ?></span><span class="mnp-value"><?php echo $staff['account_title']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('bank_name'); ?></span><span class="mnp-value"><?php echo $staff['bank_name']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('bank_branch_name'); ?></span><span class="mnp-value"><?php echo $staff['bank_branch']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('bank_account_number'); ?></span><span class="mnp-value copyable" onclick="mnpCopyText('<?php echo htmlspecialchars($staff['bank_account_no'], ENT_QUOTES); ?>', 'Account Number')"><?php echo $staff['bank_account_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('ifsc_code'); ?></span><span class="mnp-value"><?php echo $staff['ifsc_code']; ?></span></div>
+                                        </div>
                                     </div>
                                 </div>
-                            <?php } ?>
-                            <div class="tshadow mb25 bozero">
-                                <h3 class="pagetitleh2"><?php echo $this->lang->line('additional_details'); ?></h3>
-                                <div class="table-responsive around10 pt10">
-                                    <table class="table table-hover table-striped tmb0">
-                                        <tbody>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('payscale'); ?></td>
-                                                <td><?php echo $staff['payscale']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('aadhaar_no'); ?></td>
-                                                <td><?php echo $staff['aadhaar_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('religion'); ?></td>
-                                                <td><?php echo $staff['religion']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('caste'); ?></td>
-                                                <td><?php echo $staff['caste']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('blood_group'); ?></td>
-                                                <td><?php echo $staff['blood_group']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('country'); ?></td>
-                                                <td><?php echo $staff['country']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('state'); ?></td>
-                                                <td><?php echo $staff['state']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('pincode'); ?></td>
-                                                <td><?php echo $staff['pincode']; ?></td>
-                                            </tr>
-                                            
-                                            <tr>
-                                                <td><?php echo $this->lang->line('previous_salary'); ?></td>
-                                                <td><?php echo $staff['previous_salary']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('uan_no'); ?></td>
-                                                <td><?php echo $staff['uan_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('pan_no'); ?></td>
-                                                <td><?php echo $staff['pan_no']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('previous_institution'); ?></td>
-                                                <td><?php echo $staff['previous_institution']; ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td><?php echo $this->lang->line('subject_expertise'); ?></td>
-                                                <td><?php echo $staff['subject_expertise']; ?></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <?php } ?>
+
+                                <?php if ($sch_setting->staff_social_media) { ?>
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                        <h2><?php echo $this->lang->line('social_media_link'); ?></h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('facebook_url'); ?></span><span class="mnp-value"><a href="<?php echo $staff['facebook']; ?>" target="_blank"><?php echo $staff['facebook']; ?></a></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('twitter_url'); ?></span><span class="mnp-value"><a href="<?php echo $staff['twitter']; ?>" target="_blank"><?php echo $staff['twitter']; ?></a></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('linkedin_url'); ?></span><span class="mnp-value"><a href="<?php echo $staff['linkedin']; ?>" target="_blank"><?php echo $staff['linkedin']; ?></a></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('instagram_url'); ?></span><span class="mnp-value"><a href="<?php echo $staff['instagram']; ?>" target="_blank"><?php echo $staff['instagram']; ?></a></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php } ?>
+                                </div>
+
+                                <div class="grid-column">
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                        <h2>Employment &amp; Identification</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('biometric_id'); ?></span><span class="mnp-value"><?php echo $staff['biometric_id']; ?></span></div>
+                                            <?php if (!empty($staff['au_fin_no'])): ?>
+                                                <div class="detail-row"><span class="mnp-label">AU FIN No.</span><span class="mnp-value"><?php echo htmlspecialchars($staff['au_fin_no']); ?></span></div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($staff['aicte_coa_id'])): ?>
+                                                <div class="detail-row"><span class="mnp-label">AICTE / COA ID</span><span class="mnp-value"><?php echo htmlspecialchars($staff['aicte_coa_id']); ?></span></div>
+                                            <?php endif; ?>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('prefix'); ?></span><span class="mnp-value"><?php echo $staff['prefix']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('esi_no') ?: ($this->lang->line('epf_no') ?: 'ESI No.'); ?></span><span class="mnp-value"><?php echo $staff['esi_no']; ?></span></div>
+                                            <div class="detail-row">
+                                                <span class="mnp-label"><?php echo $this->lang->line('contract_basic_salary') ?: ($this->lang->line('basic_salary') . ' (Contract)'); ?></span>
+                                                <span class="mnp-value"><?php if (!empty($staff['basic_salary'])) { echo amountFormat($staff['basic_salary']); } ?></span>
+                                            </div>
+                                            <?php if ($sch_setting->staff_contract_type) { ?>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('contract_type'); ?></span><span class="mnp-value"><?php echo $staff['contract_type']; ?></span></div>
+                                            <?php }
+                                            if ($sch_setting->staff_work_shift) { ?>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('work_shift'); ?></span><span class="mnp-value"><?php echo $staff['shift']; ?></span></div>
+                                            <?php }
+                                            if ($sch_setting->staff_work_location) { ?>
+                                                <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('work_location'); ?></span><span class="mnp-value"><?php echo $staff['location']; ?></span></div>
+                                            <?php } ?>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="info-card">
+                                    <div class="card-header">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                                        <h2><?php echo $this->lang->line('additional_details'); ?></h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="details-list">
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('payscale'); ?></span><span class="mnp-value"><?php echo $staff['payscale']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('aadhaar_no'); ?></span><span class="mnp-value"><?php echo $staff['aadhaar_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('religion'); ?></span><span class="mnp-value"><?php echo $staff['religion']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('caste'); ?></span><span class="mnp-value"><?php echo $staff['caste']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('blood_group'); ?></span><span class="mnp-value badge-blue"><?php echo $staff['blood_group']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('country'); ?></span><span class="mnp-value"><?php echo $staff['country']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('state'); ?></span><span class="mnp-value"><?php echo $staff['state']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('pincode'); ?></span><span class="mnp-value"><?php echo $staff['pincode']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('previous_salary'); ?></span><span class="mnp-value"><?php echo $staff['previous_salary']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('uan_no'); ?></span><span class="mnp-value"><?php echo $staff['uan_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('pan_no'); ?></span><span class="mnp-value"><?php echo $staff['pan_no']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('previous_institution'); ?></span><span class="mnp-value"><?php echo $staff['previous_institution']; ?></span></div>
+                                            <div class="detail-row"><span class="mnp-label"><?php echo $this->lang->line('subject_expertise'); ?></span><span class="mnp-value"><?php echo $staff['subject_expertise']; ?></span></div>
+                                        </div>
+                                    </div>
+                                </div>
                                 </div>
                             </div>
                         </div>
@@ -925,58 +759,36 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <?php } ?>
 
                         <div class="tab-pane" id="timelineh">
-                            <div><?php if ($this->rbac->hasPrivilege('staff_timeline', 'can_add')) { ?>
-                                    <input type="button" id="myTimelineButton" class="btn btn-sm btn-primary pull-right " value="<?php echo $this->lang->line('add') ?>" />
-                                <?php } ?>
-                            </div>
-                            <br />
-                            <div class="timeline-header no-border">
-                                <div id="timeline_list">
-                                    <?php
-                                    if (empty($timeline_list)) {
-                                    ?>
-                                        <br />
-                                        <div class="alert alert-info"><?php echo $this->lang->line('no_record_found'); ?></div>
-                                    <?php } else {
-                                    ?>
-                                        <ul class="timeline timeline-inverse">
-                                            <?php
-                                            foreach ($timeline_list as $key => $value) {
-                                            ?>
-                                                <li class="time-label">
-                                                    <span class="bg-blue"> <?php
-                                                                            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['timeline_date']));
-                                                                            ?></span>
-                                                </li>
-                                                <li>
-                                                    <i class="fa fa-list-alt bg-blue"></i>
-                                                    <div class="timeline-item">
-                                                        <?php if ($this->rbac->hasPrivilege('staff_timeline', 'can_delete')) { ?>
-                                                            <span class="time">
-                                                                <a class="defaults-c text-right" data-toggle="tooltip" title="" onclick="delete_timeline('<?php echo $value['id']; ?>')" data-original-title="<?php echo $this->lang->line('delete'); ?>"><i class="fa fa-trash"></i></a>
-                                                            </span>
-                                                        <?php } ?>
+                            <div id="timeline_list">
+                                <?php
+                                if (empty($timeline_list)) {
+                                ?>
+                                    <div class="alert alert-info"><?php echo $this->lang->line('no_record_found'); ?></div>
+                                <?php } else { ?>
+                                    <div class="timeline-container">
+                                        <?php foreach ($timeline_list as $key => $value) { ?>
+                                            <div class="timeline-event">
+                                                <div class="event-marker blue"></div>
+                                                <div class="event-content">
+                                                    <div class="event-actions">
                                                         <?php if ($this->rbac->hasPrivilege('staff_timeline', 'can_edit')) { ?>
-                                                            <span class="time">
-                                                                <a data-toggle="tooltip" class="pull-right edit_timeline defaults-c text-right" data-id="<?php echo $value["id"]; ?>" data-original-title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i></a>
-                                                            </span>
+                                                            <a data-toggle="tooltip" class="edit_timeline" data-id="<?php echo $value["id"]; ?>" data-original-title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i></a>
                                                         <?php } ?>
-
                                                         <?php if (!empty($value["document"])) { ?>
-                                                            <span class="time"><a class="defaults-c text-right" data-toggle="tooltip" title="" href="<?php echo base_url() . "admin/timeline/download_staff_timeline/" . $value["id"] ?>" data-original-title="Download"><i class="fa fa-download"></i></a></span>
+                                                            <a data-toggle="tooltip" href="<?php echo base_url() . "admin/timeline/download_staff_timeline/" . $value["id"] ?>" data-original-title="Download"><i class="fa fa-download"></i></a>
                                                         <?php } ?>
-                                                        <h3 class="timeline-header text-aqua"> <?php echo $value['title']; ?> </h3>
-                                                        <div class="timeline-body">
-                                                            <?php echo $value['description']; ?>
-
-                                                        </div>
+                                                        <?php if ($this->rbac->hasPrivilege('staff_timeline', 'can_delete')) { ?>
+                                                            <a data-toggle="tooltip" onclick="delete_timeline('<?php echo $value['id']; ?>')" data-original-title="<?php echo $this->lang->line('delete'); ?>"><i class="fa fa-trash"></i></a>
+                                                        <?php } ?>
                                                     </div>
-                                                </li>
-                                            <?php } ?>
-                                            <li><i class="fa fa-clock-o bg-gray"></i></li>
+                                                    <span class="event-time"><?php echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['timeline_date'])); ?></span>
+                                                    <h4><?php echo $value['title']; ?></h4>
+                                                    <p><?php echo $value['description']; ?></p>
+                                                </div>
+                                            </div>
                                         <?php } ?>
-                                        </ul>
-                                </div>
+                                    </div>
+                                <?php } ?>
                             </div>
                         </div>
 
