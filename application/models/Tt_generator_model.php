@@ -649,17 +649,15 @@ class Tt_generator_model extends MY_Model
             $placed_per_load[$k] = ($placed_per_load[$k] ?? 0) + 1;
         }
 
+        // ── PHASE 1: GLOBAL subject-first fill across ALL classes ─────
+        // Build ONE queue of (class+subject) pairs across every class, sorted
+        // globally by fewest-periods-needed first → smallest teacher pool.
+        // This ensures a 1/week subject (Hindi, Library) across ALL classes
+        // gets its teacher slots reserved before a 7/week subject in ANY class
+        // consumes that teacher's remaining availability.
+        $global_queue = [];
         foreach (array_keys($class_stats) as $ck) {
-            [$class_id, $section_id] = array_map('intval', explode('_', $ck));
             $loads = $loads_by_class[$ck] ?? [];
-            if (empty($loads)) continue;
-
-            // ── PHASE 1: Subject-first fill ─────────────────────────────
-            // Iterate subjects from fewest-periods-needed to most (most
-            // constrained first — a 1/week subject has the least flexibility
-            // and must get first pick of available slots, before a 7/week
-            // subject's teacher consumes all the free time).
-            $fill_queue = [];
             foreach ($loads as $load) {
                 $sgs_id  = (int) $load->subject_group_subject_id;
                 $already = $placed_per_load[$ck . '_' . $sgs_id] ?? 0;
@@ -670,89 +668,99 @@ class Tt_generator_model extends MY_Model
                     if (!empty($load->staff_id))     $t_ids[] = (int) $load->staff_id;
                     if (!empty($load->alt_staff_id)) $t_ids[] = (int) $load->alt_staff_id;
                 }
-                $fill_queue[] = ['load' => $load, 'needed' => $needed, 'sgs_id' => $sgs_id, 't_ids' => $t_ids];
+                $global_queue[] = [
+                    'ck' => $ck, 'load' => $load, 'needed' => $needed,
+                    'sgs_id' => $sgs_id, 't_ids' => $t_ids,
+                ];
             }
-            usort($fill_queue, function ($a, $b) {
-                if ($a['needed'] !== $b['needed']) return $a['needed'] <=> $b['needed'];
-                return count($a['t_ids']) <=> count($b['t_ids']);
-            });
+        }
+        usort($global_queue, function ($a, $b) {
+            if ($a['needed'] !== $b['needed']) return $a['needed'] <=> $b['needed'];
+            return count($a['t_ids']) <=> count($b['t_ids']);
+        });
 
-            foreach ($fill_queue as $item) {
-                $load    = $item['load'];
-                $sgs_id  = $item['sgs_id'];
-                $t_ids   = $item['t_ids'];
-                $all_req = !empty($load->all_teachers_required);
-                $subj_label = $load->subject_name ?? "sgs#{$sgs_id}";
-                if (empty($t_ids)) continue;
+        foreach ($global_queue as $item) {
+            $ck      = $item['ck'];
+            [$class_id, $section_id] = array_map('intval', explode('_', $ck));
+            $load    = $item['load'];
+            $sgs_id  = $item['sgs_id'];
+            $t_ids   = $item['t_ids'];
+            $all_req = !empty($load->all_teachers_required);
+            if (empty($t_ids)) continue;
 
-                $remaining = $item['needed'];
-                foreach ($this->working_days as $day) {
+            $remaining = max(0, (int)$load->periods_per_week - ($placed_per_load[$ck . '_' . $sgs_id] ?? 0));
+            foreach ($this->working_days as $day) {
+                if ($remaining <= 0) break;
+                $max_per_day = (int) ($load->max_per_day ?? 2);
+                if (($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) >= $max_per_day) continue;
+
+                foreach ($this->period_order as $pid) {
                     if ($remaining <= 0) break;
-                    $max_per_day = (int) ($load->max_per_day ?? 2);
-                    if (($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) >= $max_per_day) continue;
+                    if (($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) >= $max_per_day) break;
+                    if (!empty($this->class_occ[$class_id][$section_id][$day][$pid][0])) continue;
+                    if (!empty($this->class_unavail[$class_id][$section_id][$day][$pid])) continue;
+                    if (!empty($this->subject_unavail[$sgs_id][$day][$pid])) continue;
 
-                    foreach ($this->period_order as $pid) {
-                        if ($remaining <= 0) break;
-                        if (($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) >= $max_per_day) break;
-                        if (!empty($this->class_occ[$class_id][$section_id][$day][$pid][0])) continue;
-                        if (!empty($this->class_unavail[$class_id][$section_id][$day][$pid])) continue;
-                        if (!empty($this->subject_unavail[$sgs_id][$day][$pid])) continue;
-
-                        $free_teacher = null;
-                        $all_free = true;
-                        foreach ($t_ids as $t_id) {
-                            $why = $this->_diagnoseTeacherAtSlot($t_id, $day, [$pid], $constraints, $unavail_map);
-                            if ($why === null) {
-                                if ($free_teacher === null) $free_teacher = $t_id;
-                                if (!$all_req) break;
-                            } else {
-                                if ($all_req) { $all_free = false; break; }
-                            }
+                    $free_teacher = null;
+                    $all_free = true;
+                    foreach ($t_ids as $t_id) {
+                        $why = $this->_diagnoseTeacherAtSlot($t_id, $day, [$pid], $constraints, $unavail_map);
+                        if ($why === null) {
+                            if ($free_teacher === null) $free_teacher = $t_id;
+                            if (!$all_req) break;
+                        } else {
+                            if ($all_req) { $all_free = false; break; }
                         }
-                        if ($all_req && !$all_free) continue;
-                        if (!$all_req && $free_teacher === null) continue;
-
-                        $assigned = $all_req ? $t_ids[0] : $free_teacher;
-                        $pref_room = !empty($load->preferred_room_id) ? (int)$load->preferred_room_id : null;
-                        $room_id = $this->_findRoom($day, [$pid], $load->preferred_room_type ?? 'any',
-                            $pref_room, $assigned, $constraints[$assigned] ?? $this->default_tc);
-
-                        $draft_entries[] = [
-                            'gen_log_id'               => $log_id,
-                            'session_id'               => $session_id,
-                            'class_id'                 => $class_id,
-                            'section_id'               => $section_id,
-                            'subject_group_id'         => (int) $load->subject_group_id,
-                            'subject_group_subject_id' => $sgs_id,
-                            'staff_id'                 => $assigned,
-                            'period_id'                => $pid,
-                            'day'                      => $day,
-                            'room_id'                  => $room_id,
-                            'batch_id'                 => null,
-                            'is_free_period'           => 0,
-                            'free_period_label'        => null,
-                        ];
-
-                        $this->class_occ[$class_id][$section_id][$day][$pid][0] = true;
-                        $teachers_to_mark = $all_req ? $t_ids : [$assigned];
-                        foreach ($teachers_to_mark as $t_id) {
-                            $this->teacher_occ[$t_id][$day][$pid] = true;
-                            $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
-                            $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
-                        }
-                        if ($room_id) {
-                            $this->room_occ[$room_id][$day][$pid] = ($this->room_occ[$room_id][$day][$pid] ?? 0) + 1;
-                        }
-                        $this->subject_day_count[$class_id][$section_id][$sgs_id][$day] =
-                            ($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) + 1;
-                        $placed_per_load[$ck . '_' . $sgs_id] = ($placed_per_load[$ck . '_' . $sgs_id] ?? 0) + 1;
-                        $remaining--;
-                        $filled_subject++;
                     }
+                    if ($all_req && !$all_free) continue;
+                    if (!$all_req && $free_teacher === null) continue;
+
+                    $assigned = $all_req ? $t_ids[0] : $free_teacher;
+                    $pref_room = !empty($load->preferred_room_id) ? (int)$load->preferred_room_id : null;
+                    $room_id = $this->_findRoom($day, [$pid], $load->preferred_room_type ?? 'any',
+                        $pref_room, $assigned, $constraints[$assigned] ?? $this->default_tc);
+
+                    $draft_entries[] = [
+                        'gen_log_id'               => $log_id,
+                        'session_id'               => $session_id,
+                        'class_id'                 => $class_id,
+                        'section_id'               => $section_id,
+                        'subject_group_id'         => (int) $load->subject_group_id,
+                        'subject_group_subject_id' => $sgs_id,
+                        'staff_id'                 => $assigned,
+                        'period_id'                => $pid,
+                        'day'                      => $day,
+                        'room_id'                  => $room_id,
+                        'batch_id'                 => null,
+                        'is_free_period'           => 0,
+                        'free_period_label'        => null,
+                    ];
+
+                    $this->class_occ[$class_id][$section_id][$day][$pid][0] = true;
+                    $teachers_to_mark = $all_req ? $t_ids : [$assigned];
+                    foreach ($teachers_to_mark as $t_id) {
+                        $this->teacher_occ[$t_id][$day][$pid] = true;
+                        $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                        $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+                    }
+                    if ($room_id) {
+                        $this->room_occ[$room_id][$day][$pid] = ($this->room_occ[$room_id][$day][$pid] ?? 0) + 1;
+                    }
+                    $this->subject_day_count[$class_id][$section_id][$sgs_id][$day] =
+                        ($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) + 1;
+                    $placed_per_load[$ck . '_' . $sgs_id] = ($placed_per_load[$ck . '_' . $sgs_id] ?? 0) + 1;
+                    $remaining--;
+                    $filled_subject++;
                 }
             }
+        }
 
-            // ── PHASE 2: Free Period placeholders for truly unfillable cells ──
+        // ── PHASE 2: Free Period placeholders for truly unfillable cells ──
+        foreach (array_keys($class_stats) as $ck) {
+            [$class_id, $section_id] = array_map('intval', explode('_', $ck));
+            $loads = $loads_by_class[$ck] ?? [];
+
+            // ── Free Period placeholders for truly unfillable cells ──
             foreach ($this->working_days as $day) {
                 foreach ($this->period_order as $pid) {
                     if (!empty($this->class_occ[$class_id][$section_id][$day][$pid][0])) continue;
