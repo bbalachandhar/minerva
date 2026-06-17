@@ -630,7 +630,8 @@ class Tt_generator_model extends MY_Model
      * generic "Free Period" placeholder so the cell is never blank.
      */
     private function _fillEmptyCells($class_stats, array $base_loads, $constraints, $unavail_map,
-                                      $log_id, $session_id, array &$draft_entries, &$filled_subject, &$filled_free, array &$diagnostics = [])
+                                      $log_id, $session_id, array &$draft_entries, &$filled_subject, &$filled_free,
+                                      array &$diagnostics = [], array $existing_counts = [])
     {
         $loads_by_class = [];
         foreach ($base_loads as $l) {
@@ -638,7 +639,10 @@ class Tt_generator_model extends MY_Model
             $loads_by_class[$ck][] = $l;
         }
 
-        $placed_per_load = [];
+        // Start with pre-existing counts (from tt_entries when called via the
+        // live "Fill Empty Cells" button; empty when called during generation
+        // since $draft_entries already contains everything placed so far).
+        $placed_per_load = $existing_counts;
         foreach ($draft_entries as $de) {
             if (empty($de['subject_group_subject_id'])) continue;
             $k = $de['class_id'] . '_' . $de['section_id'] . '_' . $de['subject_group_subject_id'];
@@ -1691,10 +1695,24 @@ class Tt_generator_model extends MY_Model
 
         $class_stats = [$class_id . '_' . $section_id => ['class_id' => $class_id, 'section_id' => $section_id]];
 
+        // Pre-count how many periods each subject already has in the LIVE
+        // timetable — without this, the gap-fill thinks everything is at 0
+        // and happily exceeds weekly caps (e.g. Library 1/week gets filled 3x).
+        $existing_counts = [];
+        $live_entries = $this->db->where('session_id', $session_id)
+            ->where('class_id', $class_id)->where('section_id', $section_id)
+            ->where('is_free_period', 0)
+            ->get('tt_entries')->result();
+        foreach ($live_entries as $le) {
+            if (!$le->subject_group_subject_id) continue;
+            $k = $class_id . '_' . $section_id . '_' . (int)$le->subject_group_subject_id;
+            $existing_counts[$k] = ($existing_counts[$k] ?? 0) + 1;
+        }
+
         $draft_entries = [];
         $filled_subject = 0; $filled_free = 0; $diagnostics = [];
         $this->_fillEmptyCells($class_stats, $base_loads, $constraints, $unavail_map,
-            0, $session_id, $draft_entries, $filled_subject, $filled_free, $diagnostics);
+            0, $session_id, $draft_entries, $filled_subject, $filled_free, $diagnostics, $existing_counts);
 
         // Write directly to tt_entries (live timetable)
         if (!empty($draft_entries)) {
