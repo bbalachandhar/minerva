@@ -146,25 +146,35 @@ class Tt_generator_model extends MY_Model
         // explicitly configured teachers.
         $default_tightness = max(0, 48 - (int)$this->default_tc->max_periods_per_week);
 
-        usort($base_loads, function($a, $b) use ($teacher_unavail_count, $teacher_cap_tightness, $default_tightness) {
-            // For each load, take the worst-constrained teacher in its pool.
-            $ua = $uca = 0;
+        // Teacher sharing breadth: how many distinct class-sections does each
+        // teacher serve across the entire generation scope? A teacher spread
+        // across 8+ classes (Hindi, Library, GK) is a scarce shared resource
+        // whose slots must be reserved across ALL classes early, before other
+        // subjects consume their availability unevenly.
+        $teacher_class_count = [];
+        foreach ($base_loads as $l) {
+            foreach (($l->teacher_ids ?? []) as $tid) {
+                $teacher_class_count[$tid] = ($teacher_class_count[$tid] ?? 0) + 1;
+            }
+        }
+
+        usort($base_loads, function($a, $b) use ($teacher_unavail_count, $teacher_cap_tightness, $default_tightness, $teacher_class_count) {
+            $ua = $uca = $sha = 0;
             foreach (($a->teacher_ids ?? []) as $tid) {
                 $ua  = max($ua,  $teacher_unavail_count[$tid] ?? 0);
                 $uca = max($uca, $teacher_cap_tightness[$tid] ?? $default_tightness);
+                $sha = max($sha, $teacher_class_count[$tid] ?? 0);
             }
-            $ub = $ucb = 0;
+            $ub = $ucb = $shb = 0;
             foreach (($b->teacher_ids ?? []) as $tid) {
                 $ub  = max($ub,  $teacher_unavail_count[$tid] ?? 0);
                 $ucb = max($ucb, $teacher_cap_tightness[$tid] ?? $default_tightness);
+                $shb = max($shb, $teacher_class_count[$tid] ?? 0);
             }
-            // 0.5 per blocked slot: a teacher blocked for 12/48 slots (25% of week)
-            // gains +6, lifting a PPW=1 subject level with PPW=7 — correct behaviour.
-            // 0.3 per cap-tightness unit keeps it secondary to unavailability.
             $score_a = ($a->consecutive_periods * 10) + $a->periods_per_week + $a->priority
-                     + ($ua * 0.5) + ($uca * 0.3);
+                     + ($ua * 0.5) + ($uca * 0.3) + ($sha * 1.5);
             $score_b = ($b->consecutive_periods * 10) + $b->periods_per_week + $b->priority
-                     + ($ub * 0.5) + ($ucb * 0.3);
+                     + ($ub * 0.5) + ($ucb * 0.3) + ($shb * 1.5);
             return $score_b <=> $score_a;
         });
 
@@ -410,13 +420,16 @@ class Tt_generator_model extends MY_Model
                         $remaining_cap  = max(0, $cap - ($this->teacher_periods_week[$tid] ?? 0));
                         $cand_dyn_tight = max($cand_dyn_tight, max(0, 48 - $remaining_cap));
                     }
-                    // Low PPW subjects go first: a shared teacher teaching Hindi
-                    // (3/week) across 8 classes must get slots reserved across ALL
-                    // classes before a 7/week subject consumes all that teacher's
-                    // availability. (10 - ppw) inverts the weight so PPW=1 → +9,
-                    // PPW=7 → +3. Consecutive-block subjects still dominate via ×10.
-                    $cand_score = ($cand->consecutive_periods * 10) + (10 - $cand->periods_per_week) + $cand->priority
-                                + ($cand_ua * 0.5) + ($cand_dyn_tight * 0.3);
+                    // Teacher sharing breadth: a teacher spread across many
+                    // class-sections (Hindi 8 classes, Library 20+) is a scarce
+                    // shared resource — place their subjects first so slots get
+                    // distributed evenly, not consumed by earlier classes.
+                    $cand_sharing = 0;
+                    foreach ($cand_t_ids as $tid) {
+                        $cand_sharing = max($cand_sharing, $teacher_class_count[$tid] ?? 0);
+                    }
+                    $cand_score = ($cand->consecutive_periods * 10) + $cand->periods_per_week + $cand->priority
+                                + ($cand_ua * 0.5) + ($cand_dyn_tight * 0.3) + ($cand_sharing * 1.5);
                     if ($cand_score > $pick_score) { $pick_score = $cand_score; $pick_key = $rk; }
                 }
                 $load = $remaining[$pick_key];
