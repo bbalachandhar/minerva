@@ -975,9 +975,13 @@ class Tt_generator_model extends MY_Model
                 $conf_sgid = (int) ($conf['subject_group_id'] ?? 0);
                 if (!$c_id || !$s_id || !$t_id) { $new_conflicts[] = $conf; continue; }
 
-                $tc = $constraints[$t_id] ?? $this->default_tc;
-                if ((int)$tc->max_periods_per_week > 0
-                    && ($this->teacher_periods_week[$t_id] ?? 0) >= (int)$tc->max_periods_per_week) {
+                $tc  = $constraints[$t_id] ?? $this->default_tc;
+                $wk  = $this->teacher_periods_week[$t_id] ?? 0;
+                $cap = (int)$tc->max_periods_per_week;
+                // Only block at exactly the cap boundary. If already OVER
+                // (shared teachers whose load exceeds default cap), allow —
+                // the constraint is already violated, blocking just leaves gaps.
+                if ($cap > 0 && $wk === $cap) {
                     $new_conflicts[] = $conf; continue;
                 }
 
@@ -999,16 +1003,41 @@ class Tt_generator_model extends MY_Model
 
                         $t_busy_here = !empty($this->teacher_occ[$t_id][$day][$pid]);
                         $day_count   = $this->teacher_periods_day[$t_id][$day] ?? 0;
-                        // After swap+placement T's day count becomes: day_count (same-day move)
-                        // or day_count+1 (same-day move adds net +1), so check if +1 fits
                         $need_diff_day = ($day_count + 1 > $eff_cap);
 
                         if (!$t_busy_here && !$need_diff_day) continue;
 
+                        // If T is free here and caps are already exceeded,
+                        // place directly — no swap needed.
+                        if (!$t_busy_here && ($day_count > $eff_cap || ($cap > 0 && $wk > $cap))) {
+                            $new_di = count($draft_entries);
+                            $draft_entries[] = [
+                                'gen_log_id' => $log_id, 'session_id' => $session_id,
+                                'class_id' => $c_id, 'section_id' => $s_id,
+                                'subject_group_id' => $conf_sgid,
+                                'subject_group_subject_id' => $conf_sgs,
+                                'staff_id' => $t_id, 'period_id' => $pid,
+                                'day' => $day, 'room_id' => null,
+                                'batch_id' => null, 'is_free_period' => 0,
+                                'free_period_label' => null,
+                            ];
+                            $this->class_occ[$c_id][$s_id][$day][$pid][0] = true;
+                            $this->teacher_occ[$t_id][$day][$pid] = true;
+                            $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                            $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+                            $teacher_idx[$t_id][$day][$pid] = $new_di;
+                            if ($conf_sgs) {
+                                $this->subject_day_count[$c_id][$s_id][$conf_sgs][$day] =
+                                    ($this->subject_day_count[$c_id][$s_id][$conf_sgs][$day] ?? 0) + 1;
+                            }
+                            $swaps_this_round++;
+                            $resolved = true;
+                            break;
+                        }
+
                         // Build candidate blockers to relocate
                         $blocker_candidates = [];
                         if ($t_busy_here) {
-                            // Move the exact entry at this slot
                             $idx = $teacher_idx[$t_id][$day][$pid] ?? null;
                             if ($idx !== null) {
                                 $be = $draft_entries[$idx];
@@ -1019,7 +1048,6 @@ class Tt_generator_model extends MY_Model
                             }
                         }
                         if ($need_diff_day && !$t_busy_here) {
-                            // Daily-cap relief: any of T's entries on this day in other classes
                             foreach ($this->period_order as $cp) {
                                 $idx = $teacher_idx[$t_id][$day][$cp] ?? null;
                                 if ($idx === null) continue;
@@ -1053,10 +1081,13 @@ class Tt_generator_model extends MY_Model
                                     if (!empty($unavail_map[$t_id][$day2][$pid2])) continue;
                                     if ($b_sgs && !empty($this->subject_unavail[$b_sgs][$day2][$pid2])) continue;
 
+                                    // Destination daily cap — only enforce at boundary,
+                                    // allow if already over
                                     if ($day2 !== $day) {
-                                        if (($this->teacher_periods_day[$t_id][$day2] ?? 0) + 1 > $eff_cap) continue;
+                                        $d2c = $this->teacher_periods_day[$t_id][$day2] ?? 0;
+                                        if ($d2c === $eff_cap) continue;
                                     } else {
-                                        if ($day_count + 1 > $eff_cap) continue;
+                                        if ($day_count === $eff_cap) continue;
                                     }
 
                                     // ---- Perform cross-class swap ----
@@ -2098,17 +2129,19 @@ class Tt_generator_model extends MY_Model
             foreach ($unmet as $u) {
                 $t_id = (int) $u['staff_id'];
                 $tc   = $constraints[$t_id] ?? $this->default_tc;
+                $wk   = $this->teacher_periods_week[$t_id] ?? 0;
+                $cap  = (int)$tc->max_periods_per_week;
 
                 $dbg = ['staff_id' => $t_id, 'sgs_id' => $u['sgs_id'],
                     'teacher' => $this->_staffName($t_id),
-                    'week_count' => $this->teacher_periods_week[$t_id] ?? 0,
-                    'week_cap' => (int)$tc->max_periods_per_week,
+                    'week_count' => $wk, 'week_cap' => $cap,
                     'day_counts' => $this->teacher_periods_day[$t_id] ?? [],
                 ];
 
-                if ((int)$tc->max_periods_per_week > 0
-                    && ($this->teacher_periods_week[$t_id] ?? 0) >= (int)$tc->max_periods_per_week) {
-                    $dbg['skip'] = 'weekly_cap_full';
+                // Only block at exactly the cap boundary. If already OVER
+                // (shared teachers whose load exceeds default cap), allow.
+                if ($cap > 0 && $wk === $cap) {
+                    $dbg['skip'] = 'weekly_cap_boundary';
                     $swap_debug['attempts'][] = $dbg;
                     continue;
                 }
@@ -2117,14 +2150,10 @@ class Tt_generator_model extends MY_Model
                 $eff_cap = min((int)$tc->max_periods_per_day,
                     $n_periods - max(0, (int)($tc->min_free_per_day ?? 0)));
                 $dbg['eff_cap'] = $eff_cap;
-                $dbg['n_periods'] = $n_periods;
-                $dbg['max_per_day'] = (int)$tc->max_periods_per_day;
-                $dbg['min_free'] = (int)($tc->min_free_per_day ?? 0);
 
                 $resolved = false;
                 $dbg['slots_tried'] = 0;
                 $dbg['blockers_found'] = 0;
-                $dbg['dest_tried'] = 0;
 
                 foreach ($this->working_days as $day) {
                     if ($resolved) break;
@@ -2143,7 +2172,34 @@ class Tt_generator_model extends MY_Model
                         if (!$t_busy_here && !$need_diff_day) continue;
 
                         $dbg['slots_tried']++;
-                        $dbg['last_slot'] = "{$day} P{$pid} busy={$t_busy_here} daycount={$day_count} need_diff={$need_diff_day}";
+
+                        // If T is free and caps already exceeded, place directly
+                        if (!$t_busy_here && ($day_count > $eff_cap || ($cap > 0 && $wk > $cap))) {
+                            $this->db->insert('tt_entries', [
+                                'session_id' => $session_id,
+                                'class_id' => $class_id, 'section_id' => $section_id,
+                                'subject_group_id' => $u['sgid'],
+                                'subject_group_subject_id' => $u['sgs_id'],
+                                'staff_id' => $t_id, 'period_id' => $pid,
+                                'day' => $day, 'room_id' => null, 'batch_id' => null,
+                                'is_free_period' => 0, 'free_period_label' => null,
+                                'entry_type' => 'auto', 'is_locked' => 0,
+                            ]);
+                            $this->class_occ[$class_id][$section_id][$day][$pid][0] = true;
+                            $this->teacher_occ[$t_id][$day][$pid] = true;
+                            $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                            $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+                            if ($u['sgs_id']) {
+                                $this->subject_day_count[$class_id][$section_id][$u['sgs_id']][$day] =
+                                    ($this->subject_day_count[$class_id][$section_id][$u['sgs_id']][$day] ?? 0) + 1;
+                            }
+                            $existing_counts[$class_id . '_' . $section_id . '_' . $u['sgs_id']] =
+                                ($existing_counts[$class_id . '_' . $section_id . '_' . $u['sgs_id']] ?? 0) + 1;
+                            $dbg['resolved_via'] = "direct_place {$day} P{$pid} (caps_already_over)";
+                            $swapped_this_round++;
+                            $resolved = true;
+                            break;
+                        }
 
                         // Build candidate blockers
                         $blocker_candidates = [];
@@ -2162,7 +2218,7 @@ class Tt_generator_model extends MY_Model
                                 $blocker_candidates[] = $bl;
                             }
                         }
-                        if (empty($blocker_candidates)) { $dbg['no_blockers_at'] = ($dbg['no_blockers_at'] ?? '') . "{$day} P{$pid}; "; continue; }
+                        if (empty($blocker_candidates)) continue;
                         $dbg['blockers_found'] += count($blocker_candidates);
 
                         foreach ($blocker_candidates as $blocker) {
@@ -2186,10 +2242,12 @@ class Tt_generator_model extends MY_Model
                                     if (!empty($unavail_map[$t_id][$day2][$pid2])) continue;
                                     if ($b_sgs && !empty($this->subject_unavail[$b_sgs][$day2][$pid2])) continue;
 
+                                    // Only enforce cap at boundary, allow if already over
                                     if ($day2 !== $day) {
-                                        if (($this->teacher_periods_day[$t_id][$day2] ?? 0) + 1 > $eff_cap) continue;
+                                        $d2c = $this->teacher_periods_day[$t_id][$day2] ?? 0;
+                                        if ($d2c === $eff_cap) continue;
                                     } else {
-                                        if ($day_count + 1 > $eff_cap) continue;
+                                        if ($day_count === $eff_cap) continue;
                                     }
 
                                     // Move blocker in DB
