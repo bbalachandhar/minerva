@@ -588,4 +588,67 @@ class Cron extends MY_Controller
         echo "Exam invitation emails sent: {$sent} | Skipped (no valid email): {$skipped} | Total applicants: " . count($applicants) . "\n";
     }
 
+    /**
+     * Cleanup old log/audit records to keep DB size in check.
+     * Deletes: logs, userlog, gateway_ins (non-pending) older than 3 months.
+     * Also cleans CI application log files older than 7 days.
+     *
+     * URL: /cron/cleanup_logs/{cron_secret_key}
+     * Cron: monthly (1st of each month at 2 AM)
+     */
+    public function cleanup_logs($key = '')
+    {
+        if ($key == '' || $this->cron_key != $key) {
+            echo "Invalid Key or Direct access is not allowed";
+            return;
+        }
+
+        $cutoff = date('Y-m-d H:i:s', strtotime('-3 months'));
+        $results = [];
+
+        // 1. Activity logs
+        $this->db->where('time <', $cutoff);
+        $this->db->delete('logs');
+        $results['logs'] = $this->db->affected_rows();
+
+        // 2. User login logs
+        $this->db->where('login_datetime <', $cutoff);
+        $this->db->delete('userlog');
+        $results['userlog'] = $this->db->affected_rows();
+
+        // 3. Gateway payment dumps (keep pending/processing, delete old completed/failed)
+        $this->db->where('created_at <', $cutoff);
+        $this->db->where_in('payment_status', ['success', 'failed']);
+        $this->db->delete('gateway_ins');
+        $results['gateway_ins'] = $this->db->affected_rows();
+
+        // 4. Old gateway responses
+        if ($this->db->table_exists('gateway_ins_response')) {
+            $this->db->where('created_at <', $cutoff);
+            $this->db->delete('gateway_ins_response');
+            $results['gateway_ins_response'] = $this->db->affected_rows();
+        }
+
+        // 5. Clean CI application log files older than 7 days
+        $log_path = APPPATH . 'logs/';
+        $files_deleted = 0;
+        if (is_dir($log_path)) {
+            $cutoff_file = strtotime('-7 days');
+            foreach (glob($log_path . 'log-*.php') as $file) {
+                if (filemtime($file) < $cutoff_file) {
+                    if (unlink($file)) {
+                        $files_deleted++;
+                    }
+                }
+            }
+        }
+        $results['log_files_deleted'] = $files_deleted;
+
+        $summary = "DB cleanup complete (cutoff: {$cutoff}): ";
+        foreach ($results as $table => $count) {
+            $summary .= "{$table}={$count} ";
+        }
+        echo $summary . "\n";
+    }
+
 }
