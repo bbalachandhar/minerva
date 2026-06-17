@@ -43,9 +43,6 @@
               <button class="btn btn-danger"  id="btn-pdf-grid"    title="Export PDF"><i class="fa fa-file-pdf-o"></i></button>
               <button class="btn btn-success" id="btn-excel-grid"  title="Export Excel"><i class="fa fa-file-excel-o"></i></button>
             </div>
-            <button class="btn btn-warning" id="btn-fill-gaps" style="display:none;margin-left:6px;" title="Fill all empty cells with an available subject or a Free Period placeholder">
-              <i class="fa fa-magic"></i> Fill Empty Cells
-            </button>
           </div>
         </div>
       </div>
@@ -59,6 +56,9 @@
           <button class="btn btn-sm btn-default" id="btn-week-next">Next Week <i class="fa fa-chevron-right"></i></button>
         </div>
         <span id="week-label" class="text-muted" style="margin-left:10px;font-size:12px;"></span>
+        <button class="btn btn-sm btn-warning" id="btn-fill-gaps" style="display:none;margin-left:12px;" title="Fill all empty cells with an available subject or a Free Period placeholder">
+          <i class="fa fa-magic"></i> Fill Empty Cells
+        </button>
       </div>
     </div>
   </div>
