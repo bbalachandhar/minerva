@@ -43,6 +43,9 @@
               <button class="btn btn-danger"  id="btn-pdf-grid"    title="Export PDF"><i class="fa fa-file-pdf-o"></i></button>
               <button class="btn btn-success" id="btn-excel-grid"  title="Export Excel"><i class="fa fa-file-excel-o"></i></button>
             </div>
+            <button class="btn btn-info btn-sm" id="btn-gaps-overview" style="margin-top:2px;" title="Show classes with unfilled cells">
+              <i class="fa fa-list-ul"></i> Gaps
+            </button>
           </div>
         </div>
       </div>
@@ -59,9 +62,6 @@
         <button class="btn btn-sm btn-warning" id="btn-fill-gaps" style="display:none;margin-left:12px;" title="Fill all empty cells with an available subject or a Free Period placeholder">
           <i class="fa fa-magic"></i> Fill Empty Cells
         </button>
-      <button class="btn btn-sm btn-info" id="btn-gaps-overview" style="margin-left:8px;" title="Show classes with unfilled cells">
-        <i class="fa fa-list-ul"></i> Gaps Overview
-      </button>
       </div>
     </div>
   </div>
@@ -339,7 +339,7 @@ $(function(){
   $('#btn-gaps-overview').on('click', function(){
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/gaps_overview'); ?>', {[csrf_name]: csrf_val}, function(res){
-      $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps Overview');
+      $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps');
       if (res.status !== '1') { alert('Failed'); return; }
       var html = '<p><strong>' + res.total_complete + ' class(es) fully filled</strong>';
       if (res.rows.length === 0) {
@@ -359,7 +359,7 @@ $(function(){
       }
       $('#gaps-body').html(html);
       $('#gaps-modal').modal('show');
-    },'json').fail(function(){ $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps Overview'); });
+    },'json').fail(function(xhr){ $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps'); alert('Request failed: ' + (xhr.statusText || 'unknown error')); });
   });
   $(document).on('click', '.gaps-load-class', function(e){
     e.preventDefault();
