@@ -1601,6 +1601,16 @@ class Tt_generator_model extends MY_Model
         $this->subject_day_count    = [];
         $this->subject_day_periods  = [];
 
+        // Delete existing Free Period placeholders for this class — they'll be
+        // re-created by _fillEmptyCells if still needed, or replaced with a real
+        // subject if one fits. Without this, the gap-fill sees those cells as
+        // "occupied" and reports "no empty cells" even when the user sees green
+        // Free Period tags they want to replace.
+        $this->db->where('session_id', $session_id)
+            ->where('class_id', $class_id)->where('section_id', $section_id)
+            ->where('is_free_period', 1)
+            ->delete('tt_entries');
+
         $all_entries = $this->db->where('session_id', $session_id)->get('tt_entries')->result();
         foreach ($all_entries as $e) {
             $bk = $e->batch_id ?: 0;
