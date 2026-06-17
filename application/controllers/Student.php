@@ -89,6 +89,11 @@ class Student extends Admin_Controller
 
         $data['title']     = $this->lang->line('student_details');
         $student           = $this->student_model->get($id);
+        if (empty($student)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('no_record_found') . '</div>');
+            redirect('student/search');
+            return;
+        }
         $data['gradeList'] = $this->grade_model->get();
         $studentSession    = $this->student_model->getStudentSession($id);
 
