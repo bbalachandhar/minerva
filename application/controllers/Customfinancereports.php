@@ -127,8 +127,8 @@ class Customfinancereports extends Admin_Controller
                     $obj->totalfee = $totalfee;
                     $obj->deposit  = $total_paid_sum;
                     $obj->fine     = $total_fine_sum;
-                    $obj->balance  = ($totalfee - $total_paid_sum) + $obj->cf_balance;
-                    $obj->net_balance = $obj->balance - ($obj->advance_paid + $obj->advance_discount);
+                    $obj->balance  = max(0, ($totalfee - $total_paid_sum) + $obj->cf_balance);
+                    $obj->net_balance = max(0, $obj->balance - ($obj->advance_paid + $obj->advance_discount));
 
                     $total_student_discount_dynamic = 0;
                     if (!empty($obj->applied_discounts)) {
@@ -269,8 +269,8 @@ class Customfinancereports extends Admin_Controller
                     $total_paid_sum   = $total_ft_paid   + $d['transport_paid'];
                     $obj->totalfee    = $totalfee;
                     $obj->deposit     = $total_paid_sum;
-                    $obj->balance     = $totalfee - $total_paid_sum + $obj->cf_balance;
-                    $obj->net_balance = $obj->balance - ($d['advance_paid'] + $d['advance_discount']);
+                    $obj->balance     = max(0, $totalfee - $total_paid_sum + $obj->cf_balance);
+                    $obj->net_balance = max(0, $obj->balance - ($d['advance_paid'] + $d['advance_discount']));
 
                     $obj->applied_discounts = isset($discounts_batch[$ssid]) ? $discounts_batch[$ssid] : [];
                     $total_student_discount = 0;
@@ -381,7 +381,7 @@ class Customfinancereports extends Admin_Controller
                 $obj->deposit  = $total_paid_sum;
                 $obj->fine     = $total_fine_sum;
                 $obj->discount = $total_discount_sum;
-                $obj->balance  = $totalfee - $total_paid_sum;
+                $obj->balance  = max(0, $totalfee - $total_paid_sum);
 
                 $has_discount_type = empty($discount_type_filter);
                 if (!$has_discount_type && !empty($obj->applied_discounts)) {
