@@ -2261,6 +2261,9 @@ class Tt_generator_model extends MY_Model
                             $b_sgs = (int) $blocker->subject_group_subject_id;
                             $b_orig_day = $blocker->day;
                             $b_orig_pid = (int) $blocker->period_id;
+                            $dr = ['blocker_class' => "{$b_cid}_{$b_sid}", 'from' => "{$b_orig_day} P{$b_orig_pid}",
+                                   'class_full' => 0, 'teacher_busy' => 0, 'teacher_unavail' => 0,
+                                   'class_unavail' => 0, 'subj_unavail' => 0, 'cap' => 0, 'total' => 0];
 
                             foreach ($this->working_days as $day2) {
                                 if ($resolved) break;
@@ -2268,19 +2271,19 @@ class Tt_generator_model extends MY_Model
 
                                 foreach ($this->period_order as $pid2) {
                                     if ($day2 === $b_orig_day && $pid2 === $b_orig_pid) continue;
+                                    $dr['total']++;
 
-                                    if (!empty($this->class_occ[$b_cid][$b_sid][$day2][$pid2][0])) continue;
-                                    if (!empty($this->class_unavail[$b_cid][$b_sid][$day2][$pid2])) continue;
-                                    if (!empty($this->teacher_occ[$t_id][$day2][$pid2])) continue;
-                                    if (!empty($unavail_map[$t_id][$day2][$pid2])) continue;
-                                    if ($b_sgs && !empty($this->subject_unavail[$b_sgs][$day2][$pid2])) continue;
+                                    if (!empty($this->class_occ[$b_cid][$b_sid][$day2][$pid2][0])) { $dr['class_full']++; continue; }
+                                    if (!empty($this->class_unavail[$b_cid][$b_sid][$day2][$pid2])) { $dr['class_unavail']++; continue; }
+                                    if (!empty($this->teacher_occ[$t_id][$day2][$pid2])) { $dr['teacher_busy']++; continue; }
+                                    if (!empty($unavail_map[$t_id][$day2][$pid2])) { $dr['teacher_unavail']++; continue; }
+                                    if ($b_sgs && !empty($this->subject_unavail[$b_sgs][$day2][$pid2])) { $dr['subj_unavail']++; continue; }
 
-                                    // Only enforce cap at boundary, allow if already over
                                     if ($day2 !== $day) {
                                         $d2c = $this->teacher_periods_day[$t_id][$day2] ?? 0;
-                                        if ($d2c === $eff_cap) continue;
+                                        if ($d2c === $eff_cap) { $dr['cap']++; continue; }
                                     } else {
-                                        if ($day_count === $eff_cap) continue;
+                                        if ($day_count === $eff_cap) { $dr['cap']++; continue; }
                                     }
 
                                     // Move blocker in DB
@@ -2344,6 +2347,7 @@ class Tt_generator_model extends MY_Model
                                     break;
                                 }
                             }
+                            if (!$resolved) $dbg['dest_fail'][] = $dr;
                         }
                     }
                 }
