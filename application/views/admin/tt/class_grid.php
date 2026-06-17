@@ -59,6 +59,9 @@
         <button class="btn btn-sm btn-warning" id="btn-fill-gaps" style="display:none;margin-left:12px;" title="Fill all empty cells with an available subject or a Free Period placeholder">
           <i class="fa fa-magic"></i> Fill Empty Cells
         </button>
+      <button class="btn btn-sm btn-info" id="btn-gaps-overview" style="margin-left:8px;" title="Show classes with unfilled cells">
+        <i class="fa fa-list-ul"></i> Gaps Overview
+      </button>
       </div>
     </div>
   </div>
@@ -147,6 +150,22 @@
         <button type="button" class="btn btn-danger" id="btn-delete-cell" style="display:none;"><i class="fa fa-trash"></i> Remove</button>
         <button type="button" class="btn btn-warning" id="btn-toggle-lock" style="display:none;"></button>
         <button type="button" class="btn btn-primary" id="btn-save-cell"><i class="fa fa-save"></i> Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Gaps Overview modal -->
+<div class="modal fade" id="gaps-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title"><i class="fa fa-list-ul"></i> Gaps Overview</h4>
+      </div>
+      <div class="modal-body" id="gaps-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -316,6 +335,40 @@ $(function(){
   $('#btn-week-cur').on('click',  function(){ weekOffset = 0; loadGrid(false); });
   $('#btn-week-next').on('click', function(){ weekOffset++; loadGrid(false); });
 
+  // Gaps Overview
+  $('#btn-gaps-overview').on('click', function(){
+    var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
+    $.post('<?php echo site_url('admin/tt/gaps_overview'); ?>', {[csrf_name]: csrf_val}, function(res){
+      $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps Overview');
+      if (res.status !== '1') { alert('Failed'); return; }
+      var html = '<p><strong>' + res.total_complete + ' class(es) fully filled</strong>';
+      if (res.rows.length === 0) {
+        html += ' — All timetables are 100% complete!</p>';
+      } else {
+        html += ', <span class="text-danger">' + res.rows.length + ' class(es) with gaps</span></p>';
+        html += '<table class="table table-bordered table-striped table-condensed"><thead><tr><th>Class</th><th>Filled</th><th>Free Period</th><th>Empty</th><th>Total Slots</th><th>Action</th></tr></thead><tbody>';
+        $.each(res.rows, function(_, r) {
+          var pct = Math.round((r.filled / r.total) * 100);
+          html += '<tr><td><strong>' + r.class + '</strong></td><td>' + r.filled + '</td>';
+          html += '<td>' + (r.free > 0 ? '<span class="text-warning">' + r.free + '</span>' : '0') + '</td>';
+          html += '<td>' + (r.empty > 0 ? '<span class="text-danger">' + r.empty + '</span>' : '0') + '</td>';
+          html += '<td>' + r.total + ' (' + pct + '%)</td>';
+          html += '<td><a href="#" class="btn btn-xs btn-primary gaps-load-class" data-cid="'+r.class_id+'" data-sid="'+r.section_id+'"><i class="fa fa-eye"></i> View</a></td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+      $('#gaps-body').html(html);
+      $('#gaps-modal').modal('show');
+    },'json').fail(function(){ $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps Overview'); });
+  });
+  $(document).on('click', '.gaps-load-class', function(e){
+    e.preventDefault();
+    $('#cg_class').val($(this).data('cid')).trigger('change');
+    setTimeout(function(){ $('#cg_section').val($('.gaps-load-class:focus').data('sid') || $(e.target).closest('a').data('sid')); }, 300);
+    $('#gaps-modal').modal('hide');
+    setTimeout(function(){ loadGrid(true); }, 500);
+  });
+
   // Fill Empty Cells: runs the gap-fill logic on the live timetable
   $('#btn-fill-gaps').on('click', function(){
     if (!loaded_class_id) return;
@@ -397,11 +450,14 @@ $(function(){
 
     // Populate dropdowns — only show subjects that still need periods
     var isNew = !entry_id || ($cell.data('entry') && $cell.data('entry').is_free);
+    var hasUnmet = false;
+    if (isNew) $.each(current_subjects, function(i,s){ if (s.remaining > 0) { hasUnmet = true; return false; } });
     var subOpts = '<option value="">-- Select Subject --</option>';
     $.each(current_subjects, function(i,s){
-      if (isNew && s.remaining !== undefined && s.remaining <= 0) return;
+      if (isNew && hasUnmet && s.remaining !== undefined && s.remaining <= 0) return;
       var label = s.subject_name + ' (' + s.subject_code + ')';
       if (s.remaining !== undefined && s.remaining > 0) label += ' [' + s.remaining + ' left]';
+      else if (isNew && !hasUnmet) label += ' [at cap]';
       subOpts += '<option value="'+s.subject_group_subject_id+'" data-sgid="'+s.subject_group_id+'">'+label+'</option>';
     });
     $('#cell_subject').html(subOpts);

@@ -1681,6 +1681,73 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         echo json_encode($result);
     }
 
+    public function gaps_overview()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_view')) {
+            echo json_encode(['status' => '0']); return;
+        }
+        $session_id = $this->setting_model->getCurrentSession();
+
+        $periods = $this->Tt_period_model->getAll($session_id);
+        $teaching_count = 0;
+        foreach ($periods as $p) { if (!$p->is_break) $teaching_count++; }
+
+        $settings = $this->db->where('session_id', $session_id)->get('tt_settings')->row();
+        $days = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+        if (!empty($settings->allow_saturday)) $days[] = 'Saturday';
+        $total_slots = count($days) * $teaching_count;
+
+        $entries = $this->db->select('class_id, section_id, is_free_period, COUNT(*) as cnt')
+            ->where('session_id', $session_id)
+            ->group_by('class_id, section_id, is_free_period')
+            ->get('tt_entries')->result();
+
+        $counts = [];
+        foreach ($entries as $e) {
+            $k = $e->class_id . '_' . $e->section_id;
+            if (!isset($counts[$k])) $counts[$k] = ['filled' => 0, 'free' => 0];
+            if ($e->is_free_period) $counts[$k]['free'] += (int)$e->cnt;
+            else $counts[$k]['filled'] += (int)$e->cnt;
+        }
+
+        $class_sections = $this->db->select('classes.id as class_id, classes.class, sections.id as section_id, sections.section')
+            ->from('class_sections')
+            ->join('classes','classes.id = class_sections.class_id')
+            ->join('sections','sections.id = class_sections.section_id')
+            ->where('class_sections.session_id', $session_id)
+            ->order_by('classes.class','ASC')->order_by('sections.section','ASC')
+            ->get()->result();
+
+        $rows = [];
+        $total_gaps = 0; $total_free = 0; $total_complete = 0;
+        foreach ($class_sections as $cs) {
+            $k = $cs->class_id . '_' . $cs->section_id;
+            $filled = $counts[$k]['filled'] ?? 0;
+            $free   = $counts[$k]['free'] ?? 0;
+            $empty  = max(0, $total_slots - $filled - $free);
+            if ($filled + $free === 0) continue;
+            if ($empty === 0 && $free === 0) { $total_complete++; continue; }
+            $total_gaps += $empty;
+            $total_free += $free;
+            $rows[] = [
+                'class' => $cs->class . ' ' . $cs->section,
+                'class_id' => (int)$cs->class_id,
+                'section_id' => (int)$cs->section_id,
+                'filled' => $filled,
+                'free' => $free,
+                'empty' => $empty,
+                'total' => $total_slots,
+            ];
+        }
+        echo json_encode([
+            'status' => '1', 'rows' => $rows,
+            'total_slots' => $total_slots,
+            'total_complete' => $total_complete,
+            'total_gaps' => $total_gaps,
+            'total_free' => $total_free,
+        ]);
+    }
+
     public function get_available_teachers()
     {
         $session_id = $this->setting_model->getCurrentSession();
