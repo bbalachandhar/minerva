@@ -1571,4 +1571,97 @@ class Tt_generator_model extends MY_Model
         }
         return $grouped;
     }
+
+    /**
+     * Standalone gap-fill for the LIVE timetable (tt_entries), callable from
+     * the Class Grid's "Fill Empty Cells" button. Loads current occupancy from
+     * tt_entries, runs the same _fillEmptyCells logic used during generation,
+     * and writes results directly to tt_entries.
+     */
+    public function fillEmptyCellsLive($session_id, $class_id, $section_id)
+    {
+        $this->session_id = $session_id;
+        $this->_loadWorkingDays(['allow_saturday' => 1]);
+        $this->_loadPeriods();
+
+        if (empty($this->periods)) {
+            return ['status' => '0', 'message' => 'No periods configured.'];
+        }
+
+        // Build occupancy from ALL existing live entries for this session
+        $this->class_occ      = [];
+        $this->teacher_occ    = [];
+        $this->room_occ       = [];
+        $this->teacher_periods_day  = [];
+        $this->teacher_periods_week = [];
+        $this->subject_day_count    = [];
+        $this->subject_day_periods  = [];
+
+        $all_entries = $this->db->where('session_id', $session_id)->get('tt_entries')->result();
+        foreach ($all_entries as $e) {
+            $bk = $e->batch_id ?: 0;
+            $this->class_occ[(int)$e->class_id][(int)$e->section_id][$e->day][(int)$e->period_id][$bk] = true;
+            if ($e->staff_id) {
+                $this->teacher_occ[(int)$e->staff_id][$e->day][(int)$e->period_id] = true;
+                $this->teacher_periods_day[(int)$e->staff_id][$e->day] =
+                    ($this->teacher_periods_day[(int)$e->staff_id][$e->day] ?? 0) + 1;
+                $this->teacher_periods_week[(int)$e->staff_id] =
+                    ($this->teacher_periods_week[(int)$e->staff_id] ?? 0) + 1;
+            }
+            if ($e->room_id) {
+                $this->room_occ[(int)$e->room_id][$e->day][(int)$e->period_id] =
+                    ($this->room_occ[(int)$e->room_id][$e->day][(int)$e->period_id] ?? 0) + 1;
+            }
+            if ($e->subject_group_subject_id) {
+                $this->subject_day_count[(int)$e->class_id][(int)$e->section_id][(int)$e->subject_group_subject_id][$e->day] =
+                    ($this->subject_day_count[(int)$e->class_id][(int)$e->section_id][(int)$e->subject_group_subject_id][$e->day] ?? 0) + 1;
+            }
+        }
+
+        $this->_loadClassUnavail($session_id);
+        $this->_loadSubjectUnavail($session_id);
+
+        $this->CI->load->model('Tt_teacher_model');
+        $constraints = $this->CI->Tt_teacher_model->getAllConstraintsMap($session_id);
+        $unavail_map = $this->CI->Tt_teacher_model->getUnavailabilityMap($session_id);
+
+        $this->default_tc = (object)[
+            'max_periods_per_day'     => 6, 'max_periods_per_week' => 36,
+            'min_free_per_day'        => 0, 'max_gap_per_day'      => null,
+            'avoid_first_period'      => 0, 'avoid_last_period'    => 0,
+            'preferred_start_time'    => null, 'preferred_end_time' => null,
+            'preferred_room_id'       => null, 'max_consecutive_periods' => 0,
+            'min_break_after_consec'  => 1,
+        ];
+
+        $this->CI->load->model('Tt_subjectload_model');
+        $base_loads = $this->CI->Tt_subjectload_model->getAllForClassScope($session_id, [
+            ['class_id' => $class_id, 'section_id' => $section_id]
+        ]);
+
+        $class_stats = [$class_id . '_' . $section_id => ['class_id' => $class_id, 'section_id' => $section_id]];
+
+        $draft_entries = [];
+        $filled_subject = 0; $filled_free = 0;
+        $this->_fillEmptyCells($class_stats, $base_loads, $constraints, $unavail_map,
+            0, $session_id, $draft_entries, $filled_subject, $filled_free);
+
+        // Write directly to tt_entries (live timetable)
+        if (!empty($draft_entries)) {
+            $live = [];
+            foreach ($draft_entries as $d) {
+                unset($d['gen_log_id']);
+                $d['entry_type']  = 'auto';
+                $d['is_locked']   = 0;
+                $live[] = $d;
+            }
+            $this->db->insert_batch('tt_entries', $live);
+        }
+
+        return [
+            'status'         => '1',
+            'filled_subject' => $filled_subject,
+            'filled_free'    => $filled_free,
+        ];
+    }
 }

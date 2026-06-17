@@ -1645,6 +1645,23 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         echo json_encode(['status' => '1']);
     }
 
+    public function fill_empty_cells()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_edit')) {
+            echo json_encode(['status' => '0', 'message' => 'Access denied']); return;
+        }
+        $session_id = $this->setting_model->getCurrentSession();
+        $class_id   = (int) $this->input->post('class_id');
+        $section_id = (int) $this->input->post('section_id');
+
+        if (!$class_id || !$section_id) {
+            echo json_encode(['status' => '0', 'message' => 'No class selected']); return;
+        }
+
+        $result = $this->Tt_generator_model->fillEmptyCellsLive($session_id, $class_id, $section_id);
+        echo json_encode($result);
+    }
+
     // =========================================================================
     // TEACHER TIMETABLE VIEW
     // =========================================================================

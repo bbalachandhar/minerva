@@ -43,6 +43,9 @@
               <button class="btn btn-danger"  id="btn-pdf-grid"    title="Export PDF"><i class="fa fa-file-pdf-o"></i></button>
               <button class="btn btn-success" id="btn-excel-grid"  title="Export Excel"><i class="fa fa-file-excel-o"></i></button>
             </div>
+            <button class="btn btn-warning" id="btn-fill-gaps" style="display:none;margin-left:6px;" title="Fill all empty cells with an available subject or a Free Period placeholder">
+              <i class="fa fa-magic"></i> Fill Empty Cells
+            </button>
           </div>
         </div>
       </div>
@@ -280,6 +283,7 @@ $(function(){
           loaded_section_id = section_id;
           initExportDataTable(res.flat_rows || [], res.flat_cols || [], res.cls_label || '');
           $('#export-btns').show();
+          $('#btn-fill-gaps').show();
           $('#week-nav-row').show();
           $('#week-label').text(weekLabel(weekOffset));
           $('#timetable-grid-container [data-toggle="tooltip"]').tooltip();
@@ -293,6 +297,26 @@ $(function(){
   $('#btn-week-prev').on('click', function(){ weekOffset--; loadGrid(false); });
   $('#btn-week-cur').on('click',  function(){ weekOffset = 0; loadGrid(false); });
   $('#btn-week-next').on('click', function(){ weekOffset++; loadGrid(false); });
+
+  // Fill Empty Cells: runs the gap-fill logic on the live timetable
+  $('#btn-fill-gaps').on('click', function(){
+    if (!loaded_class_id) return;
+    var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Filling...');
+    $.post('<?php echo site_url('admin/tt/fill_empty_cells'); ?>', {
+      class_id: loaded_class_id, section_id: loaded_section_id,
+      [csrf_name]: csrf_val
+    }, function(res){
+      $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill Empty Cells');
+      if (res.status === '1') {
+        var msg = 'Filled ' + (res.filled_subject||0) + ' cell(s) with subjects, ' + (res.filled_free||0) + ' with Free Period.';
+        if ((res.filled_subject||0) + (res.filled_free||0) === 0) msg = 'No empty cells found — grid is already full.';
+        alert(msg);
+        loadGrid(false);
+      } else {
+        alert(res.message || 'Fill failed.');
+      }
+    },'json').fail(function(){ $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill Empty Cells'); alert('Request failed.'); });
+  });
 
   // Print: server-side page with header, auto-triggers window.print()
   $('#btn-print-grid').on('click', function(){
