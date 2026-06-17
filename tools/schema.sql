@@ -12253,6 +12253,8 @@ CREATE TABLE IF NOT EXISTS `tt_draft_entries` (
   `day`                      VARCHAR(20) NOT NULL,
   `room_id`                  INT(11)              DEFAULT NULL,
   `batch_id`                 INT(11)              DEFAULT NULL,
+  `is_free_period`           TINYINT(1)  NOT NULL DEFAULT 0,
+  `free_period_label`        VARCHAR(50)          DEFAULT NULL,
   `created_at`               TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_tt_draft_log`   (`gen_log_id`),
@@ -12545,3 +12547,29 @@ WHERE @tt_menu_id IS NOT NULL
   AND NOT EXISTS (
     SELECT 1 FROM sidebar_sub_menus WHERE sidebar_menu_id = @tt_menu_id AND `key` = 'tt_workload_dashboard'
   );
+
+-- tt_draft_entries: Free Period support for the generator's gap-fill pass,
+-- mirroring the columns tt_entries already has for manual Class Grid edits.
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_draft_entries' AND COLUMN_NAME = 'is_free_period'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_draft_entries` ADD COLUMN `is_free_period` TINYINT(1) NOT NULL DEFAULT 0 AFTER `batch_id`',
+  'SELECT 1 -- is_free_period already exists'
+);
+PREPARE _stmt FROM @sql;
+EXECUTE _stmt;
+DEALLOCATE PREPARE _stmt;
+
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_draft_entries' AND COLUMN_NAME = 'free_period_label'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_draft_entries` ADD COLUMN `free_period_label` VARCHAR(50) DEFAULT NULL AFTER `is_free_period`',
+  'SELECT 1 -- free_period_label already exists'
+);
+PREPARE _stmt FROM @sql;
+EXECUTE _stmt;
+DEALLOCATE PREPARE _stmt;

@@ -245,9 +245,13 @@ foreach ($warnings as $w) {
           <td style="text-align:center;vertical-align:middle;min-height:50px;">
             <?php $entries_here = $day_map[$dk][$period->id] ?? []; ?>
             <?php foreach ($entries_here as $e): ?>
+              <?php if (!empty($e->is_free_period)): ?>
+              <span class="slot-tag" style="background:#27ae60;color:#fff;"><?php echo htmlspecialchars($e->free_period_label ?: 'Free'); ?></span>
+              <?php else: ?>
               <?php $tc = $type_class[strtolower($e->subject_type ?? 'other')] ?? 'slot-other'; ?>
               <span class="slot-tag <?php echo $tc; ?>"><?php echo htmlspecialchars($e->subject_code ?: $e->subject_name); ?></span><br>
               <small style="font-size:10px;"><?php echo htmlspecialchars($e->staff_name.' '.$e->staff_surname); ?></small>
+              <?php endif; ?>
               <?php if ($e->room_name): ?><br><small style="font-size:10px;color:#888;"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($e->room_name); ?></small><?php endif; ?>
             <?php endforeach; ?>
             <?php if (empty($entries_here)): ?><span class="text-muted">—</span><?php endif; ?>

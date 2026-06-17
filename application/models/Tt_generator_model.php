@@ -559,19 +559,32 @@ class Tt_generator_model extends MY_Model
                 }
             }
 
+            // ---- GAP FILL (opt-in via fill_free_periods) ----
+            // Genuine constraint-satisfaction is scored above via total_placed;
+            // gap-fill runs after so it can't inflate that quality metric — it
+            // only touches cells nothing above could place at all.
+            $gap_filled_subject = 0; $gap_filled_free = 0;
+            if (!empty($settings['fill_free_periods'])) {
+                $this->_fillEmptyCells($class_stats, $base_loads, $constraints, $unavail_map,
+                    $log_id, $session_id, $draft_entries, $gap_filled_subject, $gap_filled_free);
+            }
+
             if ($total_placed > $best_placed) {
                 $best_placed = $total_placed;
-                $best_result = compact('draft_entries', 'conflicts', 'total_required', 'total_placed', 'class_stats');
+                $best_result = compact('draft_entries', 'conflicts', 'total_required', 'total_placed', 'class_stats',
+                    'gap_filled_subject', 'gap_filled_free');
             }
 
             if ($total_placed === $total_required) break; // perfect — no need for more passes
         }
 
-        $total_required = $best_result['total_required'];
-        $total_placed   = $best_result['total_placed'];
-        $draft_entries  = $best_result['draft_entries'];
-        $conflicts      = $best_result['conflicts'];
-        $class_stats    = array_values($best_result['class_stats'] ?? []);
+        $total_required     = $best_result['total_required'];
+        $total_placed       = $best_result['total_placed'];
+        $draft_entries      = $best_result['draft_entries'];
+        $conflicts          = $best_result['conflicts'];
+        $class_stats        = array_values($best_result['class_stats'] ?? []);
+        $gap_filled_subject = $best_result['gap_filled_subject'] ?? 0;
+        $gap_filled_free    = $best_result['gap_filled_free'] ?? 0;
         $quality = ($total_required > 0) ? round(($total_placed / $total_required) * 100, 2) : 100.00;
 
         if (!$dry_run) {
@@ -600,7 +613,143 @@ class Tt_generator_model extends MY_Model
             'conflicts'       => $conflicts,
             'class_stats'     => $class_stats,
             'dry_run'         => $dry_run,
+            'gap_filled_subject' => $gap_filled_subject,
+            'gap_filled_free'    => $gap_filled_free,
         ];
+    }
+
+    /**
+     * Gap-fill pass: for every genuinely empty cell in each class's grid,
+     * try to place an extra occurrence of an already-configured subject
+     * whose teacher happens to be free there (prioritizing subjects that
+     * still have unmet periods_per_week). If nothing fits, insert a
+     * generic "Free Period" placeholder so the cell is never blank.
+     */
+    private function _fillEmptyCells($class_stats, array $base_loads, $constraints, $unavail_map,
+                                      $log_id, $session_id, array &$draft_entries, &$filled_subject, &$filled_free)
+    {
+        $loads_by_class = [];
+        foreach ($base_loads as $l) {
+            $ck = $l->class_id . '_' . $l->section_id;
+            $loads_by_class[$ck][] = $l;
+        }
+
+        $placed_per_load = [];
+        foreach ($draft_entries as $de) {
+            if (empty($de['subject_group_subject_id'])) continue;
+            $k = $de['class_id'] . '_' . $de['section_id'] . '_' . $de['subject_group_subject_id'];
+            $placed_per_load[$k] = ($placed_per_load[$k] ?? 0) + 1;
+        }
+
+        foreach (array_keys($class_stats) as $ck) {
+            [$class_id, $section_id] = array_map('intval', explode('_', $ck));
+            $loads = $loads_by_class[$ck] ?? [];
+
+            foreach ($this->working_days as $day) {
+                foreach ($this->period_order as $pid) {
+                    if (!empty($this->class_occ[$class_id][$section_id][$day][$pid][0])) continue;
+                    if (!empty($this->class_unavail[$class_id][$section_id][$day][$pid])) continue;
+
+                    // Rank: subjects still short of periods_per_week first
+                    $candidates = $loads;
+                    usort($candidates, function ($a, $b) use ($placed_per_load, $ck) {
+                        $na = max(0, (int)$a->periods_per_week - ($placed_per_load[$ck . '_' . $a->subject_group_subject_id] ?? 0));
+                        $nb = max(0, (int)$b->periods_per_week - ($placed_per_load[$ck . '_' . $b->subject_group_subject_id] ?? 0));
+                        return $nb <=> $na;
+                    });
+
+                    $filled = false;
+                    foreach ($candidates as $load) {
+                        $sgs_id = (int) $load->subject_group_subject_id;
+                        if (!empty($this->subject_unavail[$sgs_id][$day][$pid])) continue;
+
+                        $max_per_day = (int) ($load->max_per_day ?? 2);
+                        if (($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) >= $max_per_day) continue;
+
+                        $t_ids = $load->teacher_ids ?? [];
+                        if (empty($t_ids)) {
+                            if (!empty($load->staff_id))     $t_ids[] = (int) $load->staff_id;
+                            if (!empty($load->alt_staff_id)) $t_ids[] = (int) $load->alt_staff_id;
+                        }
+                        if (empty($t_ids)) continue;
+
+                        $all_req = !empty($load->all_teachers_required);
+                        $free_teacher = null;
+                        $all_free = true;
+                        foreach ($t_ids as $t_id) {
+                            $why = $this->_diagnoseTeacherAtSlot($t_id, $day, [$pid], $constraints, $unavail_map);
+                            if ($why === null) {
+                                if ($free_teacher === null) $free_teacher = $t_id;
+                                if (!$all_req) break;
+                            } else {
+                                if ($all_req) { $all_free = false; break; }
+                            }
+                        }
+                        if ($all_req && !$all_free) continue;
+                        if (!$all_req && $free_teacher === null) continue;
+
+                        $assigned = $all_req ? $t_ids[0] : $free_teacher;
+                        $pref_room = !empty($load->preferred_room_id) ? (int)$load->preferred_room_id : null;
+                        $room_id = $this->_findRoom($day, [$pid], $load->preferred_room_type ?? 'any',
+                            $pref_room, $assigned, $constraints[$assigned] ?? $this->default_tc);
+
+                        $draft_entries[] = [
+                            'gen_log_id'               => $log_id,
+                            'session_id'               => $session_id,
+                            'class_id'                 => $class_id,
+                            'section_id'               => $section_id,
+                            'subject_group_id'         => (int) $load->subject_group_id,
+                            'subject_group_subject_id' => $sgs_id,
+                            'staff_id'                 => $assigned,
+                            'period_id'                => $pid,
+                            'day'                      => $day,
+                            'room_id'                  => $room_id,
+                            'batch_id'                 => null,
+                            'is_free_period'           => 0,
+                            'free_period_label'        => null,
+                        ];
+
+                        $this->class_occ[$class_id][$section_id][$day][$pid][0] = true;
+                        $teachers_to_mark = $all_req ? $t_ids : [$assigned];
+                        foreach ($teachers_to_mark as $t_id) {
+                            $this->teacher_occ[$t_id][$day][$pid] = true;
+                            $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                            $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+                        }
+                        if ($room_id) {
+                            $this->room_occ[$room_id][$day][$pid] = ($this->room_occ[$room_id][$day][$pid] ?? 0) + 1;
+                        }
+                        $this->subject_day_count[$class_id][$section_id][$sgs_id][$day] =
+                            ($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) + 1;
+                        $placed_per_load[$ck . '_' . $sgs_id] = ($placed_per_load[$ck . '_' . $sgs_id] ?? 0) + 1;
+
+                        $filled = true;
+                        $filled_subject++;
+                        break;
+                    }
+
+                    if (!$filled) {
+                        $draft_entries[] = [
+                            'gen_log_id'               => $log_id,
+                            'session_id'               => $session_id,
+                            'class_id'                 => $class_id,
+                            'section_id'               => $section_id,
+                            'subject_group_id'         => null,
+                            'subject_group_subject_id' => null,
+                            'staff_id'                 => null,
+                            'period_id'                => $pid,
+                            'day'                      => $day,
+                            'room_id'                  => null,
+                            'batch_id'                 => null,
+                            'is_free_period'           => 1,
+                            'free_period_label'        => 'Free Period',
+                        ];
+                        $this->class_occ[$class_id][$section_id][$day][$pid][0] = true;
+                        $filled_free++;
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -1357,7 +1506,8 @@ class Tt_generator_model extends MY_Model
                 unset($d['id'], $d['gen_log_id']);
                 $d['entry_type']     = 'auto';
                 $d['is_locked']      = 0;
-                $d['is_free_period'] = 0;
+                $d['is_free_period'] = (int) ($d['is_free_period'] ?? 0);
+                $d['free_period_label'] = $d['free_period_label'] ?? null;
                 return $d;
             }, $drafts);
             $this->db->insert_batch('tt_entries', $live);
