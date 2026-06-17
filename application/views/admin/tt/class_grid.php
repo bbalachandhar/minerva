@@ -128,8 +128,9 @@
             </div>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="border-top:1px solid #eee;padding-top:10px;margin-top:10px;">
             <label><input type="checkbox" id="chk_free" name="is_free_period" value="1"> Free Period (PT / Library / Assembly)</label>
+            <div id="free-replace-hint" style="display:none;" class="text-info"><small><i class="fa fa-info-circle"></i> To replace this Free Period with a real subject: uncheck the box above, pick a subject and a <strong>green (Free)</strong> teacher, then Save.</small></div>
           </div>
           <div id="free-period-fields" style="display:none;">
             <div class="form-group">
@@ -422,8 +423,11 @@ $(function(){
       if (e_data.is_free) {
         $('#chk_free').prop('checked', true);
         $('#free-period-fields').show();
-        $('#regular-fields').hide();
+        $('#regular-fields').show();
+        $('#free-replace-hint').show();
         $('#cell_free_label').val(e_data.free_label || '');
+      } else {
+        $('#free-replace-hint').hide();
       }
       $('#btn-delete-cell').show();
       $('#btn-toggle-lock').show().removeClass('btn-warning btn-default')
