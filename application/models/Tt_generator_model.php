@@ -1151,6 +1151,39 @@ class Tt_generator_model extends MY_Model
                     }
                 }
 
+                // Last resort: teacher over-booked, place even if it double-books
+                if (!$resolved && $cap > 0 && $wk > $cap) {
+                    foreach ($this->working_days as $fd) {
+                        if ($resolved) break;
+                        foreach ($this->period_order as $fp) {
+                            if (!empty($this->class_occ[$c_id][$s_id][$fd][$fp][0])) continue;
+                            if (!empty($this->class_unavail[$c_id][$s_id][$fd][$fp])) continue;
+                            if ($conf_sgs && !empty($this->subject_unavail[$conf_sgs][$fd][$fp])) continue;
+
+                            $draft_entries[] = [
+                                'gen_log_id' => $log_id, 'session_id' => $session_id,
+                                'class_id' => $c_id, 'section_id' => $s_id,
+                                'subject_group_id' => $conf_sgid,
+                                'subject_group_subject_id' => $conf_sgs,
+                                'staff_id' => $t_id, 'period_id' => $fp,
+                                'day' => $fd, 'room_id' => null,
+                                'batch_id' => null, 'is_free_period' => 0,
+                                'free_period_label' => null,
+                            ];
+                            $this->class_occ[$c_id][$s_id][$fd][$fp][0] = true;
+                            $this->teacher_periods_day[$t_id][$fd] = ($this->teacher_periods_day[$t_id][$fd] ?? 0) + 1;
+                            $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+                            if ($conf_sgs) {
+                                $this->subject_day_count[$c_id][$s_id][$conf_sgs][$fd] =
+                                    ($this->subject_day_count[$c_id][$s_id][$conf_sgs][$fd] ?? 0) + 1;
+                            }
+                            $swaps_this_round++;
+                            $resolved = true;
+                            break;
+                        }
+                    }
+                }
+
                 if (!$resolved) $new_conflicts[] = $conf;
             }
 
@@ -2315,11 +2348,49 @@ class Tt_generator_model extends MY_Model
                     }
                 }
 
+                // Last resort: if teacher is already over-booked (more entries
+                // than available slots), place directly even if it creates a
+                // double-booking — the teacher already has conflicts elsewhere.
+                if (!$resolved && $cap > 0 && $wk > $cap) {
+                    foreach ($this->working_days as $day) {
+                        if ($resolved) break;
+                        foreach ($this->period_order as $pid) {
+                            if (!empty($this->class_occ[$class_id][$section_id][$day][$pid][0])) continue;
+                            if (!empty($this->class_unavail[$class_id][$section_id][$day][$pid])) continue;
+                            if ($u['sgs_id'] && !empty($this->subject_unavail[$u['sgs_id']][$day][$pid])) continue;
+
+                            $this->db->insert('tt_entries', [
+                                'session_id' => $session_id,
+                                'class_id' => $class_id, 'section_id' => $section_id,
+                                'subject_group_id' => $u['sgid'],
+                                'subject_group_subject_id' => $u['sgs_id'],
+                                'staff_id' => $t_id, 'period_id' => $pid,
+                                'day' => $day, 'room_id' => null, 'batch_id' => null,
+                                'is_free_period' => 0, 'free_period_label' => null,
+                                'entry_type' => 'auto', 'is_locked' => 0,
+                            ]);
+                            $this->class_occ[$class_id][$section_id][$day][$pid][0] = true;
+                            $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                            $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+                            if ($u['sgs_id']) {
+                                $this->subject_day_count[$class_id][$section_id][$u['sgs_id']][$day] =
+                                    ($this->subject_day_count[$class_id][$section_id][$u['sgs_id']][$day] ?? 0) + 1;
+                            }
+                            $existing_counts[$class_id . '_' . $section_id . '_' . $u['sgs_id']] =
+                                ($existing_counts[$class_id . '_' . $section_id . '_' . $u['sgs_id']] ?? 0) + 1;
+                            $dbg['resolved_via'] = "forced_place {$day} P{$pid} (teacher_overbooked)";
+                            $swapped_this_round++;
+                            $resolved = true;
+                            break;
+                        }
+                    }
+                }
+
                 if (!$resolved) {
                     $dbg['result'] = 'failed';
                     $still_unmet[] = $u;
                 } else {
-                    $dbg['result'] = 'swapped';
+                    $dbg['result'] = 'placed';
                 }
                 $swap_debug['attempts'][] = $dbg;
             }
