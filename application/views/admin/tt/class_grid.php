@@ -348,9 +348,6 @@ $(function(){
           });
           html += '</div>';
         }
-        if (res.swap_debug) {
-          html += '<hr><p><strong>Swap Debug:</strong></p><pre style="font-size:11px;max-height:300px;overflow:auto;">' + JSON.stringify(res.swap_debug, null, 2) + '</pre>';
-        }
         $('#fill-diag-body').html(html);
         $('#fill-diag-modal').modal('show');
       } else {
