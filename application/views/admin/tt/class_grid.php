@@ -395,10 +395,14 @@ $(function(){
     $('#regular-fields').show();
     $('#modal-title-text').text(day + ' — ' + $cell.data('period-name'));
 
-    // Populate dropdowns
+    // Populate dropdowns — only show subjects that still need periods
+    var isNew = !entry_id || ($cell.data('entry') && $cell.data('entry').is_free);
     var subOpts = '<option value="">-- Select Subject --</option>';
     $.each(current_subjects, function(i,s){
-      subOpts += '<option value="'+s.subject_group_subject_id+'" data-sgid="'+s.subject_group_id+'">'+s.subject_name+' ('+s.subject_code+')</option>';
+      if (isNew && s.remaining !== undefined && s.remaining <= 0) return;
+      var label = s.subject_name + ' (' + s.subject_code + ')';
+      if (s.remaining !== undefined && s.remaining > 0) label += ' [' + s.remaining + ' left]';
+      subOpts += '<option value="'+s.subject_group_subject_id+'" data-sgid="'+s.subject_group_id+'">'+label+'</option>';
     });
     $('#cell_subject').html(subOpts);
 
@@ -461,6 +465,10 @@ $(function(){
     }, 'json');
 
     $('#cell-modal').modal('show');
+    setTimeout(function(){
+      $('#cell_subject').select2({ dropdownParent: $('#cell-modal'), placeholder: '-- Select Subject --', allowClear: true, width: '100%' });
+      $('#cell_staff').select2({ dropdownParent: $('#cell-modal'), placeholder: '-- No Teacher --', allowClear: true, width: '100%' });
+    }, 200);
   });
 
   // Subject change → auto-fill subject_group_id

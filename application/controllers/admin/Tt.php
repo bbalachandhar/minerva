@@ -1253,10 +1253,29 @@ class Tt extends Admin_Controller
         $day_full_dates = $this->_calcWeekFullDates($days, $week_offset);
 
         $entry_map = [];
+        $placed_counts = [];
         foreach ($entries as $e) {
             $batch_key = $e->batch_id ?: 0;
             $entry_map[$e->day][$e->period_id][$batch_key] = $e;
+            if (!empty($e->subject_group_subject_id) && empty($e->is_free_period)) {
+                $placed_counts[(int)$e->subject_group_subject_id] =
+                    ($placed_counts[(int)$e->subject_group_subject_id] ?? 0) + 1;
+            }
         }
+
+        // Enrich subjects with placed/needed counts for the cell editor
+        $loads_map = [];
+        $sl = $this->Tt_subjectload_model->getForClassSection($session_id, $class_id, $section_id);
+        foreach ($sl as $l) {
+            $loads_map[(int)$l->subject_group_subject_id] = (int)$l->periods_per_week;
+        }
+        foreach ($subjects as &$s) {
+            $sgs = (int)$s->subject_group_subject_id;
+            $s->periods_per_week = $loads_map[$sgs] ?? 0;
+            $s->placed           = $placed_counts[$sgs] ?? 0;
+            $s->remaining        = max(0, $s->periods_per_week - $s->placed);
+        }
+        unset($s);
 
         $subst_list = $this->Tt_substitution_model->getForClassWeek($session_id, $class_id, $section_id, array_values($day_full_dates));
         $subst_map  = [];
