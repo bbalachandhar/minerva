@@ -106,15 +106,24 @@ class Customfinancereports extends Admin_Controller
                     $obj->cf_paid     = $this->customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
                     $obj->cf_balance  = $obj->last_yr_cf - $obj->cf_paid;
 
-                    // Totals
+                    // Totals — sum only positive per-fee-type balances
                     $total_ft_demand = 0;
                     $total_ft_paid   = 0;
+                    $positive_balance_sum = 0;
                     foreach ($obj->fee_types as $ft) {
                         $total_ft_demand += $ft['demand'];
                         $total_ft_paid   += $ft['paid'];
+                        $ft_balance = $ft['demand'] - $ft['paid'];
+                        if ($ft_balance > 0) {
+                            $positive_balance_sum += $ft_balance;
+                        }
                     }
                     $totalfee       = $total_ft_demand + $fees_data->transport_demand;
                     $total_paid_sum = $total_ft_paid  + $fees_data->transport_paid;
+                    $transport_balance = $fees_data->transport_demand - $fees_data->transport_paid;
+                    if ($transport_balance > 0) {
+                        $positive_balance_sum += $transport_balance;
+                    }
 
                     $total_fine_sum = $total_discount_sum = 0;
                     if (!empty($fees_data->fees)) {
@@ -127,7 +136,7 @@ class Customfinancereports extends Admin_Controller
                     $obj->totalfee = $totalfee;
                     $obj->deposit  = $total_paid_sum;
                     $obj->fine     = $total_fine_sum;
-                    $obj->balance  = max(0, ($totalfee - $total_paid_sum) + $obj->cf_balance);
+                    $obj->balance  = $positive_balance_sum + $obj->cf_balance;
                     $obj->net_balance = max(0, $obj->balance - ($obj->advance_paid + $obj->advance_discount));
 
                     $total_student_discount_dynamic = 0;
@@ -260,16 +269,24 @@ class Customfinancereports extends Admin_Controller
                         if (!isset($fee_type_columns[$tid])) $fee_type_columns[$tid] = $ft['name'];
                     }
 
-                    $total_ft_demand = $total_ft_paid = 0;
+                    $total_ft_demand = $total_ft_paid = $positive_balance_sum = 0;
                     foreach ($d['fee_types'] as $ft) {
                         $total_ft_demand += $ft['demand'];
                         $total_ft_paid   += $ft['paid'];
+                        $ft_balance = $ft['demand'] - $ft['paid'];
+                        if ($ft_balance > 0) {
+                            $positive_balance_sum += $ft_balance;
+                        }
                     }
                     $totalfee         = $total_ft_demand + $d['transport_demand'];
                     $total_paid_sum   = $total_ft_paid   + $d['transport_paid'];
+                    $transport_balance = $d['transport_demand'] - $d['transport_paid'];
+                    if ($transport_balance > 0) {
+                        $positive_balance_sum += $transport_balance;
+                    }
                     $obj->totalfee    = $totalfee;
                     $obj->deposit     = $total_paid_sum;
-                    $obj->balance     = max(0, $totalfee - $total_paid_sum + $obj->cf_balance);
+                    $obj->balance     = $positive_balance_sum + $obj->cf_balance;
                     $obj->net_balance = max(0, $obj->balance - ($d['advance_paid'] + $d['advance_discount']));
 
                     $obj->applied_discounts = isset($discounts_batch[$ssid]) ? $discounts_batch[$ssid] : [];
@@ -361,13 +378,21 @@ class Customfinancereports extends Admin_Controller
                 $balance_record  = $this->customstudentfeemaster_model->getBalanceMasterRecord($this->balance_group, '(' . $student_session_id . ')');
                 $obj->last_yr_cf = !empty($balance_record) ? $balance_record[0]->amount : 0;
 
-                $total_ft_demand = $total_ft_paid = $totalfee = 0;
+                $total_ft_demand = $total_ft_paid = $totalfee = $positive_balance_sum = 0;
                 foreach ($obj->fee_types as $ft) {
                     $total_ft_demand += $ft['demand'];
                     $total_ft_paid   += $ft['paid'];
+                    $ft_balance = $ft['demand'] - $ft['paid'];
+                    if ($ft_balance > 0) {
+                        $positive_balance_sum += $ft_balance;
+                    }
                 }
                 $totalfee       = $total_ft_demand + $fees_data->transport_demand;
                 $total_paid_sum = $total_ft_paid   + $fees_data->transport_paid;
+                $transport_balance = $fees_data->transport_demand - $fees_data->transport_paid;
+                if ($transport_balance > 0) {
+                    $positive_balance_sum += $transport_balance;
+                }
 
                 $total_fine_sum = $total_discount_sum = 0;
                 if (!empty($fees_data->fees)) {
@@ -381,7 +406,7 @@ class Customfinancereports extends Admin_Controller
                 $obj->deposit  = $total_paid_sum;
                 $obj->fine     = $total_fine_sum;
                 $obj->discount = $total_discount_sum;
-                $obj->balance  = max(0, $totalfee - $total_paid_sum);
+                $obj->balance  = $positive_balance_sum;
 
                 $has_discount_type = empty($discount_type_filter);
                 if (!$has_discount_type && !empty($obj->applied_discounts)) {
