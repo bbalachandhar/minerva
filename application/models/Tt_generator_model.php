@@ -630,7 +630,7 @@ class Tt_generator_model extends MY_Model
      * generic "Free Period" placeholder so the cell is never blank.
      */
     private function _fillEmptyCells($class_stats, array $base_loads, $constraints, $unavail_map,
-                                      $log_id, $session_id, array &$draft_entries, &$filled_subject, &$filled_free)
+                                      $log_id, $session_id, array &$draft_entries, &$filled_subject, &$filled_free, array &$diagnostics = [])
     {
         $loads_by_class = [];
         foreach ($base_loads as $l) {
@@ -663,29 +663,39 @@ class Tt_generator_model extends MY_Model
                     });
 
                     $filled = false;
+                    $slot_reasons = [];
                     foreach ($candidates as $load) {
                         $sgs_id = (int) $load->subject_group_subject_id;
-                        if (!empty($this->subject_unavail[$sgs_id][$day][$pid])) continue;
+                        $subj_label = $load->subject_name ?? "sgs#{$sgs_id}";
+                        if (!empty($this->subject_unavail[$sgs_id][$day][$pid])) {
+                            $slot_reasons[] = "{$subj_label}: blocked by Subject Time-Off";
+                            continue;
+                        }
 
                         $max_per_day = (int) ($load->max_per_day ?? 2);
-                        if (($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) >= $max_per_day) continue;
+                        if (($this->subject_day_count[$class_id][$section_id][$sgs_id][$day] ?? 0) >= $max_per_day) {
+                            $slot_reasons[] = "{$subj_label}: already at max {$max_per_day}/day on {$day}";
+                            continue;
+                        }
 
                         $t_ids = $load->teacher_ids ?? [];
                         if (empty($t_ids)) {
                             if (!empty($load->staff_id))     $t_ids[] = (int) $load->staff_id;
                             if (!empty($load->alt_staff_id)) $t_ids[] = (int) $load->alt_staff_id;
                         }
-                        if (empty($t_ids)) continue;
+                        if (empty($t_ids)) { $slot_reasons[] = "{$subj_label}: no teacher assigned"; continue; }
 
                         $all_req = !empty($load->all_teachers_required);
                         $free_teacher = null;
                         $all_free = true;
                         foreach ($t_ids as $t_id) {
+                            $t_name = $this->_staffName($t_id);
                             $why = $this->_diagnoseTeacherAtSlot($t_id, $day, [$pid], $constraints, $unavail_map);
                             if ($why === null) {
                                 if ($free_teacher === null) $free_teacher = $t_id;
                                 if (!$all_req) break;
                             } else {
+                                $slot_reasons[] = "{$subj_label} / {$t_name}: {$why}";
                                 if ($all_req) { $all_free = false; break; }
                             }
                         }
@@ -733,6 +743,11 @@ class Tt_generator_model extends MY_Model
                     }
 
                     if (!$filled) {
+                        $period_name = $this->periods[$pid]->name ?? "P{$pid}";
+                        $diagnostics[] = [
+                            'slot'    => "{$day} {$period_name}",
+                            'reasons' => $slot_reasons,
+                        ];
                         $draft_entries[] = [
                             'gen_log_id'               => $log_id,
                             'session_id'               => $session_id,
@@ -1113,6 +1128,15 @@ class Tt_generator_model extends MY_Model
         if ($pref_room && !$room_id) return 'the preferred room is already booked at this slot';
 
         return 'slot should be available — please re-check and try generating again';
+    }
+
+    private $_staff_names = [];
+    private function _staffName($id) {
+        if (!isset($this->_staff_names[$id])) {
+            $r = $this->db->select('name, surname')->where('id', $id)->get('staff')->row();
+            $this->_staff_names[$id] = $r ? trim($r->name . ' ' . ($r->surname ?? '')) : "Staff #{$id}";
+        }
+        return $this->_staff_names[$id];
     }
 
     private function _diagnoseTeacherAtSlot($t_id, $day, array $pid_group, $constraints, $unavail_map)
@@ -1660,9 +1684,9 @@ class Tt_generator_model extends MY_Model
         $class_stats = [$class_id . '_' . $section_id => ['class_id' => $class_id, 'section_id' => $section_id]];
 
         $draft_entries = [];
-        $filled_subject = 0; $filled_free = 0;
+        $filled_subject = 0; $filled_free = 0; $diagnostics = [];
         $this->_fillEmptyCells($class_stats, $base_loads, $constraints, $unavail_map,
-            0, $session_id, $draft_entries, $filled_subject, $filled_free);
+            0, $session_id, $draft_entries, $filled_subject, $filled_free, $diagnostics);
 
         // Write directly to tt_entries (live timetable)
         if (!empty($draft_entries)) {
@@ -1678,6 +1702,7 @@ class Tt_generator_model extends MY_Model
 
         return [
             'status'         => '1',
+            'diagnostics'    => $diagnostics,
             'filled_subject' => $filled_subject,
             'filled_free'    => $filled_free,
         ];

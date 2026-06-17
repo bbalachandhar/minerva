@@ -150,6 +150,22 @@
   </div>
 </div>
 
+<!-- Fill diagnostics modal -->
+<div class="modal fade" id="fill-diag-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title"><i class="fa fa-magic"></i> Fill Empty Cells — Results</h4>
+      </div>
+      <div class="modal-body" id="fill-diag-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </section>
 
 <style>
@@ -308,10 +324,28 @@ $(function(){
     }, function(res){
       $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill Empty Cells');
       if (res.status === '1') {
-        var msg = 'Filled ' + (res.filled_subject||0) + ' cell(s) with subjects, ' + (res.filled_free||0) + ' with Free Period.';
-        if ((res.filled_subject||0) + (res.filled_free||0) === 0) msg = 'No empty cells found — grid is already full.';
-        alert(msg);
         loadGrid(false);
+        var subj = res.filled_subject||0, free = res.filled_free||0;
+        if (subj + free === 0) { alert('No empty cells found — grid is already full.'); return; }
+        var html = '<p><strong>Filled ' + subj + ' cell(s) with subjects, ' + free + ' with Free Period.</strong></p>';
+        if (res.diagnostics && res.diagnostics.length > 0) {
+          html += '<p class="text-danger"><strong>Could not auto-fill these slots (marked Free Period):</strong></p>';
+          html += '<div style="max-height:350px;overflow-y:auto;font-size:12px;">';
+          $.each(res.diagnostics, function(_, d) {
+            html += '<div style="margin-bottom:10px;border-left:3px solid #e74c3c;padding:4px 8px;">';
+            html += '<strong>' + d.slot + '</strong><br>';
+            if (d.reasons && d.reasons.length) {
+              $.each(d.reasons, function(_, r) { html += '<span class="text-muted">&bull; ' + r + '</span><br>'; });
+            } else {
+              html += '<span class="text-muted">&bull; No configured subject has a teacher assigned</span>';
+            }
+            html += '<em class="text-info" style="font-size:11px;">Fix: click this cell in the grid, pick a subject + an available teacher manually, and save.</em>';
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+        $('#fill-diag-body').html(html);
+        $('#fill-diag-modal').modal('show');
       } else {
         alert(res.message || 'Fill failed.');
       }
