@@ -599,6 +599,14 @@ class Tt_generator_model extends MY_Model
                 }
             }
 
+            // ---- SIMULATED ANNEALING (if enabled) ----
+            if (!empty($settings['use_sa']) || $gen_size === 'huge') {
+                $sa_placed = $this->_runSA($draft_entries, $conflicts,
+                    $base_loads, $constraints, $unavail_map, $joint_peers,
+                    $log_id, $session_id, $settings, $total_placed, $class_stats);
+                $total_placed += $sa_placed;
+            }
+
             // ---- SWAP REPAIR PASS ----
             // For each no_slot conflict, try to resolve it by finding a slot
             // where the TEACHER is free but the CLASS is occupied by entry E,
@@ -1027,6 +1035,386 @@ class Tt_generator_model extends MY_Model
                 }
             }
         }
+    }
+
+    /**
+     * Simulated Annealing optimizer.
+     * Starts from the greedy result and iteratively improves by random moves.
+     */
+    private function _runSA(array &$draft_entries, array &$conflicts,
+        $base_loads, $constraints, $unavail_map, $joint_peers,
+        $log_id, $session_id, $settings, &$total_placed, &$class_stats)
+    {
+        $max_iter   = (int)($settings['sa_iterations'] ?? 20000);
+        $temp       = 100.0;
+        $cool_rate  = 0.9995;
+        $min_temp   = 0.1;
+
+        // Build grid: [ck][slot_key] => {di, staff_id, sgs_id, sg_id}
+        $grid  = [];
+        $entry_staff = [];
+        foreach ($draft_entries as $di => $de) {
+            if (!empty($de['is_free_period'])) continue;
+            $ck  = $de['class_id'] . '_' . $de['section_id'];
+            $sk  = $de['day'] . '_' . $de['period_id'];
+            $grid[$ck][$sk] = $di;
+            if (!empty($de['staff_id'])) {
+                $entry_staff[(int)$de['staff_id']][] = $di;
+            }
+        }
+
+        // Build unplaced list from no_slot conflicts
+        $unplaced = [];
+        foreach ($conflicts as $ci => $conf) {
+            if (($conf['type'] ?? '') !== 'no_slot') continue;
+            $unplaced[] = [
+                'class_id'   => (int)($conf['class_id'] ?? 0),
+                'section_id' => (int)($conf['section_id'] ?? 0),
+                'staff_id'   => (int)($conf['staff_id'] ?? 0),
+                'sgs_id'     => (int)($conf['subject_group_subject_id'] ?? 0),
+                'sg_id'      => (int)($conf['subject_group_id'] ?? 0),
+                'conf_idx'   => $ci,
+            ];
+        }
+
+        if (empty($unplaced)) return;
+
+        $all_slots = [];
+        foreach ($this->working_days as $d) {
+            foreach ($this->period_order as $p) {
+                $all_slots[] = ['day' => $d, 'pid' => $p];
+            }
+        }
+        $n_slots = count($all_slots);
+
+        $best_unplaced_count = count($unplaced);
+        $best_entries   = $draft_entries;
+        $best_occ       = [
+            'class'   => $this->class_occ,
+            'teacher' => $this->teacher_occ,
+            'tpd'     => $this->teacher_periods_day,
+            'tpw'     => $this->teacher_periods_week,
+        ];
+
+        $sa_resolved = 0;
+
+        for ($iter = 0; $iter < $max_iter && !empty($unplaced); $iter++) {
+            $temp = max($min_temp, $temp * $cool_rate);
+            $r = mt_rand(1, 100);
+
+            $moved = false;
+
+            if ($r <= 25 && !empty($unplaced)) {
+                // ---- RELOCATE: place an unplaced subject at a free slot ----
+                $ui = mt_rand(0, count($unplaced) - 1);
+                $u  = $unplaced[$ui];
+                $ck = $u['class_id'] . '_' . $u['section_id'];
+                $t_id = $u['staff_id'];
+
+                // Shuffle slots to randomize
+                $slot_order = $all_slots;
+                shuffle($slot_order);
+
+                foreach ($slot_order as $sl) {
+                    $sk = $sl['day'] . '_' . $sl['pid'];
+                    if (isset($grid[$ck][$sk])) continue;
+                    if (!empty($this->class_occ[$u['class_id']][$u['section_id']][$sl['day']][$sl['pid']][0])) continue;
+                    if (!empty($this->class_unavail[$u['class_id']][$u['section_id']][$sl['day']][$sl['pid']])) continue;
+                    if (!empty($this->teacher_occ[$t_id][$sl['day']][$sl['pid']])) continue;
+                    if (!empty($unavail_map[$t_id][$sl['day']][$sl['pid']])) continue;
+
+                    // Place it
+                    $new_entry = [
+                        'gen_log_id' => $log_id, 'session_id' => $session_id,
+                        'class_id' => $u['class_id'], 'section_id' => $u['section_id'],
+                        'subject_group_id' => $u['sg_id'],
+                        'subject_group_subject_id' => $u['sgs_id'],
+                        'staff_id' => $t_id, 'period_id' => $sl['pid'],
+                        'day' => $sl['day'], 'room_id' => null,
+                        'batch_id' => null, 'is_free_period' => 0,
+                        'free_period_label' => null,
+                    ];
+                    $new_di = count($draft_entries);
+                    $draft_entries[] = $new_entry;
+                    $grid[$ck][$sk] = $new_di;
+
+                    $this->class_occ[$u['class_id']][$u['section_id']][$sl['day']][$sl['pid']][0] = true;
+                    $this->teacher_occ[$t_id][$sl['day']][$sl['pid']] = true;
+                    $this->teacher_periods_day[$t_id][$sl['day']] = ($this->teacher_periods_day[$t_id][$sl['day']] ?? 0) + 1;
+                    $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+
+                    array_splice($unplaced, $ui, 1);
+                    $total_placed++;
+                    $sa_resolved++;
+                    $moved = true;
+
+                    $cks = $u['class_id'] . '_' . $u['section_id'];
+                    if (isset($class_stats[$cks])) $class_stats[$cks]['placed']++;
+                    break;
+                }
+
+            } elseif ($r <= 50 && !empty($unplaced)) {
+                // ---- DISPLACE: force-place unplaced, displacing current occupant ----
+                $ui = mt_rand(0, count($unplaced) - 1);
+                $u  = $unplaced[$ui];
+                $ck = $u['class_id'] . '_' . $u['section_id'];
+                $t_id = $u['staff_id'];
+
+                // Find a slot in the class where T is free (but class is occupied)
+                $slot_order = $all_slots;
+                shuffle($slot_order);
+
+                foreach ($slot_order as $sl) {
+                    $sk = $sl['day'] . '_' . $sl['pid'];
+                    if (!isset($grid[$ck][$sk])) continue;
+                    if (!empty($this->class_unavail[$u['class_id']][$u['section_id']][$sl['day']][$sl['pid']])) continue;
+                    if (!empty($this->teacher_occ[$t_id][$sl['day']][$sl['pid']])) continue;
+                    if (!empty($unavail_map[$t_id][$sl['day']][$sl['pid']])) continue;
+
+                    // Don't displace locked or joint entries
+                    $victim_di = $grid[$ck][$sk];
+                    $victim = $draft_entries[$victim_di];
+                    if (!empty($victim['is_locked'])) continue;
+                    $v_sgs = (int)($victim['subject_group_subject_id'] ?? 0);
+                    if (!empty($joint_peers[$u['class_id']][$u['section_id']][$v_sgs])) continue;
+
+                    $v_tid = (int)($victim['staff_id'] ?? 0);
+
+                    // Accept displacement based on temperature
+                    // Cost delta: -1000 (unplaced resolved) + 1000 (victim becomes unplaced) = 0
+                    // But we gain if the victim has more placement options than the unplaced subject
+                    $accept = (mt_rand(0, 100) / 100.0) < exp(-1.0 / $temp);
+                    if (!$accept && $temp > 1.0) continue;
+                    if (!$accept) continue;
+
+                    // Remove victim from grid
+                    unset($grid[$ck][$sk]);
+                    unset($this->teacher_occ[$v_tid][$sl['day']][$sl['pid']]);
+                    $this->teacher_periods_day[$v_tid][$sl['day']] = max(0, ($this->teacher_periods_day[$v_tid][$sl['day']] ?? 1) - 1);
+                    $this->teacher_periods_week[$v_tid] = max(0, ($this->teacher_periods_week[$v_tid] ?? 1) - 1);
+                    $draft_entries[$victim_di]['is_free_period'] = 1;
+                    $draft_entries[$victim_di]['staff_id'] = null;
+                    $draft_entries[$victim_di]['subject_group_subject_id'] = null;
+
+                    // Place the unplaced subject
+                    $new_entry = [
+                        'gen_log_id' => $log_id, 'session_id' => $session_id,
+                        'class_id' => $u['class_id'], 'section_id' => $u['section_id'],
+                        'subject_group_id' => $u['sg_id'],
+                        'subject_group_subject_id' => $u['sgs_id'],
+                        'staff_id' => $t_id, 'period_id' => $sl['pid'],
+                        'day' => $sl['day'], 'room_id' => null,
+                        'batch_id' => null, 'is_free_period' => 0,
+                        'free_period_label' => null,
+                    ];
+                    $new_di = count($draft_entries);
+                    $draft_entries[] = $new_entry;
+                    $grid[$ck][$sk] = $new_di;
+                    $this->teacher_occ[$t_id][$sl['day']][$sl['pid']] = true;
+                    $this->teacher_periods_day[$t_id][$sl['day']] = ($this->teacher_periods_day[$t_id][$sl['day']] ?? 0) + 1;
+                    $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+
+                    // Swap in unplaced list: remove placed, add victim
+                    $unplaced[$ui] = [
+                        'class_id'   => (int)$victim['class_id'],
+                        'section_id' => (int)$victim['section_id'],
+                        'staff_id'   => $v_tid,
+                        'sgs_id'     => $v_sgs,
+                        'sg_id'      => (int)($victim['subject_group_id'] ?? 0),
+                        'conf_idx'   => -1,
+                    ];
+                    $moved = true;
+                    break;
+                }
+
+            } elseif ($r <= 90) {
+                // ---- SWAP WITHIN CLASS: swap two entries' time slots ----
+                $class_keys = array_keys($grid);
+                if (empty($class_keys)) continue;
+                $ck = $class_keys[mt_rand(0, count($class_keys) - 1)];
+                $slots = array_keys($grid[$ck]);
+                if (count($slots) < 2) continue;
+
+                $i1 = mt_rand(0, count($slots) - 1);
+                $i2 = mt_rand(0, count($slots) - 2);
+                if ($i2 >= $i1) $i2++;
+                $sk1 = $slots[$i1]; $sk2 = $slots[$i2];
+                $di1 = $grid[$ck][$sk1]; $di2 = $grid[$ck][$sk2];
+
+                $e1 = $draft_entries[$di1]; $e2 = $draft_entries[$di2];
+                if (!empty($e1['is_locked']) || !empty($e2['is_locked'])) continue;
+
+                [$d1, $p1] = explode('_', $sk1);
+                [$d2, $p2] = explode('_', $sk2);
+                $p1 = (int)$p1; $p2 = (int)$p2;
+                $t1 = (int)($e1['staff_id'] ?? 0); $t2_s = (int)($e2['staff_id'] ?? 0);
+
+                // Check constraints at swapped positions
+                $ok = true;
+                if ($t1 && !empty($this->teacher_occ[$t1][$d2][$p2]) && $di1 !== ($grid[$ck][$sk2] ?? -1)) $ok = false;
+                if ($t2_s && !empty($this->teacher_occ[$t2_s][$d1][$p1]) && $di2 !== ($grid[$ck][$sk1] ?? -1)) $ok = false;
+                if (!$ok) {
+                    // Check if swap would RESOLVE a teacher clash
+                    // (teacher teaching this slot IS the entry we're moving away)
+                    if ($t1 === $t2_s) $ok = true; // same teacher, swap is always valid within class
+                }
+
+                if (!$ok) {
+                    // SA acceptance for constraint-violating swap
+                    $delta = 50; // penalty
+                    $accept = (mt_rand(0, 1000) / 1000.0) < exp(-$delta / $temp);
+                    if (!$accept) continue;
+                }
+
+                // Joint check: if either entry is joint, verify peers can swap too
+                $sgs1 = (int)($e1['subject_group_subject_id'] ?? 0);
+                $sgs2 = (int)($e2['subject_group_subject_id'] ?? 0);
+                $c_id = (int)$e1['class_id']; $s_id = (int)$e1['section_id'];
+                $jp1 = $joint_peers[$c_id][$s_id][$sgs1] ?? null;
+                $jp2 = $joint_peers[$c_id][$s_id][$sgs2] ?? null;
+                if ($jp1 && !$this->_jointPeersCanMove($jp1, $c_id, $s_id, $d2, $p2)) continue;
+                if ($jp2 && !$this->_jointPeersCanMove($jp2, $c_id, $s_id, $d1, $p1)) continue;
+
+                // Execute swap
+                $draft_entries[$di1]['day'] = $d2; $draft_entries[$di1]['period_id'] = $p2;
+                $draft_entries[$di2]['day'] = $d1; $draft_entries[$di2]['period_id'] = $p1;
+                $grid[$ck][$sk1] = $di2; $grid[$ck][$sk2] = $di1;
+
+                // Update teacher occupancy
+                if ($t1) {
+                    unset($this->teacher_occ[$t1][$d1][$p1]);
+                    $this->teacher_occ[$t1][$d2][$p2] = true;
+                    if ($d1 !== $d2) {
+                        $this->teacher_periods_day[$t1][$d1] = max(0, ($this->teacher_periods_day[$t1][$d1] ?? 1) - 1);
+                        $this->teacher_periods_day[$t1][$d2] = ($this->teacher_periods_day[$t1][$d2] ?? 0) + 1;
+                    }
+                }
+                if ($t2_s && $t2_s !== $t1) {
+                    unset($this->teacher_occ[$t2_s][$d2][$p2]);
+                    $this->teacher_occ[$t2_s][$d1][$p1] = true;
+                    if ($d1 !== $d2) {
+                        $this->teacher_periods_day[$t2_s][$d2] = max(0, ($this->teacher_periods_day[$t2_s][$d2] ?? 1) - 1);
+                        $this->teacher_periods_day[$t2_s][$d1] = ($this->teacher_periods_day[$t2_s][$d1] ?? 0) + 1;
+                    }
+                }
+
+                // Move joint peers
+                if ($jp1) $this->_moveJointPeersDraft($jp1, $c_id, $s_id, $d1, $p1, $d2, $p2, $draft_entries);
+                if ($jp2) $this->_moveJointPeersDraft($jp2, $c_id, $s_id, $d2, $p2, $d1, $p1, $draft_entries);
+
+                $moved = true;
+
+            } else {
+                // ---- CROSS-CLASS TEACHER SWAP ----
+                // Pick a random teacher, swap two of their entries across classes
+                $teacher_keys = array_keys($entry_staff);
+                if (empty($teacher_keys)) continue;
+                $t_id = $teacher_keys[mt_rand(0, count($teacher_keys) - 1)];
+                $t_entries = $entry_staff[$t_id];
+                if (count($t_entries) < 2) continue;
+
+                $i1 = mt_rand(0, count($t_entries) - 1);
+                $i2 = mt_rand(0, count($t_entries) - 2);
+                if ($i2 >= $i1) $i2++;
+
+                $di1 = $t_entries[$i1]; $di2 = $t_entries[$i2];
+                if (!isset($draft_entries[$di1]) || !isset($draft_entries[$di2])) continue;
+                $e1 = $draft_entries[$di1]; $e2 = $draft_entries[$di2];
+                if (!empty($e1['is_free_period']) || !empty($e2['is_free_period'])) continue;
+                if (!empty($e1['is_locked']) || !empty($e2['is_locked'])) continue;
+                if ($e1['class_id'] === $e2['class_id'] && $e1['section_id'] === $e2['section_id']) continue;
+
+                $d1 = $e1['day']; $p1 = (int)$e1['period_id'];
+                $d2_v = $e2['day']; $p2_v = (int)$e2['period_id'];
+
+                // Check class occupancy at swapped positions
+                $c1 = (int)$e1['class_id']; $s1 = (int)$e1['section_id'];
+                $c2_v = (int)$e2['class_id']; $s2_v = (int)$e2['section_id'];
+
+                // E1's class must be free at E2's time (and vice versa, but E1/E2 ARE in those classes)
+                // Actually for cross-class swap, we swap the TIME not the CLASS
+                // E1 moves from (d1,p1) to (d2,p2) in its OWN class
+                // E2 moves from (d2,p2) to (d1,p1) in its OWN class
+                // Both classes must have the destination slot free
+                $ck1 = $c1 . '_' . $s1;
+                $ck2 = $c2_v . '_' . $s2_v;
+                $sk1_new = $d2_v . '_' . $p2_v;
+                $sk2_new = $d1 . '_' . $p1;
+                $sk1_old = $d1 . '_' . $p1;
+                $sk2_old = $d2_v . '_' . $p2_v;
+
+                if (isset($grid[$ck1][$sk1_new]) && $grid[$ck1][$sk1_new] !== $di1) continue;
+                if (isset($grid[$ck2][$sk2_new]) && $grid[$ck2][$sk2_new] !== $di2) continue;
+                if (!empty($this->class_occ[$c1][$s1][$d2_v][$p2_v][0]) && ($grid[$ck1][$sk1_new] ?? -1) !== $di1) continue;
+                if (!empty($this->class_occ[$c2_v][$s2_v][$d1][$p1][0]) && ($grid[$ck2][$sk2_new] ?? -1) !== $di2) continue;
+
+                // Execute cross-class swap
+                $draft_entries[$di1]['day'] = $d2_v; $draft_entries[$di1]['period_id'] = $p2_v;
+                $draft_entries[$di2]['day'] = $d1; $draft_entries[$di2]['period_id'] = $p1;
+
+                unset($grid[$ck1][$sk1_old]); $grid[$ck1][$sk1_new] = $di1;
+                unset($grid[$ck2][$sk2_old]); $grid[$ck2][$sk2_new] = $di2;
+
+                unset($this->class_occ[$c1][$s1][$d1][$p1][0]);
+                $this->class_occ[$c1][$s1][$d2_v][$p2_v][0] = true;
+                unset($this->class_occ[$c2_v][$s2_v][$d2_v][$p2_v][0]);
+                $this->class_occ[$c2_v][$s2_v][$d1][$p1][0] = true;
+
+                // Teacher occ: same teacher, moves from both old to both new
+                unset($this->teacher_occ[$t_id][$d1][$p1]);
+                unset($this->teacher_occ[$t_id][$d2_v][$p2_v]);
+                $this->teacher_occ[$t_id][$d2_v][$p2_v] = true;
+                $this->teacher_occ[$t_id][$d1][$p1] = true;
+
+                $moved = true;
+            }
+
+            // Track best solution
+            if (count($unplaced) < $best_unplaced_count) {
+                $best_unplaced_count = count($unplaced);
+                $best_entries = $draft_entries;
+                $best_occ = [
+                    'class'   => $this->class_occ,
+                    'teacher' => $this->teacher_occ,
+                    'tpd'     => $this->teacher_periods_day,
+                    'tpw'     => $this->teacher_periods_week,
+                ];
+            }
+        }
+
+        // Restore best solution
+        if ($best_unplaced_count < count($unplaced)) {
+            $draft_entries = $best_entries;
+            $this->class_occ = $best_occ['class'];
+            $this->teacher_occ = $best_occ['teacher'];
+            $this->teacher_periods_day = $best_occ['tpd'];
+            $this->teacher_periods_week = $best_occ['tpw'];
+        }
+
+        // Rebuild conflicts from remaining unplaced
+        $resolved_count = 0;
+        $new_conflicts = [];
+        foreach ($conflicts as $conf) {
+            if (($conf['type'] ?? '') !== 'no_slot') { $new_conflicts[] = $conf; continue; }
+            // Check if this conflict's subject was placed
+            $c = (int)($conf['class_id'] ?? 0);
+            $s = (int)($conf['section_id'] ?? 0);
+            $sgs = (int)($conf['subject_group_subject_id'] ?? 0);
+            $still_unplaced = false;
+            foreach ($unplaced as $u) {
+                if ($u['class_id'] === $c && $u['section_id'] === $s && $u['sgs_id'] === $sgs) {
+                    $still_unplaced = true; break;
+                }
+            }
+            if ($still_unplaced) {
+                $new_conflicts[] = $conf;
+            } else {
+                $resolved_count++;
+            }
+        }
+        $conflicts = $new_conflicts;
+
+        return $sa_resolved;
     }
 
     /**
