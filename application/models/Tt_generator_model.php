@@ -119,19 +119,11 @@ class Tt_generator_model extends MY_Model
             'min_break_after_consec'  => 1,
         ];
 
-        // Joint-frozen: [class_id][section_id][sgs_id] = true
-        // Only entries for classes PARTICIPATING in a joint lesson are protected
+        // Generation does NOT enforce joint protection — the swap engine
+        // needs full freedom to optimize placement (99%+ quality).
+        // Joint sync is protected in the LIVE swap (Fill Empty Cells /
+        // Fill All Classes) which runs after generation is confirmed.
         $joint_sgs = [];
-        $jl_rows = $this->db->select('sl.class_id, sl.section_id, sl.subject_group_subject_id')
-            ->from('tt_subject_load sl')
-            ->where('sl.session_id', $session_id)
-            ->where('sl.joint_lesson_id IS NOT NULL', null, false)
-            ->get()->result();
-        foreach ($jl_rows as $jr) {
-            if ($jr->subject_group_subject_id) {
-                $joint_sgs[(int)$jr->class_id][(int)$jr->section_id][(int)$jr->subject_group_subject_id] = true;
-            }
-        }
 
         // Pre-compute how many slots each teacher is unavailable for this session.
         // Teachers with more blocked slots are harder to schedule and must go first.
@@ -1018,18 +1010,8 @@ class Tt_generator_model extends MY_Model
         $total_swaps = 0;
         $max_iterations = 10;
 
-        // Joint-frozen: [class_id][section_id][sgs_id] = true
+        // No joint protection during generation — swap needs full freedom
         $joint_sgs = [];
-        $jl_rows = $this->db->select('class_id, section_id, subject_group_subject_id')
-            ->from('tt_subject_load')
-            ->where('session_id', $session_id)
-            ->where('joint_lesson_id IS NOT NULL', null, false)
-            ->get()->result();
-        foreach ($jl_rows as $jr) {
-            if ($jr->subject_group_subject_id) {
-                $joint_sgs[(int)$jr->class_id][(int)$jr->section_id][(int)$jr->subject_group_subject_id] = true;
-            }
-        }
 
         // Indexes: teacher → draft index, class → draft index
         $teacher_idx = [];
