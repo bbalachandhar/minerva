@@ -2628,7 +2628,7 @@ class Tt_generator_model extends MY_Model
     ) {
         $primary = $teacher_ids[0] ?? null;
         $n_sections = count($jl->classes);
-        $max_displace = $n_sections;
+        $max_displace = min(2, $n_sections - 1);
         $best = null; $best_displace_count = 999;
 
         foreach ($this->working_days as $day) {
