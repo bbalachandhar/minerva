@@ -196,13 +196,14 @@ foreach ($periods as $p) { $period_name_map[$p->id] = $p->name; }
             <div style="margin-top:6px;">
               <label style="font-weight:normal;margin:0;font-size:13px;" title="When checked: ALL teachers in the pool must be free simultaneously at the same slot, and all are marked occupied. Use for activities where every teacher is physically present (e.g. Yoga, PT).">
                 <input type="checkbox" id="jl_all_attend" name="all_teachers_required" value="1">
-                <strong>All must attend simultaneously</strong>
-                <small class="text-muted">(generator requires ALL free; marks ALL occupied)</small>
+                <strong>All Teachers Must Attend</strong>
+                <small class="text-muted">(applies to the Teacher Pool above)</small>
               </label>
-              <div class="text-info" style="font-size:12px;margin-top:4px;padding:4px 8px;background:#e8f4fd;border-radius:3px;">
-                <i class="fa fa-lightbulb-o"></i>
-                <strong>Unchecked</strong> = shared teacher — classes are scheduled at different times, just sharing the same teacher pool.<br>
-                <strong>Checked</strong> = combined class — all sections attend together at the exact same day &amp; period.
+              <div class="text-info" style="font-size:12px;margin-top:4px;padding:6px 10px;background:#e8f4fd;border-radius:3px;line-height:1.6;">
+                <i class="fa fa-lightbulb-o"></i> <strong>Note:</strong> All participating classes always attend together at the same day &amp; period &mdash; that's what makes it a joint lesson.<br>
+                This checkbox controls <strong>teachers</strong> only:<br>
+                <i class="fa fa-square-o"></i> <strong>Unchecked</strong> = any <strong>one</strong> teacher from the pool is assigned (e.g. 1 CS teacher for combined XI B + XI C)<br>
+                <i class="fa fa-check-square-o"></i> <strong>Checked</strong> = <strong>all</strong> teachers in the pool must be present simultaneously (e.g. 3 PT teachers all on the field together)
               </div>
             </div>
             <small class="text-muted"><i class="fa fa-info-circle"></i> Leave empty if no specific teacher is required.</small>
