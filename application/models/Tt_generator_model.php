@@ -1050,6 +1050,18 @@ class Tt_generator_model extends MY_Model
                 $conflicts = $new_conflicts;
             }
 
+            // ---- TEACHER-SCOPED BACKTRACKING ----
+            // If ≤3 no_slot conflicts remain, backtrack on each failing teacher's
+            // entries: undo their last N placements, re-place with backtracking
+            // to find a slot combination where ALL their classes get served.
+            $final_fails = array_filter($conflicts, fn($c) => ($c['type'] ?? '') === 'no_slot');
+            if (count($final_fails) > 0 && count($final_fails) <= 3) {
+                $bt_teacher_resolved = $this->_backtrackTeacherEntries(
+                    $final_fails, $draft_entries, $conflicts, $constraints, $unavail_map,
+                    $log_id, $session_id, $total_placed, $class_stats
+                );
+            }
+
             // ---- GAP FILL (opt-in via fill_free_periods) ----
             $gap_filled_subject = 0; $gap_filled_free = 0;
             if (!empty($settings['fill_free_periods'])) {
@@ -2705,6 +2717,217 @@ class Tt_generator_model extends MY_Model
 
     /**
      * Find a slot where ALL participating class-sections + teacher are simultaneously free.
+    /**
+     * Teacher-scoped backtracking for regular subject failures.
+     * For each failing teacher: undo their entries, then re-place using
+     * backtracking to find a slot combination where ALL classes are served.
+     */
+    private function _backtrackTeacherEntries(
+        array $failures, array &$draft_entries, array &$conflicts,
+        $constraints, $unavail_map, $log_id, $session_id,
+        &$total_placed, &$class_stats
+    ) {
+        $resolved = 0;
+        $bt_time_limit = 10;
+
+        // Group failures by teacher
+        $by_teacher = [];
+        foreach ($failures as $conf) {
+            $tid = (int)($conf['staff_id'] ?? 0);
+            if ($tid) $by_teacher[$tid][] = $conf;
+        }
+
+        foreach ($by_teacher as $tid => $teacher_fails) {
+            $bt_start = microtime(true);
+
+            // Collect ALL draft entries for this teacher (not just failed ones)
+            $teacher_entries = [];
+            foreach ($draft_entries as $di => $de) {
+                if ((int)($de['staff_id'] ?? 0) === $tid && empty($de['is_free_period'])) {
+                    $teacher_entries[$di] = $de;
+                }
+            }
+
+            // Also collect the failed placement tasks
+            $fail_tasks = [];
+            foreach ($teacher_fails as $conf) {
+                $fail_tasks[] = [
+                    'class_id' => (int)$conf['class_id'],
+                    'section_id' => (int)$conf['section_id'],
+                    'sgs_id' => (int)($conf['subject_group_subject_id'] ?? 0),
+                    'sg_id' => (int)($conf['subject_group_id'] ?? 0),
+                ];
+            }
+
+            // Undo teacher's entries — free their slots
+            $undo_data = []; // store for restoration if BT fails
+            foreach ($teacher_entries as $di => $de) {
+                $cid = (int)$de['class_id']; $sid = (int)$de['section_id'];
+                $day = $de['day']; $pid = (int)$de['period_id'];
+                unset($this->class_occ[$cid][$sid][$day][$pid][0]);
+                unset($this->teacher_occ[$tid][$day][$pid]);
+                $this->teacher_periods_day[$tid][$day] = max(0, ($this->teacher_periods_day[$tid][$day] ?? 1) - 1);
+                $this->teacher_periods_week[$tid] = max(0, ($this->teacher_periods_week[$tid] ?? 1) - 1);
+                $undo_data[$di] = $de;
+                unset($draft_entries[$di]);
+            }
+
+            // Build placement tasks: existing entries + failed ones
+            $tasks = [];
+            foreach ($undo_data as $di => $de) {
+                $tasks[] = [
+                    'class_id' => (int)$de['class_id'], 'section_id' => (int)$de['section_id'],
+                    'sgs_id' => (int)($de['subject_group_subject_id'] ?? 0),
+                    'sg_id' => (int)($de['subject_group_id'] ?? 0),
+                    'batch_id' => $de['batch_id'] ?? null,
+                ];
+            }
+            foreach ($fail_tasks as $ft) {
+                $tasks[] = $ft + ['batch_id' => null];
+            }
+
+            // Recursive backtracking
+            $solution = [];
+            $bt_calls = 0;
+            $success = $this->_btTeacherSolve($tasks, $tid, $solution, $constraints, $unavail_map, $bt_start, $bt_time_limit, $bt_calls);
+
+            if ($success) {
+                // Apply solution
+                foreach ($solution as $si => $slot) {
+                    $t = $tasks[$si];
+                    $day = $slot['day']; $pid = $slot['pid'];
+                    $this->class_occ[$t['class_id']][$t['section_id']][$day][$pid][$t['batch_id'] ?? 0] = true;
+                    $this->teacher_occ[$tid][$day][$pid] = true;
+                    $this->teacher_periods_day[$tid][$day] = ($this->teacher_periods_day[$tid][$day] ?? 0) + 1;
+                    $this->teacher_periods_week[$tid] = ($this->teacher_periods_week[$tid] ?? 0) + 1;
+                    $draft_entries[] = [
+                        'gen_log_id' => $log_id, 'session_id' => $session_id,
+                        'class_id' => $t['class_id'], 'section_id' => $t['section_id'],
+                        'subject_group_id' => $t['sg_id'],
+                        'subject_group_subject_id' => $t['sgs_id'],
+                        'staff_id' => $tid, 'period_id' => $pid,
+                        'day' => $day, 'room_id' => null,
+                        'batch_id' => $t['batch_id'], 'is_free_period' => 0,
+                        'free_period_label' => null,
+                    ];
+                }
+
+                // Remove resolved conflicts
+                $fail_keys = [];
+                foreach ($fail_tasks as $ft) $fail_keys[$ft['class_id'] . '_' . $ft['section_id'] . '_' . $ft['sgs_id']] = true;
+                $conflicts = array_values(array_filter($conflicts, function($c) use ($fail_keys) {
+                    if (($c['type'] ?? '') !== 'no_slot') return true;
+                    $k = ($c['class_id'] ?? 0) . '_' . ($c['section_id'] ?? 0) . '_' . ($c['subject_group_subject_id'] ?? 0);
+                    return !isset($fail_keys[$k]);
+                }));
+                $total_placed += count($fail_tasks);
+                $resolved += count($fail_tasks);
+            } else {
+                // Restore original entries
+                foreach ($undo_data as $di => $de) {
+                    $cid = (int)$de['class_id']; $sid = (int)$de['section_id'];
+                    $day = $de['day']; $pid = (int)$de['period_id'];
+                    $this->class_occ[$cid][$sid][$day][$pid][$de['batch_id'] ?? 0] = true;
+                    $this->teacher_occ[$tid][$day][$pid] = true;
+                    $this->teacher_periods_day[$tid][$day] = ($this->teacher_periods_day[$tid][$day] ?? 0) + 1;
+                    $this->teacher_periods_week[$tid] = ($this->teacher_periods_week[$tid] ?? 0) + 1;
+                    $draft_entries[$di] = $de;
+                }
+            }
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Recursive backtracking for a single teacher's entries.
+     * Each task needs a (day, period) where the class is free AND the teacher is free.
+     */
+    private function _btTeacherSolve(array &$tasks, int $tid, array &$solution,
+                                      $constraints, $unavail_map, $bt_start, $bt_time_limit, &$bt_calls)
+    {
+        if (count($solution) >= count($tasks)) return true;
+        if (microtime(true) - $bt_start > $bt_time_limit) return false;
+        $bt_calls++;
+
+        // MRV: pick unplaced task with fewest valid slots
+        $best_ti = -1; $best_count = PHP_INT_MAX;
+        for ($ti = 0; $ti < count($tasks); $ti++) {
+            if (isset($solution[$ti])) continue;
+            $t = $tasks[$ti];
+            $cnt = 0;
+            foreach ($this->working_days as $d) {
+                foreach ($this->period_order as $p) {
+                    if (empty($this->class_occ[$t['class_id']][$t['section_id']][$d][$p][$t['batch_id'] ?? 0])
+                        && empty($this->class_unavail[$t['class_id']][$t['section_id']][$d][$p])
+                        && empty($this->teacher_occ[$tid][$d][$p])
+                        && empty($unavail_map[$tid][$d][$p])) {
+                        $cnt++;
+                    }
+                }
+            }
+            if ($cnt === 0) return false;
+            if ($cnt < $best_count) { $best_count = $cnt; $best_ti = $ti; }
+        }
+        if ($best_ti === -1) return true;
+
+        $task = $tasks[$best_ti];
+        $bk = $task['batch_id'] ?? 0;
+        $slots = [];
+        foreach ($this->working_days as $d) {
+            foreach ($this->period_order as $p) {
+                if (empty($this->class_occ[$task['class_id']][$task['section_id']][$d][$p][$bk])
+                    && empty($this->class_unavail[$task['class_id']][$task['section_id']][$d][$p])
+                    && empty($this->teacher_occ[$tid][$d][$p])
+                    && empty($unavail_map[$tid][$d][$p])) {
+                    $slots[] = ['day' => $d, 'pid' => $p];
+                }
+            }
+        }
+        shuffle($slots);
+
+        foreach ($slots as $slot) {
+            // Place
+            $this->class_occ[$task['class_id']][$task['section_id']][$slot['day']][$slot['pid']][$bk] = true;
+            $this->teacher_occ[$tid][$slot['day']][$slot['pid']] = true;
+            $this->teacher_periods_day[$tid][$slot['day']] = ($this->teacher_periods_day[$tid][$slot['day']] ?? 0) + 1;
+            $this->teacher_periods_week[$tid] = ($this->teacher_periods_week[$tid] ?? 0) + 1;
+            $solution[$best_ti] = $slot;
+
+            // Forward check
+            $ok = true;
+            for ($ti = 0; $ti < count($tasks); $ti++) {
+                if (isset($solution[$ti])) continue;
+                $ft = $tasks[$ti];
+                $has_slot = false;
+                foreach ($this->working_days as $d) {
+                    foreach ($this->period_order as $p) {
+                        if (empty($this->class_occ[$ft['class_id']][$ft['section_id']][$d][$p][$ft['batch_id'] ?? 0])
+                            && empty($this->class_unavail[$ft['class_id']][$ft['section_id']][$d][$p])
+                            && empty($this->teacher_occ[$tid][$d][$p])
+                            && empty($unavail_map[$tid][$d][$p])) {
+                            $has_slot = true; break 2;
+                        }
+                    }
+                }
+                if (!$has_slot) { $ok = false; break; }
+            }
+
+            if ($ok && $this->_btTeacherSolve($tasks, $tid, $solution, $constraints, $unavail_map, $bt_start, $bt_time_limit, $bt_calls)) {
+                return true;
+            }
+
+            // Backtrack
+            unset($this->class_occ[$task['class_id']][$task['section_id']][$slot['day']][$slot['pid']][$bk]);
+            unset($this->teacher_occ[$tid][$slot['day']][$slot['pid']]);
+            $this->teacher_periods_day[$tid][$slot['day']] = max(0, ($this->teacher_periods_day[$tid][$slot['day']] ?? 1) - 1);
+            $this->teacher_periods_week[$tid] = max(0, ($this->teacher_periods_week[$tid] ?? 1) - 1);
+            unset($solution[$best_ti]);
+        }
+
+        return false;
+    }
+
     /**
      * Backtracking solver for joint lesson conflicts.
      * Undoes ALL joint placements, then re-places using recursive backtracking
