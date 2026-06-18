@@ -869,15 +869,28 @@ class Tt extends Admin_Controller
         ", [$session_id])->result() as $r) {
             $totals[(int) $r->staff_id] = (int) $r->ppw;
         }
-        foreach ($this->db->query("
-            SELECT jlt.staff_id, SUM(jl.periods_per_week) AS ppw
+        // Joint lessons: group by teacher set + ppw + consecutive to deduplicate.
+        // When the same teacher teaches the same ppw joint to different class
+        // groups (e.g., ENGLISH 7ppw for C122 + ENGLISH 7ppw for C128), they
+        // happen simultaneously — count only ONCE, not twice.
+        $jl_rows = $this->db->query("
+            SELECT jl.id, jl.periods_per_week, jl.consecutive_periods,
+                   GROUP_CONCAT(jlt.staff_id ORDER BY jlt.staff_id) AS teacher_key
             FROM tt_joint_lessons jl
             JOIN tt_joint_lesson_teachers jlt ON jlt.joint_lesson_id = jl.id
             WHERE jl.session_id = ?
-            GROUP BY jlt.staff_id
-        ", [$session_id])->result() as $r) {
-            $tid = (int) $r->staff_id;
-            $totals[$tid] = ($totals[$tid] ?? 0) + (int) $r->ppw;
+            GROUP BY jl.id
+        ", [$session_id])->result();
+        $seen_groups = [];
+        foreach ($jl_rows as $r) {
+            $group_key = $r->teacher_key . '|' . $r->periods_per_week . '|' . $r->consecutive_periods;
+            if (isset($seen_groups[$group_key])) continue;
+            $seen_groups[$group_key] = true;
+            $ppw = (int) $r->periods_per_week;
+            foreach (explode(',', $r->teacher_key) as $tid_str) {
+                $tid = (int) $tid_str;
+                $totals[$tid] = ($totals[$tid] ?? 0) + $ppw;
+            }
         }
         return $totals;
     }
