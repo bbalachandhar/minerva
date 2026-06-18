@@ -175,9 +175,9 @@ class Tt_generator_model extends MY_Model
                 $shb = max($shb, $teacher_class_count[$tid] ?? 0);
             }
             $score_a = ($a->consecutive_periods * 10) + $a->periods_per_week + $a->priority
-                     + ($ua * 0.5) + ($uca * 0.3) + ($sha * 1.5);
+                     + ($ua * 0.5) + ($uca * 1.5) + ($sha * 5.0);
             $score_b = ($b->consecutive_periods * 10) + $b->periods_per_week + $b->priority
-                     + ($ub * 0.5) + ($ucb * 0.3) + ($shb * 1.5);
+                     + ($ub * 0.5) + ($ucb * 1.5) + ($shb * 5.0);
             return $score_b <=> $score_a;
         });
 
@@ -378,6 +378,7 @@ class Tt_generator_model extends MY_Model
                                 'batch_id'                 => null,
                                 'is_free_period'           => 0,
                                 'free_period_label'        => null,
+                                'is_locked'                => 1,
                             ];
                         }
 
@@ -436,16 +437,34 @@ class Tt_generator_model extends MY_Model
                         $remaining_cap  = max(0, $cap - ($this->teacher_periods_week[$tid] ?? 0));
                         $cand_dyn_tight = max($cand_dyn_tight, max(0, 48 - $remaining_cap));
                     }
-                    // Teacher sharing breadth: a teacher spread across many
-                    // class-sections (Hindi 8 classes, Library 20+) is a scarce
-                    // shared resource — place their subjects first so slots get
-                    // distributed evenly, not consumed by earlier classes.
                     $cand_sharing = 0;
                     foreach ($cand_t_ids as $tid) {
                         $cand_sharing = max($cand_sharing, $teacher_class_count[$tid] ?? 0);
                     }
+                    // Valid slot counting: actual number of slots this load can go
+                    // into RIGHT NOW. The true measure of constraint difficulty.
+                    $c_cid = (int)$cand->class_id; $c_sid = (int)$cand->section_id;
+                    $cand_valid = 0;
+                    foreach ($this->working_days as $_d) {
+                        foreach ($this->period_order as $_p) {
+                            if (!empty($this->class_occ[$c_cid][$c_sid][$_d][$_p][0])) continue;
+                            if (!empty($this->class_unavail[$c_cid][$c_sid][$_d][$_p])) continue;
+                            foreach ($cand_t_ids as $tid) {
+                                if (empty($this->teacher_occ[$tid][$_d][$_p]) && empty($unavail_map[$tid][$_d][$_p])) {
+                                    $cand_valid++;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    $cand_ppw = (int) $cand->periods_per_week;
+                    $cand_urgency = 0;
+                    if ($cand_valid <= $cand_ppw) $cand_urgency = 300;
+                    elseif ($cand_valid <= $cand_ppw * 2) $cand_urgency = 150;
+                    $cand_slot_tight = max(0, 50 - $cand_valid);
                     $cand_score = ($cand->consecutive_periods * 10) + $cand->periods_per_week + $cand->priority
-                                + ($cand_ua * 0.5) + ($cand_dyn_tight * 0.3) + ($cand_sharing * 1.5);
+                                + ($cand_ua * 0.5) + ($cand_dyn_tight * 1.5) + ($cand_sharing * 5.0)
+                                + $cand_slot_tight + $cand_urgency;
                     if ($cand_score > $pick_score) { $pick_score = $cand_score; $pick_key = $rk; }
                 }
                 $load = $remaining[$pick_key];
@@ -820,7 +839,8 @@ class Tt_generator_model extends MY_Model
 
         if (!$dry_run) {
             if (!empty($draft_entries)) {
-                $this->db->insert_batch('tt_draft_entries', $draft_entries);
+                $clean = array_map(function($d) { unset($d['is_locked']); return $d; }, $draft_entries);
+                $this->db->insert_batch('tt_draft_entries', $clean);
             }
             $this->db->where('id', $log_id)->update('tt_gen_log', [
                 'status'           => 'completed',
@@ -1045,9 +1065,10 @@ class Tt_generator_model extends MY_Model
         $base_loads, $constraints, $unavail_map, $joint_peers,
         $log_id, $session_id, $settings, &$total_placed, &$class_stats)
     {
-        $max_iter  = (int)($settings['sa_iterations'] ?? 20000);
+        $sa_gen_size = $settings['gen_size'] ?? 'normal';
+        $max_iter  = (int)($settings['sa_iterations'] ?? ($sa_gen_size === 'huge' ? 50000 : 20000));
         $temp      = 100.0;
-        $cool_rate = 0.9995;
+        $cool_rate = ($sa_gen_size === 'huge') ? 0.99975 : 0.9995;
         $min_temp  = 0.1;
 
         // Build grid: [ck][sk] => draft_entries index (only real entries)
@@ -1075,13 +1096,36 @@ class Tt_generator_model extends MY_Model
             foreach ($this->period_order as $p) $all_slots[] = $d . '_' . $p;
         }
 
+        // Build list of teachers who appear in 2+ different classes (for cross-class swaps)
+        $_t_ck_set = [];
+        foreach ($grid as $ck => $slots) {
+            foreach ($slots as $sk => $di) {
+                $t = (int)($draft_entries[$di]['staff_id'] ?? 0);
+                if ($t) $_t_ck_set[$t][$ck] = true;
+            }
+        }
+        $multi_class_teachers = [];
+        foreach ($_t_ck_set as $t => $cks) {
+            if (count($cks) >= 2) $multi_class_teachers[] = $t;
+        }
+        unset($_t_ck_set);
+
         for ($iter = 0; $iter < $max_iter && !empty($unplaced); $iter++) {
             $temp = max($min_temp, $temp * $cool_rate);
             $r = mt_rand(1, 100);
 
-            if ($r <= 40 && !empty($unplaced)) {
+            if ($r <= 35 && !empty($unplaced)) {
                 // ---- RELOCATE: place unplaced at a genuinely free slot ----
-                $ui = mt_rand(0, count($unplaced) - 1);
+                // Prioritize from class with the most gaps
+                $gap_by_class = [];
+                foreach ($unplaced as $idx => $uu) {
+                    $gap_by_class[$uu['class_id'] . '_' . $uu['section_id']][] = $idx;
+                }
+                $max_ck = ''; $max_n = 0;
+                foreach ($gap_by_class as $gck => $gidx) {
+                    if (count($gidx) > $max_n) { $max_n = count($gidx); $max_ck = $gck; }
+                }
+                $ui = $gap_by_class[$max_ck][mt_rand(0, count($gap_by_class[$max_ck]) - 1)];
                 $u = $unplaced[$ui];
                 $ck = $u['class_id'] . '_' . $u['section_id'];
                 $t = $u['staff_id'];
@@ -1112,37 +1156,55 @@ class Tt_generator_model extends MY_Model
                     break;
                 }
 
-            } elseif ($r <= 60 && !empty($unplaced)) {
-                // ---- DISPLACE: swap unplaced with a placed entry (in-place) ----
-                $ui = mt_rand(0, count($unplaced) - 1);
+            } elseif ($r <= 55 && !empty($unplaced)) {
+                // ---- DISPLACE (smart): prioritize most-gapped class, flexible victims ----
+                $gap_by_class = [];
+                foreach ($unplaced as $idx => $uu) {
+                    $gap_by_class[$uu['class_id'] . '_' . $uu['section_id']][] = $idx;
+                }
+                $max_ck = ''; $max_n = 0;
+                foreach ($gap_by_class as $gck => $gidx) {
+                    if (count($gidx) > $max_n) { $max_n = count($gidx); $max_ck = $gck; }
+                }
+                $ui = $gap_by_class[$max_ck][mt_rand(0, count($gap_by_class[$max_ck]) - 1)];
                 $u = $unplaced[$ui];
                 $ck = $u['class_id'] . '_' . $u['section_id'];
                 $t = $u['staff_id'];
                 $class_slots = isset($grid[$ck]) ? array_keys($grid[$ck]) : [];
                 if (empty($class_slots)) continue;
-                shuffle($class_slots);
 
+                // Score victims by teacher flexibility (lowest weekly load = easiest to re-place)
+                $scored_victims = [];
                 foreach ($class_slots as $sk) {
                     [$day, $pid] = explode('_', $sk); $pid = (int)$pid;
                     if (!empty($this->teacher_occ[$t][$day][$pid])) continue;
                     if (!empty($unavail_map[$t][$day][$pid])) continue;
-
                     $vi = $grid[$ck][$sk];
                     $v = $draft_entries[$vi];
                     if (!empty($v['is_locked'])) continue;
                     $vs = (int)($v['subject_group_subject_id'] ?? 0);
                     if (!empty($joint_peers[$u['class_id']][$u['section_id']][$vs])) continue;
+                    $vt = (int)($v['staff_id'] ?? 0);
+                    $scored_victims[] = ['sk' => $sk, 'load' => $this->teacher_periods_week[$vt] ?? 0];
+                }
+                if (empty($scored_victims)) continue;
+                usort($scored_victims, fn($a, $b) => $a['load'] <=> $b['load']);
 
+                foreach ($scored_victims as $cand) {
                     if ((mt_rand(0, 100) / 100.0) >= exp(-1.0 / $temp)) continue;
 
+                    $sk = $cand['sk'];
+                    [$day, $pid] = explode('_', $sk); $pid = (int)$pid;
+                    $vi = $grid[$ck][$sk];
+                    $v = $draft_entries[$vi];
                     $vt = (int)($v['staff_id'] ?? 0);
-                    // Overwrite the victim entry in-place with the new subject
+                    $vs = (int)($v['subject_group_subject_id'] ?? 0);
+
                     $victim_data = $v;
                     $draft_entries[$vi]['subject_group_id'] = $u['sg_id'];
                     $draft_entries[$vi]['subject_group_subject_id'] = $u['sgs_id'];
                     $draft_entries[$vi]['staff_id'] = $t;
 
-                    // Update teacher occ: remove victim teacher, add new teacher
                     if ($vt) {
                         unset($this->teacher_occ[$vt][$day][$pid]);
                         $this->teacher_periods_day[$vt][$day] = max(0, ($this->teacher_periods_day[$vt][$day] ?? 1) - 1);
@@ -1152,7 +1214,6 @@ class Tt_generator_model extends MY_Model
                     $this->teacher_periods_day[$t][$day] = ($this->teacher_periods_day[$t][$day] ?? 0) + 1;
                     $this->teacher_periods_week[$t] = ($this->teacher_periods_week[$t] ?? 0) + 1;
 
-                    // Replace in unplaced: remove current, add victim
                     $unplaced[$ui] = [
                         'class_id' => (int)$victim_data['class_id'], 'section_id' => (int)$victim_data['section_id'],
                         'staff_id' => $vt, 'sgs_id' => $vs,
@@ -1161,7 +1222,7 @@ class Tt_generator_model extends MY_Model
                     break;
                 }
 
-            } else {
+            } elseif ($r <= 90) {
                 // ---- SWAP WITHIN CLASS: exchange two entries' time slots ----
                 $ckeys = array_keys($grid);
                 if (empty($ckeys)) continue;
@@ -1181,7 +1242,6 @@ class Tt_generator_model extends MY_Model
                 [$d2, $p2] = explode('_', $sk2); $p2 = (int)$p2;
                 $t1 = (int)($e1['staff_id'] ?? 0); $t2 = (int)($e2['staff_id'] ?? 0);
 
-                // Teacher clash check (both must be free at swapped positions)
                 $clash = false;
                 if ($t1 !== $t2) {
                     if ($t1 && !empty($this->teacher_occ[$t1][$d2][$p2])) $clash = true;
@@ -1191,7 +1251,6 @@ class Tt_generator_model extends MY_Model
                     if ((mt_rand(0, 1000) / 1000.0) >= exp(-50 / $temp)) continue;
                 }
 
-                // Joint peer check
                 $cid = (int)$e1['class_id']; $sid = (int)$e1['section_id'];
                 $sgs1 = (int)($e1['subject_group_subject_id'] ?? 0);
                 $sgs2 = (int)($e2['subject_group_subject_id'] ?? 0);
@@ -1200,7 +1259,6 @@ class Tt_generator_model extends MY_Model
                 if ($jp1 && !$this->_jointPeersCanMove($jp1, $cid, $sid, $d2, $p2)) continue;
                 if ($jp2 && !$this->_jointPeersCanMove($jp2, $cid, $sid, $d1, $p1)) continue;
 
-                // Execute swap
                 $draft_entries[$di1]['day'] = $d2; $draft_entries[$di1]['period_id'] = $p2;
                 $draft_entries[$di2]['day'] = $d1; $draft_entries[$di2]['period_id'] = $p1;
                 $grid[$ck][$sk1] = $di2; $grid[$ck][$sk2] = $di1;
@@ -1221,6 +1279,71 @@ class Tt_generator_model extends MY_Model
                 }
                 if ($jp1) $this->_moveJointPeersDraft($jp1, $cid, $sid, $d1, $p1, $d2, $p2, $draft_entries);
                 if ($jp2) $this->_moveJointPeersDraft($jp2, $cid, $sid, $d2, $p2, $d1, $p1, $draft_entries);
+
+            } else {
+                // ---- CROSS-CLASS TEACHER SWAP ----
+                // Pick a teacher in 2+ classes, swap entries across classes to
+                // shuffle the configuration and open new placement opportunities.
+                if (empty($multi_class_teachers)) continue;
+                $t = $multi_class_teachers[mt_rand(0, count($multi_class_teachers) - 1)];
+
+                // Collect this teacher's current grid entries across all classes
+                $t_entries = [];
+                foreach ($grid as $gck => $gslots) {
+                    foreach ($gslots as $gsk => $gdi) {
+                        if ((int)($draft_entries[$gdi]['staff_id'] ?? 0) === $t) {
+                            $t_entries[] = ['di' => $gdi, 'ck' => $gck, 'sk' => $gsk];
+                        }
+                    }
+                }
+                if (count($t_entries) < 2) continue;
+                shuffle($t_entries);
+
+                $te1 = null; $te2 = null;
+                foreach ($t_entries as $te) {
+                    if ($te1 === null) { $te1 = $te; continue; }
+                    if ($te['ck'] !== $te1['ck']) { $te2 = $te; break; }
+                }
+                if (!$te2) continue;
+
+                $di1 = $te1['di']; $di2 = $te2['di'];
+                $e1 = $draft_entries[$di1]; $e2 = $draft_entries[$di2];
+                if (!empty($e1['is_locked']) || !empty($e2['is_locked'])) continue;
+
+                [$d1, $p1] = explode('_', $te1['sk']); $p1 = (int)$p1;
+                [$d2, $p2] = explode('_', $te2['sk']); $p2 = (int)$p2;
+                if ($d1 === $d2 && $p1 === $p2) continue;
+
+                $cid1 = (int)$e1['class_id']; $sid1 = (int)$e1['section_id'];
+                $cid2 = (int)$e2['class_id']; $sid2 = (int)$e2['section_id'];
+
+                // Class occupancy: class1 must be free at (d2,p2), class2 at (d1,p1)
+                if (!empty($this->class_occ[$cid1][$sid1][$d2][$p2][0])) continue;
+                if (!empty($this->class_occ[$cid2][$sid2][$d1][$p1][0])) continue;
+                if (!empty($this->class_unavail[$cid1][$sid1][$d2][$p2])) continue;
+                if (!empty($this->class_unavail[$cid2][$sid2][$d1][$p1])) continue;
+
+                // Skip joint entries entirely
+                $sgs1 = (int)($e1['subject_group_subject_id'] ?? 0);
+                $sgs2 = (int)($e2['subject_group_subject_id'] ?? 0);
+                if (!empty($joint_peers[$cid1][$sid1][$sgs1])) continue;
+                if (!empty($joint_peers[$cid2][$sid2][$sgs2])) continue;
+
+                // Execute: move e1 to (d2,p2) in class1, e2 to (d1,p1) in class2
+                $draft_entries[$di1]['day'] = $d2; $draft_entries[$di1]['period_id'] = $p2;
+                $draft_entries[$di2]['day'] = $d1; $draft_entries[$di2]['period_id'] = $p1;
+
+                unset($this->class_occ[$cid1][$sid1][$d1][$p1][0]);
+                $this->class_occ[$cid1][$sid1][$d2][$p2][0] = true;
+                unset($this->class_occ[$cid2][$sid2][$d2][$p2][0]);
+                $this->class_occ[$cid2][$sid2][$d1][$p1][0] = true;
+
+                // Teacher occ unchanged — T still occupies both (d1,p1) and (d2,p2)
+
+                unset($grid[$te1['ck']][$te1['sk']]);
+                $grid[$te1['ck']][$te2['sk']] = $di1;
+                unset($grid[$te2['ck']][$te2['sk']]);
+                $grid[$te2['ck']][$te1['sk']] = $di2;
             }
         }
 
