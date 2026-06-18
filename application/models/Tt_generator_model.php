@@ -119,6 +119,16 @@ class Tt_generator_model extends MY_Model
             'min_break_after_consec'  => 1,
         ];
 
+        // Joint lesson sgs_ids — these entries must not be moved by swaps
+        $joint_sgs = [];
+        $jl_rows = $this->db->select('subject_group_subject_id')
+            ->where('session_id', $session_id)
+            ->where('joint_lesson_id IS NOT NULL', null, false)
+            ->get('tt_subject_load')->result();
+        foreach ($jl_rows as $jr) {
+            if ($jr->subject_group_subject_id) $joint_sgs[(int)$jr->subject_group_subject_id] = true;
+        }
+
         // Pre-compute how many slots each teacher is unavailable for this session.
         // Teachers with more blocked slots are harder to schedule and must go first.
         $teacher_unavail_count = [];
@@ -622,7 +632,7 @@ class Tt_generator_model extends MY_Model
                         if ($blocker_idx === null) continue;
                         $blocker = $draft_entries[$blocker_idx];
                         $b_tid = (int) ($blocker['staff_id'] ?? 0);
-                        if (!$b_tid) continue;
+                        if (!$b_tid || !empty($joint_sgs[(int)($blocker['subject_group_subject_id'] ?? 0)])) continue;
 
                         // Can the blocker move to a different empty slot?
                         foreach ($this->working_days as $day2) {
@@ -1004,6 +1014,16 @@ class Tt_generator_model extends MY_Model
         $total_swaps = 0;
         $max_iterations = 10;
 
+        // Joint lesson sgs_ids — entries must not be moved (synced across classes)
+        $joint_sgs = [];
+        $jl_rows = $this->db->select('subject_group_subject_id')
+            ->where('session_id', $session_id)
+            ->where('joint_lesson_id IS NOT NULL', null, false)
+            ->get('tt_subject_load')->result();
+        foreach ($jl_rows as $jr) {
+            if ($jr->subject_group_subject_id) $joint_sgs[(int)$jr->subject_group_subject_id] = true;
+        }
+
         // Indexes: teacher → draft index, class → draft index
         $teacher_idx = [];
         $class_idx   = [];
@@ -1093,7 +1113,7 @@ class Tt_generator_model extends MY_Model
                             $idx = $teacher_idx[$t_id][$day][$pid] ?? null;
                             if ($idx !== null) {
                                 $be = $draft_entries[$idx];
-                                if (empty($be['is_locked'])
+                                if (empty($be['is_locked']) && empty($joint_sgs[(int)($be['subject_group_subject_id'] ?? 0)])
                                     && !((int)$be['class_id'] === $c_id && (int)$be['section_id'] === $s_id)) {
                                     $blocker_candidates[] = $idx;
                                 }
@@ -1104,7 +1124,7 @@ class Tt_generator_model extends MY_Model
                                 $idx = $teacher_idx[$t_id][$day][$cp] ?? null;
                                 if ($idx === null) continue;
                                 $be = $draft_entries[$idx];
-                                if (!empty($be['is_locked'])) continue;
+                                if (!empty($be['is_locked']) || !empty($joint_sgs[(int)($be['subject_group_subject_id'] ?? 0)])) continue;
                                 if ((int)$be['class_id'] === $c_id && (int)$be['section_id'] === $s_id) continue;
                                 $blocker_candidates[] = $idx;
                             }
@@ -1219,7 +1239,7 @@ class Tt_generator_model extends MY_Model
                             $bi = $teacher_idx[$t_id][$src_day][$src_pid] ?? null;
                             if ($bi === null) continue;
                             $bl = $draft_entries[$bi];
-                            if (!empty($bl['is_locked'])) continue;
+                            if (!empty($bl['is_locked']) || !empty($joint_sgs[(int)($bl['subject_group_subject_id'] ?? 0)])) continue;
                             $bc = (int)$bl['class_id']; $bs = (int)$bl['section_id'];
                             if ($bc === $c_id && $bs === $s_id) continue;
 
@@ -1231,7 +1251,7 @@ class Tt_generator_model extends MY_Model
                                     $si = $class_idx[$bc][$bs][$d3][$p3] ?? null;
                                     if ($si === null) continue;
                                     $se = $draft_entries[$si];
-                                    if (!empty($se['is_locked'])) continue;
+                                    if (!empty($se['is_locked']) || !empty($joint_sgs[(int)($se['subject_group_subject_id'] ?? 0)])) continue;
                                     $t2 = (int)($se['staff_id'] ?? 0);
                                     if (!$t2 || $t2 === $t_id) continue;
                                     if (!empty($this->teacher_occ[$t2][$src_day][$src_pid])) continue;
@@ -1297,7 +1317,7 @@ class Tt_generator_model extends MY_Model
                                     $mi = $class_idx[$c_id][$s_id][$od][$op] ?? null;
                                     if ($mi === null) continue;
                                     $me = $draft_entries[$mi];
-                                    if (!empty($me['is_locked'])) continue;
+                                    if (!empty($me['is_locked']) || !empty($joint_sgs[(int)($me['subject_group_subject_id'] ?? 0)])) continue;
                                     $t2 = (int)($me['staff_id'] ?? 0);
                                     if (!$t2) continue;
 
@@ -1359,7 +1379,7 @@ class Tt_generator_model extends MY_Model
                                     $mi = $class_idx[$c_id][$s_id][$od][$op] ?? null;
                                     if ($mi === null) continue;
                                     $me = $draft_entries[$mi];
-                                    if (!empty($me['is_locked'])) continue;
+                                    if (!empty($me['is_locked']) || !empty($joint_sgs[(int)($me['subject_group_subject_id'] ?? 0)])) continue;
                                     $t2 = (int)($me['staff_id'] ?? 0);
                                     if (!$t2) continue;
 
@@ -1371,7 +1391,7 @@ class Tt_generator_model extends MY_Model
                                     $c3i = $teacher_idx[$t2][$ed][$ep] ?? null;
                                     if ($c3i === null) continue;
                                     $c3e = $draft_entries[$c3i];
-                                    if (!empty($c3e['is_locked'])) continue;
+                                    if (!empty($c3e['is_locked']) || !empty($joint_sgs[(int)($c3e['subject_group_subject_id'] ?? 0)])) continue;
                                     $c3c = (int)$c3e['class_id']; $c3s = (int)$c3e['section_id'];
                                     if ($c3c === $c_id && $c3s === $s_id) continue;
                                     $c3sgs = (int)($c3e['subject_group_subject_id'] ?? 0);
