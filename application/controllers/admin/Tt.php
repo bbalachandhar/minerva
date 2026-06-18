@@ -711,6 +711,96 @@ class Tt extends Admin_Controller
         echo json_encode(['status' => $result ? '1' : '0']);
     }
 
+    public function diagnose_joint_lessons()
+    {
+        if (!$this->rbac->hasPrivilege('tt_generate', 'can_view')) { access_denied(); }
+
+        $session_id = $this->setting_model->getCurrentSession();
+        $this->load->model('Tt_joint_model');
+        $this->load->model('Tt_teacher_model');
+        $this->load->library('Customlib');
+
+        $joints = $this->Tt_joint_model->getAllForGeneration($session_id);
+        $unavail_map = $this->Tt_teacher_model->getUnavailabilityMap($session_id);
+        $constraints = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
+
+        // Load class unavailability
+        $class_unavail = [];
+        foreach ($this->db->where('session_id', $session_id)->get('tt_class_unavail')->result() as $r) {
+            $class_unavail[(int)$r->class_id][(int)$r->section_id][$r->day][(int)$r->period_id] = true;
+        }
+
+        // Load locked entries
+        $locked = [];
+        foreach ($this->db->where('session_id', $session_id)->where('is_locked', 1)->get('tt_entries')->result() as $e) {
+            $locked[(int)$e->class_id][(int)$e->section_id][$e->day][(int)$e->period_id] = true;
+        }
+
+        // Load periods and working days
+        $periods = $this->db->where('session_id', $session_id)->where('is_break', 0)
+            ->order_by('start_time', 'ASC')->get('tt_periods')->result();
+        $days_map = $this->customlib->getDaysnameWithoutLang();
+        $working_days = array_filter(array_keys($days_map), fn($d) => $d !== 'Sunday');
+
+        $report = [];
+        foreach ($joints as $jl) {
+            $classes = $jl->classes ?? [];
+            if (count($classes) < 2) continue;
+            $t_ids = $jl->teacher_ids ?? [];
+            $consec = (int)($jl->consecutive_periods ?? 1);
+            $ppw = (int)($jl->periods_per_week ?? 1);
+            $class_labels = implode(' + ', array_map(fn($cs) => "C{$cs->class_id}/S{$cs->section_id}", $classes));
+
+            $slot_analysis = [];
+            $total_slots = 0; $free_slots = 0;
+            foreach ($working_days as $day) {
+                foreach ($periods as $p) {
+                    $pid = (int)$p->id;
+                    $total_slots++;
+                    $blockers = [];
+
+                    foreach ($classes as $cs) {
+                        $cid = (int)$cs->class_id; $sid = (int)$cs->section_id;
+                        if (!empty($class_unavail[$cid][$sid][$day][$pid])) {
+                            $blockers[] = "C{$cid}/S{$sid} class_unavail";
+                        }
+                        if (!empty($locked[$cid][$sid][$day][$pid])) {
+                            $blockers[] = "C{$cid}/S{$sid} locked_entry";
+                        }
+                    }
+                    foreach ($t_ids as $tid) {
+                        if (!empty($unavail_map[$tid][$day][$pid])) {
+                            $t = $this->db->select('name,surname')->where('id', $tid)->get('staff')->row();
+                            $blockers[] = "Teacher " . ($t ? "{$t->name} {$t->surname}" : $tid) . " unavailable";
+                        }
+                    }
+
+                    if (empty($blockers)) {
+                        $free_slots++;
+                    } else {
+                        $slot_analysis[] = "{$day} P{$pid} ({$p->name}): " . implode(', ', $blockers);
+                    }
+                }
+            }
+
+            $placements_needed = ($consec > 1) ? (int)ceil($ppw / $consec) : $ppw;
+            $report[] = [
+                'name' => $jl->name,
+                'classes' => $class_labels,
+                'sections' => count($classes),
+                'ppw' => $ppw,
+                'consecutive' => $consec,
+                'placements_needed' => $placements_needed,
+                'total_slots' => $total_slots,
+                'free_slots' => $free_slots,
+                'blocked_slots' => $slot_analysis,
+                'feasible' => $free_slots >= $placements_needed,
+            ];
+        }
+
+        echo json_encode(['status' => '1', 'joints' => $report], JSON_PRETTY_PRINT);
+    }
+
     public function get_teacher_capacity_data()
     {
         if (!$this->rbac->hasPrivilege('tt_subject_load', 'can_view')) { access_denied(); }
