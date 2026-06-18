@@ -997,6 +997,7 @@ class Tt extends Admin_Controller
 
     public function run_generate()
     {
+        set_time_limit(300);
         if (!$this->rbac->hasPrivilege('tt_generate', 'can_add')) {
             access_denied();
         }
