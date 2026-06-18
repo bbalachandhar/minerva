@@ -572,8 +572,9 @@ class Tt_generator_model extends MY_Model
                     }
                     $cand_ppw = (int) $cand->periods_per_week;
                     $cand_urgency = 0;
-                    if ($cand_valid <= $cand_ppw) $cand_urgency = 300;
-                    elseif ($cand_valid <= $cand_ppw * 2) $cand_urgency = 150;
+                    if ($cand_valid <= $cand_ppw) $cand_urgency = 1000;
+                    elseif ($cand_valid <= $cand_ppw * 2) $cand_urgency = 500;
+                    elseif ($cand_valid <= $cand_ppw * 3) $cand_urgency = 200;
                     $cand_slot_tight = max(0, 50 - $cand_valid);
                     $cand_bn = $cand->_bn_boost ?? 0;
                     $cand_score = ($cand->consecutive_periods * 10) + $cand->periods_per_week + $cand->priority
