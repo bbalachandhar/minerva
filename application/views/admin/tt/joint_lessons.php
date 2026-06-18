@@ -199,6 +199,11 @@ foreach ($periods as $p) { $period_name_map[$p->id] = $p->name; }
                 <strong>All must attend simultaneously</strong>
                 <small class="text-muted">(generator requires ALL free; marks ALL occupied)</small>
               </label>
+              <div class="text-info" style="font-size:12px;margin-top:4px;padding:4px 8px;background:#e8f4fd;border-radius:3px;">
+                <i class="fa fa-lightbulb-o"></i>
+                <strong>Unchecked</strong> = shared teacher — classes are scheduled at different times, just sharing the same teacher pool.<br>
+                <strong>Checked</strong> = combined class — all sections attend together at the exact same day &amp; period.
+              </div>
             </div>
             <small class="text-muted"><i class="fa fa-info-circle"></i> Leave empty if no specific teacher is required.</small>
           </div>
