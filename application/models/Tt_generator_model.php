@@ -2407,6 +2407,17 @@ class Tt_generator_model extends MY_Model
             }
         }
 
+        // Build set of joint lesson sgs_ids — these entries must not be
+        // moved by swaps since they're synchronized across multiple classes
+        $joint_sgs = [];
+        $jl_rows = $this->db->select('subject_group_subject_id')
+            ->where('session_id', $session_id)
+            ->where('joint_lesson_id IS NOT NULL', null, false)
+            ->get('tt_subject_load')->result();
+        foreach ($jl_rows as $jr) {
+            if ($jr->subject_group_subject_id) $joint_sgs[(int)$jr->subject_group_subject_id] = true;
+        }
+
         $unmet = [];
         foreach ($base_loads as $load) {
             $sgs = (int) $load->subject_group_subject_id;
@@ -2492,7 +2503,7 @@ class Tt_generator_model extends MY_Model
                         $blocker_candidates = [];
                         if ($t_busy_here) {
                             $bl = $entry_by_teacher[$t_id][$day][$pid] ?? null;
-                            if ($bl && empty($bl->is_locked)
+                            if ($bl && empty($bl->is_locked) && empty($joint_sgs[(int)($bl->subject_group_subject_id ?? 0)])
                                 && !((int)$bl->class_id === $class_id && (int)$bl->section_id === $section_id)) {
                                 $blocker_candidates[] = $bl;
                             }
@@ -2500,7 +2511,7 @@ class Tt_generator_model extends MY_Model
                         if ($need_diff_day && !$t_busy_here) {
                             foreach ($this->period_order as $cp) {
                                 $bl = $entry_by_teacher[$t_id][$day][$cp] ?? null;
-                                if (!$bl || !empty($bl->is_locked)) continue;
+                                if (!$bl || !empty($bl->is_locked) || !empty($joint_sgs[(int)($bl->subject_group_subject_id ?? 0)])) continue;
                                 if ((int)$bl->class_id === $class_id && (int)$bl->section_id === $section_id) continue;
                                 $blocker_candidates[] = $bl;
                             }
@@ -2593,7 +2604,7 @@ class Tt_generator_model extends MY_Model
                                         if ($day3 === $b_orig_day && $pid3 === $b_orig_pid) continue;
                                         if (!empty($this->teacher_occ[$t_id][$day3][$pid3])) continue;
                                         $swap_e = $entry_by_class[$b_cid][$b_sid][$day3][$pid3] ?? null;
-                                        if (!$swap_e || !empty($swap_e->is_locked)) continue;
+                                        if (!$swap_e || !empty($swap_e->is_locked) || !empty($joint_sgs[(int)($swap_e->subject_group_subject_id ?? 0)])) continue;
                                         $t2_id = (int) $swap_e->staff_id;
                                         if ($t2_id === $t_id) continue;
                                         if (!empty($this->teacher_occ[$t2_id][$b_orig_day][$b_orig_pid])) continue;
@@ -2682,7 +2693,7 @@ class Tt_generator_model extends MY_Model
                                 foreach ($this->period_order as $op) {
                                     if ($od === $ed && $op === $ep) continue;
                                     $me = $entry_by_class[$class_id][$section_id][$od][$op] ?? null;
-                                    if (!$me || !empty($me->is_locked)) continue;
+                                    if (!$me || !empty($me->is_locked) || !empty($joint_sgs[(int)($me->subject_group_subject_id ?? 0)])) continue;
                                     $t2 = (int) $me->staff_id;
 
                                     // T must be free at the occupied slot
@@ -2779,7 +2790,7 @@ class Tt_generator_model extends MY_Model
                                     if ($resolved) break;
                                     if ($od === $ed && $op === $ep) continue;
                                     $me = $entry_by_class[$class_id][$section_id][$od][$op] ?? null;
-                                    if (!$me || !empty($me->is_locked)) continue;
+                                    if (!$me || !empty($me->is_locked) || !empty($joint_sgs[(int)($me->subject_group_subject_id ?? 0)])) continue;
                                     $t2 = (int) $me->staff_id;
                                     if (!$t2) continue;
 
@@ -2792,7 +2803,7 @@ class Tt_generator_model extends MY_Model
 
                                     // Find T2's entry at (ed,ep) in another class
                                     $c3e = $entry_by_teacher[$t2][$ed][$ep] ?? null;
-                                    if (!$c3e || !empty($c3e->is_locked)) continue;
+                                    if (!$c3e || !empty($c3e->is_locked) || !empty($joint_sgs[(int)($c3e->subject_group_subject_id ?? 0)])) continue;
                                     $c3c = (int) $c3e->class_id; $c3s = (int) $c3e->section_id;
                                     if ($c3c === $class_id && $c3s === $section_id) continue;
                                     $c3sgs = (int) $c3e->subject_group_subject_id;
