@@ -199,52 +199,6 @@ class Tt_generator_model extends MY_Model
             $joint_lessons = array_values(array_filter($joint_lessons, fn($jl) => count($jl->classes) >= 1));
         }
 
-        // ---- AUTO-MERGE COMPATIBLE JOINT LESSONS ----
-        // When the same teacher(s) teach the same subject at the same ppw as
-        // separate joints (e.g., ENGLISH for C122 + ENGLISH for C128), merge
-        // them into a single scheduling unit. The teacher teaches ALL sections
-        // simultaneously, using only ppw periods (not ppw × groups).
-        $merge_groups = [];
-        foreach ($joint_lessons as $jk => $jl) {
-            $t_ids = $jl->teacher_ids ?? [];
-            sort($t_ids);
-            $key = implode(',', $t_ids) . '|' . (int)$jl->periods_per_week . '|' . (int)$jl->consecutive_periods . '|' . (int)($jl->subject_id ?? 0);
-            $merge_groups[$key][] = $jk;
-        }
-        $merged_jls = [];
-        $merged_ids = [];
-        foreach ($merge_groups as $key => $jk_list) {
-            if (count($jk_list) < 2) continue;
-            $first = $joint_lessons[$jk_list[0]];
-            $merged = clone $first;
-            $merged->_merged_from = [(int)$first->id];
-            $all_classes = [];
-            foreach ($first->classes as $cs) {
-                $ck = $cs->class_id . '_' . $cs->section_id;
-                $all_classes[$ck] = $cs;
-            }
-            for ($i = 1; $i < count($jk_list); $i++) {
-                $other = $joint_lessons[$jk_list[$i]];
-                $merged->_merged_from[] = (int)$other->id;
-                foreach ($other->classes as $cs) {
-                    $ck = $cs->class_id . '_' . $cs->section_id;
-                    if (!isset($all_classes[$ck])) $all_classes[$ck] = $cs;
-                }
-                if ((int)$other->priority > (int)$merged->priority) $merged->priority = $other->priority;
-                $merged->name = $first->name . ' (merged)';
-            }
-            $merged->classes = array_values($all_classes);
-            $merged_jls[] = $merged;
-            foreach ($jk_list as $jk) $merged_ids[$jk] = true;
-        }
-        // Replace original joints: keep unmerged, add merged
-        $new_jls = [];
-        foreach ($joint_lessons as $jk => $jl) {
-            if (!isset($merged_ids[$jk])) $new_jls[] = $jl;
-        }
-        foreach ($merged_jls as $mj) $new_jls[] = $mj;
-        $joint_lessons = $new_jls;
-
         // Build joint_peers: [class_id][section_id][sgs_id] → all participating classes
         foreach ($joint_lessons as $jl) {
             $all_cs = [];
