@@ -2732,7 +2732,10 @@ class Tt_generator_model extends MY_Model
             }
         }
 
-        // Remove joint entries and restore occupancy
+        // Remove joint entries and restore occupancy.
+        // Track (teacher,day,period) to decrement only ONCE per slot — joint
+        // entries exist per-section but teacher_periods was incremented once.
+        $undone_teacher_slots = [];
         foreach ($jl_entry_indices as $di => $_) {
             $de = $draft_entries[$di];
             $cid = (int)$de['class_id']; $sid = (int)$de['section_id'];
@@ -2740,9 +2743,13 @@ class Tt_generator_model extends MY_Model
             unset($this->class_occ[$cid][$sid][$day][$pid][0]);
             $tid = (int)($de['staff_id'] ?? 0);
             if ($tid) {
-                unset($this->teacher_occ[$tid][$day][$pid]);
-                $this->teacher_periods_day[$tid][$day] = max(0, ($this->teacher_periods_day[$tid][$day] ?? 1) - 1);
-                $this->teacher_periods_week[$tid] = max(0, ($this->teacher_periods_week[$tid] ?? 1) - 1);
+                $tk = "{$tid}_{$day}_{$pid}";
+                if (!isset($undone_teacher_slots[$tk])) {
+                    $undone_teacher_slots[$tk] = true;
+                    unset($this->teacher_occ[$tid][$day][$pid]);
+                    $this->teacher_periods_day[$tid][$day] = max(0, ($this->teacher_periods_day[$tid][$day] ?? 1) - 1);
+                    $this->teacher_periods_week[$tid] = max(0, ($this->teacher_periods_week[$tid] ?? 1) - 1);
+                }
             }
             unset($draft_entries[$di]);
         }
