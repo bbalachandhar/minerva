@@ -1714,6 +1714,96 @@ class Tt_generator_model extends MY_Model
                     }
                 }
             }
+
+                    // Depth-3: T is busy at target slot teaching class Z. T can't
+                    // relocate within Z. But if T's Z-entry can move to slot (d3,p3)
+                    // where Z is free but T is busy teaching class C3, AND C3's entry
+                    // can move elsewhere — 3-step chain frees the target slot.
+                    if (!$placed) {
+                        foreach ($this->working_days as $day) {
+                            if ($placed) break;
+                            foreach ($this->period_order as $pid) {
+                                if ($placed) break;
+                                if (!empty($this->class_occ[$c_id][$s_id][$day][$pid][0])) continue;
+                                if (!empty($this->class_unavail[$c_id][$s_id][$day][$pid])) continue;
+                                if (empty($this->teacher_occ[$t_id][$day][$pid])) continue;
+                                if (!empty($unavail_map[$t_id][$day][$pid])) continue;
+
+                                $bi = $t_idx[$t_id][$day][$pid] ?? null;
+                                if ($bi === null) continue;
+                                $bl = $draft_entries[$bi];
+                                if (!empty($bl['is_locked'])) continue;
+                                $bc = (int)$bl['class_id']; $bs = (int)$bl['section_id'];
+
+                                // For each slot (d3,p3) where class Z (blocker class) is free:
+                                foreach ($this->working_days as $d3) {
+                                    if ($placed) break;
+                                    foreach ($this->period_order as $p3) {
+                                        if ($placed) break;
+                                        if ($d3 === $day && $p3 === $pid) continue;
+                                        if (!empty($this->class_occ[$bc][$bs][$d3][$p3][0])) continue;
+                                        if (!empty($this->class_unavail[$bc][$bs][$d3][$p3])) continue;
+                                        // T must be busy at (d3,p3) in some other class C3
+                                        if (empty($this->teacher_occ[$t_id][$d3][$p3])) continue;
+                                        if (!empty($unavail_map[$t_id][$d3][$p3])) continue;
+
+                                        $c3i = $t_idx[$t_id][$d3][$p3] ?? null;
+                                        if ($c3i === null) continue;
+                                        $c3e = $draft_entries[$c3i];
+                                        if (!empty($c3e['is_locked'])) continue;
+                                        $c3c = (int)$c3e['class_id']; $c3s = (int)$c3e['section_id'];
+                                        if ($c3c === $bc && $c3s === $bs) continue;
+                                        if ($c3c === $c_id && $c3s === $s_id) continue;
+
+                                        // Can C3's entry relocate to a free slot?
+                                        foreach ($this->working_days as $d4) {
+                                            if ($placed) break;
+                                            foreach ($this->period_order as $p4) {
+                                                if ($d4 === $d3 && $p4 === $p3) continue;
+                                                if (!empty($this->class_occ[$c3c][$c3s][$d4][$p4][0])) continue;
+                                                if (!empty($this->class_unavail[$c3c][$c3s][$d4][$p4])) continue;
+                                                if (!empty($this->teacher_occ[$t_id][$d4][$p4])) continue;
+                                                if (!empty($unavail_map[$t_id][$d4][$p4])) continue;
+
+                                                // 3-step chain: C3→(d4,p4), blocker→(d3,p3), place conflict at (day,pid)
+                                                $draft_entries[$c3i]['day'] = $d4; $draft_entries[$c3i]['period_id'] = $p4;
+                                                $draft_entries[$bi]['day'] = $d3; $draft_entries[$bi]['period_id'] = $p3;
+
+                                                unset($this->class_occ[$c3c][$c3s][$d3][$p3][0]);
+                                                $this->class_occ[$c3c][$c3s][$d4][$p4][0] = true;
+                                                unset($this->class_occ[$bc][$bs][$day][$pid][0]);
+                                                $this->class_occ[$bc][$bs][$d3][$p3][0] = true;
+
+                                                unset($this->teacher_occ[$t_id][$day][$pid]);
+                                                unset($this->teacher_occ[$t_id][$d3][$p3]);
+                                                $this->teacher_occ[$t_id][$d3][$p3] = true;
+                                                $this->teacher_occ[$t_id][$d4][$p4] = true;
+
+                                                $draft_entries[] = [
+                                                    'gen_log_id' => $log_id, 'session_id' => $session_id,
+                                                    'class_id' => $c_id, 'section_id' => $s_id,
+                                                    'subject_group_id' => $conf_sgid,
+                                                    'subject_group_subject_id' => $conf_sgs,
+                                                    'staff_id' => $t_id, 'period_id' => $pid,
+                                                    'day' => $day, 'room_id' => null,
+                                                    'batch_id' => null, 'is_free_period' => 0,
+                                                    'free_period_label' => null,
+                                                ];
+                                                $this->class_occ[$c_id][$s_id][$day][$pid][0] = true;
+                                                $this->teacher_occ[$t_id][$day][$pid] = true;
+                                                $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                                                $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+
+                                                $resolved_count++;
+                                                $placed = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
             if (!$placed) $new_conflicts[] = $conf;
         }
         $conflicts = $new_conflicts;
@@ -2538,7 +2628,7 @@ class Tt_generator_model extends MY_Model
     ) {
         $primary = $teacher_ids[0] ?? null;
         $n_sections = count($jl->classes);
-        $max_displace = min(2, $n_sections - 1);
+        $max_displace = $n_sections;
         $best = null; $best_displace_count = 999;
 
         foreach ($this->working_days as $day) {
