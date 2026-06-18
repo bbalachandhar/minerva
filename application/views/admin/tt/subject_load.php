@@ -260,27 +260,23 @@ $(function(){
   $('#btn-save-loads, #btn-save-loads-bottom').on('click', saveLoads);
 
   // ---- Teacher capacity validation ----
-  var teacherCap = {}; // {tid: {name, total_ppw, max_week, max_day, unavail, avail_slots, slot_count, day_count}}
+  var teacherCap = {};
 
   function loadTeacherCapacity() {
     $.post('<?php echo site_url("admin/tt/get_teacher_capacity_data"); ?>', {[csrf_name]: csrf_val}, function(res){
       if (res.status === '1') teacherCap = res.data;
       validateTeacherLoads();
-    }, 'json');
+    }, 'json').fail(function(){ console.warn('Teacher capacity data load failed'); });
   }
 
   function validateTeacherLoads() {
-    if (!Object.keys(teacherCap).length) return;
     var classId = $('#sl_class_id_hidden').val();
-    var sectionId = $('#sl_section_id_hidden').val();
-    if (!classId) return;
+    if (!classId || !Object.keys(teacherCap).length) return;
 
-    // Collect this form's teacher→ppw assignments
-    var formLoads = {}; // {tid: total_ppw_in_this_form}
+    var formLoads = {};
     $('#sl-rows-table tbody tr').each(function(){
-      var $row = $(this);
-      var ppw = parseInt($row.find('[name$="[periods_per_week]"]').val()) || 0;
-      var $pool = $row.find('.sl-teacher-pool');
+      var ppw = parseInt($(this).find('[name$="[periods_per_week]"]').val()) || 0;
+      var $pool = $(this).find('.sl-teacher-pool');
       if (!$pool.length) return;
       var tids = $pool.val() || [];
       $.each(tids, function(i, tid) {
@@ -288,76 +284,93 @@ $(function(){
       });
     });
 
-    var warnings = [];
+    if (!Object.keys(formLoads).length) { $('#sl-teacher-warnings').hide(); return; }
+
     var $rows = $('#sl-rows-table tbody tr');
     $rows.find('.sl-cap-warn').remove();
 
+    var summaryRows = [];
     $.each(formLoads, function(tid, formPpw) {
       var cap = teacherCap[tid];
       if (!cap) return;
-      // Total across all classes = cap.total_ppw for OTHER classes + formPpw for THIS class
-      // But cap.total_ppw includes this class's saved data. We need: other_classes + current_form
-      // Approximation: use cap.total_ppw as the saved total. If they changed values, it'll be
-      // slightly off until they save — but close enough for real-time warnings.
-      var totalOther = cap.total_ppw; // includes this class's saved values
-      var effective = totalOther; // we'll refine below if we can
-
-      var overWeek = effective > cap.max_week;
-      var overSlots = effective > cap.avail_slots && cap.unavail > 0;
+      var total = cap.total_ppw;
+      var pct = cap.max_week > 0 ? Math.round(total / cap.max_week * 100) : 0;
+      var overWeek = total > cap.max_week;
+      var overSlots = total > cap.avail_slots && cap.unavail > 0;
       var dayCapacity = cap.max_day * cap.day_count;
-      var overDay = effective > dayCapacity;
-      var highUse = effective >= cap.max_week * 0.85;
+      var overDay = total > dayCapacity;
 
-      if (overWeek || overSlots || overDay) {
-        var msg = '<b>' + cap.name + '</b>: ' + effective + '/' + cap.max_week + ' periods/week';
-        if (overWeek) msg += ' — <span class="text-danger">OVER weekly cap by ' + (effective - cap.max_week) + '</span>';
-        if (overSlots) msg += ' — <span class="text-danger">' + cap.unavail + ' unavailable slots, only ' + cap.avail_slots + ' free</span>';
-        if (overDay) msg += ' — <span class="text-danger">exceeds ' + cap.max_day + '/day × ' + cap.day_count + ' days = ' + dayCapacity + '</span>';
-        warnings.push({tid: tid, msg: msg, level: 'danger'});
-      } else if (highUse) {
-        var pct = Math.round(effective / cap.max_week * 100);
-        warnings.push({tid: tid, msg: '<b>' + cap.name + '</b>: ' + effective + '/' + cap.max_week + ' periods/week (' + pct + '% capacity)', level: 'warning'});
-      }
+      var color = overWeek || overSlots || overDay ? 'danger' : (pct >= 85 ? 'warning' : (pct >= 60 ? 'info' : 'success'));
+      var barWidth = Math.min(pct, 100);
+      var issues = [];
+      if (overWeek) issues.push('OVER weekly cap by ' + (total - cap.max_week));
+      if (overSlots) issues.push(cap.unavail + ' unavailable slots, only ' + cap.avail_slots + ' free');
+      if (overDay) issues.push('exceeds ' + cap.max_day + '/day × ' + cap.day_count + ' days = ' + dayCapacity);
 
-      // Inline indicator on rows with this teacher
+      summaryRows.push({
+        tid: tid, name: cap.name, total: total, max: cap.max_week, pct: pct,
+        color: color, barWidth: barWidth, issues: issues, thisClass: formPpw,
+        overWeek: overWeek, overSlots: overSlots, overDay: overDay
+      });
+
+      // Inline indicator on each row that uses this teacher
       $rows.each(function(){
         var $pool = $(this).find('.sl-teacher-pool');
         if (!$pool.length) return;
-        var tids = $pool.val() || [];
-        if (tids.indexOf(tid.toString()) === -1 && tids.indexOf(parseInt(tid)) === -1) return;
+        var poolVals = $pool.val() || [];
+        var match = false;
+        $.each(poolVals, function(i, v) { if (v == tid) match = true; });
+        if (!match) return;
         var $td = $pool.closest('td');
-        if (overWeek || overSlots) {
-          $td.append('<div class="sl-cap-warn text-danger" style="font-size:10px;margin-top:2px;"><i class="fa fa-exclamation-triangle"></i> ' + cap.name + ': ' + effective + '/' + cap.max_week + '</div>');
-        } else if (highUse) {
-          $td.append('<div class="sl-cap-warn text-warning" style="font-size:10px;margin-top:2px;"><i class="fa fa-info-circle"></i> ' + cap.name + ': ' + effective + '/' + cap.max_week + '</div>');
-        }
+        var labelClass = color === 'danger' ? 'label-danger' : (color === 'warning' ? 'label-warning' : 'label-info');
+        $td.append('<div class="sl-cap-warn" style="font-size:10px;margin-top:2px;">'
+          + '<span class="label ' + labelClass + '" style="font-weight:normal;">'
+          + cap.name + ': ' + total + '/' + cap.max_week + ' (' + pct + '%)'
+          + '</span></div>');
       });
     });
 
+    // Sort: problems first, then by utilization descending
+    summaryRows.sort(function(a, b) {
+      if (a.color === 'danger' && b.color !== 'danger') return -1;
+      if (b.color === 'danger' && a.color !== 'danger') return 1;
+      return b.pct - a.pct;
+    });
+
     var $panel = $('#sl-teacher-warnings');
-    if (warnings.length > 0) {
-      var html = '<div class="alert alert-warning" style="margin-bottom:0;font-size:12px;padding:8px 12px;">'
-        + '<strong><i class="fa fa-users"></i> Teacher Capacity Summary</strong><br>';
-      $.each(warnings, function(i, w) {
-        html += '<div style="margin-top:4px;"><i class="fa fa-' + (w.level === 'danger' ? 'times-circle text-danger' : 'info-circle text-warning') + '"></i> ' + w.msg + '</div>';
-      });
-      html += '</div>';
-      $panel.html(html).show();
-    } else {
-      $panel.hide();
-    }
+    var hasDanger = summaryRows.some(function(r){ return r.color === 'danger'; });
+    var alertClass = hasDanger ? 'alert-danger' : 'alert-info';
+    var html = '<div class="alert ' + alertClass + '" style="margin-bottom:0;font-size:12px;padding:10px 12px;">'
+      + '<strong><i class="fa fa-users"></i> Teacher Workload — This Class</strong>'
+      + '<div style="margin-top:6px;">';
+
+    $.each(summaryRows, function(i, r) {
+      html += '<div style="display:flex;align-items:center;margin-bottom:4px;">'
+        + '<span style="min-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + r.name + '">' + r.name + '</span>'
+        + '<div style="flex:1;margin:0 8px;background:#eee;border-radius:3px;height:14px;position:relative;">'
+        + '<div style="width:' + r.barWidth + '%;height:100%;border-radius:3px;background:' + (r.color==='danger'?'#dd4b39':r.color==='warning'?'#f39c12':r.color==='info'?'#00c0ef':'#00a65a') + ';"></div>'
+        + '</div>'
+        + '<span style="min-width:90px;text-align:right;white-space:nowrap;" class="text-' + r.color + '">'
+        + '<b>' + r.total + '</b>/' + r.max + ' <small>(' + r.pct + '%)</small>'
+        + '</span></div>';
+      if (r.issues.length) {
+        html += '<div style="margin:-2px 0 4px 168px;font-size:11px;" class="text-danger"><i class="fa fa-exclamation-triangle"></i> ' + r.issues.join(' | ') + '</div>';
+      }
+    });
+
+    html += '</div></div>';
+    $panel.html(html).show();
   }
 
-  // Re-validate when teacher pool or periods/week changes
   $(document).on('change', '.sl-teacher-pool, [name$="[periods_per_week]"]', function(){
     setTimeout(validateTeacherLoads, 100);
   });
 
-  // Load teacher capacity data once at init, re-validate when subjects are fetched
+  // Load capacity data once and refresh after subjects are fetched
   loadTeacherCapacity();
   $(document).ajaxComplete(function(e, xhr, settings) {
     if (settings.url && settings.url.indexOf('get_subject_load_data') !== -1) {
-      setTimeout(function(){ loadTeacherCapacity(); }, 300);
+      setTimeout(loadTeacherCapacity, 300);
     }
   });
 });
