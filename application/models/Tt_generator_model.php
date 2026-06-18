@@ -939,6 +939,11 @@ class Tt_generator_model extends MY_Model
         $class_stats        = array_values($best_result['class_stats'] ?? []);
         $gap_filled_subject = $best_result['gap_filled_subject'] ?? 0;
         $gap_filled_free    = $best_result['gap_filled_free'] ?? 0;
+
+        // Recompute total_placed from actual failures to fix any incremental drift
+        $real_fail_count = count(array_filter($conflicts, fn($c) => ($c['type'] ?? '') === 'no_slot' || (empty($c['type']) && !empty($c['reason']))));
+        $corrected_placed = $total_required - $real_fail_count;
+        if ($corrected_placed > $total_placed) $total_placed = $corrected_placed;
         $quality = ($total_required > 0) ? round(($total_placed / $total_required) * 100, 2) : 100.00;
 
         if (!$dry_run) {
