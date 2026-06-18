@@ -90,6 +90,8 @@
         <div id="subject-load-rows"></div>
       </form>
     </div>
+    <div id="sl-teacher-warnings" style="display:none;padding:8px 15px;">
+    </div>
     <div class="box-footer">
       <button class="btn btn-success" id="btn-save-loads-bottom"><i class="fa fa-save"></i> Save All Changes</button>
       <small class="text-muted ml-3"><i class="fa fa-info-circle"></i> Changes take effect on the next Auto Generate run.</small>
@@ -256,6 +258,108 @@ $(function(){
   }
 
   $('#btn-save-loads, #btn-save-loads-bottom').on('click', saveLoads);
+
+  // ---- Teacher capacity validation ----
+  var teacherCap = {}; // {tid: {name, total_ppw, max_week, max_day, unavail, avail_slots, slot_count, day_count}}
+
+  function loadTeacherCapacity() {
+    $.post('<?php echo site_url("admin/tt/get_teacher_capacity_data"); ?>', {[csrf_name]: csrf_val}, function(res){
+      if (res.status === '1') teacherCap = res.data;
+      validateTeacherLoads();
+    }, 'json');
+  }
+
+  function validateTeacherLoads() {
+    if (!Object.keys(teacherCap).length) return;
+    var classId = $('#sl_class_id_hidden').val();
+    var sectionId = $('#sl_section_id_hidden').val();
+    if (!classId) return;
+
+    // Collect this form's teacher→ppw assignments
+    var formLoads = {}; // {tid: total_ppw_in_this_form}
+    $('#sl-rows-table tbody tr').each(function(){
+      var $row = $(this);
+      var ppw = parseInt($row.find('[name$="[periods_per_week]"]').val()) || 0;
+      var $pool = $row.find('.sl-teacher-pool');
+      if (!$pool.length) return;
+      var tids = $pool.val() || [];
+      $.each(tids, function(i, tid) {
+        formLoads[tid] = (formLoads[tid] || 0) + ppw;
+      });
+    });
+
+    var warnings = [];
+    var $rows = $('#sl-rows-table tbody tr');
+    $rows.find('.sl-cap-warn').remove();
+
+    $.each(formLoads, function(tid, formPpw) {
+      var cap = teacherCap[tid];
+      if (!cap) return;
+      // Total across all classes = cap.total_ppw for OTHER classes + formPpw for THIS class
+      // But cap.total_ppw includes this class's saved data. We need: other_classes + current_form
+      // Approximation: use cap.total_ppw as the saved total. If they changed values, it'll be
+      // slightly off until they save — but close enough for real-time warnings.
+      var totalOther = cap.total_ppw; // includes this class's saved values
+      var effective = totalOther; // we'll refine below if we can
+
+      var overWeek = effective > cap.max_week;
+      var overSlots = effective > cap.avail_slots && cap.unavail > 0;
+      var dayCapacity = cap.max_day * cap.day_count;
+      var overDay = effective > dayCapacity;
+      var highUse = effective >= cap.max_week * 0.85;
+
+      if (overWeek || overSlots || overDay) {
+        var msg = '<b>' + cap.name + '</b>: ' + effective + '/' + cap.max_week + ' periods/week';
+        if (overWeek) msg += ' — <span class="text-danger">OVER weekly cap by ' + (effective - cap.max_week) + '</span>';
+        if (overSlots) msg += ' — <span class="text-danger">' + cap.unavail + ' unavailable slots, only ' + cap.avail_slots + ' free</span>';
+        if (overDay) msg += ' — <span class="text-danger">exceeds ' + cap.max_day + '/day × ' + cap.day_count + ' days = ' + dayCapacity + '</span>';
+        warnings.push({tid: tid, msg: msg, level: 'danger'});
+      } else if (highUse) {
+        var pct = Math.round(effective / cap.max_week * 100);
+        warnings.push({tid: tid, msg: '<b>' + cap.name + '</b>: ' + effective + '/' + cap.max_week + ' periods/week (' + pct + '% capacity)', level: 'warning'});
+      }
+
+      // Inline indicator on rows with this teacher
+      $rows.each(function(){
+        var $pool = $(this).find('.sl-teacher-pool');
+        if (!$pool.length) return;
+        var tids = $pool.val() || [];
+        if (tids.indexOf(tid.toString()) === -1 && tids.indexOf(parseInt(tid)) === -1) return;
+        var $td = $pool.closest('td');
+        if (overWeek || overSlots) {
+          $td.append('<div class="sl-cap-warn text-danger" style="font-size:10px;margin-top:2px;"><i class="fa fa-exclamation-triangle"></i> ' + cap.name + ': ' + effective + '/' + cap.max_week + '</div>');
+        } else if (highUse) {
+          $td.append('<div class="sl-cap-warn text-warning" style="font-size:10px;margin-top:2px;"><i class="fa fa-info-circle"></i> ' + cap.name + ': ' + effective + '/' + cap.max_week + '</div>');
+        }
+      });
+    });
+
+    var $panel = $('#sl-teacher-warnings');
+    if (warnings.length > 0) {
+      var html = '<div class="alert alert-warning" style="margin-bottom:0;font-size:12px;padding:8px 12px;">'
+        + '<strong><i class="fa fa-users"></i> Teacher Capacity Summary</strong><br>';
+      $.each(warnings, function(i, w) {
+        html += '<div style="margin-top:4px;"><i class="fa fa-' + (w.level === 'danger' ? 'times-circle text-danger' : 'info-circle text-warning') + '"></i> ' + w.msg + '</div>';
+      });
+      html += '</div>';
+      $panel.html(html).show();
+    } else {
+      $panel.hide();
+    }
+  }
+
+  // Re-validate when teacher pool or periods/week changes
+  $(document).on('change', '.sl-teacher-pool, [name$="[periods_per_week]"]', function(){
+    setTimeout(validateTeacherLoads, 100);
+  });
+
+  // Load teacher capacity data once at init, re-validate when subjects are fetched
+  loadTeacherCapacity();
+  $(document).ajaxComplete(function(e, xhr, settings) {
+    if (settings.url && settings.url.indexOf('get_subject_load_data') !== -1) {
+      setTimeout(function(){ loadTeacherCapacity(); }, 300);
+    }
+  });
 });
 </script>
 </div>

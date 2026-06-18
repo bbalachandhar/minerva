@@ -711,6 +711,48 @@ class Tt extends Admin_Controller
         echo json_encode(['status' => $result ? '1' : '0']);
     }
 
+    public function get_teacher_capacity_data()
+    {
+        if (!$this->rbac->hasPrivilege('tt_subject_load', 'can_view')) { access_denied(); }
+
+        $session_id = $this->setting_model->getCurrentSession();
+        $this->load->model('Tt_teacher_model');
+        $constraints = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
+        $unavail_map = $this->Tt_teacher_model->getUnavailabilityMap($session_id);
+        $totals      = $this->_getTeacherWorkloadTotals($session_id);
+
+        $this->load->library('Customlib');
+        $days_map     = $this->customlib->getDaysnameWithoutLang();
+        $working_days = array_filter(array_keys($days_map), fn($d) => $d !== 'Sunday' && $d !== 'Saturday');
+        $day_count    = count($working_days);
+        $period_count = $this->db->where('session_id', $session_id)->where('is_break', 0)->count_all_results('tt_periods');
+        $slot_count   = $day_count * $period_count;
+
+        $data = [];
+        $staff_rows = $this->db->select('id, name, surname')->where('role_id', 2)->get('staff')->result();
+        foreach ($staff_rows as $sr) {
+            $tid = (int)$sr->id;
+            $max_week = isset($constraints[$tid]) ? (int)$constraints[$tid]->max_periods_per_week : 36;
+            $max_day  = isset($constraints[$tid]) ? (int)$constraints[$tid]->max_periods_per_day : 6;
+            $unavail  = 0;
+            if (isset($unavail_map[$tid])) {
+                foreach ($unavail_map[$tid] as $periods) $unavail += count($periods);
+            }
+            $data[$tid] = [
+                'name'       => "{$sr->name} {$sr->surname}",
+                'total_ppw'  => $totals[$tid] ?? 0,
+                'max_week'   => $max_week,
+                'max_day'    => $max_day,
+                'unavail'    => $unavail,
+                'avail_slots'=> $slot_count - $unavail,
+                'slot_count' => $slot_count,
+                'day_count'  => $day_count,
+            ];
+        }
+
+        echo json_encode(['status' => '1', 'data' => $data]);
+    }
+
     // =========================================================================
     // TEACHER WORKLOAD DASHBOARD (pre-generation planning)
     // =========================================================================
@@ -2385,19 +2427,77 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
                 $items[] = ['ok' => $load_ok, 'msg' => $msg];
             }
 
-            // 4. Teacher overload check
+            // 4. Teacher deep feasibility checks
             if (!empty($teacher_totals)) {
                 $this->load->model('Tt_teacher_model');
                 $constraints     = $this->Tt_teacher_model->getAllConstraintsMap($session_id);
+                $unavail_map     = $this->Tt_teacher_model->getUnavailabilityMap($session_id);
                 $correct_totals  = $this->_getTeacherWorkloadTotals($session_id);
+
+                // Staff name cache
+                $staff_names = [];
+                $staff_rows = $this->db->select('id, name, surname')->where_in('id', array_keys($teacher_totals))->get('staff')->result();
+                foreach ($staff_rows as $sr) $staff_names[(int)$sr->id] = "{$sr->name} {$sr->surname}";
+
+                // Count unavailable slots per teacher
+                $teacher_unavail_count = [];
+                foreach ($unavail_map as $tid => $days) {
+                    $cnt = 0;
+                    foreach ($days as $periods) $cnt += count($periods);
+                    $teacher_unavail_count[$tid] = $cnt;
+                }
+
+                // Count how many classes each teacher is assigned to
+                $teacher_class_list = [];
+                foreach ($class_scope as $cs) {
+                    $loads = $this->Tt_subjectload_model->getForClassSection($session_id, (int)$cs['class_id'], (int)$cs['section_id']);
+                    $cls_row = $this->db->select('class')->where('id', $cs['class_id'])->get('classes')->row();
+                    $sec_row = $this->db->select('section')->where('id', $cs['section_id'])->get('sections')->row();
+                    $lbl = ($cls_row && $sec_row) ? "{$cls_row->class} {$sec_row->section}" : "C{$cs['class_id']}";
+                    foreach ($loads as $l) {
+                        if ($l->batch_id || empty($l->subject_id)) continue;
+                        $t_ids = !empty($l->teacher_ids) ? $l->teacher_ids : (!empty($l->staff_id) ? [(int)$l->staff_id] : []);
+                        foreach ($t_ids as $tid) {
+                            $teacher_class_list[(int)$tid][] = $lbl;
+                        }
+                    }
+                }
+
                 foreach (array_keys($teacher_totals) as $tid) {
                     $total    = $correct_totals[$tid] ?? 0;
                     $max_week = isset($constraints[$tid]) ? (int)$constraints[$tid]->max_periods_per_week : 36;
+                    $max_day  = isset($constraints[$tid]) ? (int)$constraints[$tid]->max_periods_per_day : 6;
+                    $unavail  = $teacher_unavail_count[$tid] ?? 0;
+                    $avail_slots = $slot_count - $unavail;
+                    $tname = $staff_names[$tid] ?? "Staff #{$tid}";
+                    $classes = $teacher_class_list[$tid] ?? [];
+                    $n_classes = count(array_unique($classes));
+
+                    // 4a. Weekly overload: assigned > max_per_week
                     if ($total > $max_week) {
                         $overall_ok = false;
-                        $t = $this->db->select('name, surname')->where('id', $tid)->get('staff')->row();
-                        $tname = $t ? "{$t->name} {$t->surname}" : "Staff #{$tid}";
-                        $items[] = ['ok' => false, 'msg' => "Teacher {$tname}: assigned {$total} periods/week but max is {$max_week}"];
+                        $over = $total - $max_week;
+                        $items[] = ['ok' => false, 'msg' => "<b>{$tname}</b>: assigned {$total} periods/week but max is {$max_week} — <b>reduce {$over} period(s)</b> or increase weekly cap"];
+                    }
+
+                    // 4b. Available slots too few: unavailability eats into capacity
+                    if ($total > $avail_slots && $avail_slots < $slot_count) {
+                        $overall_ok = false;
+                        $items[] = ['ok' => false, 'msg' => "<b>{$tname}</b>: {$unavail} unavailable slots leaves only {$avail_slots} free — but assigned {$total} periods. Reduce load or remove unavailability"];
+                    }
+
+                    // 4c. Per-day feasibility: total > max_per_day × working_days
+                    $day_capacity = $max_day * $day_count;
+                    if ($total > $day_capacity) {
+                        $overall_ok = false;
+                        $items[] = ['ok' => false, 'msg' => "<b>{$tname}</b>: assigned {$total} periods but max {$max_day}/day × {$day_count} days = {$day_capacity} capacity — increase max/day or reduce load"];
+                    }
+
+                    // 4d. High sharing warning (not an error, but a risk flag)
+                    if ($n_classes >= 6 && $total >= $max_week * 0.8) {
+                        $pct = round($total / $max_week * 100);
+                        $cls_str = implode(', ', array_unique($classes));
+                        $items[] = ['ok' => true, 'msg' => "<b>{$tname}</b>: shared across {$n_classes} classes at {$pct}% capacity ({$total}/{$max_week}) — <small class='text-muted'>{$cls_str}</small>"];
                     }
                 }
             }

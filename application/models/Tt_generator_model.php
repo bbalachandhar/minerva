@@ -414,6 +414,59 @@ class Tt_generator_model extends MY_Model
             }
             // ---- END JOINT LESSON PRE-PASS ----
 
+            // ---- BOTTLENECK TEACHER TAGGING ----
+            // Teachers shared across 5+ classes or ≥75% capacity utilization get
+            // their loads tagged with a priority boost AND interleaved by class
+            // for round-robin distribution. This prevents one class from exhausting
+            // a shared teacher's slots before other classes get their turn.
+            $load_by_teacher = [];
+            foreach ($loads as $lk => $load) {
+                $t_ids = $load->teacher_ids ?? [];
+                if (empty($t_ids)) {
+                    if (!empty($load->staff_id))     $t_ids[] = (int) $load->staff_id;
+                    if (!empty($load->alt_staff_id)) $t_ids[] = (int) $load->alt_staff_id;
+                }
+                foreach ($t_ids as $tid) {
+                    $load_by_teacher[$tid][$lk] = true;
+                }
+            }
+            $bn_load_keys = [];
+            foreach ($load_by_teacher as $tid => $lk_map) {
+                $n_classes = count(array_unique(array_map(fn($lk) => $loads[$lk]->class_id . '_' . $loads[$lk]->section_id, array_keys($lk_map))));
+                $cap = (int)(($constraints[$tid] ?? $this->default_tc)->max_periods_per_week ?? 0);
+                if (empty($cap)) $cap = (int) $this->default_tc->max_periods_per_week;
+                $t_ppw = 0;
+                foreach (array_keys($lk_map) as $lk) $t_ppw += (int) $loads[$lk]->periods_per_week;
+                if ($n_classes >= 5 || ($cap > 0 && $t_ppw / $cap >= 0.75)) {
+                    $boost = ($n_classes >= 5) ? 80 : 50;
+                    foreach (array_keys($lk_map) as $lk) {
+                        $loads[$lk]->_bn_boost = max($loads[$lk]->_bn_boost ?? 0, $boost);
+                        $bn_load_keys[$lk] = true;
+                    }
+                }
+            }
+            // Interleave bottleneck loads by class for round-robin distribution,
+            // then append non-bottleneck loads after them.
+            if (!empty($bn_load_keys)) {
+                $bn_by_class = []; $non_bn = [];
+                foreach ($loads as $lk => $load) {
+                    if (isset($bn_load_keys[$lk])) {
+                        $bn_by_class[$load->class_id . '_' . $load->section_id][] = $load;
+                    } else {
+                        $non_bn[] = $load;
+                    }
+                }
+                $interleaved = [];
+                $max_len = empty($bn_by_class) ? 0 : max(array_map('count', $bn_by_class));
+                for ($i = 0; $i < $max_len; $i++) {
+                    foreach ($bn_by_class as $items) {
+                        if (isset($items[$i])) $interleaved[] = $items[$i];
+                    }
+                }
+                $loads = array_merge($interleaved, $non_bn);
+            }
+            // ---- END BOTTLENECK TEACHER TAGGING ----
+
             // Dynamic most-constrained-first selection: re-score remaining loads
             // before every pick using each teacher's LIVE remaining weekly capacity
             // (cap minus periods already placed this pass), not just their static cap.
@@ -461,9 +514,10 @@ class Tt_generator_model extends MY_Model
                     if ($cand_valid <= $cand_ppw) $cand_urgency = 300;
                     elseif ($cand_valid <= $cand_ppw * 2) $cand_urgency = 150;
                     $cand_slot_tight = max(0, 50 - $cand_valid);
+                    $cand_bn = $cand->_bn_boost ?? 0;
                     $cand_score = ($cand->consecutive_periods * 10) + $cand->periods_per_week + $cand->priority
                                 + ($cand_ua * 0.5) + ($cand_dyn_tight * 1.5) + ($cand_sharing * 3.0)
-                                + $cand_slot_tight + $cand_urgency;
+                                + $cand_slot_tight + $cand_urgency + $cand_bn;
                     if ($cand_score > $pick_score) { $pick_score = $cand_score; $pick_key = $rk; }
                 }
                 $load = $remaining[$pick_key];
