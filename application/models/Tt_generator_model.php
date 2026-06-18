@@ -208,7 +208,7 @@ class Tt_generator_model extends MY_Model
         foreach ($joint_lessons as $jk => $jl) {
             $t_ids = $jl->teacher_ids ?? [];
             sort($t_ids);
-            $key = implode(',', $t_ids) . '|' . (int)$jl->periods_per_week . '|' . (int)$jl->consecutive_periods;
+            $key = implode(',', $t_ids) . '|' . (int)$jl->periods_per_week . '|' . (int)$jl->consecutive_periods . '|' . (int)($jl->subject_id ?? 0);
             $merge_groups[$key][] = $jk;
         }
         $merged_jls = [];

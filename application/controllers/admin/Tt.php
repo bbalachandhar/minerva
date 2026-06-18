@@ -874,7 +874,7 @@ class Tt extends Admin_Controller
         // groups (e.g., ENGLISH 7ppw for C122 + ENGLISH 7ppw for C128), they
         // happen simultaneously — count only ONCE, not twice.
         $jl_rows = $this->db->query("
-            SELECT jl.id, jl.periods_per_week, jl.consecutive_periods,
+            SELECT jl.id, jl.subject_id, jl.periods_per_week, jl.consecutive_periods,
                    GROUP_CONCAT(jlt.staff_id ORDER BY jlt.staff_id) AS teacher_key
             FROM tt_joint_lessons jl
             JOIN tt_joint_lesson_teachers jlt ON jlt.joint_lesson_id = jl.id
@@ -883,7 +883,7 @@ class Tt extends Admin_Controller
         ", [$session_id])->result();
         $seen_groups = [];
         foreach ($jl_rows as $r) {
-            $group_key = $r->teacher_key . '|' . $r->periods_per_week . '|' . $r->consecutive_periods;
+            $group_key = $r->teacher_key . '|' . $r->periods_per_week . '|' . $r->consecutive_periods . '|' . ($r->subject_id ?? 0);
             if (isset($seen_groups[$group_key])) continue;
             $seen_groups[$group_key] = true;
             $ppw = (int) $r->periods_per_week;
