@@ -1709,10 +1709,11 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         }
 
         $class_sections = $this->db->select('classes.id as class_id, classes.class, sections.id as section_id, sections.section')
-            ->from('class_sections')
-            ->join('classes','classes.id = class_sections.class_id')
-            ->join('sections','sections.id = class_sections.section_id')
-            ->where('class_sections.session_id', $session_id)
+            ->from('tt_entries')
+            ->join('classes','classes.id = tt_entries.class_id')
+            ->join('sections','sections.id = tt_entries.section_id')
+            ->where('tt_entries.session_id', $session_id)
+            ->group_by('tt_entries.class_id, tt_entries.section_id')
             ->order_by('classes.class','ASC')->order_by('sections.section','ASC')
             ->get()->result();
 
