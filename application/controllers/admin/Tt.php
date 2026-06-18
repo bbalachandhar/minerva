@@ -1701,29 +1701,20 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         $tc = 0; foreach ($periods as $p) { if (!$p->is_break) $tc++; }
         $min_entries = count($this->_getWorkingDays()) * $tc / 2;
 
-        // Multi-pass: each pass's swaps change global state, enabling
-        // subsequent passes to find new solutions. Keep going until stable.
         $total_swapped = 0; $total_filled = 0; $classes_fixed = 0;
-        $max_passes = 5;
-        for ($pass = 0; $pass < $max_passes; $pass++) {
-            $pass_filled = 0;
-            foreach ($classes as $cs) {
-                if ((int)$cs->cnt < $min_entries) continue;
-                $r = $this->Tt_generator_model->fillEmptyCellsLive($session_id, (int)$cs->class_id, (int)$cs->section_id);
-                $sw = $r['cross_swapped'] ?? 0;
-                $fi = $r['filled_subject'] ?? 0;
-                if ($sw + $fi > 0) $classes_fixed++;
-                $total_swapped += $sw;
-                $total_filled  += $fi;
-                $pass_filled   += $sw + $fi;
-            }
-            if ($pass_filled === 0) break;
+        foreach ($classes as $cs) {
+            if ((int)$cs->cnt < $min_entries) continue;
+            $r = $this->Tt_generator_model->fillEmptyCellsLive($session_id, (int)$cs->class_id, (int)$cs->section_id);
+            $sw = $r['cross_swapped'] ?? 0;
+            $fi = $r['filled_subject'] ?? 0;
+            if ($sw + $fi > 0) $classes_fixed++;
+            $total_swapped += $sw;
+            $total_filled  += $fi;
         }
         echo json_encode([
             'status'        => '1',
             'classes_total' => count($classes),
             'classes_fixed' => $classes_fixed,
-            'passes'        => $pass + 1,
             'cross_swapped' => $total_swapped,
             'filled_subject'=> $total_filled,
         ]);
