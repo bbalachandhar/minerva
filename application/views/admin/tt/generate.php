@@ -413,11 +413,27 @@ $(function(){
         html += '</div></div>';
       }
 
-      if (res.total_conflicts > 0) {
-        html += '<div class="alert alert-warning text-left" style="font-size:11px;max-height:160px;overflow-y:auto;">'
-          + '<strong><i class="fa fa-exclamation-triangle"></i> Unplaced (' + res.total_conflicts + '):</strong><ul style="margin-top:5px;">';
-        $.each(res.conflicts, function(i, c){
-          html += '<li><strong>' + c.subject + '</strong> — ' + c.staff + '<br><small class="text-muted">' + c.reason + '</small></li>';
+      // Separate real failures from On1 warnings
+      var realConflicts = [], on1Warnings = [];
+      $.each(res.conflicts || [], function(i, c){
+        if (c.type === 'on1') on1Warnings.push(c); else realConflicts.push(c);
+      });
+
+      if (realConflicts.length > 0) {
+        html += '<div class="alert alert-danger text-left" style="font-size:11px;max-height:160px;overflow-y:auto;">'
+          + '<strong><i class="fa fa-times-circle"></i> Unplaced (' + realConflicts.length + '):</strong><ul style="margin-top:5px;margin-bottom:0;">';
+        $.each(realConflicts, function(i, c){
+          html += '<li><strong>' + (c.subject||'') + '</strong> — ' + (c.staff||'') + '<br><small class="text-muted">' + (c.reason||'') + '</small></li>';
+        });
+        html += '</ul></div>';
+      }
+      if (on1Warnings.length > 0) {
+        html += '<div class="alert alert-info text-left" style="font-size:11px;max-height:100px;overflow-y:auto;opacity:0.85;">'
+          + '<strong><i class="fa fa-info-circle"></i> Min 1/Day Warnings (' + on1Warnings.length + '):</strong> '
+          + '<small>These subjects were placed but couldn\'t cover every working day.</small>'
+          + '<ul style="margin-top:4px;margin-bottom:0;">';
+        $.each(on1Warnings, function(i, c){
+          html += '<li><small>' + (c.subject||'') + ' — ' + (c.reason||'') + '</small></li>';
         });
         html += '</ul></div>';
       }

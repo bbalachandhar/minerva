@@ -816,23 +816,30 @@ class Tt_generator_model extends MY_Model
             }
             $conflicts = $new_conflicts;
 
-            // ---- CROSS-CLASS TEACHER-CENTRIC SWAP REPAIR ----
-            $cross_swaps = $this->_crossClassSwapRepair(
-                $draft_entries, $conflicts, $constraints, $unavail_map,
-                $log_id, $session_id
-            );
-            $total_placed  += $cross_swaps;
-            $swap_resolved += $cross_swaps;
+            // ---- CASCADING REPAIR LOOP ----
+            // Run cross-class swap + teacher alignment in a loop — each repair
+            // changes the landscape, enabling swaps that weren't possible before.
+            for ($repair_round = 0; $repair_round < 3; $repair_round++) {
+                $round_resolved = 0;
 
-            // ---- TEACHER ALIGNMENT REPAIR ----
-            // For each remaining no_slot conflict, aggressively try to create an
-            // aligned free slot by chain-swapping entries in the teacher's other classes.
-            $align_resolved = $this->_teacherAlignmentRepair(
-                $draft_entries, $conflicts, $constraints, $unavail_map,
-                $log_id, $session_id
-            );
-            $total_placed  += $align_resolved;
-            $swap_resolved += $align_resolved;
+                $cross_swaps = $this->_crossClassSwapRepair(
+                    $draft_entries, $conflicts, $constraints, $unavail_map,
+                    $log_id, $session_id
+                );
+                $total_placed  += $cross_swaps;
+                $swap_resolved += $cross_swaps;
+                $round_resolved += $cross_swaps;
+
+                $align_resolved = $this->_teacherAlignmentRepair(
+                    $draft_entries, $conflicts, $constraints, $unavail_map,
+                    $log_id, $session_id
+                );
+                $total_placed  += $align_resolved;
+                $swap_resolved += $align_resolved;
+                $round_resolved += $align_resolved;
+
+                if ($round_resolved === 0) break;
+            }
 
             // ---- GAP FILL (opt-in via fill_free_periods) ----
             $gap_filled_subject = 0; $gap_filled_free = 0;
@@ -924,6 +931,9 @@ class Tt_generator_model extends MY_Model
             ]);
         }
 
+        $real_conflicts = array_filter($conflicts, fn($c) => ($c['type'] ?? '') !== 'on1');
+        $on1_warnings   = array_filter($conflicts, fn($c) => ($c['type'] ?? '') === 'on1');
+
         return [
             'status'          => '1',
             'log_id'          => $log_id,
@@ -931,9 +941,9 @@ class Tt_generator_model extends MY_Model
             'total_placed'    => $total_placed,
             'cards_placed'    => $total_placed,
             'cards_left'      => $total_required - $total_placed,
-            'total_conflicts' => count($conflicts),
+            'total_conflicts' => count($real_conflicts),
             'quality_score'   => $quality,
-            'conflicts'       => $conflicts,
+            'conflicts'       => array_values(array_merge($real_conflicts, $on1_warnings)),
             'class_stats'     => $class_stats,
             'dry_run'         => $dry_run,
             'gap_filled_subject' => $gap_filled_subject,
