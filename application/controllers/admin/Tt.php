@@ -1266,16 +1266,19 @@ class Tt extends Admin_Controller
         // Enrich subjects with placed/needed counts for the cell editor
         $loads_map = [];
         $sl = $this->Tt_subjectload_model->getForClassSection($session_id, $class_id, $section_id);
-        foreach ($sl as $l) {
-            $loads_map[(int)$l->subject_group_subject_id] = (int)$l->periods_per_week;
+        if (!empty($sl)) {
+            foreach ($sl as $l) {
+                $loads_map[(int)$l->subject_group_subject_id] = (int)$l->periods_per_week;
+            }
         }
-        foreach ($subjects as &$s) {
-            $sgs = (int)$s->subject_group_subject_id;
-            $s->periods_per_week = $loads_map[$sgs] ?? 0;
-            $s->placed           = $placed_counts[$sgs] ?? 0;
-            $s->remaining        = max(0, $s->periods_per_week - $s->placed);
+        if (!empty($subjects)) {
+            foreach ($subjects as $idx => $subj) {
+                $sgs = (int)$subj->subject_group_subject_id;
+                $subjects[$idx]->periods_per_week = $loads_map[$sgs] ?? 0;
+                $subjects[$idx]->placed           = $placed_counts[$sgs] ?? 0;
+                $subjects[$idx]->remaining        = max(0, $subjects[$idx]->periods_per_week - $subjects[$idx]->placed);
+            }
         }
-        unset($s);
 
         $subst_list = $this->Tt_substitution_model->getForClassWeek($session_id, $class_id, $section_id, array_values($day_full_dates));
         $subst_map  = [];
