@@ -461,6 +461,18 @@ class Tt_generator_model extends MY_Model
                     $total_placed++;
                 }
             }
+            // ---- JOINT BACKTRACKING ----
+            // If any joint failed, identify the conflict cluster (failed joints +
+            // joints sharing their sections/teacher), undo them, and re-place
+            // using backtracking to guarantee finding a valid assignment if one exists.
+            $jl_failures = array_filter($conflicts, fn($c) => empty($c['type']) && strpos($c['reason'] ?? '', 'Joint lesson') === 0);
+            if (!empty($jl_failures)) {
+                $bt_resolved = $this->_backtrackJointCluster(
+                    $joint_lessons, $constraints, $unavail_map,
+                    $log_id, $session_id, $draft_entries, $conflicts,
+                    $total_required, $total_placed, $class_stats
+                );
+            }
             // ---- END JOINT LESSON PRE-PASS ----
 
             // ---- BOTTLENECK TEACHER TAGGING ----
@@ -2533,6 +2545,296 @@ class Tt_generator_model extends MY_Model
 
     /**
      * Find a slot where ALL participating class-sections + teacher are simultaneously free.
+    /**
+     * Backtracking solver for joint lesson conflicts.
+     * Undoes ALL joint placements, then re-places using recursive backtracking
+     * with MRV (most constrained first) and forward checking.
+     */
+    private function _backtrackJointCluster(
+        $joint_lessons, $constraints, $unavail_map,
+        $log_id, $session_id, array &$draft_entries, array &$conflicts,
+        &$total_required, &$total_placed, &$class_stats
+    ) {
+        $bt_start = microtime(true);
+        $bt_time_limit = 15; // seconds
+
+        // 1. Undo ALL joint placements from this pass
+        $jl_entry_indices = [];
+        foreach ($draft_entries as $di => $de) {
+            foreach ($joint_lessons as $jl) {
+                foreach ($jl->classes as $cs) {
+                    if ((int)$de['class_id'] === (int)$cs->class_id && (int)$de['section_id'] === (int)$cs->section_id
+                        && (int)($de['subject_group_subject_id'] ?? 0) === (int)$cs->sgs_id) {
+                        $jl_entry_indices[$di] = true;
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        // Remove joint entries and restore occupancy
+        foreach ($jl_entry_indices as $di => $_) {
+            $de = $draft_entries[$di];
+            $cid = (int)$de['class_id']; $sid = (int)$de['section_id'];
+            $day = $de['day']; $pid = (int)$de['period_id'];
+            unset($this->class_occ[$cid][$sid][$day][$pid][0]);
+            $tid = (int)($de['staff_id'] ?? 0);
+            if ($tid) {
+                unset($this->teacher_occ[$tid][$day][$pid]);
+                $this->teacher_periods_day[$tid][$day] = max(0, ($this->teacher_periods_day[$tid][$day] ?? 1) - 1);
+                $this->teacher_periods_week[$tid] = max(0, ($this->teacher_periods_week[$tid] ?? 1) - 1);
+            }
+            unset($draft_entries[$di]);
+        }
+        $draft_entries = array_values($draft_entries);
+
+        // Reset joint-related stats
+        foreach ($joint_lessons as $jl) {
+            $consec = max(1, (int)$jl->consecutive_periods);
+            $ppw = (int)$jl->periods_per_week;
+            $placements = ($consec > 1) ? (int)ceil($ppw / $consec) : $ppw;
+            foreach ($jl->classes as $cs) {
+                $ck = $cs->class_id . '_' . $cs->section_id;
+                if (isset($class_stats[$ck])) $class_stats[$ck]['placed'] = max(0, $class_stats[$ck]['placed'] - $placements);
+            }
+            $total_placed = max(0, $total_placed - $placements);
+        }
+
+        // Remove joint conflicts
+        $conflicts = array_values(array_filter($conflicts, fn($c) =>
+            !(empty($c['type']) && strpos($c['reason'] ?? '', 'Joint lesson') === 0)));
+
+        // 2. Build placement tasks: [{jl, placement_idx, consec}]
+        $tasks = [];
+        foreach ($joint_lessons as $jk => $jl) {
+            $consec = max(1, (int)$jl->consecutive_periods);
+            $ppw = (int)$jl->periods_per_week;
+            $n = ($consec > 1) ? (int)ceil($ppw / $consec) : $ppw;
+            for ($p = 0; $p < $n; $p++) {
+                $tasks[] = ['jk' => $jk, 'jl' => $jl, 'consec' => $consec];
+            }
+        }
+
+        // 3. Recursive backtracking with MRV + forward checking
+        $solution = [];
+        $bt_calls = 0;
+        $success = $this->_btSolve($tasks, $solution, $constraints, $unavail_map, $bt_start, $bt_time_limit, $bt_calls);
+
+        // 4. Apply solution or fall back to greedy
+        $placed_count = 0;
+        if ($success) {
+            foreach ($solution as $si => $slot) {
+                $jl = $tasks[$si]['jl'];
+                $t_id = $slot['staff_id'];
+                foreach ($jl->classes as $cs) {
+                    foreach ($slot['period_ids'] as $pid) {
+                        $this->class_occ[(int)$cs->class_id][(int)$cs->section_id][$slot['day']][$pid][0] = true;
+                        if ($t_id) $this->teacher_occ[$t_id][$slot['day']][$pid] = true;
+                        $draft_entries[] = [
+                            'gen_log_id' => $log_id, 'session_id' => $session_id,
+                            'class_id' => (int)$cs->class_id, 'section_id' => (int)$cs->section_id,
+                            'subject_group_id' => (int)$cs->sg_id,
+                            'subject_group_subject_id' => (int)$cs->sgs_id,
+                            'staff_id' => $t_id, 'period_id' => $pid,
+                            'day' => $slot['day'], 'room_id' => $slot['room_id'],
+                            'batch_id' => null, 'is_free_period' => 0, 'free_period_label' => null,
+                        ];
+                    }
+                    $ck = $cs->class_id . '_' . $cs->section_id;
+                    if (isset($class_stats[$ck])) $class_stats[$ck]['placed']++;
+                }
+                if ($t_id) {
+                    foreach ($slot['period_ids'] as $pid) {
+                        $this->teacher_periods_day[$t_id][$slot['day']] = ($this->teacher_periods_day[$t_id][$slot['day']] ?? 0) + 1;
+                        $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+                    }
+                }
+                $placed_count++;
+                $total_placed++;
+            }
+        } else {
+            // Backtracking failed or timed out — re-run greedy
+            foreach ($joint_lessons as $jl) {
+                $jl_t = $jl->teacher_ids ?? [];
+                $jl_c = max(1, (int)$jl->consecutive_periods);
+                $jl_p = (int)$jl->periods_per_week;
+                $n = ($jl_c > 1) ? (int)ceil($jl_p / $jl_c) : $jl_p;
+                $days_used = [];
+                for ($p = 0; $p < $n; $p++) {
+                    $slot = $this->_findJointSlot($jl, $jl_t, !empty($jl->all_teachers_required),
+                        $jl->room_id ? (int)$jl->room_id : null, $jl_c, $days_used,
+                        max(1, (int)$jl->max_per_day), !empty($jl->distribute_evenly),
+                        $constraints, $unavail_map);
+                    if ($slot) {
+                        foreach ($jl->classes as $cs) {
+                            foreach ($slot['period_ids'] as $pid) {
+                                $this->class_occ[(int)$cs->class_id][(int)$cs->section_id][$slot['day']][$pid][0] = true;
+                                if ($slot['staff_id']) $this->teacher_occ[$slot['staff_id']][$slot['day']][$pid] = true;
+                                $draft_entries[] = [
+                                    'gen_log_id' => $log_id, 'session_id' => $session_id,
+                                    'class_id' => (int)$cs->class_id, 'section_id' => (int)$cs->section_id,
+                                    'subject_group_id' => (int)$cs->sg_id, 'subject_group_subject_id' => (int)$cs->sgs_id,
+                                    'staff_id' => $slot['staff_id'], 'period_id' => $pid,
+                                    'day' => $slot['day'], 'room_id' => $slot['room_id'],
+                                    'batch_id' => null, 'is_free_period' => 0, 'free_period_label' => null,
+                                ];
+                            }
+                            $ck = $cs->class_id . '_' . $cs->section_id;
+                            if (isset($class_stats[$ck])) $class_stats[$ck]['placed']++;
+                        }
+                        if ($slot['staff_id']) {
+                            foreach ($slot['period_ids'] as $pid) {
+                                $this->teacher_periods_day[$slot['staff_id']][$slot['day']] = ($this->teacher_periods_day[$slot['staff_id']][$slot['day']] ?? 0) + 1;
+                                $this->teacher_periods_week[$slot['staff_id']] = ($this->teacher_periods_week[$slot['staff_id']] ?? 0) + 1;
+                            }
+                        }
+                        $days_used[] = $slot['day'];
+                        $total_placed++;
+                    }
+                }
+            }
+        }
+
+        return $placed_count;
+    }
+
+    /**
+     * Recursive backtracking with MRV ordering and forward checking.
+     */
+    private function _btSolve(array &$tasks, array &$solution, $constraints, $unavail_map,
+                              $bt_start, $bt_time_limit, &$bt_calls)
+    {
+        if (count($solution) >= count($tasks)) return true;
+        if (microtime(true) - $bt_start > $bt_time_limit) return false;
+        $bt_calls++;
+
+        // MRV: pick unplaced task with fewest viable slots
+        $best_ti = -1; $best_count = PHP_INT_MAX;
+        for ($ti = 0; $ti < count($tasks); $ti++) {
+            if (isset($solution[$ti])) continue;
+            $viable = $this->_btViableSlots($tasks[$ti]['jl'], $tasks[$ti]['consec'], $constraints, $unavail_map);
+            $cnt = count($viable);
+            if ($cnt === 0) return false; // dead end
+            if ($cnt < $best_count) { $best_count = $cnt; $best_ti = $ti; }
+        }
+        if ($best_ti === -1) return true;
+
+        $task = $tasks[$best_ti];
+        $jl = $task['jl'];
+        $viable = $this->_btViableSlots($jl, $task['consec'], $constraints, $unavail_map);
+        shuffle($viable); // diversity across passes
+
+        foreach ($viable as $slot) {
+            // Place
+            $changes = $this->_btPlace($jl, $slot);
+            $solution[$best_ti] = $slot;
+
+            // Forward check: do remaining tasks still have ≥1 viable slot?
+            $ok = true;
+            for ($ti = 0; $ti < count($tasks); $ti++) {
+                if (isset($solution[$ti])) continue;
+                $fc = $this->_btViableSlots($tasks[$ti]['jl'], $tasks[$ti]['consec'], $constraints, $unavail_map);
+                if (empty($fc)) { $ok = false; break; }
+            }
+
+            if ($ok && $this->_btSolve($tasks, $solution, $constraints, $unavail_map, $bt_start, $bt_time_limit, $bt_calls)) {
+                return true;
+            }
+
+            // Backtrack
+            $this->_btUndo($changes);
+            unset($solution[$best_ti]);
+        }
+
+        return false;
+    }
+
+    private function _btViableSlots($jl, $consec, $constraints, $unavail_map)
+    {
+        $t_ids = $jl->teacher_ids ?? [];
+        $all_req = !empty($jl->all_teachers_required);
+        $slots = [];
+        foreach ($this->working_days as $day) {
+            foreach ($this->_getConsecutiveStarts($consec) as $pg) {
+                $all_free = true;
+                foreach ($jl->classes as $cs) {
+                    foreach ($pg as $pid) {
+                        if (!empty($this->class_occ[(int)$cs->class_id][(int)$cs->section_id][$day][$pid][0])
+                            || !empty($this->class_unavail[(int)$cs->class_id][(int)$cs->section_id][$day][$pid])) {
+                            $all_free = false; break 2;
+                        }
+                    }
+                }
+                if (!$all_free) continue;
+
+                // Teacher check
+                if ($all_req && !empty($t_ids)) {
+                    $t_ok = true;
+                    foreach ($t_ids as $tid) {
+                        foreach ($pg as $pid) {
+                            if (!empty($this->teacher_occ[$tid][$day][$pid]) || !empty($unavail_map[$tid][$day][$pid])) {
+                                $t_ok = false; break 2;
+                            }
+                        }
+                    }
+                    if ($t_ok) $slots[] = ['day' => $day, 'period_ids' => $pg, 'staff_id' => $t_ids[0], 'room_id' => null];
+                } elseif (!empty($t_ids)) {
+                    foreach ($t_ids as $tid) {
+                        $t_ok = true;
+                        foreach ($pg as $pid) {
+                            if (!empty($this->teacher_occ[$tid][$day][$pid]) || !empty($unavail_map[$tid][$day][$pid])) {
+                                $t_ok = false; break;
+                            }
+                        }
+                        if ($t_ok) {
+                            $slots[] = ['day' => $day, 'period_ids' => $pg, 'staff_id' => $tid, 'room_id' => null];
+                            break;
+                        }
+                    }
+                } else {
+                    $slots[] = ['day' => $day, 'period_ids' => $pg, 'staff_id' => null, 'room_id' => null];
+                }
+            }
+        }
+        return $slots;
+    }
+
+    private function _btPlace($jl, $slot)
+    {
+        $changes = [];
+        foreach ($jl->classes as $cs) {
+            foreach ($slot['period_ids'] as $pid) {
+                $cid = (int)$cs->class_id; $sid = (int)$cs->section_id;
+                $this->class_occ[$cid][$sid][$slot['day']][$pid][0] = true;
+                $changes[] = ['t' => 'c', 'cid' => $cid, 'sid' => $sid, 'd' => $slot['day'], 'p' => $pid];
+            }
+        }
+        if ($slot['staff_id']) {
+            foreach ($slot['period_ids'] as $pid) {
+                $tid = $slot['staff_id'];
+                $this->teacher_occ[$tid][$slot['day']][$pid] = true;
+                $this->teacher_periods_day[$tid][$slot['day']] = ($this->teacher_periods_day[$tid][$slot['day']] ?? 0) + 1;
+                $this->teacher_periods_week[$tid] = ($this->teacher_periods_week[$tid] ?? 0) + 1;
+                $changes[] = ['t' => 's', 'tid' => $tid, 'd' => $slot['day'], 'p' => $pid];
+            }
+        }
+        return $changes;
+    }
+
+    private function _btUndo(array $changes)
+    {
+        foreach (array_reverse($changes) as $c) {
+            if ($c['t'] === 'c') {
+                unset($this->class_occ[$c['cid']][$c['sid']][$c['d']][$c['p']][0]);
+            } elseif ($c['t'] === 's') {
+                unset($this->teacher_occ[$c['tid']][$c['d']][$c['p']]);
+                $this->teacher_periods_day[$c['tid']][$c['d']] = max(0, ($this->teacher_periods_day[$c['tid']][$c['d']] ?? 1) - 1);
+                $this->teacher_periods_week[$c['tid']] = max(0, ($this->teacher_periods_week[$c['tid']] ?? 1) - 1);
+            }
+        }
+    }
+
+    /**
      * If $fixed_day/$fixed_pids are given, only that exact day+period combination is tried
      * (an admin-pinned Fixed Slot) instead of searching the whole week.
      * Returns ['day', 'period_ids', 'staff_id', 'room_id'] or null.
