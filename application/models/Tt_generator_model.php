@@ -175,9 +175,9 @@ class Tt_generator_model extends MY_Model
                 $shb = max($shb, $teacher_class_count[$tid] ?? 0);
             }
             $score_a = ($a->consecutive_periods * 10) + $a->periods_per_week + $a->priority
-                     + ($ua * 0.5) + ($uca * 1.5) + ($sha * 5.0);
+                     + ($ua * 0.5) + ($uca * 1.5) + ($sha * 3.0);
             $score_b = ($b->consecutive_periods * 10) + $b->periods_per_week + $b->priority
-                     + ($ub * 0.5) + ($ucb * 1.5) + ($shb * 5.0);
+                     + ($ub * 0.5) + ($ucb * 1.5) + ($shb * 3.0);
             return $score_b <=> $score_a;
         });
 
@@ -378,7 +378,6 @@ class Tt_generator_model extends MY_Model
                                 'batch_id'                 => null,
                                 'is_free_period'           => 0,
                                 'free_period_label'        => null,
-                                'is_locked'                => 1,
                             ];
                         }
 
@@ -463,7 +462,7 @@ class Tt_generator_model extends MY_Model
                     elseif ($cand_valid <= $cand_ppw * 2) $cand_urgency = 150;
                     $cand_slot_tight = max(0, 50 - $cand_valid);
                     $cand_score = ($cand->consecutive_periods * 10) + $cand->periods_per_week + $cand->priority
-                                + ($cand_ua * 0.5) + ($cand_dyn_tight * 1.5) + ($cand_sharing * 5.0)
+                                + ($cand_ua * 0.5) + ($cand_dyn_tight * 1.5) + ($cand_sharing * 3.0)
                                 + $cand_slot_tight + $cand_urgency;
                     if ($cand_score > $pick_score) { $pick_score = $cand_score; $pick_key = $rk; }
                 }
