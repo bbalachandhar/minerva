@@ -1688,13 +1688,19 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         }
         $session_id = $this->setting_model->getCurrentSession();
 
-        $classes = $this->db->select('class_id, section_id')
+        $classes = $this->db->select('class_id, section_id, COUNT(*) as cnt')
             ->where('session_id', $session_id)
+            ->where('is_free_period', 0)
             ->group_by('class_id, section_id')
             ->get('tt_entries')->result();
 
+        $periods = $this->Tt_period_model->getAll($session_id);
+        $tc = 0; foreach ($periods as $p) { if (!$p->is_break) $tc++; }
+        $min_entries = count($this->_getWorkingDays()) * $tc / 2;
+
         $total_swapped = 0; $total_filled = 0; $classes_fixed = 0;
         foreach ($classes as $cs) {
+            if ((int)$cs->cnt < $min_entries) continue;
             $r = $this->Tt_generator_model->fillEmptyCellsLive($session_id, (int)$cs->class_id, (int)$cs->section_id);
             $sw = $r['cross_swapped'] ?? 0;
             $fi = $r['filled_subject'] ?? 0;
@@ -1755,6 +1761,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
             $free   = $counts[$k]['free'] ?? 0;
             $empty  = max(0, $total_slots - $filled - $free);
             if ($filled + $free === 0) continue;
+            if ($filled < $total_slots / 2) continue;
             if ($empty === 0 && $free === 0) { $total_complete++; continue; }
             $total_gaps += $empty;
             $total_free += $free;
