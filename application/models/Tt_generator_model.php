@@ -214,7 +214,7 @@ class Tt_generator_model extends MY_Model
 
         $gen_size       = $settings['gen_size']       ?? 'normal';
         $gen_strictness = $settings['gen_strictness']  ?? 'normal';
-        $passes         = ($gen_size === 'huge') ? 10 : (($gen_size === 'large') ? 3 : 1);
+        $passes         = ($gen_size === 'huge') ? 20 : (($gen_size === 'large') ? 3 : 1);
 
         $log_id = $dry_run ? 0 : $this->_createLog($session_id, $staff_id, $class_scope, $settings);
 
@@ -981,6 +981,66 @@ class Tt_generator_model extends MY_Model
                                     $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
                                     $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
                                     $total_placed++; $placed = true; break;
+                                }
+                            }
+                            // Depth-2: swap within blocker's class to free teacher
+                            if (!$placed) {
+                                foreach ($this->working_days as $d2) {
+                                    if ($placed) break;
+                                    foreach ($this->period_order as $p2) {
+                                        if ($placed) break;
+                                        if ($d2 === $day && $p2 === $pid) continue;
+                                        if (empty($this->class_occ[$bc][$bs][$d2][$p2][0])) continue;
+                                        if (!empty($this->teacher_occ[$t_id][$d2][$p2])) continue;
+
+                                        // Find entry E2 at (d2,p2) in blocker's class
+                                        $e2i = null;
+                                        foreach ($draft_entries as $ei => $ee) {
+                                            if ((int)$ee['class_id'] === $bc && (int)$ee['section_id'] === $bs
+                                                && $ee['day'] === $d2 && (int)$ee['period_id'] === $p2
+                                                && empty($ee['is_free_period']) && empty($ee['is_locked'])) {
+                                                $e2i = $ei; break;
+                                            }
+                                        }
+                                        if ($e2i === null) continue;
+                                        $e2 = $draft_entries[$e2i];
+                                        $t2 = (int)($e2['staff_id'] ?? 0);
+                                        if (!$t2 || $t2 === $t_id) continue;
+                                        if (!empty($this->teacher_occ[$t2][$day][$pid])) continue;
+                                        if (!empty($unavail_map[$t2][$day][$pid])) continue;
+                                        if (!empty($unavail_map[$t_id][$d2][$p2])) continue;
+
+                                        // Swap: blocker→(d2,p2), E2→(day,pid)
+                                        $draft_entries[$bi]['day'] = $d2; $draft_entries[$bi]['period_id'] = $p2;
+                                        $draft_entries[$e2i]['day'] = $day; $draft_entries[$e2i]['period_id'] = $pid;
+                                        unset($this->teacher_occ[$t_id][$day][$pid]);
+                                        $this->teacher_occ[$t_id][$d2][$p2] = true;
+                                        unset($this->teacher_occ[$t2][$d2][$p2]);
+                                        $this->teacher_occ[$t2][$day][$pid] = true;
+                                        if ($day !== $d2) {
+                                            $this->teacher_periods_day[$t_id][$day] = max(0, ($this->teacher_periods_day[$t_id][$day] ?? 1) - 1);
+                                            $this->teacher_periods_day[$t_id][$d2] = ($this->teacher_periods_day[$t_id][$d2] ?? 0) + 1;
+                                            $this->teacher_periods_day[$t2][$d2] = max(0, ($this->teacher_periods_day[$t2][$d2] ?? 1) - 1);
+                                            $this->teacher_periods_day[$t2][$day] = ($this->teacher_periods_day[$t2][$day] ?? 0) + 1;
+                                        }
+
+                                        // T is now free at (day,pid). Place conflict.
+                                        $draft_entries[] = [
+                                            'gen_log_id' => $log_id, 'session_id' => $session_id,
+                                            'class_id' => $c_id, 'section_id' => $s_id,
+                                            'subject_group_id' => $conf_sgid,
+                                            'subject_group_subject_id' => $conf_sgs,
+                                            'staff_id' => $t_id, 'period_id' => $pid,
+                                            'day' => $day, 'room_id' => null,
+                                            'batch_id' => null, 'is_free_period' => 0,
+                                            'free_period_label' => null,
+                                        ];
+                                        $this->class_occ[$c_id][$s_id][$day][$pid][0] = true;
+                                        $this->teacher_occ[$t_id][$day][$pid] = true;
+                                        $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                                        $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+                                        $total_placed++; $placed = true;
+                                    }
                                 }
                             }
                         }
