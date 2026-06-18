@@ -269,16 +269,39 @@ class Tt_generator_model extends MY_Model
                     }
                     $n_classes  = count($cand->classes ?? []);
                     $pool_size  = count($cand_t_ids);
-                    // Fewer alternative teachers means fewer chances the search finds
-                    // one free at any given slot — more constrained, so it should claim
-                    // the shared slot pool before a same-priority lesson with a bigger
-                    // pool. Needed as a tiebreak: two lessons can otherwise score
-                    // identically (same priority/classes/periods/consecutive) and would
-                    // fall back to undefined array order, same problem as before.
+                    $cand_consec = max(1, (int)$cand->consecutive_periods);
+                    $cand_ppw = (int)$cand->periods_per_week;
+                    $cand_placements = ($cand_consec > 1) ? (int)ceil($cand_ppw / $cand_consec) : $cand_ppw;
+
+                    // Valid common slot counting: how many (day, period_group) slots
+                    // have ALL sections free simultaneously? This is the true constraint.
+                    $cand_common_free = 0;
+                    foreach ($this->working_days as $_d) {
+                        foreach ($this->_getConsecutiveStarts($cand_consec) as $_pg) {
+                            $all_free = true;
+                            foreach ($cand->classes as $_cs) {
+                                foreach ($_pg as $_p) {
+                                    if (!empty($this->class_occ[(int)$_cs->class_id][(int)$_cs->section_id][$_d][$_p][0])
+                                        || !empty($this->class_unavail[(int)$_cs->class_id][(int)$_cs->section_id][$_d][$_p])) {
+                                        $all_free = false; break 2;
+                                    }
+                                }
+                            }
+                            if ($all_free) $cand_common_free++;
+                        }
+                    }
+                    // Urgency: if common free slots are critically low relative to placements needed
+                    $cand_jl_urgency = 0;
+                    if ($cand_common_free <= $cand_placements) $cand_jl_urgency = 500;
+                    elseif ($cand_common_free <= $cand_placements * 2) $cand_jl_urgency = 250;
+                    elseif ($cand_common_free <= $cand_placements * 3) $cand_jl_urgency = 100;
+                    $cand_slot_scarcity = max(0, 60 - $cand_common_free);
+
                     $cand_score = ((int)$cand->priority * 100) + ($n_classes * 10)
-                                + ((int)$cand->periods_per_week) + ((int)$cand->consecutive_periods * 5)
+                                + $cand_ppw + ((int)$cand->consecutive_periods * 5)
                                 + ($cand_ua * 0.5) + ($cand_dyn_tight * 0.3)
-                                - ($pool_size * 0.1);
+                                - ($pool_size * 0.1)
+                                + $cand_slot_scarcity + $cand_jl_urgency;
                     if ($cand_score > $pick_score) { $pick_score = $cand_score; $pick_key = $rk; }
                 }
                 $jl = $remaining_jl[$pick_key];
