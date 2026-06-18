@@ -352,18 +352,6 @@ class Tt_generator_model extends MY_Model
                         $constraints, $unavail_map,
                         $fixed['day'] ?? null, $fixed['period_ids'] ?? null);
 
-                    // Fallback: if no clean slot, try displacing 1-2 entries from
-                    // sections that block a near-free slot. The displaced entries
-                    // become regular no_slot conflicts — much easier to resolve
-                    // than a multi-section joint.
-                    if ($slot === null && !$fixed) {
-                        $slot = $this->_findJointSlotDisplacing(
-                            $jl, $jl_teacher_ids, $jl_all_req, $jl_room,
-                            $jl_consec, $jl_days_used, $jl_max_day,
-                            $constraints, $unavail_map, $draft_entries, $conflicts
-                        );
-                    }
-
                     if ($slot === null) {
                         $class_labels = implode('+', array_map(fn($cs) => "C{$cs->class_id}/S{$cs->section_id}", $jl->classes));
                         $teacher_label = !empty($jl_teacher_ids) ? count($jl_teacher_ids).' teacher(s)' : 'No teacher';
