@@ -261,13 +261,41 @@ $(function(){
 
   // ---- Teacher capacity validation ----
   var teacherCap = {};
+  var workingDays = 6; // updated from server data
 
   function loadTeacherCapacity() {
     $.post('<?php echo site_url("admin/tt/get_teacher_capacity_data"); ?>', {[csrf_name]: csrf_val}, function(res){
-      if (res.status === '1') teacherCap = res.data;
+      if (res.status === '1') {
+        teacherCap = res.data;
+        // Extract working days count from any teacher's data
+        $.each(res.data, function(tid, d) { workingDays = d.day_count || 6; return false; });
+      }
       validateTeacherLoads();
+      enforceMinPerDay();
     }, 'json').fail(function(){ console.warn('Teacher capacity data load failed'); });
   }
+
+  function enforceMinPerDay() {
+    $('#sl-rows-table tbody tr').each(function(){
+      var $row = $(this);
+      var ppw = parseInt($row.find('[name$="[periods_per_week]"]').val()) || 0;
+      var $chk = $row.find('[name$="[min_per_day]"]');
+      if (!$chk.length) return;
+      var $td = $chk.closest('td');
+      $td.find('.min-day-warn').remove();
+      if (ppw < workingDays) {
+        if ($chk.is(':checked')) $chk.prop('checked', false);
+        $chk.prop('disabled', true);
+        $td.append('<div class="min-day-warn text-muted" style="font-size:9px;margin-top:1px;" title="' + ppw + ' periods/week < ' + workingDays + ' working days — impossible to have 1 per day"><i class="fa fa-ban"></i> ' + ppw + '<' + workingDays + '</div>');
+      } else {
+        $chk.prop('disabled', false);
+      }
+    });
+  }
+
+  $(document).on('change', '[name$="[periods_per_week]"]', function(){
+    setTimeout(enforceMinPerDay, 50);
+  });
 
   function validateTeacherLoads() {
     var classId = $('#sl_class_id_hidden').val();

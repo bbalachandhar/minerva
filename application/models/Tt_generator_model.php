@@ -546,6 +546,7 @@ class Tt_generator_model extends MY_Model
                 if ($gen_strictness === 'strict') $max_per_day = min($max_per_day, 1);
 
                 $min_per_day  = !empty($load->min_per_day) ? 1 : 0;
+                if ($min_per_day && $periods_pw < count($this->working_days)) $min_per_day = 0;
                 $dist_evenly  = !empty($load->distribute_evenly);
 
                 // Teacher preferred room fallback (use primary teacher)
@@ -647,16 +648,12 @@ class Tt_generator_model extends MY_Model
                     $class_stats[$ck]['placed']++;
                 }
 
-                // On1 check
+                // On1 check — only report when min_per_day is still active
+                // (auto-suppressed above when periods_per_week < working_days)
                 if ($min_per_day && $placed_count > 0) {
                     $days_covered  = array_unique($subject_days_used);
                     $missing_days  = array_diff($this->working_days, $days_covered);
-                    $wd_count      = count($this->working_days);
-                    $impossible    = $periods_pw < $wd_count;
                     foreach ($missing_days as $md) {
-                        $reason = $impossible
-                            ? "On1 warning: {$md} has no {$load->subject_name} — subject only has {$periods_pw} period(s)/week across {$wd_count} working days, so it cannot appear on every day. Disable the 'Min 1/day' setting for this subject."
-                            : "On1 warning: could not place {$load->subject_name} on {$md} — teacher or class unavailable that day.";
                         $conflicts[] = [
                             'class_id'   => $class_id,
                             'section_id' => $section_id,
@@ -664,7 +661,7 @@ class Tt_generator_model extends MY_Model
                             'staff'      => $load->staff_name . ' ' . $load->staff_surname,
                             'staff_id'   => $teacher_ids_load[0] ?? null,
                             'placement'  => 'On1',
-                            'reason'     => $reason,
+                            'reason'     => "On1 warning: could not place {$load->subject_name} on {$md} — teacher or class unavailable that day.",
                             'type'       => 'on1',
                         ];
                     }
