@@ -119,11 +119,8 @@ class Tt_generator_model extends MY_Model
             'min_break_after_consec'  => 1,
         ];
 
-        // Generation does NOT enforce joint protection — the swap engine
-        // needs full freedom to optimize placement (99%+ quality).
-        // Joint sync is protected in the LIVE swap (Fill Empty Cells /
-        // Fill All Classes) which runs after generation is confirmed.
-        $joint_sgs = [];
+        $joint_peers = []; // built after $joint_lessons loaded below
+        $joint_sgs = [];   // kept empty — deprecated, checks use $joint_peers now
 
         // Pre-compute how many slots each teacher is unavailable for this session.
         // Teachers with more blocked slots are harder to schedule and must go first.
@@ -200,6 +197,19 @@ class Tt_generator_model extends MY_Model
                 }));
             }
             $joint_lessons = array_values(array_filter($joint_lessons, fn($jl) => count($jl->classes) >= 1));
+        }
+
+        // Build joint_peers: [class_id][section_id][sgs_id] → all participating classes
+        foreach ($joint_lessons as $jl) {
+            $all_cs = [];
+            foreach ($jl->classes as $cs) {
+                $all_cs[] = ['class_id' => (int)$cs->class_id, 'section_id' => (int)$cs->section_id, 'sgs_id' => (int)$cs->sgs_id];
+            }
+            if (count($all_cs) > 1) {
+                foreach ($all_cs as $c) {
+                    $joint_peers[$c['class_id']][$c['section_id']][$c['sgs_id']] = $all_cs;
+                }
+            }
         }
 
         $gen_size       = $settings['gen_size']       ?? 'normal';
@@ -628,31 +638,58 @@ class Tt_generator_model extends MY_Model
                         if ($blocker_idx === null) continue;
                         $blocker = $draft_entries[$blocker_idx];
                         $b_tid = (int) ($blocker['staff_id'] ?? 0);
-                        if (!$b_tid || !empty($joint_sgs[(int)$blocker['class_id']][(int)$blocker['section_id']][(int)($blocker['subject_group_subject_id'] ?? 0)])) continue;
+                        if (!$b_tid) continue;
 
                         // Can the blocker move to a different empty slot?
+                        $b_sgs_id = (int)($blocker['subject_group_subject_id'] ?? 0);
+                        $b_jp = $joint_peers[$c_id][$s_id][$b_sgs_id] ?? null;
+
                         foreach ($this->working_days as $day2) {
                             if ($resolved) break;
                             foreach ($this->period_order as $pid2) {
                                 if ($day2 === $day && $pid2 === $pid) continue;
-                                // Both class AND blocker's teacher must be free at (day2, pid2)
                                 if (!empty($this->class_occ[$c_id][$s_id][$day2][$pid2][0])) continue;
                                 if (!empty($this->class_unavail[$c_id][$s_id][$day2][$pid2])) continue;
                                 if (!empty($this->teacher_occ[$b_tid][$day2][$pid2])) continue;
                                 if (!empty($unavail_map[$b_tid][$day2][$pid2])) continue;
 
-                                // Swap: move blocker to (day2, pid2), place unfilled at (day, pid)
-                                // Update blocker's entry
+                                // Joint sync: check all peer classes have (day2,pid2) free
+                                if ($b_jp) {
+                                    $jp_ok = true;
+                                    foreach ($b_jp as $p) {
+                                        if ($p['class_id'] === $c_id && $p['section_id'] === $s_id) continue;
+                                        if (!empty($this->class_occ[$p['class_id']][$p['section_id']][$day2][$pid2][0])) { $jp_ok = false; break; }
+                                    }
+                                    if (!$jp_ok) continue;
+                                }
+
+                                // Move blocker to (day2, pid2)
                                 $draft_entries[$blocker_idx]['day']       = $day2;
                                 $draft_entries[$blocker_idx]['period_id'] = $pid2;
-
-                                // Update occupancy for blocker move
                                 unset($this->class_occ[$c_id][$s_id][$day][$pid][0]);
                                 $this->class_occ[$c_id][$s_id][$day2][$pid2][0] = true;
                                 unset($this->teacher_occ[$b_tid][$day][$pid]);
                                 $this->teacher_occ[$b_tid][$day2][$pid2] = true;
                                 $this->teacher_periods_day[$b_tid][$day]  = max(0, ($this->teacher_periods_day[$b_tid][$day] ?? 1) - 1);
                                 $this->teacher_periods_day[$b_tid][$day2] = ($this->teacher_periods_day[$b_tid][$day2] ?? 0) + 1;
+
+                                // Move joint peers
+                                if ($b_jp) {
+                                    foreach ($b_jp as $p) {
+                                        if ($p['class_id'] === $c_id && $p['section_id'] === $s_id) continue;
+                                        foreach ($draft_entries as $pdi => $pde) {
+                                            if ((int)$pde['class_id'] === $p['class_id'] && (int)$pde['section_id'] === $p['section_id']
+                                                && $pde['day'] === $day && (int)$pde['period_id'] === $pid
+                                                && (int)($pde['subject_group_subject_id'] ?? 0) === $p['sgs_id']) {
+                                                $draft_entries[$pdi]['day'] = $day2;
+                                                $draft_entries[$pdi]['period_id'] = $pid2;
+                                                unset($this->class_occ[$p['class_id']][$p['section_id']][$day][$pid][0]);
+                                                $this->class_occ[$p['class_id']][$p['section_id']][$day2][$pid2][0] = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
 
                                 $conf_sgs  = (int) ($conf['subject_group_subject_id'] ?? 0);
                                 $conf_sgid = (int) ($conf['subject_group_id'] ?? 0);
@@ -993,6 +1030,62 @@ class Tt_generator_model extends MY_Model
     }
 
     /**
+     * Check if moving a joint entry's peers from (from_day,from_pid) to (to_day,to_pid) is possible.
+     * Returns false if any peer class has the destination occupied.
+     */
+    private function _jointPeersCanMove($peers, $self_cid, $self_sid, $to_day, $to_pid)
+    {
+        if (empty($peers)) return true;
+        foreach ($peers as $p) {
+            if ($p['class_id'] === $self_cid && $p['section_id'] === $self_sid) continue;
+            if (!empty($this->class_occ[$p['class_id']][$p['section_id']][$to_day][$to_pid][0])) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Move all joint peer entries from (from_day,from_pid) to (to_day,to_pid) in draft_entries.
+     */
+    private function _moveJointPeersDraft($peers, $self_cid, $self_sid, $from_day, $from_pid, $to_day, $to_pid, array &$draft_entries)
+    {
+        if (empty($peers)) return;
+        foreach ($peers as $p) {
+            if ($p['class_id'] === $self_cid && $p['section_id'] === $self_sid) continue;
+            foreach ($draft_entries as $pdi => $pde) {
+                if ((int)$pde['class_id'] === $p['class_id'] && (int)$pde['section_id'] === $p['section_id']
+                    && $pde['day'] === $from_day && (int)$pde['period_id'] === $from_pid
+                    && (int)($pde['subject_group_subject_id'] ?? 0) === $p['sgs_id']) {
+                    $draft_entries[$pdi]['day'] = $to_day;
+                    $draft_entries[$pdi]['period_id'] = $to_pid;
+                    unset($this->class_occ[$p['class_id']][$p['section_id']][$from_day][$from_pid][0]);
+                    $this->class_occ[$p['class_id']][$p['section_id']][$to_day][$to_pid][0] = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Move all joint peer entries from (from_day,from_pid) to (to_day,to_pid) in live tt_entries (DB).
+     */
+    private function _moveJointPeersLive($peers, $self_cid, $self_sid, $from_day, $from_pid, $to_day, $to_pid, $session_id, &$entry_by_class)
+    {
+        if (empty($peers)) return;
+        foreach ($peers as $p) {
+            if ($p['class_id'] === $self_cid && $p['section_id'] === $self_sid) continue;
+            $pe = $entry_by_class[$p['class_id']][$p['section_id']][$from_day][$from_pid] ?? null;
+            if ($pe && (int)$pe->subject_group_subject_id === $p['sgs_id']) {
+                $this->db->where('id', $pe->id)->update('tt_entries', ['day' => $to_day, 'period_id' => $to_pid]);
+                unset($this->class_occ[$p['class_id']][$p['section_id']][$from_day][$from_pid][0]);
+                $this->class_occ[$p['class_id']][$p['section_id']][$to_day][$to_pid][0] = true;
+                unset($entry_by_class[$p['class_id']][$p['section_id']][$from_day][$from_pid]);
+                $pe->day = $to_day; $pe->period_id = $to_pid;
+                $entry_by_class[$p['class_id']][$p['section_id']][$to_day][$to_pid] = $pe;
+            }
+        }
+    }
+
+    /**
      * Cross-class teacher-centric swap repair.
      *
      * For each no_slot conflict (class C needs teacher T but T is always
@@ -1010,8 +1103,27 @@ class Tt_generator_model extends MY_Model
         $total_swaps = 0;
         $max_iterations = 10;
 
-        // No joint protection during generation — swap needs full freedom
-        $joint_sgs = [];
+        // Joint peers for synchronized moves
+        $joint_peers = [];
+        $joint_sgs = []; // deprecated
+        $jl_data = $this->db->select('class_id, section_id, subject_group_subject_id, joint_lesson_id')
+            ->from('tt_subject_load')
+            ->where('session_id', $session_id)
+            ->where('joint_lesson_id IS NOT NULL', null, false)
+            ->get()->result();
+        $by_jl = [];
+        foreach ($jl_data as $r) {
+            $by_jl[(int)$r->joint_lesson_id][] = [
+                'class_id' => (int)$r->class_id, 'section_id' => (int)$r->section_id,
+                'sgs_id' => (int)$r->subject_group_subject_id,
+            ];
+        }
+        foreach ($by_jl as $classes) {
+            if (count($classes) < 2) continue;
+            foreach ($classes as $c) {
+                $joint_peers[$c['class_id']][$c['section_id']][$c['sgs_id']] = $classes;
+            }
+        }
 
         // Indexes: teacher → draft index, class → draft index
         $teacher_idx = [];
@@ -1102,8 +1214,7 @@ class Tt_generator_model extends MY_Model
                             $idx = $teacher_idx[$t_id][$day][$pid] ?? null;
                             if ($idx !== null) {
                                 $be = $draft_entries[$idx];
-                                if (empty($be['is_locked']) && empty($joint_sgs[(int)$be['class_id']][(int)$be['section_id']][(int)($be['subject_group_subject_id'] ?? 0)])
-                                    && !((int)$be['class_id'] === $c_id && (int)$be['section_id'] === $s_id)) {
+                                if (empty($be['is_locked'])                                    && !((int)$be['class_id'] === $c_id && (int)$be['section_id'] === $s_id)) {
                                     $blocker_candidates[] = $idx;
                                 }
                             }
@@ -1113,7 +1224,7 @@ class Tt_generator_model extends MY_Model
                                 $idx = $teacher_idx[$t_id][$day][$cp] ?? null;
                                 if ($idx === null) continue;
                                 $be = $draft_entries[$idx];
-                                if (!empty($be['is_locked']) || !empty($joint_sgs[(int)$be['class_id']][(int)$be['section_id']][(int)($be['subject_group_subject_id'] ?? 0)])) continue;
+                                if (!empty($be['is_locked'])) continue;
                                 if ((int)$be['class_id'] === $c_id && (int)$be['section_id'] === $s_id) continue;
                                 $blocker_candidates[] = $idx;
                             }
@@ -1151,6 +1262,10 @@ class Tt_generator_model extends MY_Model
                                         if ($day_count === $eff_cap) continue;
                                     }
 
+                                    // Joint sync: check all peers can move too
+                                    $b_jp = $joint_peers[$b_cid][$b_sid][$b_sgs] ?? null;
+                                    if ($b_jp && !$this->_jointPeersCanMove($b_jp, $b_cid, $b_sid, $day2, $pid2)) continue;
+
                                     // ---- Perform cross-class swap ----
 
                                     $draft_entries[$blocker_idx]['day']       = $day2;
@@ -1170,6 +1285,9 @@ class Tt_generator_model extends MY_Model
                                         $this->subject_day_count[$b_cid][$b_sid][$b_sgs][$day2] =
                                             ($this->subject_day_count[$b_cid][$b_sid][$b_sgs][$day2] ?? 0) + 1;
                                     }
+
+                                    // Move joint peers
+                                    if ($b_jp) $this->_moveJointPeersDraft($b_jp, $b_cid, $b_sid, $b_orig_day, $b_orig_pid, $day2, $pid2, $draft_entries);
 
                                     unset($teacher_idx[$t_id][$b_orig_day][$b_orig_pid]);
                                     $teacher_idx[$t_id][$day2][$pid2] = $blocker_idx;
@@ -1228,8 +1346,9 @@ class Tt_generator_model extends MY_Model
                             $bi = $teacher_idx[$t_id][$src_day][$src_pid] ?? null;
                             if ($bi === null) continue;
                             $bl = $draft_entries[$bi];
-                            if (!empty($bl['is_locked']) || !empty($joint_sgs[(int)$bl['class_id']][(int)$bl['section_id']][(int)($bl['subject_group_subject_id'] ?? 0)])) continue;
+                            if (!empty($bl['is_locked'])) continue;
                             $bc = (int)$bl['class_id']; $bs = (int)$bl['section_id'];
+                            if (!empty($joint_peers[$bc][$bs][(int)($bl['subject_group_subject_id'] ?? 0)])) continue;
                             if ($bc === $c_id && $bs === $s_id) continue;
 
                             foreach ($this->working_days as $d3) {
@@ -1240,7 +1359,8 @@ class Tt_generator_model extends MY_Model
                                     $si = $class_idx[$bc][$bs][$d3][$p3] ?? null;
                                     if ($si === null) continue;
                                     $se = $draft_entries[$si];
-                                    if (!empty($se['is_locked']) || !empty($joint_sgs[(int)$se['class_id']][(int)$se['section_id']][(int)($se['subject_group_subject_id'] ?? 0)])) continue;
+                                    if (!empty($se['is_locked'])) continue;
+                                    if (!empty($joint_peers[$bc][$bs][(int)($se['subject_group_subject_id'] ?? 0)])) continue;
                                     $t2 = (int)($se['staff_id'] ?? 0);
                                     if (!$t2 || $t2 === $t_id) continue;
                                     if (!empty($this->teacher_occ[$t2][$src_day][$src_pid])) continue;
@@ -1306,7 +1426,7 @@ class Tt_generator_model extends MY_Model
                                     $mi = $class_idx[$c_id][$s_id][$od][$op] ?? null;
                                     if ($mi === null) continue;
                                     $me = $draft_entries[$mi];
-                                    if (!empty($me['is_locked']) || !empty($joint_sgs[(int)$me['class_id']][(int)$me['section_id']][(int)($me['subject_group_subject_id'] ?? 0)])) continue;
+                                    if (!empty($me['is_locked'])) continue;
                                     $t2 = (int)($me['staff_id'] ?? 0);
                                     if (!$t2) continue;
 
@@ -1318,7 +1438,12 @@ class Tt_generator_model extends MY_Model
                                     $ms = (int)($me['subject_group_subject_id'] ?? 0);
                                     if ($ms && !empty($this->subject_unavail[$ms][$ed][$ep])) continue;
 
+                                    // Joint sync: if $me is joint, check peers can move too
+                                    $me_jp = $joint_peers[$c_id][$s_id][$ms] ?? null;
+                                    if ($me_jp && !$this->_jointPeersCanMove($me_jp, $c_id, $s_id, $ed, $ep)) continue;
+
                                     $draft_entries[$mi]['day'] = $ed; $draft_entries[$mi]['period_id'] = $ep;
+                                    if ($me_jp) $this->_moveJointPeersDraft($me_jp, $c_id, $s_id, $od, $op, $ed, $ep, $draft_entries);
                                     $draft_entries[] = [
                                         'gen_log_id' => $log_id, 'session_id' => $session_id,
                                         'class_id' => $c_id, 'section_id' => $s_id,
@@ -1368,7 +1493,8 @@ class Tt_generator_model extends MY_Model
                                     $mi = $class_idx[$c_id][$s_id][$od][$op] ?? null;
                                     if ($mi === null) continue;
                                     $me = $draft_entries[$mi];
-                                    if (!empty($me['is_locked']) || !empty($joint_sgs[(int)$me['class_id']][(int)$me['section_id']][(int)($me['subject_group_subject_id'] ?? 0)])) continue;
+                                    if (!empty($me['is_locked'])) continue;
+                                    if (!empty($joint_peers[$c_id][$s_id][(int)($me['subject_group_subject_id'] ?? 0)])) continue;
                                     $t2 = (int)($me['staff_id'] ?? 0);
                                     if (!$t2) continue;
 
@@ -1380,7 +1506,8 @@ class Tt_generator_model extends MY_Model
                                     $c3i = $teacher_idx[$t2][$ed][$ep] ?? null;
                                     if ($c3i === null) continue;
                                     $c3e = $draft_entries[$c3i];
-                                    if (!empty($c3e['is_locked']) || !empty($joint_sgs[(int)$c3e['class_id']][(int)$c3e['section_id']][(int)($c3e['subject_group_subject_id'] ?? 0)])) continue;
+                                    if (!empty($c3e['is_locked'])) continue;
+                                    if (!empty($joint_peers[(int)$c3e['class_id']][(int)$c3e['section_id']][(int)($c3e['subject_group_subject_id'] ?? 0)])) continue;
                                     $c3c = (int)$c3e['class_id']; $c3s = (int)$c3e['section_id'];
                                     if ($c3c === $c_id && $c3s === $s_id) continue;
                                     $c3sgs = (int)($c3e['subject_group_subject_id'] ?? 0);
@@ -2416,15 +2543,25 @@ class Tt_generator_model extends MY_Model
             }
         }
 
-        // Joint-frozen: [class_id][section_id][sgs_id] = true
-        $joint_sgs = [];
-        $jl_rows = $this->db->select('class_id, section_id, subject_group_subject_id')
+        // Joint peers for synchronized moves
+        $joint_peers = [];
+        $jl_data = $this->db->select('class_id, section_id, subject_group_subject_id, joint_lesson_id')
             ->from('tt_subject_load')
             ->where('session_id', $session_id)
             ->where('joint_lesson_id IS NOT NULL', null, false)
             ->get()->result();
-        foreach ($jl_rows as $jr) {
-            if ($jr->subject_group_subject_id) $joint_sgs[(int)$jr->class_id][(int)$jr->section_id][(int)$jr->subject_group_subject_id] = true;
+        $by_jl = [];
+        foreach ($jl_data as $r) {
+            $by_jl[(int)$r->joint_lesson_id][] = [
+                'class_id' => (int)$r->class_id, 'section_id' => (int)$r->section_id,
+                'sgs_id' => (int)$r->subject_group_subject_id,
+            ];
+        }
+        foreach ($by_jl as $classes) {
+            if (count($classes) < 2) continue;
+            foreach ($classes as $c) {
+                $joint_peers[$c['class_id']][$c['section_id']][$c['sgs_id']] = $classes;
+            }
         }
 
         $unmet = [];
@@ -2512,15 +2649,14 @@ class Tt_generator_model extends MY_Model
                         $blocker_candidates = [];
                         if ($t_busy_here) {
                             $bl = $entry_by_teacher[$t_id][$day][$pid] ?? null;
-                            if ($bl && empty($bl->is_locked) && empty($joint_sgs[(int)$bl->class_id][(int)$bl->section_id][(int)($bl->subject_group_subject_id ?? 0)])
-                                && !((int)$bl->class_id === $class_id && (int)$bl->section_id === $section_id)) {
+                            if ($bl && empty($bl->is_locked)                                && !((int)$bl->class_id === $class_id && (int)$bl->section_id === $section_id)) {
                                 $blocker_candidates[] = $bl;
                             }
                         }
                         if ($need_diff_day && !$t_busy_here) {
                             foreach ($this->period_order as $cp) {
                                 $bl = $entry_by_teacher[$t_id][$day][$cp] ?? null;
-                                if (!$bl || !empty($bl->is_locked) || !empty($joint_sgs[(int)$bl->class_id][(int)$bl->section_id][(int)($bl->subject_group_subject_id ?? 0)])) continue;
+                                if (!$bl || !empty($bl->is_locked)) continue;
                                 if ((int)$bl->class_id === $class_id && (int)$bl->section_id === $section_id) continue;
                                 $blocker_candidates[] = $bl;
                             }
@@ -2556,6 +2692,10 @@ class Tt_generator_model extends MY_Model
                                         if ($day_count === $eff_cap) continue;
                                     }
 
+                                    // Joint sync check
+                                    $b_jp = $joint_peers[$b_cid][$b_sid][$b_sgs] ?? null;
+                                    if ($b_jp && !$this->_jointPeersCanMove($b_jp, $b_cid, $b_sid, $day2, $pid2)) continue;
+
                                     $this->db->where('id', $blocker->id)->update('tt_entries', [
                                         'day' => $day2, 'period_id' => $pid2,
                                     ]);
@@ -2581,6 +2721,9 @@ class Tt_generator_model extends MY_Model
                                             max(0, ($this->subject_day_count[$b_cid][$b_sid][$b_sgs][$b_orig_day] ?? 1) - 1);
                                         $this->subject_day_count[$b_cid][$b_sid][$b_sgs][$day2] =
                                             ($this->subject_day_count[$b_cid][$b_sid][$b_sgs][$day2] ?? 0) + 1;
+
+                                    // Move joint peers in DB
+                                    if ($b_jp) $this->_moveJointPeersLive($b_jp, $b_cid, $b_sid, $b_orig_day, $b_orig_pid, $day2, $pid2, $session_id, $entry_by_class);
                                     }
 
                                     $this->class_occ[$class_id][$section_id][$day][$pid][0] = true;
@@ -2606,14 +2749,16 @@ class Tt_generator_model extends MY_Model
                             }
 
                             // Depth-2: blocker class full — swap two entries within it
-                            if (!$resolved) {
+                            // Skip if blocker is joint (too complex to sync double-swap)
+                            if (!$resolved && empty($joint_peers[$b_cid][$b_sid][$b_sgs])) {
                                 foreach ($this->working_days as $day3) {
                                     if ($resolved) break;
                                     foreach ($this->period_order as $pid3) {
                                         if ($day3 === $b_orig_day && $pid3 === $b_orig_pid) continue;
                                         if (!empty($this->teacher_occ[$t_id][$day3][$pid3])) continue;
                                         $swap_e = $entry_by_class[$b_cid][$b_sid][$day3][$pid3] ?? null;
-                                        if (!$swap_e || !empty($swap_e->is_locked) || !empty($joint_sgs[(int)$swap_e->class_id][(int)$swap_e->section_id][(int)($swap_e->subject_group_subject_id ?? 0)])) continue;
+                                        if (!$swap_e || !empty($swap_e->is_locked)) continue;
+                                        if (!empty($joint_peers[$b_cid][$b_sid][(int)($swap_e->subject_group_subject_id ?? 0)])) continue;
                                         $t2_id = (int) $swap_e->staff_id;
                                         if ($t2_id === $t_id) continue;
                                         if (!empty($this->teacher_occ[$t2_id][$b_orig_day][$b_orig_pid])) continue;
@@ -2702,7 +2847,7 @@ class Tt_generator_model extends MY_Model
                                 foreach ($this->period_order as $op) {
                                     if ($od === $ed && $op === $ep) continue;
                                     $me = $entry_by_class[$class_id][$section_id][$od][$op] ?? null;
-                                    if (!$me || !empty($me->is_locked) || !empty($joint_sgs[(int)$me->class_id][(int)$me->section_id][(int)($me->subject_group_subject_id ?? 0)])) continue;
+                                    if (!$me || !empty($me->is_locked)) continue;
                                     $t2 = (int) $me->staff_id;
 
                                     // T must be free at the occupied slot
@@ -2715,6 +2860,10 @@ class Tt_generator_model extends MY_Model
                                     if (!empty($unavail_map[$t2][$ed][$ep])) continue;
                                     $ms = (int) $me->subject_group_subject_id;
                                     if ($ms && !empty($this->subject_unavail[$ms][$ed][$ep])) continue;
+
+                                    // Joint sync
+                                    $me_jp = $joint_peers[$class_id][$section_id][$ms] ?? null;
+                                    if ($me_jp && !$this->_jointPeersCanMove($me_jp, $class_id, $section_id, $ed, $ep)) continue;
 
                                     // Daily caps
                                     if ($od !== $ed) {
@@ -2731,6 +2880,7 @@ class Tt_generator_model extends MY_Model
                                     $this->db->where('id', $me->id)->update('tt_entries', [
                                         'day' => $ed, 'period_id' => $ep,
                                     ]);
+                                    if ($me_jp) $this->_moveJointPeersLive($me_jp, $class_id, $section_id, $od, $op, $ed, $ep, $session_id, $entry_by_class);
                                     // Place unmet subject at freed slot
                                     $this->db->insert('tt_entries', [
                                         'session_id' => $session_id,
@@ -2799,7 +2949,8 @@ class Tt_generator_model extends MY_Model
                                     if ($resolved) break;
                                     if ($od === $ed && $op === $ep) continue;
                                     $me = $entry_by_class[$class_id][$section_id][$od][$op] ?? null;
-                                    if (!$me || !empty($me->is_locked) || !empty($joint_sgs[(int)$me->class_id][(int)$me->section_id][(int)($me->subject_group_subject_id ?? 0)])) continue;
+                                    if (!$me || !empty($me->is_locked)) continue;
+                                    if (!empty($joint_peers[$class_id][$section_id][(int)($me->subject_group_subject_id ?? 0)])) continue;
                                     $t2 = (int) $me->staff_id;
                                     if (!$t2) continue;
 
@@ -2807,14 +2958,13 @@ class Tt_generator_model extends MY_Model
                                     if (!empty($unavail_map[$t_id][$od][$op])) continue;
                                     if ($u['sgs_id'] && !empty($this->subject_unavail[$u['sgs_id']][$od][$op])) continue;
 
-                                    // T2 must be BUSY at (ed,ep) — otherwise within-class would have worked
                                     if (empty($this->teacher_occ[$t2][$ed][$ep])) continue;
 
-                                    // Find T2's entry at (ed,ep) in another class
                                     $c3e = $entry_by_teacher[$t2][$ed][$ep] ?? null;
-                                    if (!$c3e || !empty($c3e->is_locked) || !empty($joint_sgs[(int)$c3e->class_id][(int)$c3e->section_id][(int)($c3e->subject_group_subject_id ?? 0)])) continue;
+                                    if (!$c3e || !empty($c3e->is_locked)) continue;
                                     $c3c = (int) $c3e->class_id; $c3s = (int) $c3e->section_id;
                                     if ($c3c === $class_id && $c3s === $section_id) continue;
+                                    if (!empty($joint_peers[$c3c][$c3s][(int)($c3e->subject_group_subject_id ?? 0)])) continue;
                                     $c3sgs = (int) $c3e->subject_group_subject_id;
 
                                     // Try to move C3 entry to free T2 at (ed,ep)
