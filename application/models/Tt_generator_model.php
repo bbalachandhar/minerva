@@ -304,11 +304,23 @@ class Tt_generator_model extends MY_Model
                             if ($t_viable) $cand_common_free++;
                         }
                     }
-                    // Urgency: if common free slots are critically low relative to placements needed
+                    // Shared teacher demand: sum placements from OTHER remaining joints
+                    // that share this teacher — they compete for the same viable pool.
+                    $shared_demand = $cand_placements;
+                    foreach ($remaining_jl as $_ork => $_oj) {
+                        if ($_ork === $rk) continue;
+                        $_otids = $_oj->teacher_ids ?? [];
+                        $_shares = false;
+                        foreach ($_otids as $_ot) { if (in_array($_ot, $cand_t_ids)) { $_shares = true; break; } }
+                        if ($_shares) {
+                            $_oc = max(1, (int)$_oj->consecutive_periods);
+                            $shared_demand += ($_oc > 1) ? (int)ceil((int)$_oj->periods_per_week / $_oc) : (int)$_oj->periods_per_week;
+                        }
+                    }
                     $cand_jl_urgency = 0;
-                    if ($cand_common_free <= $cand_placements) $cand_jl_urgency = 500;
-                    elseif ($cand_common_free <= $cand_placements * 2) $cand_jl_urgency = 250;
-                    elseif ($cand_common_free <= $cand_placements * 3) $cand_jl_urgency = 100;
+                    if ($cand_common_free <= $shared_demand) $cand_jl_urgency = 500;
+                    elseif ($cand_common_free <= (int)($shared_demand * 1.5)) $cand_jl_urgency = 250;
+                    elseif ($cand_common_free <= $shared_demand * 2) $cand_jl_urgency = 100;
                     $cand_slot_scarcity = max(0, 60 - $cand_common_free);
 
                     $cand_score = ((int)$cand->priority * 100) + ($n_classes * 10)
