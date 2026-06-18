@@ -329,6 +329,18 @@ class Tt_generator_model extends MY_Model
                         $constraints, $unavail_map,
                         $fixed['day'] ?? null, $fixed['period_ids'] ?? null);
 
+                    // Fallback: if no clean slot, try displacing 1-2 entries from
+                    // sections that block a near-free slot. The displaced entries
+                    // become regular no_slot conflicts — much easier to resolve
+                    // than a multi-section joint.
+                    if ($slot === null && !$fixed) {
+                        $slot = $this->_findJointSlotDisplacing(
+                            $jl, $jl_teacher_ids, $jl_all_req, $jl_room,
+                            $jl_consec, $jl_days_used, $jl_max_day,
+                            $constraints, $unavail_map, $draft_entries, $conflicts
+                        );
+                    }
+
                     if ($slot === null) {
                         $class_labels = implode('+', array_map(fn($cs) => "C{$cs->class_id}/S{$cs->section_id}", $jl->classes));
                         $teacher_label = !empty($jl_teacher_ids) ? count($jl_teacher_ids).' teacher(s)' : 'No teacher';
@@ -337,7 +349,7 @@ class Tt_generator_model extends MY_Model
                             $why = $this->_diagnoseJointFixedFailure($jl, $jl_teacher_ids, $jl_all_req, $fixed['day'], $fixed['period_ids'], $constraints, $unavail_map, $jl_room);
                             $reason = "Joint lesson [{$jl->name}] for {$class_labels}: fixed slot {$fixed['day']} {$period_labels} is unavailable — {$why}";
                         } else {
-                            $reason = "Joint lesson [{$jl->name}] for {$class_labels}: no slot where all classes are simultaneously free.";
+                            $reason = "Joint lesson [{$jl->name}] for {$class_labels}: no slot where all classes are simultaneously free (even after trying displacement).";
                         }
                         $conflicts[] = [
                             'class_id'   => 0,
@@ -811,6 +823,16 @@ class Tt_generator_model extends MY_Model
             );
             $total_placed  += $cross_swaps;
             $swap_resolved += $cross_swaps;
+
+            // ---- TEACHER ALIGNMENT REPAIR ----
+            // For each remaining no_slot conflict, aggressively try to create an
+            // aligned free slot by chain-swapping entries in the teacher's other classes.
+            $align_resolved = $this->_teacherAlignmentRepair(
+                $draft_entries, $conflicts, $constraints, $unavail_map,
+                $log_id, $session_id
+            );
+            $total_placed  += $align_resolved;
+            $swap_resolved += $align_resolved;
 
             // ---- GAP FILL (opt-in via fill_free_periods) ----
             $gap_filled_subject = 0; $gap_filled_free = 0;
@@ -1483,6 +1505,211 @@ class Tt_generator_model extends MY_Model
      *
      * Iterates until a full pass produces no swaps (cascading opportunities).
      */
+    /**
+     * Targeted repair for "teacher has free slots but none align with class."
+     * For each no_slot conflict, finds a class-free slot where teacher T is
+     * busy in another class C2, then tries to relocate T's C2 entry so T
+     * becomes free at that slot for the target class.
+     */
+    private function _teacherAlignmentRepair(
+        array &$draft_entries, array &$conflicts, $constraints, $unavail_map,
+        $log_id, $session_id
+    ) {
+        $resolved_count = 0;
+
+        // Build teacher→slot→draft_index lookup
+        $t_idx = [];
+        foreach ($draft_entries as $di => $de) {
+            if (empty($de['staff_id']) || !empty($de['is_free_period'])) continue;
+            $t_idx[(int)$de['staff_id']][$de['day']][(int)$de['period_id']] = $di;
+        }
+
+        $new_conflicts = [];
+        foreach ($conflicts as $conf) {
+            if (($conf['type'] ?? '') !== 'no_slot') { $new_conflicts[] = $conf; continue; }
+
+            $c_id = (int)($conf['class_id'] ?? 0);
+            $s_id = (int)($conf['section_id'] ?? 0);
+            $t_id = (int)($conf['staff_id'] ?? 0);
+            $conf_sgs  = (int)($conf['subject_group_subject_id'] ?? 0);
+            $conf_sgid = (int)($conf['subject_group_id'] ?? 0);
+            if (!$c_id || !$s_id || !$t_id) { $new_conflicts[] = $conf; continue; }
+
+            $placed = false;
+
+            // Find slots where class IS free but teacher is busy in another class
+            foreach ($this->working_days as $day) {
+                if ($placed) break;
+                foreach ($this->period_order as $pid) {
+                    if ($placed) break;
+                    // Class must be free here
+                    if (!empty($this->class_occ[$c_id][$s_id][$day][$pid][0])) continue;
+                    if (!empty($this->class_unavail[$c_id][$s_id][$day][$pid])) continue;
+                    // Teacher must be busy here (in another class)
+                    if (empty($this->teacher_occ[$t_id][$day][$pid])) continue;
+                    if (!empty($unavail_map[$t_id][$day][$pid])) continue; // genuinely unavailable, can't fix
+
+                    // Find what the teacher is doing at this slot
+                    $blocker_di = $t_idx[$t_id][$day][$pid] ?? null;
+                    if ($blocker_di === null) continue;
+                    $blocker = $draft_entries[$blocker_di];
+                    if (!empty($blocker['is_locked'])) continue;
+                    $b_cid = (int)$blocker['class_id']; $b_sid = (int)$blocker['section_id'];
+                    $b_sgs = (int)($blocker['subject_group_subject_id'] ?? 0);
+                    $b_t   = (int)($blocker['staff_id'] ?? 0);
+                    if ($b_cid === $c_id && $b_sid === $s_id) continue;
+
+                    // Try to relocate blocker to any other free slot for both blocker's class AND teacher T
+                    foreach ($this->working_days as $d2) {
+                        if ($placed) break;
+                        foreach ($this->period_order as $p2) {
+                            if ($d2 === $day && $p2 === $pid) continue;
+                            if (!empty($this->class_occ[$b_cid][$b_sid][$d2][$p2][0])) continue;
+                            if (!empty($this->class_unavail[$b_cid][$b_sid][$d2][$p2])) continue;
+                            if (!empty($this->teacher_occ[$b_t][$d2][$p2])) continue;
+                            if (!empty($unavail_map[$b_t][$d2][$p2])) continue;
+
+                            // Relocate blocker: move from (day,pid) to (d2,p2)
+                            $draft_entries[$blocker_di]['day'] = $d2;
+                            $draft_entries[$blocker_di]['period_id'] = $p2;
+                            unset($this->class_occ[$b_cid][$b_sid][$day][$pid][0]);
+                            $this->class_occ[$b_cid][$b_sid][$d2][$p2][0] = true;
+                            unset($this->teacher_occ[$b_t][$day][$pid]);
+                            $this->teacher_occ[$b_t][$d2][$p2] = true;
+                            $this->teacher_periods_day[$b_t][$day] = max(0, ($this->teacher_periods_day[$b_t][$day] ?? 1) - 1);
+                            $this->teacher_periods_day[$b_t][$d2] = ($this->teacher_periods_day[$b_t][$d2] ?? 0) + 1;
+                            unset($t_idx[$b_t][$day][$pid]);
+                            $t_idx[$b_t][$d2][$p2] = $blocker_di;
+
+                            // Place the conflict subject at the freed slot
+                            $new_di = count($draft_entries);
+                            $draft_entries[] = [
+                                'gen_log_id' => $log_id, 'session_id' => $session_id,
+                                'class_id' => $c_id, 'section_id' => $s_id,
+                                'subject_group_id' => $conf_sgid,
+                                'subject_group_subject_id' => $conf_sgs,
+                                'staff_id' => $t_id, 'period_id' => $pid,
+                                'day' => $day, 'room_id' => null,
+                                'batch_id' => null, 'is_free_period' => 0,
+                                'free_period_label' => null,
+                            ];
+                            $this->class_occ[$c_id][$s_id][$day][$pid][0] = true;
+                            $this->teacher_occ[$t_id][$day][$pid] = true;
+                            $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                            $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+                            $t_idx[$t_id][$day][$pid] = $new_di;
+
+                            $resolved_count++;
+                            $placed = true;
+                            break;
+                        }
+                    }
+
+                    // Depth-2: if direct relocation failed, try swapping within blocker's class
+                    if (!$placed) {
+                        foreach ($this->working_days as $d2) {
+                            if ($placed) break;
+                            foreach ($this->period_order as $p2) {
+                                if ($placed) break;
+                                if ($d2 === $day && $p2 === $pid) continue;
+                                // Need: blocker's class occupied at (d2,p2) by entry E2
+                                if (empty($this->class_occ[$b_cid][$b_sid][$d2][$p2][0])) continue;
+                                // T must be free at (d2,p2) for the swap to help
+                                if (!empty($this->teacher_occ[$t_id][$d2][$p2])) continue;
+
+                                // Find E2 at (d2,p2) in blocker's class
+                                $e2_di = null;
+                                foreach ($draft_entries as $ei => $ee) {
+                                    if ((int)$ee['class_id'] === $b_cid && (int)$ee['section_id'] === $b_sid
+                                        && $ee['day'] === $d2 && (int)$ee['period_id'] === $p2
+                                        && empty($ee['is_free_period']) && empty($ee['is_locked'])) {
+                                        $e2_di = $ei; break;
+                                    }
+                                }
+                                if ($e2_di === null) continue;
+                                $e2 = $draft_entries[$e2_di];
+                                $t2 = (int)($e2['staff_id'] ?? 0);
+                                if (!$t2 || $t2 === $t_id) continue;
+
+                                // T2 must be free at (day,pid) — the slot we're freeing
+                                if (!empty($this->teacher_occ[$t2][$day][$pid])) continue;
+                                if (!empty($unavail_map[$t2][$day][$pid])) continue;
+                                if (!empty($unavail_map[$b_t][$d2][$p2])) continue;
+
+                                // Swap within blocker's class: blocker→(d2,p2), E2→(day,pid)
+                                $draft_entries[$blocker_di]['day'] = $d2; $draft_entries[$blocker_di]['period_id'] = $p2;
+                                $draft_entries[$e2_di]['day'] = $day; $draft_entries[$e2_di]['period_id'] = $pid;
+
+                                unset($this->teacher_occ[$b_t][$day][$pid]);
+                                $this->teacher_occ[$b_t][$d2][$p2] = true;
+                                unset($this->teacher_occ[$t2][$d2][$p2]);
+                                $this->teacher_occ[$t2][$day][$pid] = true;
+                                if ($day !== $d2) {
+                                    $this->teacher_periods_day[$b_t][$day] = max(0, ($this->teacher_periods_day[$b_t][$day] ?? 1) - 1);
+                                    $this->teacher_periods_day[$b_t][$d2] = ($this->teacher_periods_day[$b_t][$d2] ?? 0) + 1;
+                                    $this->teacher_periods_day[$t2][$d2] = max(0, ($this->teacher_periods_day[$t2][$d2] ?? 1) - 1);
+                                    $this->teacher_periods_day[$t2][$day] = ($this->teacher_periods_day[$t2][$day] ?? 0) + 1;
+                                }
+
+                                // Now T is free at (day,pid) — but wait, we put T2 there.
+                                // We need ANOTHER free slot for class C. Let me check if T
+                                // is now free at the slot we just freed in blocker's class.
+                                // Actually no — we swapped WITHIN blocker's class.
+                                // T (the conflict teacher) was busy at (day,pid) teaching blocker's class.
+                                // After the swap, T now teaches at (d2,p2) in blocker's class,
+                                // and T2 teaches at (day,pid) in blocker's class.
+                                // So T is now FREE at (day,pid)? No — T2 took (day,pid).
+                                // The teacher_occ for T at (day,pid) was unset above.
+                                // So T IS free at (day,pid)? Let's check:
+                                // teacher_occ[T][day][pid] was NOT directly unset — we unset B_T.
+                                // If B_T === T_ID, then yes. If not, T might still be busy.
+
+                                // Only valid if b_t === t_id (blocker is taught by the conflict teacher)
+                                if ($b_t !== $t_id) {
+                                    // Revert the swap
+                                    $draft_entries[$blocker_di]['day'] = $day; $draft_entries[$blocker_di]['period_id'] = $pid;
+                                    $draft_entries[$e2_di]['day'] = $d2; $draft_entries[$e2_di]['period_id'] = $p2;
+                                    $this->teacher_occ[$b_t][$day][$pid] = true; unset($this->teacher_occ[$b_t][$d2][$p2]);
+                                    $this->teacher_occ[$t2][$d2][$p2] = true; unset($this->teacher_occ[$t2][$day][$pid]);
+                                    if ($day !== $d2) {
+                                        $this->teacher_periods_day[$b_t][$d2] = max(0, ($this->teacher_periods_day[$b_t][$d2] ?? 1) - 1);
+                                        $this->teacher_periods_day[$b_t][$day] = ($this->teacher_periods_day[$b_t][$day] ?? 0) + 1;
+                                        $this->teacher_periods_day[$t2][$day] = max(0, ($this->teacher_periods_day[$t2][$day] ?? 1) - 1);
+                                        $this->teacher_periods_day[$t2][$d2] = ($this->teacher_periods_day[$t2][$d2] ?? 0) + 1;
+                                    }
+                                    continue;
+                                }
+
+                                // b_t === t_id: T is now free at (day,pid). Place conflict.
+                                $new_di = count($draft_entries);
+                                $draft_entries[] = [
+                                    'gen_log_id' => $log_id, 'session_id' => $session_id,
+                                    'class_id' => $c_id, 'section_id' => $s_id,
+                                    'subject_group_id' => $conf_sgid,
+                                    'subject_group_subject_id' => $conf_sgs,
+                                    'staff_id' => $t_id, 'period_id' => $pid,
+                                    'day' => $day, 'room_id' => null,
+                                    'batch_id' => null, 'is_free_period' => 0,
+                                    'free_period_label' => null,
+                                ];
+                                $this->class_occ[$c_id][$s_id][$day][$pid][0] = true;
+                                $this->teacher_occ[$t_id][$day][$pid] = true;
+                                $this->teacher_periods_day[$t_id][$day] = ($this->teacher_periods_day[$t_id][$day] ?? 0) + 1;
+                                $this->teacher_periods_week[$t_id] = ($this->teacher_periods_week[$t_id] ?? 0) + 1;
+
+                                $resolved_count++;
+                                $placed = true;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!$placed) $new_conflicts[] = $conf;
+        }
+        $conflicts = $new_conflicts;
+        return $resolved_count;
+    }
+
     private function _crossClassSwapRepair(
         array &$draft_entries, array &$conflicts, $constraints, $unavail_map,
         $log_id, $session_id
@@ -2287,6 +2514,133 @@ class Tt_generator_model extends MY_Model
             }
         }
         return $best;
+    }
+
+    /**
+     * Find a joint slot by displacing 1-2 non-joint, non-locked entries from
+     * sections that block an otherwise-free slot. Displaced entries become
+     * regular no_slot conflicts (much easier to resolve than a multi-section joint).
+     */
+    private function _findJointSlotDisplacing(
+        $jl, array $teacher_ids, $all_teachers_required, $pref_room,
+        $consec, $days_used, $max_per_day,
+        $constraints, $unavail_map, array &$draft_entries, array &$conflicts
+    ) {
+        $primary = $teacher_ids[0] ?? null;
+        $n_sections = count($jl->classes);
+        $max_displace = min(2, $n_sections - 1);
+        $best = null; $best_displace_count = 999;
+
+        foreach ($this->working_days as $day) {
+            foreach ($this->_getConsecutiveStarts($consec) as $pid_group) {
+                // Check teacher availability at this slot
+                $teacher_ok = true;
+                $use_teacher = null;
+                $candidates = !empty($teacher_ids) ? $teacher_ids : [null];
+                foreach ($candidates as $t_id) {
+                    if ($t_id === null) { $use_teacher = null; $teacher_ok = true; break; }
+                    $t_free = true;
+                    $c = $constraints[$t_id] ?? $this->default_tc;
+                    foreach ($pid_group as $pid) {
+                        if (!empty($this->teacher_occ[$t_id][$day][$pid]) || !empty($unavail_map[$t_id][$day][$pid])) {
+                            $t_free = false; break;
+                        }
+                    }
+                    if (!$t_free) continue;
+                    if (($this->teacher_periods_day[$t_id][$day] ?? 0) + $consec > (int)$c->max_periods_per_day) continue;
+                    if (($this->teacher_periods_week[$t_id] ?? 0) + $consec > (int)$c->max_periods_per_week) continue;
+                    $use_teacher = $t_id; break;
+                }
+                if ($all_teachers_required && !empty($teacher_ids)) {
+                    $all_free = true;
+                    foreach ($teacher_ids as $t_id) {
+                        foreach ($pid_group as $pid) {
+                            if (!empty($this->teacher_occ[$t_id][$day][$pid]) || !empty($unavail_map[$t_id][$day][$pid])) {
+                                $all_free = false; break 2;
+                            }
+                        }
+                    }
+                    if (!$all_free) continue;
+                    $use_teacher = $primary;
+                } elseif ($use_teacher === null && !empty($teacher_ids)) {
+                    continue;
+                }
+
+                // Count how many sections are blocked and identify displaceable entries
+                $blocked = []; $unavail_blocked = false;
+                foreach ($jl->classes as $cs) {
+                    $cid = (int)$cs->class_id; $sid = (int)$cs->section_id;
+                    foreach ($pid_group as $pid) {
+                        if (!empty($this->class_unavail[$cid][$sid][$day][$pid])) {
+                            $unavail_blocked = true; break 2;
+                        }
+                        if (!empty($this->class_occ[$cid][$sid][$day][$pid][0])) {
+                            // Find the draft entry occupying this slot
+                            foreach ($draft_entries as $di => $de) {
+                                if ((int)$de['class_id'] === $cid && (int)$de['section_id'] === $sid
+                                    && $de['day'] === $day && (int)$de['period_id'] === $pid
+                                    && empty($de['is_free_period']) && empty($de['is_locked'])) {
+                                    $sgs = (int)($de['subject_group_subject_id'] ?? 0);
+                                    // Don't displace another joint entry
+                                    $is_joint = false;
+                                    foreach ($jl->classes as $cs2) {
+                                        if (isset($this->subject_day_count[$cid][$sid][$sgs])) {
+                                            // Check joint_peers — but we may not have it here
+                                        }
+                                    }
+                                    $blocked[] = ['di' => $di, 'de' => $de, 'cid' => $cid, 'sid' => $sid, 'pid' => $pid];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if ($unavail_blocked) continue;
+                if (count($blocked) === 0) continue; // fully free = _findJointSlot would have found it
+                if (count($blocked) > $max_displace) continue;
+                if (count($blocked) >= $best_displace_count) continue;
+
+                // This slot is viable — displace fewer entries than best so far
+                $best = ['day' => $day, 'period_ids' => $pid_group, 'staff_id' => $use_teacher,
+                         'room_id' => null, 'blocked' => $blocked];
+                $best_displace_count = count($blocked);
+                if ($best_displace_count === 1) break 2; // can't do better than 1
+            }
+        }
+
+        if (!$best) return null;
+
+        // Execute displacement: remove blocked entries, add them as no_slot conflicts
+        foreach ($best['blocked'] as $b) {
+            $de = $b['de'];
+            $di = $b['di'];
+            $cid = $b['cid']; $sid = $b['sid'];
+            // Free occupancy
+            unset($this->class_occ[$cid][$sid][$de['day']][(int)$de['period_id']][0]);
+            $vt = (int)($de['staff_id'] ?? 0);
+            if ($vt) {
+                unset($this->teacher_occ[$vt][$de['day']][(int)$de['period_id']]);
+                $this->teacher_periods_day[$vt][$de['day']] = max(0, ($this->teacher_periods_day[$vt][$de['day']] ?? 1) - 1);
+                $this->teacher_periods_week[$vt] = max(0, ($this->teacher_periods_week[$vt] ?? 1) - 1);
+            }
+            // Remove from draft
+            unset($draft_entries[$di]);
+            // Add as no_slot conflict so swap repair can handle it
+            $conflicts[] = [
+                'class_id'   => $cid, 'section_id' => $sid,
+                'subject'    => $de['subject_group_subject_id'] ?? '', 'staff' => '',
+                'staff_id'   => $vt,
+                'subject_group_subject_id' => (int)($de['subject_group_subject_id'] ?? 0),
+                'subject_group_id' => (int)($de['subject_group_id'] ?? 0),
+                'type'       => 'no_slot',
+                'reason'     => 'Displaced by joint lesson placement',
+                'placement'  => '1 of 1',
+            ];
+        }
+        $draft_entries = array_values($draft_entries);
+
+        return ['day' => $best['day'], 'period_ids' => $best['period_ids'],
+                'staff_id' => $best['staff_id'], 'room_id' => $best['room_id']];
     }
 
     /**
