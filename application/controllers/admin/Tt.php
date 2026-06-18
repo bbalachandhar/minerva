@@ -1681,6 +1681,36 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         echo json_encode($result);
     }
 
+    public function fill_all_classes()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_edit')) {
+            echo json_encode(['status' => '0', 'message' => 'Access denied']); return;
+        }
+        $session_id = $this->setting_model->getCurrentSession();
+
+        $classes = $this->db->select('class_id, section_id')
+            ->where('session_id', $session_id)
+            ->group_by('class_id, section_id')
+            ->get('tt_entries')->result();
+
+        $total_swapped = 0; $total_filled = 0; $classes_fixed = 0;
+        foreach ($classes as $cs) {
+            $r = $this->Tt_generator_model->fillEmptyCellsLive($session_id, (int)$cs->class_id, (int)$cs->section_id);
+            $sw = $r['cross_swapped'] ?? 0;
+            $fi = $r['filled_subject'] ?? 0;
+            if ($sw + $fi > 0) $classes_fixed++;
+            $total_swapped += $sw;
+            $total_filled  += $fi;
+        }
+        echo json_encode([
+            'status'        => '1',
+            'classes_total' => count($classes),
+            'classes_fixed' => $classes_fixed,
+            'cross_swapped' => $total_swapped,
+            'filled_subject'=> $total_filled,
+        ]);
+    }
+
     public function gaps_overview()
     {
         if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_view')) {

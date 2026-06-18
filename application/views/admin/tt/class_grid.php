@@ -46,6 +46,9 @@
             <button class="btn btn-info btn-sm" id="btn-gaps-overview" style="margin-top:2px;" title="Show classes with unfilled cells">
               <i class="fa fa-list-ul"></i> Gaps
             </button>
+            <button class="btn btn-success btn-sm" id="btn-fill-all" style="margin-top:2px;" title="Run Fill Empty Cells on ALL classes automatically">
+              <i class="fa fa-magic"></i> Fill All Classes
+            </button>
           </div>
         </div>
       </div>
@@ -334,6 +337,21 @@ $(function(){
   $('#btn-week-prev').on('click', function(){ weekOffset--; loadGrid(false); });
   $('#btn-week-cur').on('click',  function(){ weekOffset = 0; loadGrid(false); });
   $('#btn-week-next').on('click', function(){ weekOffset++; loadGrid(false); });
+
+  // Fill All Classes
+  $('#btn-fill-all').on('click', function(){
+    if (!confirm('This will run Fill Empty Cells on ALL classes. Continue?')) return;
+    var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Filling...');
+    $.post('<?php echo site_url('admin/tt/fill_all_classes'); ?>', {[csrf_name]: csrf_val}, function(res){
+      $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill All Classes');
+      if (res.status === '1') {
+        alert('Done! ' + res.cross_swapped + ' cell(s) filled via swap, ' + res.filled_subject + ' via gap-fill, across ' + res.classes_fixed + ' class(es).');
+        if (loaded_class_id) loadGrid(false);
+      } else {
+        alert(res.message || 'Failed');
+      }
+    },'json').fail(function(xhr){ $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill All Classes'); alert('Failed: ' + xhr.statusText); });
+  });
 
   // Gaps Overview
   $('#btn-gaps-overview').on('click', function(){
