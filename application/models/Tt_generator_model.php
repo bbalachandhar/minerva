@@ -699,6 +699,56 @@ class Tt_generator_model extends MY_Model
                     $log_id, $session_id, $draft_entries, $gap_filled_subject, $gap_filled_free);
             }
 
+            // ---- POST-GAP-FILL REPAIR ----
+            // After gap-fill adds Free Period placeholders, those slots are
+            // "occupied" and the swap chain can't use them. Remove Free Periods
+            // from occupancy, re-run the swap chain on remaining conflicts,
+            // then delete any Free Period entries that were replaced.
+            $remaining_no_slot = array_filter($conflicts, fn($c) => ($c['type'] ?? '') === 'no_slot');
+            if (!empty($remaining_no_slot) && !empty($settings['fill_free_periods'])) {
+                // Index Free Period entries and unmark from class_occ
+                $fp_indices = [];
+                foreach ($draft_entries as $di => $de) {
+                    if (!empty($de['is_free_period'])) {
+                        $fc = (int)$de['class_id']; $fs = (int)$de['section_id'];
+                        unset($this->class_occ[$fc][$fs][$de['day']][(int)$de['period_id']][0]);
+                        $fp_indices[$fc . '_' . $fs . '_' . $de['day'] . '_' . $de['period_id']] = $di;
+                    }
+                }
+
+                // Rebuild indexes for swap chain
+                $teacher_idx2 = []; $class_idx2 = [];
+                foreach ($draft_entries as $di => $de) {
+                    if (empty($de['staff_id']) || !empty($de['is_free_period'])) continue;
+                    $teacher_idx2[(int)$de['staff_id']][$de['day']][(int)$de['period_id']] = $di;
+                    $class_idx2[(int)$de['class_id']][(int)$de['section_id']][$de['day']][(int)$de['period_id']] = $di;
+                }
+
+                $post_swaps = $this->_crossClassSwapRepair(
+                    $draft_entries, $conflicts, $constraints, $unavail_map,
+                    $log_id, $session_id
+                );
+                $total_placed += $post_swaps;
+
+                // Remove Free Period entries that were replaced by real subjects
+                foreach ($draft_entries as $di => $de) {
+                    if (empty($de['is_free_period'])) continue;
+                    $fc = (int)$de['class_id']; $fs = (int)$de['section_id'];
+                    if (!empty($this->class_occ[$fc][$fs][$de['day']][(int)$de['period_id']][0])) {
+                        unset($draft_entries[$di]);
+                        $gap_filled_free--;
+                    }
+                }
+                $draft_entries = array_values($draft_entries);
+
+                // Re-mark remaining Free Periods in class_occ
+                foreach ($draft_entries as $de) {
+                    if (!empty($de['is_free_period'])) {
+                        $this->class_occ[(int)$de['class_id']][(int)$de['section_id']][$de['day']][(int)$de['period_id']][0] = true;
+                    }
+                }
+            }
+
             if ($total_placed > $best_placed) {
                 $best_placed = $total_placed;
                 $best_result = compact('draft_entries', 'conflicts', 'total_required', 'total_placed', 'class_stats',
