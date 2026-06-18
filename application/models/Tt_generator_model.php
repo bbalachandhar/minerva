@@ -274,7 +274,9 @@ class Tt_generator_model extends MY_Model
                     $cand_placements = ($cand_consec > 1) ? (int)ceil($cand_ppw / $cand_consec) : $cand_ppw;
 
                     // Valid common slot counting: how many (day, period_group) slots
-                    // have ALL sections free simultaneously? This is the true constraint.
+                    // have ALL sections free AND at least one teacher free?
+                    // This is the true constraint — section-free slots where the
+                    // teacher is busy are useless for this joint.
                     $cand_common_free = 0;
                     foreach ($this->working_days as $_d) {
                         foreach ($this->_getConsecutiveStarts($cand_consec) as $_pg) {
@@ -287,7 +289,19 @@ class Tt_generator_model extends MY_Model
                                     }
                                 }
                             }
-                            if ($all_free) $cand_common_free++;
+                            if (!$all_free) continue;
+                            // Also require at least one teacher to be free
+                            $t_viable = empty($cand_t_ids);
+                            foreach ($cand_t_ids as $_tid) {
+                                $_tok = true;
+                                foreach ($_pg as $_p) {
+                                    if (!empty($this->teacher_occ[$_tid][$_d][$_p]) || !empty($unavail_map[$_tid][$_d][$_p])) {
+                                        $_tok = false; break;
+                                    }
+                                }
+                                if ($_tok) { $t_viable = true; break; }
+                            }
+                            if ($t_viable) $cand_common_free++;
                         }
                     }
                     // Urgency: if common free slots are critically low relative to placements needed
