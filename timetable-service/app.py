@@ -57,6 +57,7 @@ class JointLesson(BaseModel):
     periods_per_week: int
     consecutive: int = 1
     teacher_ids: list[int] = []
+    teacher_names: list[str] = []
     all_teachers_required: bool = False
     max_per_day: int = 2
     classes: list[ClassSection] = []

@@ -151,6 +151,12 @@ class Tt_generator_model extends MY_Model
             ];
         }
 
+        // Staff name cache for joint lesson diagnostics
+        $all_staff_ids = [];
+        foreach ($raw_loads as $l) {
+            if (!empty($l->staff_id)) $all_staff_ids[] = (int)$l->staff_id;
+        }
+
         // Joint lessons (filtered by class_scope)
         $raw_joints = $this->CI->Tt_joint_model->getAllForGeneration($session_id);
         if (!empty($class_scope) && !empty($raw_joints)) {
@@ -165,6 +171,22 @@ class Tt_generator_model extends MY_Model
             }
             $raw_joints = array_values(array_filter($raw_joints, fn($jl) => count($jl->classes) >= 1));
         }
+        // Collect all joint teacher IDs and fetch names
+        foreach ($raw_joints as $jl) {
+            foreach ($jl->teacher_ids ?? [] as $tid) {
+                $all_staff_ids[] = (int)$tid;
+            }
+        }
+        $staff_name_map = [];
+        if (!empty($all_staff_ids)) {
+            $staff_rows = $this->db->select('id, name, surname')
+                ->where_in('id', array_unique($all_staff_ids))
+                ->get('staff')->result();
+            foreach ($staff_rows as $sr) {
+                $staff_name_map[(int)$sr->id] = trim($sr->name . ' ' . $sr->surname);
+            }
+        }
+
         $joint_lessons = [];
         foreach ($raw_joints as $jl) {
             $classes = [];
@@ -176,13 +198,19 @@ class Tt_generator_model extends MY_Model
                     'sg_id'      => (int)($cs->sg_id ?? 0),
                 ];
             }
+            $t_ids = array_values(array_map('intval', $jl->teacher_ids ?? []));
+            $t_names = [];
+            foreach ($t_ids as $tid) {
+                $t_names[] = $staff_name_map[$tid] ?? "Staff #{$tid}";
+            }
             $joint_lessons[] = [
                 'id'                    => (int)$jl->id,
                 'name'                  => $jl->name ?? '',
                 'subject_id'            => (int)($jl->subject_id ?? 0),
                 'periods_per_week'      => (int)$jl->periods_per_week,
                 'consecutive'           => max(1, (int)($jl->consecutive_periods ?? 1)),
-                'teacher_ids'           => array_values(array_map('intval', $jl->teacher_ids ?? [])),
+                'teacher_ids'           => $t_ids,
+                'teacher_names'         => $t_names,
                 'all_teachers_required' => !empty($jl->all_teachers_required),
                 'max_per_day'           => max(1, (int)($jl->max_per_day ?? 2)),
                 'classes'               => $classes,

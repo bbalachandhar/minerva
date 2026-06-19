@@ -680,10 +680,11 @@ def _analyze_issues(data, days, periods, loads, joints):
             if tid not in teacher_names and load.get("teacher_name"):
                 teacher_names[tid] = load["teacher_name"]
     for j in joints:
-        if j.get("teacher_name"):
-            for tid in j.get("teacher_ids", []):
-                if tid not in teacher_names:
-                    teacher_names[tid] = j["teacher_name"]
+        j_tids = j.get("teacher_ids", [])
+        j_tnames = j.get("teacher_names", [])
+        for ti, tid in enumerate(j_tids):
+            if tid not in teacher_names and ti < len(j_tnames):
+                teacher_names[tid] = j_tnames[ti]
 
     def _tn(tid):
         return teacher_names.get(tid, f"Staff #{tid}")
@@ -883,7 +884,128 @@ def _analyze_issues(data, days, periods, loads, joints):
                 ),
             })
 
-    # ── 6. Teacher near capacity (warning) ──
+    # ── 6. Joint lesson bottlenecks ──
+    # A joint lesson needs a time slot where ALL participating classes AND all
+    # teachers are free simultaneously. When teachers are near capacity and
+    # the joint spans many classes, common free slots become very scarce.
+    class_demand = {}
+    for load in loads:
+        key = f"{load['class_id']}_{load['section_id']}"
+        class_demand[key] = class_demand.get(key, 0) + load["periods_per_week"]
+    for j in joints:
+        for cls in j.get("classes", []):
+            key = f"{cls['class_id']}_{cls['section_id']}"
+            class_demand[key] = class_demand.get(key, 0) + j["periods_per_week"]
+
+    c_unavail = data.get("class_unavailability", {})
+    for j in joints:
+        tids = j.get("teacher_ids", [])
+        classes = j.get("classes", [])
+        n_classes = len(classes)
+        ppw = j["periods_per_week"]
+        j_name = j.get("name", "?")
+
+        if n_classes < 3 and not tids:
+            continue
+
+        # Estimate available common slots: for each (day, period), the slot is
+        # free only if EVERY class AND EVERY teacher can use it.
+        free_slots = 0
+        for di, day_name in enumerate(days):
+            for pi in range(P):
+                pid = periods[pi]["id"]
+                slot_ok = True
+                # Check all classes
+                for cls in classes:
+                    ck = f"{cls['class_id']}_{cls['section_id']}"
+                    if pid in c_unavail.get(ck, {}).get(day_name, []):
+                        slot_ok = False
+                        break
+                if not slot_ok:
+                    continue
+                # Check all teachers
+                for tid in tids:
+                    if pid in t_unavail.get(str(tid), {}).get(day_name, []):
+                        slot_ok = False
+                        break
+                if slot_ok:
+                    free_slots += 1
+
+        # How many of those free slots will actually be available after other
+        # subjects fill in?  Estimate: each class uses ~(demand/total_slots)
+        # fraction of its slots for other subjects.
+        if free_slots > 0 and n_classes >= 3:
+            worst_class_demand = 0
+            worst_class_name = ""
+            for cls in classes:
+                ck = f"{cls['class_id']}_{cls['section_id']}"
+                d = class_demand.get(ck, 0) - ppw
+                if d > worst_class_demand:
+                    worst_class_demand = d
+                    worst_class_name = _cn(ck)
+
+            worst_teacher_name = ""
+            worst_teacher_ppw = 0
+            worst_teacher_cap = 0
+            for tid in tids:
+                t_total = teacher_ppw.get(tid, 0) - ppw
+                tc = tc_map.get(str(tid), {})
+                t_cap = tc.get("max_per_week", default_max_week) or default_max_week
+                if t_total > worst_teacher_ppw:
+                    worst_teacher_ppw = t_total
+                    worst_teacher_cap = t_cap
+                    worst_teacher_name = _tn(tid)
+
+            # Heuristic: if common free slots barely exceed demand, flag it
+            if free_slots < ppw * 2 or (n_classes >= 5 and worst_teacher_ppw >= worst_teacher_cap * 0.8):
+                severity = "error" if free_slots <= ppw else "warning"
+                class_names = ", ".join(_cn(f"{c['class_id']}_{c['section_id']}") for c in classes)
+                teacher_names_str = ", ".join(_tn(t) for t in tids) if tids else "No teacher assigned"
+
+                detail_parts = [
+                    f"This joint lesson links {n_classes} classes ({class_names}) "
+                    f"and needs {ppw} common time slot(s) per week where all classes "
+                    f"and teachers are free at the same time.",
+                    f"Available common slots: only {free_slots} out of {total_slots} "
+                    f"(most slots are already taken by other subjects).",
+                    f"Teacher(s): {teacher_names_str}.",
+                ]
+                if worst_teacher_name:
+                    detail_parts.append(
+                        f"Busiest teacher: {worst_teacher_name} "
+                        f"({worst_teacher_ppw}/{worst_teacher_cap} periods/week from other assignments)."
+                    )
+
+                fix_parts = []
+                if worst_teacher_name and worst_teacher_ppw >= worst_teacher_cap * 0.8:
+                    fix_parts.append(
+                        f"Option A: Go to Auto Timetable → Teacher Constraints → "
+                        f"\"{worst_teacher_name}\" → increase 'Max Periods Per Week' "
+                        f"from {worst_teacher_cap} to {worst_teacher_ppw + ppw + 2}. "
+                        f"This gives the solver more room to fit this joint lesson."
+                    )
+                if n_classes >= 5:
+                    fix_parts.append(
+                        f"Option B: Go to Auto Timetable → Joint Lessons → \"{j_name}\" → "
+                        f"split into 2 smaller groups with fewer classes "
+                        f"(e.g., {n_classes // 2} + {n_classes - n_classes // 2} classes). "
+                        f"Smaller groups are much easier to schedule."
+                    )
+                fix_parts.append(
+                    f"Option {'C' if len(fix_parts) == 2 else 'B' if len(fix_parts) == 1 else 'A'}: "
+                    f"Check if any teacher's 'Max Periods Per Day' is too low. "
+                    f"Go to Teacher Constraints and increase from 6 to 7 for the busiest teachers."
+                )
+
+                issues.append({
+                    "type": "joint_bottleneck",
+                    "severity": severity,
+                    "title": f"Joint \"{j_name}\": Hard to schedule across {n_classes} classes",
+                    "detail": "\n".join(detail_parts),
+                    "fix": "\n".join(fix_parts),
+                })
+
+    # ── 7. Teacher near capacity (warning) ──
     tids_with_errors = set()
     for i in issues:
         for tid_check in teacher_ppw:
