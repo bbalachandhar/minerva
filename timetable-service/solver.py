@@ -767,9 +767,30 @@ def solve(data: dict) -> dict:
              model.proto.constraints.__len__() if hasattr(model.proto, 'constraints') else 0,
              len(all_obj))
 
-    # Joint pre-solve disabled — locking/hinting both degraded results.
-    # JOINT_WEIGHT=100000 (10× regular) handles priority within the
-    # single unified model, which consistently produces the best results.
+    # Compute the objective value threshold for 100% placement.
+    # If the solver finds a solution at or above this, stop immediately.
+    max_placement_value = 0
+    for i, load in enumerate(loads):
+        max_placement_value += load["periods_per_week"] * PLACE_WEIGHT
+    for j, joint in enumerate(joints):
+        max_placement_value += joint["periods_per_week"] * JOINT_WEIGHT
+
+    class StopAtFullPlacement(cp_model.CpSolverSolutionCallback):
+        def __init__(self):
+            super().__init__()
+            self.solution_count = 0
+            self.best_obj = -1
+        def on_solution_callback(self):
+            self.solution_count += 1
+            self.best_obj = self.objective_value
+            # Soft constraints (distribution, early period) subtract small values.
+            # If objective is close to max_placement, all entries are placed.
+            if self.objective_value >= max_placement_value * 0.999:
+                log.info("Early stop: 100%% placement found at solution #%d (obj=%.0f, threshold=%.0f)",
+                         self.solution_count, self.objective_value, max_placement_value)
+                self.stop_search()
+
+    callback = StopAtFullPlacement()
 
     time_limit = data.get("time_limit", 120)
     solver = cp_model.CpSolver()
@@ -777,15 +798,16 @@ def solve(data: dict) -> dict:
     solver.parameters.num_workers = 4
 
     _tick("solve_start")
-    status = solver.Solve(model)
+    status = solver.solve(model, callback)
     _tick("solve_end")
     solve_time = time.time() - t0
 
-    log.info("Solve: %.1fs (build=%.1fs, solve=%.1fs), status=%s",
+    log.info("Solve: %.1fs (build=%.1fs, solve=%.1fs), status=%s, solutions=%d",
              solve_time,
              timings["model_built"] - timings["start"],
              timings["solve_end"] - timings["solve_start"],
-             solver.status_name(status))
+             solver.status_name(status),
+             callback.solution_count)
 
     # ---------------------------------------------------------------
     # 5. Extract solution
@@ -847,19 +869,22 @@ def solve(data: dict) -> dict:
 
         if placed_blocks < placements_needed:
             ck = f"{load['class_id']}_{load['section_id']}"
-            unplaced.append({
-                "type": "no_slot",
-                "class_id": load["class_id"],
-                "section_id": load["section_id"],
-                "subject": load.get("subject_name", "?"),
-                "staff": load.get("teacher_name", ""),
-                "staff_id": assigned_teacher,
-                "reason": (
-                    f"Could not place {placements_needed - placed_blocks} of "
-                    f"{placements_needed} for {load.get('subject_name', '?')} "
-                    f"in {labels.get(ck, ck)} — teacher or slot conflict."
-                ),
-            })
+            for _ in range(placements_needed - placed_blocks):
+                unplaced.append({
+                    "type": "no_slot",
+                    "class_id": load["class_id"],
+                    "section_id": load["section_id"],
+                    "subject_group_id": load.get("sg_id", 0),
+                    "subject_group_subject_id": load.get("sgs_id", 0),
+                    "subject": load.get("subject_name", "?"),
+                    "staff": load.get("teacher_name", ""),
+                    "staff_id": assigned_teacher,
+                    "reason": (
+                        f"Could not place {placements_needed - placed_blocks} of "
+                        f"{placements_needed} for {load.get('subject_name', '?')} "
+                        f"in {labels.get(ck, ck)} — teacher or slot conflict."
+                    ),
+                })
 
         ck = f"{load['class_id']}_{load['section_id']}"
         if ck not in class_stats:
@@ -945,6 +970,52 @@ def solve(data: dict) -> dict:
 
     quality = round((total_placed / total_required) * 100, 2) if total_required > 0 else 100.0
 
+    # ---------------------------------------------------------------
+    # 6. Post-solve repair: try to place remaining unplaced entries
+    # ---------------------------------------------------------------
+    if unplaced and quality < 100:
+        _tick("repair_start")
+        repaired = _repair_unplaced(
+            entries, unplaced, loads, joints, days, period_ids, D, P,
+            day_idx, pid_idx, tc_map, default_tc, labels,
+            pool_load_set, joint_pool_set,
+            solver, x, jx, teacher_pick, joint_teacher_pick
+        )
+        if repaired > 0:
+            # Recount
+            total_placed += repaired
+            quality = round((total_placed / total_required) * 100, 2) if total_required > 0 else 100.0
+            # Rebuild class_stats from entries
+            class_stats = {}
+            for e in entries:
+                ck = f"{e['class_id']}_{e['section_id']}"
+                if ck not in class_stats:
+                    class_stats[ck] = {"class_id": e["class_id"], "section_id": e["section_id"],
+                                       "required": 0, "placed": 0}
+                class_stats[ck]["placed"] += 1
+            for i, load in enumerate(loads):
+                ck = f"{load['class_id']}_{load['section_id']}"
+                if ck not in class_stats:
+                    class_stats[ck] = {"class_id": load["class_id"], "section_id": load["section_id"],
+                                       "required": 0, "placed": 0}
+                ppw = load["periods_per_week"]
+                consec = load.get("consecutive", 1)
+                class_stats[ck]["required"] += ppw // consec if consec > 1 else ppw
+            for j, joint in enumerate(joints):
+                ppw = joint["periods_per_week"]
+                consec = joint.get("consecutive", 1)
+                req = ppw // consec if consec > 1 else ppw
+                for cls in joint.get("classes", []):
+                    ck = f"{cls['class_id']}_{cls['section_id']}"
+                    if ck not in class_stats:
+                        class_stats[ck] = {"class_id": cls["class_id"], "section_id": cls["section_id"],
+                                           "required": 0, "placed": 0}
+                    class_stats[ck]["required"] += req
+
+            log.info("Repair phase: placed %d more entries → %.2f%%", repaired, quality)
+        _tick("repair_end")
+
+    solve_time = time.time() - t0
     detected_issues = _analyze_issues(data, days, periods_raw, loads, joints)
 
     return {
@@ -959,6 +1030,178 @@ def solve(data: dict) -> dict:
         "solver_status": solver.status_name(status),
         "class_stats": list(class_stats.values()),
     }
+
+
+def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
+                     day_idx, pid_idx, tc_map, default_tc, labels,
+                     pool_load_set, joint_pool_set,
+                     solver, x, jx, teacher_pick, joint_teacher_pick):
+    """Post-solve local search: try to place unplaced entries by finding free slots
+    or swapping with flexible entries."""
+
+    # Build occupancy maps from the solver's solution
+    class_occ = {}   # (class_id, section_id, d, p) -> entry index in entries list
+    teacher_occ = {} # (staff_id, d, p) -> True
+    teacher_day_count = {}  # staff_id -> {d: count}
+    teacher_week_count = {} # staff_id -> count
+
+    for ei, e in enumerate(entries):
+        ck = (e["class_id"], e["section_id"])
+        d_idx = day_idx.get(e["day"])
+        p_idx = pid_idx.get(e["period_id"])
+        if d_idx is not None and p_idx is not None:
+            class_occ[(ck[0], ck[1], d_idx, p_idx)] = ei
+            if e["staff_id"]:
+                teacher_occ[(e["staff_id"], d_idx, p_idx)] = True
+                teacher_day_count.setdefault(e["staff_id"], {})
+                teacher_day_count[e["staff_id"]][d_idx] = teacher_day_count[e["staff_id"]].get(d_idx, 0) + 1
+                teacher_week_count[e["staff_id"]] = teacher_week_count.get(e["staff_id"], 0) + 1
+
+    def _get_tc(tid):
+        return tc_map.get(str(tid), default_tc)
+
+    repaired = 0
+    still_unplaced = []
+
+    for u in list(unplaced):
+        cid = u.get("class_id", 0)
+        sid = u.get("section_id", 0)
+        staff_id = u.get("staff_id")
+        is_joint = "(Joint)" in u.get("subject", "")
+
+        if not staff_id or is_joint:
+            still_unplaced.append(u)
+            continue
+
+        tc = _get_tc(staff_id)
+        max_day = (tc.get("max_per_day", 6) or 6) + 1
+        max_week = tc.get("max_per_week", 36) or 36
+
+        # Check weekly capacity
+        if teacher_week_count.get(staff_id, 0) >= max_week:
+            still_unplaced.append(u)
+            continue
+
+        placed = False
+        # Try direct placement: find a slot where class AND teacher are both free
+        for d in range(D):
+            if placed:
+                break
+            day_count = teacher_day_count.get(staff_id, {}).get(d, 0)
+            if day_count >= max_day:
+                continue
+            for p in range(P):
+                if (cid, sid, d, p) in class_occ:
+                    continue
+                if (staff_id, d, p) in teacher_occ:
+                    continue
+                # Found a free slot — place it
+                entries.append({
+                    "class_id": cid, "section_id": sid,
+                    "subject_group_id": u.get("subject_group_id", 0),
+                    "subject_group_subject_id": u.get("subject_group_subject_id", 0),
+                    "staff_id": staff_id,
+                    "period_id": period_ids[p], "day": days[d],
+                    "room_id": None, "batch_id": None,
+                    "is_free_period": 0, "free_period_label": None,
+                })
+                class_occ[(cid, sid, d, p)] = len(entries) - 1
+                teacher_occ[(staff_id, d, p)] = True
+                teacher_day_count.setdefault(staff_id, {})[d] = day_count + 1
+                teacher_week_count[staff_id] = teacher_week_count.get(staff_id, 0) + 1
+                repaired += 1
+                placed = True
+                log.info("  REPAIR: placed %s in %s at %s period %d",
+                         u.get("subject", "?"), labels.get(f"{cid}_{sid}", "?"),
+                         days[d], period_ids[p])
+                break
+
+        if not placed:
+            # Try swap: find a slot where class is free but teacher is busy,
+            # then check if the blocking teacher entry can move elsewhere
+            for d in range(D):
+                if placed:
+                    break
+                day_count = teacher_day_count.get(staff_id, {}).get(d, 0)
+                if day_count >= max_day:
+                    continue
+                for p in range(P):
+                    if (cid, sid, d, p) in class_occ:
+                        continue
+                    if (staff_id, d, p) not in teacher_occ:
+                        continue
+                    # Teacher is busy here — find which entry blocks
+                    blocker_idx = None
+                    blocker_entry = None
+                    for bi, be in enumerate(entries):
+                        if (be["staff_id"] == staff_id
+                                and day_idx.get(be["day"]) == d
+                                and pid_idx.get(be["period_id"]) == p):
+                            blocker_idx = bi
+                            blocker_entry = be
+                            break
+                    if not blocker_entry:
+                        continue
+                    # Try to relocate the blocker to another free slot
+                    b_cid, b_sid = blocker_entry["class_id"], blocker_entry["section_id"]
+                    b_staff = blocker_entry["staff_id"]
+                    relocated = False
+                    for d2 in range(D):
+                        if relocated:
+                            break
+                        b_day_count = teacher_day_count.get(b_staff, {}).get(d2, 0)
+                        if d2 == d:
+                            b_day_count -= 1
+                        b_tc = _get_tc(b_staff)
+                        b_max_day = (b_tc.get("max_per_day", 6) or 6) + 1
+                        if b_day_count >= b_max_day:
+                            continue
+                        for p2 in range(P):
+                            if d2 == d and p2 == p:
+                                continue
+                            if (b_cid, b_sid, d2, p2) in class_occ:
+                                continue
+                            if (b_staff, d2, p2) in teacher_occ:
+                                continue
+                            # Can relocate blocker to (d2, p2)
+                            # Remove blocker from old slot
+                            del class_occ[(b_cid, b_sid, d, p)]
+                            del teacher_occ[(b_staff, d, p)]
+                            teacher_day_count[b_staff][d] -= 1
+                            # Place blocker at new slot
+                            entries[blocker_idx]["day"] = days[d2]
+                            entries[blocker_idx]["period_id"] = period_ids[p2]
+                            class_occ[(b_cid, b_sid, d2, p2)] = blocker_idx
+                            teacher_occ[(b_staff, d2, p2)] = True
+                            teacher_day_count.setdefault(b_staff, {})[d2] = teacher_day_count.get(b_staff, {}).get(d2, 0) + 1
+                            # Place unplaced entry at freed slot
+                            entries.append({
+                                "class_id": cid, "section_id": sid,
+                                "subject_group_id": u.get("subject_group_id", 0),
+                                "subject_group_subject_id": u.get("subject_group_subject_id", 0),
+                                "staff_id": staff_id,
+                                "period_id": period_ids[p], "day": days[d],
+                                "room_id": None, "batch_id": None,
+                                "is_free_period": 0, "free_period_label": None,
+                            })
+                            class_occ[(cid, sid, d, p)] = len(entries) - 1
+                            teacher_occ[(staff_id, d, p)] = True
+                            teacher_day_count.setdefault(staff_id, {})[d] = day_count + 1
+                            teacher_week_count[staff_id] = teacher_week_count.get(staff_id, 0) + 1
+                            repaired += 1
+                            placed = True
+                            relocated = True
+                            log.info("  REPAIR-SWAP: placed %s by moving %s to %s p%d",
+                                     u.get("subject", "?"), blocker_entry.get("subject_group_subject_id"),
+                                     days[d2], period_ids[p2])
+                            break
+
+        if not placed:
+            still_unplaced.append(u)
+
+    unplaced.clear()
+    unplaced.extend(still_unplaced)
+    return repaired
 
 
 def _analyze_issues(data, days, periods, loads, joints):
