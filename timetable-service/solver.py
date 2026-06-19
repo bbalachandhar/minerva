@@ -8,10 +8,19 @@ joint lessons (with fixed slots), teacher capacity, distribution.
 
 from ortools.sat.python import cp_model
 import time
+import logging
+
+log = logging.getLogger("timetable-service")
 
 
 def solve(data: dict) -> dict:
     t0 = time.time()
+    timings = {}
+
+    def _tick(label):
+        timings[label] = time.time()
+
+    _tick("start")
     model = cp_model.CpModel()
 
     days = data["working_days"]
@@ -46,20 +55,123 @@ def solve(data: dict) -> dict:
     max_same_subject_day = settings.get("max_same_subject_day", 2)
 
     # ---------------------------------------------------------------
-    # 1. Variables
+    # 0. Pre-compute blocked slots (avoid creating useless variables)
     # ---------------------------------------------------------------
+    _tick("precompute")
+
+    # Teacher → set of (day_idx, period_idx) that are blocked
+    teacher_blocked = {}
+    for tid_str, day_map in t_unavail.items():
+        tid = int(tid_str)
+        blocked = set()
+        for day_name, blocked_pids in day_map.items():
+            if day_name not in day_idx:
+                continue
+            d = day_idx[day_name]
+            for bpid in blocked_pids:
+                if bpid in pid_idx:
+                    blocked.add((d, pid_idx[bpid]))
+        if blocked:
+            teacher_blocked[tid] = blocked
+
+    # Class → set of (day_idx, period_idx) that are blocked
+    class_blocked = {}
+    for key_str, day_map in c_unavail.items():
+        parts = key_str.split("_")
+        if len(parts) != 2:
+            continue
+        ck = (int(parts[0]), int(parts[1]))
+        blocked = set()
+        for day_name, blocked_pids in day_map.items():
+            if day_name not in day_idx:
+                continue
+            d = day_idx[day_name]
+            for bpid in blocked_pids:
+                if bpid in pid_idx:
+                    blocked.add((d, pid_idx[bpid]))
+        if blocked:
+            class_blocked[ck] = blocked
+
+    # Subject → set of blocked slots
+    subject_blocked = {}
+    for sgs_str, day_map in s_unavail.items():
+        sgs_id = int(sgs_str)
+        blocked = set()
+        for day_name, blocked_pids in day_map.items():
+            if day_name not in day_idx:
+                continue
+            d = day_idx[day_name]
+            for bpid in blocked_pids:
+                if bpid in pid_idx:
+                    blocked.add((d, pid_idx[bpid]))
+        if blocked:
+            subject_blocked[sgs_id] = blocked
+
+    # Build teacher→load index for fast lookup
+    teacher_to_loads = {}  # tid -> list of load indices
+    for i, load in enumerate(loads):
+        for tid in load.get("teacher_ids", []):
+            teacher_to_loads.setdefault(tid, []).append(i)
+
+    teacher_to_joints = {}  # tid -> list of joint indices
+    for j, joint in enumerate(joints):
+        for tid in joint.get("teacher_ids", []):
+            teacher_to_joints.setdefault(tid, []).append(j)
+
+    # ---------------------------------------------------------------
+    # 1. Variables (skip blocked slots)
+    # ---------------------------------------------------------------
+    _tick("variables")
 
     x = {}
-    for i in range(len(loads)):
+    x_blocked = set()  # (i, d, p) slots forced to 0
+    for i, load in enumerate(loads):
+        ck = (load["class_id"], load["section_id"])
+        c_blk = class_blocked.get(ck, set())
+        s_blk = subject_blocked.get(load.get("sgs_id", 0), set())
+        tids = load.get("teacher_ids", [])
+        atr = load.get("all_teachers_required", False)
+        # A slot is blocked if class OR subject is unavailable
+        # For single-teacher non-pool: also blocked if teacher unavailable
+        load_blocked = c_blk | s_blk
+        if len(tids) == 1 or (len(tids) > 1 and atr):
+            for tid in tids:
+                load_blocked = load_blocked | teacher_blocked.get(tid, set())
+
         for d in range(D):
             for p in range(P):
-                x[i, d, p] = model.new_bool_var(f"x_{i}_{d}_{p}")
+                if (d, p) in load_blocked:
+                    x_blocked.add((i, d, p))
+                else:
+                    x[i, d, p] = model.new_bool_var(f"x_{i}_{d}_{p}")
 
     jx = {}
-    for j in range(len(joints)):
+    jx_blocked = set()
+    for j, joint in enumerate(joints):
+        j_blocked = set()
+        for cls in joint.get("classes", []):
+            j_blocked |= class_blocked.get((cls["class_id"], cls["section_id"]), set())
+        tids = joint.get("teacher_ids", [])
+        atr = joint.get("all_teachers_required", False)
+        if len(tids) == 1 or (len(tids) > 1 and atr):
+            for tid in tids:
+                j_blocked |= teacher_blocked.get(tid, set())
         for d in range(D):
             for p in range(P):
-                jx[j, d, p] = model.new_bool_var(f"jx_{j}_{d}_{p}")
+                if (d, p) in j_blocked:
+                    jx_blocked.add((j, d, p))
+                else:
+                    jx[j, d, p] = model.new_bool_var(f"jx_{j}_{d}_{p}")
+
+    ZERO = model.new_constant(0)
+    def _x(i, d, p):
+        return x.get((i, d, p), ZERO)
+    def _jx(j, d, p):
+        return jx.get((j, d, p), ZERO)
+
+    log.info("Variables: %d x, %d jx (skipped %d+%d blocked slots)",
+             len(x), len(jx), len(x_blocked), len(jx_blocked))
+    _tick("teacher_pick")
 
     # Teacher choice for pool loads (multiple teachers, pick one)
     teacher_pick = {}
@@ -87,6 +199,7 @@ def solve(data: dict) -> dict:
     # ---------------------------------------------------------------
     # 2. Hard Constraints
     # ---------------------------------------------------------------
+    _tick("constraints")
 
     # --- 2a. Total periods per load + consecutive grouping ---
     # Use <= (not ==) so the solver can find partial solutions when 100% is
@@ -99,7 +212,7 @@ def solve(data: dict) -> dict:
     for i, load in enumerate(loads):
         ppw = load["periods_per_week"]
         consec = load.get("consecutive", 1)
-        total_i = sum(x[i, d, p] for d in range(D) for p in range(P))
+        total_i = sum(_x(i, d, p) for d in range(D) for p in range(P))
         placement_vars.append((PLACE_WEIGHT, total_i))
 
         if consec <= 1:
@@ -114,7 +227,7 @@ def solve(data: dict) -> dict:
                     bs = model.new_bool_var(f"bs_{i}_{d}_{sp}")
                     block_starts[i, d, sp] = bs
                     for k in range(consec):
-                        model.add_implication(bs, x[i, d, sp + k])
+                        model.add_implication(bs, _x(i, d, sp + k))
             block_starts_all.update(block_starts)
 
             model.add(sum(v for v in block_starts.values()) <= num_blocks)
@@ -125,7 +238,7 @@ def solve(data: dict) -> dict:
                     for sp in range(max(0, p - consec + 1), min(p + 1, P - consec + 1)):
                         if (i, d, sp) in block_starts:
                             covering.append(block_starts[i, d, sp])
-                    model.add(x[i, d, p] <= (sum(covering) if covering else 0))
+                    model.add(_x(i, d, p) <= (sum(covering) if covering else 0))
 
             model.add(total_i <= ppw)
 
@@ -134,7 +247,7 @@ def solve(data: dict) -> dict:
     for j, joint in enumerate(joints):
         ppw = joint["periods_per_week"]
         consec = joint.get("consecutive", 1)
-        total_j = sum(jx[j, d, p] for d in range(D) for p in range(P))
+        total_j = sum(_jx(j, d, p) for d in range(D) for p in range(P))
         placement_vars.append((PLACE_WEIGHT, total_j))
 
         if consec <= 1:
@@ -147,7 +260,7 @@ def solve(data: dict) -> dict:
                     bs = model.new_bool_var(f"jbs_{j}_{d}_{sp}")
                     jblock_starts[j, d, sp] = bs
                     for k in range(consec):
-                        model.add_implication(bs, jx[j, d, sp + k])
+                        model.add_implication(bs, _jx(j, d, sp + k))
             joint_block_starts_all.update(jblock_starts)
             model.add(sum(v for v in jblock_starts.values()) <= num_blocks)
             for d in range(D):
@@ -156,7 +269,7 @@ def solve(data: dict) -> dict:
                     for sp in range(max(0, p - consec + 1), min(p + 1, P - consec + 1)):
                         if (j, d, sp) in jblock_starts:
                             covering.append(jblock_starts[j, d, sp])
-                    model.add(jx[j, d, p] <= (sum(covering) if covering else 0))
+                    model.add(_jx(j, d, p) <= (sum(covering) if covering else 0))
             model.add(total_j <= ppw)
 
         # Fixed slots: admin-pinned day+period(s) for specific placements
@@ -174,7 +287,7 @@ def solve(data: dict) -> dict:
                     if fpid not in pid_idx:
                         continue
                     p = pid_idx[fpid]
-                    model.add(jx[j, d, p] == 1)
+                    model.add(_jx(j, d, p) == 1)
 
     # --- 2b. Class-section clash: at most one subject per slot ---
     class_items = {}
@@ -192,9 +305,9 @@ def solve(data: dict) -> dict:
                 slot_vars = []
                 for typ, idx in items:
                     if typ == "load":
-                        slot_vars.append(x[idx, d, p])
+                        slot_vars.append(_x(idx, d, p))
                     else:
-                        slot_vars.append(jx[idx, d, p])
+                        slot_vars.append(_jx(idx, d, p))
                 if len(slot_vars) > 1:
                     model.add(sum(slot_vars) <= 1)
 
@@ -217,22 +330,22 @@ def solve(data: dict) -> dict:
                     for p in range(P):
                         y = model.new_bool_var(f"y_{i}_{ti}_{d}_{p}")
                         pool_y[i, ti, d, p] = y
-                        model.add_implication(y, x[i, d, p])
+                        model.add_implication(y, _x(i, d, p))
                         model.add_implication(y, teacher_pick[i, ti])
                         model.add_bool_or(
-                            [y, x[i, d, p].negated(), teacher_pick[i, ti].negated()]
+                            [y, _x(i, d, p).negated(), teacher_pick[i, ti].negated()]
                         )
                         _add_tc(t, d, p, y)
         elif atr:
             for t in tids:
                 for d in range(D):
                     for p in range(P):
-                        _add_tc(t, d, p, x[i, d, p])
+                        _add_tc(t, d, p, _x(i, d, p))
         else:
             t = tids[0]
             for d in range(D):
                 for p in range(P):
-                    _add_tc(t, d, p, x[i, d, p])
+                    _add_tc(t, d, p, _x(i, d, p))
 
     joint_pool_y = {}
     for j, joint in enumerate(joints):
@@ -247,99 +360,52 @@ def solve(data: dict) -> dict:
                     for p in range(P):
                         y = model.new_bool_var(f"jy_{j}_{ti}_{d}_{p}")
                         joint_pool_y[j, ti, d, p] = y
-                        model.add_implication(y, jx[j, d, p])
+                        model.add_implication(y, _jx(j, d, p))
                         model.add_implication(y, joint_teacher_pick[j, ti])
                         model.add_bool_or(
-                            [y, jx[j, d, p].negated(), joint_teacher_pick[j, ti].negated()]
+                            [y, _jx(j, d, p).negated(), joint_teacher_pick[j, ti].negated()]
                         )
                         _add_tc(t, d, p, y)
         elif atr:
             for t in tids:
                 for d in range(D):
                     for p in range(P):
-                        _add_tc(t, d, p, jx[j, d, p])
+                        _add_tc(t, d, p, _jx(j, d, p))
         else:
             t = tids[0]
             for d in range(D):
                 for p in range(P):
-                    _add_tc(t, d, p, jx[j, d, p])
+                    _add_tc(t, d, p, _jx(j, d, p))
 
     for tid, slot_map in teacher_contribs.items():
         for (d, p), vars_list in slot_map.items():
             if len(vars_list) > 1:
                 model.add(sum(vars_list) <= 1)
 
-    # --- 2d. Teacher unavailability ---
-    for tid_str, day_map in t_unavail.items():
-        tid = int(tid_str)
-        for day_name, blocked_pids in day_map.items():
-            if day_name not in day_idx:
+    # --- 2d. Teacher unavailability (pool loads only) ---
+    # Non-pool loads already have blocked slots pre-filtered (no variable created).
+    # Pool loads need per-teacher-option blocking via pool_y.
+    _tick("unavailability")
+    for tid, blocked_slots in teacher_blocked.items():
+        for i in teacher_to_loads.get(tid, []):
+            if i not in pool_load_set:
                 continue
-            d = day_idx[day_name]
-            for bpid in blocked_pids:
-                if bpid not in pid_idx:
-                    continue
-                p = pid_idx[bpid]
-                for i, load in enumerate(loads):
-                    tids = load.get("teacher_ids", [])
-                    if tid not in tids:
-                        continue
-                    if i in pool_load_set:
-                        ti = tids.index(tid)
-                        if (i, ti, d, p) in pool_y:
-                            model.add(pool_y[i, ti, d, p] == 0)
-                    else:
-                        atr = load.get("all_teachers_required", False)
-                        if atr or tids[0] == tid:
-                            model.add(x[i, d, p] == 0)
-
-                for j, joint in enumerate(joints):
-                    jtids = joint.get("teacher_ids", [])
-                    if tid not in jtids:
-                        continue
-                    if j in joint_pool_set:
-                        ti = jtids.index(tid)
-                        if (j, ti, d, p) in joint_pool_y:
-                            model.add(joint_pool_y[j, ti, d, p] == 0)
-                    else:
-                        atr = joint.get("all_teachers_required", False)
-                        if atr or jtids[0] == tid:
-                            model.add(jx[j, d, p] == 0)
-
-    # --- 2e. Class unavailability ---
-    for key_str, day_map in c_unavail.items():
-        parts = key_str.split("_")
-        if len(parts) != 2:
-            continue
-        cid, sid = int(parts[0]), int(parts[1])
-        for day_name, blocked_pids in day_map.items():
-            if day_name not in day_idx:
+            tids = loads[i].get("teacher_ids", [])
+            ti = tids.index(tid)
+            for d, p in blocked_slots:
+                if (i, ti, d, p) in pool_y:
+                    model.add(pool_y[i, ti, d, p] == 0)
+        for j in teacher_to_joints.get(tid, []):
+            if j not in joint_pool_set:
                 continue
-            d = day_idx[day_name]
-            for bpid in blocked_pids:
-                if bpid not in pid_idx:
-                    continue
-                p = pid_idx[bpid]
-                for typ, idx in class_items.get((cid, sid), []):
-                    if typ == "load":
-                        model.add(x[idx, d, p] == 0)
-                    else:
-                        model.add(jx[idx, d, p] == 0)
+            jtids = joints[j].get("teacher_ids", [])
+            ti = jtids.index(tid)
+            for d, p in blocked_slots:
+                if (j, ti, d, p) in joint_pool_y:
+                    model.add(joint_pool_y[j, ti, d, p] == 0)
 
-    # --- 2e2. Subject unavailability ---
-    for sgs_str, day_map in s_unavail.items():
-        sgs_id = int(sgs_str)
-        for day_name, blocked_pids in day_map.items():
-            if day_name not in day_idx:
-                continue
-            d = day_idx[day_name]
-            for bpid in blocked_pids:
-                if bpid not in pid_idx:
-                    continue
-                p = pid_idx[bpid]
-                for i, load in enumerate(loads):
-                    if load.get("sgs_id") == sgs_id:
-                        model.add(x[i, d, p] == 0)
+    # Sections 2e (class unavailability) and 2e2 (subject unavailability)
+    # are handled by pre-filtering: blocked slots have no variables created.
 
     # --- 2f. Max per day (per subject load) ---
     # Per-subject max_per_day takes priority. The global max_same_subject_day
@@ -353,14 +419,14 @@ def solve(data: dict) -> dict:
         else:
             max_day = 2
         for d in range(D):
-            model.add(sum(x[i, d, p] for p in range(P)) <= max_day)
+            model.add(sum(_x(i, d, p) for p in range(P)) <= max_day)
 
     for j, joint in enumerate(joints):
         max_day = joint.get("max_per_day", 2)
         if max_day is None or max_day <= 0:
             max_day = 2
         for d in range(D):
-            model.add(sum(jx[j, d, p] for p in range(P)) <= max_day)
+            model.add(sum(_jx(j, d, p) for p in range(P)) <= max_day)
 
     # --- 2g. Teacher max per day / per week ---
     all_teacher_ids_in_model = set(teacher_contribs.keys())
@@ -414,7 +480,7 @@ def solve(data: dict) -> dict:
             if (load["class_id"] == le["class_id"]
                     and load["section_id"] == le["section_id"]
                     and load.get("sgs_id") == sgs_id):
-                model.add(x[i, d, p] == 1)
+                model.add(_x(i, d, p) == 1)
                 break
 
     # ---------------------------------------------------------------
@@ -433,7 +499,7 @@ def solve(data: dict) -> dict:
         ppw = load["periods_per_week"]
         upper = (ppw + D - 1) // D  # ceil(ppw / D)
         for d in range(D):
-            day_sum = sum(x[i, d, p] for p in range(P))
+            day_sum = sum(_x(i, d, p) for p in range(P))
             excess = model.new_int_var(0, P, f"excess_{i}_{d}")
             model.add(excess >= day_sum - upper)
             obj_terms.append((-WEIGHT_EVEN, excess))
@@ -442,11 +508,11 @@ def solve(data: dict) -> dict:
     for i in range(len(loads)):
         for d in range(D):
             for p in range(P):
-                obj_terms.append((WEIGHT_EARLY * (P - p), x[i, d, p]))
+                obj_terms.append((WEIGHT_EARLY * (P - p), _x(i, d, p)))
     for j in range(len(joints)):
         for d in range(D):
             for p in range(P):
-                obj_terms.append((WEIGHT_EARLY * (P - p), jx[j, d, p]))
+                obj_terms.append((WEIGHT_EARLY * (P - p), _jx(j, d, p)))
 
     # --- 3c. Avoid first/last period for teachers ---
     for tid in all_teacher_ids_in_model:
@@ -467,7 +533,7 @@ def solve(data: dict) -> dict:
         if ppw >= 2:
             upper = max(1, (ppw + D - 1) // D)
             for d in range(D):
-                day_sum = sum(jx[j, d, p] for p in range(P))
+                day_sum = sum(_jx(j, d, p) for p in range(P))
                 jexcess = model.new_int_var(0, P, f"jexcess_{j}_{d}")
                 model.add(jexcess >= day_sum - upper)
                 obj_terms.append((-WEIGHT_EVEN, jexcess))
@@ -478,14 +544,31 @@ def solve(data: dict) -> dict:
     # ---------------------------------------------------------------
     # 4. Solve
     # ---------------------------------------------------------------
+    _tick("model_built")
+
+    build_time = timings["model_built"] - timings["start"]
+    log.info("Model built in %.1fs: %d vars (%d x + %d jx + %d pool_y), "
+             "%d constraints, %d obj terms",
+             build_time, len(x) + len(jx) + len(pool_y) + len(joint_pool_y),
+             len(x), len(jx), len(pool_y) + len(joint_pool_y),
+             model.proto.constraints.__len__() if hasattr(model.proto, 'constraints') else 0,
+             len(all_obj))
 
     time_limit = data.get("time_limit", 120)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit
     solver.parameters.num_workers = 4
 
+    _tick("solve_start")
     status = solver.Solve(model)
+    _tick("solve_end")
     solve_time = time.time() - t0
+
+    log.info("Solve: %.1fs (build=%.1fs, solve=%.1fs), status=%s",
+             solve_time,
+             timings["model_built"] - timings["start"],
+             timings["solve_end"] - timings["solve_start"],
+             solver.status_name(status))
 
     # ---------------------------------------------------------------
     # 5. Extract solution
@@ -526,7 +609,7 @@ def solve(data: dict) -> dict:
         placed = 0
         for d in range(D):
             for p in range(P):
-                if solver.value(x[i, d, p]):
+                if solver.value(_x(i, d, p)):
                     placed += 1
                     entries.append({
                         "class_id": load["class_id"],
@@ -591,7 +674,7 @@ def solve(data: dict) -> dict:
         placed = 0
         for d in range(D):
             for p in range(P):
-                if solver.value(jx[j, d, p]):
+                if solver.value(_jx(j, d, p)):
                     placed += 1
                     for cls in joint.get("classes", []):
                         entries.append({
