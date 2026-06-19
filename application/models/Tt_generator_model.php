@@ -305,7 +305,7 @@ class Tt_generator_model extends MY_Model
                 'max_same_subject_day' => (int)($settings['max_same_subject_day'] ?? 1),
                 'fill_free_periods'    => !empty($settings['fill_free_periods']),
             ],
-            'time_limit' => 180,
+            'time_limit' => 300,
         ]);
 
         $ch = curl_init($url);
@@ -315,7 +315,7 @@ class Tt_generator_model extends MY_Model
             CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_TIMEOUT        => 240,
+            CURLOPT_TIMEOUT        => 360,
         ]);
         $response  = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
