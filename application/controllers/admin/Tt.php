@@ -326,6 +326,63 @@ class Tt extends Admin_Controller
         if (empty($data['name']) || empty($data['subject_id'])) {
             echo json_encode(['status' => '0', 'message' => 'Name and subject are required.']); return;
         }
+
+        // VALIDATION 1: Each class must have enough slots for this joint
+        $total_slots = $this->_getTotalSlots($session_id);
+        $ppw = $data['periods_per_week'];
+        $existing_id = $data['id'];
+        foreach ($classes_raw as $cs) {
+            $cid = (int)$cs['class_id']; $sid = (int)$cs['section_id'];
+            $current_demand = $this->_getClassTotalPPW($session_id, $cid, $sid);
+            if ($existing_id > 0) {
+                $old_ppw = $this->db->select('periods_per_week')
+                    ->where('id', $existing_id)->get('tt_joint_lessons')->row();
+                if ($old_ppw) {
+                    $old_in_class = $this->db->where('joint_lesson_id', $existing_id)
+                        ->where('class_id', $cid)->where('section_id', $sid)
+                        ->count_all_results('tt_joint_lesson_classes');
+                    if ($old_in_class > 0) $current_demand -= (int)$old_ppw->periods_per_week;
+                }
+            }
+            $new_demand = $current_demand + $ppw;
+            if ($new_demand > $total_slots) {
+                $cls_name = $this->_getClassName($cid, $sid);
+                echo json_encode([
+                    'status' => '0',
+                    'message' => "{$cls_name}: Adding this joint lesson ({$ppw}ppw) would make total "
+                        . "{$new_demand} periods, exceeding {$total_slots} available slots. "
+                        . "Remove this class from the joint or reduce other subject loads."
+                ]);
+                return;
+            }
+        }
+
+        // VALIDATION 2: Each teacher must have capacity
+        foreach ($teacher_ids as $tid) {
+            $current_load = $this->_getTeacherWorkload($session_id, $tid);
+            if ($existing_id > 0) {
+                $was_teacher = $this->db->where('joint_lesson_id', $existing_id)
+                    ->where('staff_id', $tid)->count_all_results('tt_joint_lesson_teachers');
+                if ($was_teacher > 0) {
+                    $old_ppw_row = $this->db->select('periods_per_week')
+                        ->where('id', $existing_id)->get('tt_joint_lessons')->row();
+                    if ($old_ppw_row) $current_load -= (int)$old_ppw_row->periods_per_week;
+                }
+            }
+            $new_load = $current_load + $ppw;
+            $tc = $this->_getTeacherConstraint($session_id, $tid);
+            if ($new_load > $tc['max_per_week']) {
+                $tname = $this->_getTeacherName($tid);
+                echo json_encode([
+                    'status' => '0',
+                    'message' => "{$tname}: Adding this joint ({$ppw}ppw) would make total {$new_load}/week, "
+                        . "exceeding max {$tc['max_per_week']}. "
+                        . "Increase their Max Per Week or remove them from this joint."
+                ]);
+                return;
+            }
+        }
+
         $id = $this->Tt_joint_model->save($session_id, $data, $classes_raw, $teacher_ids);
         echo json_encode($id ? ['status' => '1', 'id' => $id] : ['status' => '0', 'message' => 'Error saving.']);
     }
@@ -707,6 +764,75 @@ class Tt extends Admin_Controller
             if (!empty($row['_skip_joint'])) unset($rows[$key]);
         }
 
+        // VALIDATION 1: Class capacity — total periods must fit in available slots
+        $total_slots = $this->_getTotalSlots($session_id);
+        $new_regular_ppw = 0;
+        foreach ($rows as $row) {
+            $new_regular_ppw += (int)($row['periods_per_week'] ?? 0);
+        }
+        $joint_ppw = $this->db->query(
+            "SELECT COALESCE(SUM(jl.periods_per_week),0) as t FROM tt_joint_lessons jl
+             JOIN tt_joint_lesson_classes jlc ON jlc.joint_lesson_id=jl.id
+             WHERE jl.session_id=? AND jlc.class_id=? AND jlc.section_id=?",
+            [$session_id, $class_id, $section_id])->row()->t ?? 0;
+        $total_demand = $new_regular_ppw + (int)$joint_ppw;
+        if ($total_demand > $total_slots) {
+            $cls_name = $this->_getClassName($class_id, $section_id);
+            echo json_encode([
+                'status' => '0',
+                'message' => "{$cls_name}: Total periods ({$total_demand}) exceeds available slots ({$total_slots}). "
+                    . "You have {$new_regular_ppw} regular + {$joint_ppw} joint lesson periods. "
+                    . "Please reduce by " . ($total_demand - $total_slots) . " period(s)."
+            ]);
+            return;
+        }
+
+        // VALIDATION 2: Teacher capacity — each teacher's total load must fit
+        $warnings = [];
+        foreach ($rows as $row) {
+            $teacher_ids = [];
+            if (!empty($row['teacher_ids'])) {
+                $teacher_ids = is_array($row['teacher_ids']) ? $row['teacher_ids'] : [$row['teacher_ids']];
+            } elseif (!empty($row['staff_id'])) {
+                $teacher_ids = [$row['staff_id']];
+            }
+            $ppw = (int)($row['periods_per_week'] ?? 0);
+            foreach ($teacher_ids as $tid) {
+                $tid = (int)$tid;
+                if (!$tid) continue;
+                $current_total = $this->_getTeacherWorkload($session_id, $tid);
+                $old_ppw = 0;
+                if (!empty($row['id'])) {
+                    $old = $this->db->where('id', (int)$row['id'])->get('tt_subject_load')->row();
+                    if ($old) $old_ppw = (int)$old->periods_per_week;
+                }
+                $new_total = $current_total - $old_ppw + $ppw;
+                $tc = $this->_getTeacherConstraint($session_id, $tid);
+                if ($new_total > $tc['max_per_week']) {
+                    $tname = $this->_getTeacherName($tid);
+                    echo json_encode([
+                        'status' => '0',
+                        'message' => "{$tname}: Total load would be {$new_total} periods/week, "
+                            . "but max allowed is {$tc['max_per_week']}. "
+                            . "Either reduce this teacher's subjects or increase their Max Per Week in Teacher Constraints."
+                    ]);
+                    return;
+                }
+                $available_slots = $total_slots - $this->_getTeacherUnavailCount($session_id, $tid);
+                if ($new_total > $available_slots) {
+                    $tname = $this->_getTeacherName($tid);
+                    $unavail = $total_slots - $available_slots;
+                    echo json_encode([
+                        'status' => '0',
+                        'message' => "{$tname}: Has {$new_total} periods assigned but only {$available_slots} "
+                            . "available slots ({$unavail} blocked by unavailability). "
+                            . "Remove some unavailable slots or reduce this teacher's load."
+                    ]);
+                    return;
+                }
+            }
+        }
+
         $result = $this->Tt_subjectload_model->saveRows($session_id, $class_id, $section_id, $rows);
         echo json_encode(['status' => $result ? '1' : '0']);
     }
@@ -1043,6 +1169,34 @@ class Tt extends Admin_Controller
         if ($id > 0) {
             $data['id'] = $id;
         }
+
+        // VALIDATION: Current load must fit within new constraints
+        $staff_id = $data['staff_id'];
+        $current_load = $this->_getTeacherWorkload($session_id, $staff_id);
+        $tname = $this->_getTeacherName($staff_id);
+
+        if ($data['max_periods_per_week'] > 0 && $current_load > $data['max_periods_per_week']) {
+            echo json_encode([
+                'status' => '0',
+                'message' => "{$tname} currently has {$current_load} periods/week assigned. "
+                    . "Cannot set max to {$data['max_periods_per_week']}. "
+                    . "Either set max to at least {$current_load}, or reduce this teacher's subject load first."
+            ]);
+            return;
+        }
+        $day_count = $this->_getWorkingDayCount();
+        if ($data['max_periods_per_day'] > 0 && $current_load > $data['max_periods_per_day'] * $day_count) {
+            $max_possible = $data['max_periods_per_day'] * $day_count;
+            echo json_encode([
+                'status' => '0',
+                'message' => "{$tname} has {$current_load} periods/week, but max {$data['max_periods_per_day']}/day × "
+                    . "{$day_count} days = {$max_possible} possible. "
+                    . "Either increase Max Per Day to " . ceil($current_load / $day_count)
+                    . " or reduce this teacher's load."
+            ]);
+            return;
+        }
+
         $result = $this->Tt_teacher_model->saveConstraint($data);
         echo json_encode(['status' => $result ? '1' : '0']);
     }
@@ -1104,6 +1258,55 @@ class Tt extends Admin_Controller
         $session_id = $this->setting_model->getCurrentSession();
         $staff_id   = (int) $this->input->post('staff_id');
         $slots      = $this->input->post('slots'); // array of {day, period_id}
+
+        // VALIDATION: Teacher must have enough available slots for their load
+        $total_slots = $this->_getTotalSlots($session_id);
+        $blocked_count = is_array($slots) ? count($slots) : 0;
+        $available = $total_slots - $blocked_count;
+        $current_load = $this->_getTeacherWorkload($session_id, $staff_id);
+
+        if ($current_load > $available) {
+            $tname = $this->_getTeacherName($staff_id);
+            echo json_encode([
+                'status' => '0',
+                'message' => "{$tname} has {$current_load} periods/week assigned, "
+                    . "but blocking {$blocked_count} slots leaves only {$available} available. "
+                    . "Remove some unavailable slots or reduce this teacher's load by "
+                    . ($current_load - $available) . " period(s) first."
+            ]);
+            return;
+        }
+
+        // Also check daily feasibility
+        $tc = $this->_getTeacherConstraint($session_id, $staff_id);
+        $max_day = $tc['max_per_day'] ?: 6;
+        $day_count = $this->_getWorkingDayCount();
+        $blocked_per_day = [];
+        $period_count = $this->db->where('session_id', $session_id)->where('is_break', 0)
+            ->count_all_results('tt_periods');
+        if (is_array($slots)) {
+            foreach ($slots as $sl) {
+                $d = $sl['day'] ?? '';
+                $blocked_per_day[$d] = ($blocked_per_day[$d] ?? 0) + 1;
+            }
+        }
+        $fully_blocked_days = 0;
+        foreach ($blocked_per_day as $d => $cnt) {
+            if ($cnt >= $period_count) $fully_blocked_days++;
+        }
+        $effective_days = $day_count - $fully_blocked_days;
+        $max_possible = $max_day * $effective_days;
+        if ($current_load > $max_possible && $effective_days < $day_count) {
+            $tname = $this->_getTeacherName($staff_id);
+            echo json_encode([
+                'status' => '0',
+                'message' => "{$tname} has {$current_load} periods/week but can only fit "
+                    . "{$max_day}/day × {$effective_days} available days = {$max_possible}. "
+                    . "Don't block entire days, or reduce this teacher's load."
+            ]);
+            return;
+        }
+
         $result = $this->Tt_teacher_model->saveUnavailability($session_id, $staff_id, $slots);
         echo json_encode(['status' => $result ? '1' : '0']);
     }
@@ -2630,6 +2833,92 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
     {
         $rows = $this->db->select('id, name, code')->where('is_active', 'yes')->order_by('name', 'ASC')->get('subjects')->result();
         echo json_encode($rows);
+    }
+
+    // =========================================================================
+    // TIMETABLE VALIDATION HELPERS
+    // =========================================================================
+
+    private function _getWorkingDayCount()
+    {
+        $this->load->library('Customlib');
+        $days_map = $this->customlib->getDaysnameWithoutLang();
+        return count(array_filter(array_keys($days_map), fn($d) => $d !== 'Sunday'));
+    }
+
+    private function _getTotalSlots($session_id)
+    {
+        $period_count = $this->db->where('session_id', $session_id)
+            ->where('is_break', 0)->count_all_results('tt_periods');
+        return $this->_getWorkingDayCount() * $period_count;
+    }
+
+    private function _getClassTotalPPW($session_id, $class_id, $section_id)
+    {
+        $regular = $this->db->select_sum('periods_per_week')
+            ->where('session_id', $session_id)
+            ->where('class_id', $class_id)->where('section_id', $section_id)
+            ->where('joint_lesson_id IS NULL')
+            ->get('tt_subject_load')->row()->periods_per_week ?? 0;
+
+        $joint = 0;
+        $joint_rows = $this->db->query("
+            SELECT SUM(jl.periods_per_week) as total
+            FROM tt_joint_lessons jl
+            JOIN tt_joint_lesson_classes jlc ON jlc.joint_lesson_id = jl.id
+            WHERE jl.session_id = ? AND jlc.class_id = ? AND jlc.section_id = ?
+        ", [$session_id, $class_id, $section_id])->row();
+        if ($joint_rows) $joint = (int)($joint_rows->total ?? 0);
+
+        return (int)$regular + $joint;
+    }
+
+    private function _getTeacherWorkload($session_id, $staff_id)
+    {
+        $regular = $this->db->query("
+            SELECT COALESCE(SUM(sl.periods_per_week), 0) as total
+            FROM tt_subject_load sl
+            JOIN tt_subject_load_teachers slt ON slt.subject_load_id = sl.id
+            WHERE sl.session_id = ? AND slt.staff_id = ? AND sl.joint_lesson_id IS NULL
+        ", [$session_id, $staff_id])->row()->total ?? 0;
+
+        $joint = $this->db->query("
+            SELECT COALESCE(SUM(jl.periods_per_week), 0) as total
+            FROM tt_joint_lessons jl
+            JOIN tt_joint_lesson_teachers jlt ON jlt.joint_lesson_id = jl.id
+            WHERE jl.session_id = ? AND jlt.staff_id = ?
+        ", [$session_id, $staff_id])->row()->total ?? 0;
+
+        return (int)$regular + (int)$joint;
+    }
+
+    private function _getTeacherConstraint($session_id, $staff_id)
+    {
+        $row = $this->db->where('session_id', $session_id)->where('staff_id', $staff_id)
+            ->get('tt_teacher_constraints')->row();
+        return [
+            'max_per_day'  => $row ? (int)$row->max_periods_per_day : 6,
+            'max_per_week' => $row ? (int)$row->max_periods_per_week : 36,
+        ];
+    }
+
+    private function _getTeacherUnavailCount($session_id, $staff_id)
+    {
+        return $this->db->where('session_id', $session_id)->where('staff_id', $staff_id)
+            ->count_all_results('tt_teacher_unavail');
+    }
+
+    private function _getTeacherName($staff_id)
+    {
+        $r = $this->db->select('name, surname')->where('id', $staff_id)->get('staff')->row();
+        return $r ? trim($r->name . ' ' . $r->surname) : "Staff #{$staff_id}";
+    }
+
+    private function _getClassName($class_id, $section_id)
+    {
+        $c = $this->db->select('class')->where('id', $class_id)->get('classes')->row();
+        $s = $this->db->select('section')->where('id', $section_id)->get('sections')->row();
+        return ($c ? $c->class : '') . ' ' . ($s ? $s->section : '');
     }
 
     private function _getSubjectsForGrid($session_id, $class_id, $section_id)
