@@ -1377,7 +1377,7 @@ class Tt extends Admin_Controller
 
         $periods   = $this->Tt_period_model->getAll($session_id);
         $entries   = $this->Tt_entry_model->getGridEntries($session_id, $class_id, $section_id);
-        $subjects  = $this->subjectgroup_model->getGroupsubjectsByClassSection($class_id, $section_id, $session_id);
+        $subjects  = $this->_getSubjectsForGrid($session_id, $class_id, $section_id);
         $staff     = $this->staff_model->getStaffbyrole(2);
         $rooms     = $this->Tt_room_model->getActive();
         $batches   = $this->Tt_batch_model->getForClassSection($session_id, $class_id, $section_id);
@@ -2630,5 +2630,19 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
     {
         $rows = $this->db->select('id, name, code')->where('is_active', 'yes')->order_by('name', 'ASC')->get('subjects')->result();
         echo json_encode($rows);
+    }
+
+    private function _getSubjectsForGrid($session_id, $class_id, $section_id)
+    {
+        return $this->db->query("
+            SELECT sgs.id as subject_group_subject_id, sgs.subject_group_id,
+                   sgs.subject_id, sub.name as subject_name, sub.code as subject_code,
+                   sub.type as subject_type, sg.name as group_name
+            FROM subject_group_subjects sgs
+            INNER JOIN subjects sub ON sub.id = sgs.subject_id
+            INNER JOIN subject_groups sg ON sg.id = sgs.subject_group_id
+            WHERE sg.class_id = ? AND sg.session_id = ? AND sgs.session_id = ?
+            ORDER BY sub.name ASC
+        ", [$class_id, $session_id, $session_id])->result();
     }
 }
