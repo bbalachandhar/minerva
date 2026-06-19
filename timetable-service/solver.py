@@ -1070,9 +1070,10 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
                 return bi, be
         return None, None
 
-    def _can_relocate(be, from_d, from_p):
-        """Find a free slot for entry be (excluding its current slot)."""
+    def _can_relocate(be, from_d, from_p, depth=0):
+        """Find a free slot for entry be. At depth=0, also tries 1-level swap."""
         b_cid, b_sid, b_staff = be["class_id"], be["section_id"], be["staff_id"]
+        # Direct relocation
         for d2 in range(D):
             if not _can_teach(b_staff, d2) and d2 != from_d:
                 continue
@@ -1084,6 +1085,26 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
                 if (b_staff, d2, p2) in teacher_occ:
                     continue
                 return d2, p2
+        # 1-level swap: find a slot where class is free but teacher blocked,
+        # and the blocker can move directly
+        if depth < 1:
+            for d2 in range(D):
+                if not _can_teach(b_staff, d2) and d2 != from_d:
+                    continue
+                for p2 in range(P):
+                    if d2 == from_d and p2 == from_p:
+                        continue
+                    if (b_cid, b_sid, d2, p2) in class_occ:
+                        continue
+                    if (b_staff, d2, p2) not in teacher_occ:
+                        continue
+                    bi2, be2 = _find_blocker(b_staff, d2, p2)
+                    if not be2:
+                        continue
+                    rd, rp = _can_relocate(be2, d2, p2, depth + 1)
+                    if rd is not None:
+                        _do_move(bi2, be2, d2, p2, rd, rp)
+                        return d2, p2
         return None, None
 
     def _do_move(entry_idx, entry, from_d, from_p, to_d, to_p):
@@ -1122,10 +1143,13 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
     repaired = 0
     still_unplaced = []
 
-    regular_unplaced = [u for u in unplaced if "(Joint)" not in u.get("subject", "")]
+    # Joints FIRST (harder to place — need all classes + teachers free)
     joint_unplaced = [u for u in unplaced if "(Joint)" in u.get("subject", "")]
+    regular_unplaced = [u for u in unplaced if "(Joint)" not in u.get("subject", "")]
 
-    for u in regular_unplaced + joint_unplaced:
+    log.info("  REPAIR: %d regular + %d joint unplaced to fix", len(regular_unplaced), len(joint_unplaced))
+
+    for u in joint_unplaced + regular_unplaced:
         is_joint = "(Joint)" in u.get("subject", "")
 
         if is_joint:
@@ -1139,6 +1163,7 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
             j_staff = j_tids[0] if j_tids else None
 
             placed = False
+            common_free_slots = 0
             for d in range(D):
                 if placed:
                     break
@@ -1146,6 +1171,7 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
                     all_classes_free = all((jc, js, d, p) not in class_occ for jc, js in j_classes)
                     if not all_classes_free:
                         continue
+                    common_free_slots += 1
 
                     # Check teachers — direct free
                     all_teachers_free = all(
@@ -1189,6 +1215,8 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
                             break
 
             if not placed:
+                log.info("  REPAIR-JOINT-FAIL: %s — %d common free class slots, no teacher arrangement found",
+                         joint_name, common_free_slots)
                 still_unplaced.append(u)
             continue
 
