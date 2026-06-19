@@ -434,6 +434,12 @@ def solve(data: dict) -> dict:
     def _get_tc(tid):
         return tc_map.get(str(tid), default_tc)
 
+    # max_per_day is SOFT: allow +1 overflow with a heavy penalty.
+    # This matches the old PHP engine which penalised but allowed exceeding
+    # the daily limit when needed to place the last few subjects.
+    OVERFLOW_PENALTY = 2000
+    day_overflow_vars = []
+
     for tid in all_teacher_ids_in_model:
         tc = _get_tc(tid)
         max_day = tc.get("max_per_day", default_tc["max_per_day"])
@@ -446,7 +452,12 @@ def solve(data: dict) -> dict:
                 for p in range(P):
                     day_vars.extend(teacher_contribs[tid].get((d, p), []))
                 if day_vars:
-                    model.add(sum(day_vars) <= max_day)
+                    # Hard ceiling: max_day + 1 (never exceed by more than 1)
+                    model.add(sum(day_vars) <= max_day + 1)
+                    # Soft penalty for the +1 overflow
+                    overflow = model.new_bool_var(f"tdof_{tid}_{d}")
+                    model.add(sum(day_vars) <= max_day).only_enforce_if(overflow.negated())
+                    day_overflow_vars.append(overflow)
 
         if max_week and max_week > 0:
             week_vars = []
@@ -456,7 +467,6 @@ def solve(data: dict) -> dict:
             if week_vars:
                 model.add(sum(week_vars) <= max_week)
 
-        # Max consecutive periods per teacher
         if max_consec and max_consec > 0:
             for d in range(D):
                 for start_p in range(P - max_consec):
@@ -537,6 +547,10 @@ def solve(data: dict) -> dict:
                 jexcess = model.new_int_var(0, P, f"jexcess_{j}_{d}")
                 model.add(jexcess >= day_sum - upper)
                 obj_terms.append((-WEIGHT_EVEN, jexcess))
+
+    # Penalize teacher daily overflows (soft max_per_day)
+    for ov in day_overflow_vars:
+        obj_terms.append((-OVERFLOW_PENALTY, ov))
 
     all_obj = placement_vars + obj_terms
     model.maximize(sum(w * v for w, v in all_obj))
