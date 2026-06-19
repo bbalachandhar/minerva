@@ -780,30 +780,51 @@ def solve(data: dict) -> dict:
     total_required_periods = sum(ld["periods_per_week"] for ld in loads) + \
                              sum(jt["periods_per_week"] for jt in joints)
 
+    # Target uses BLOCK count (ppw/consecutive), matching the result extraction.
+    # Raw variable count may be higher due to consecutive grouping.
+    total_target_blocks = 0
+    for ld in loads:
+        c = max(1, ld.get("consecutive", 1))
+        total_target_blocks += ld["periods_per_week"] // c if c > 1 else ld["periods_per_week"]
+    for jt in joints:
+        c = max(1, jt.get("consecutive", 1))
+        total_target_blocks += jt["periods_per_week"] // c if c > 1 else jt["periods_per_week"]
+
+    # Pre-build per-load variable lists for fast block counting in callback
+    load_var_keys = {}
+    for k in x:
+        load_var_keys.setdefault(k[0], []).append(k)
+    joint_var_keys = {}
+    for k in jx:
+        joint_var_keys.setdefault(k[0], []).append(k)
+
     class StopAtFullPlacement(cp_model.CpSolverSolutionCallback):
-        def __init__(self, x_vars, jx_vars, target):
+        def __init__(self):
             super().__init__()
             self.solution_count = 0
-            self.x_keys = list(x_vars.keys())
-            self.x_vars = x_vars
-            self.jx_keys = list(jx_vars.keys())
-            self.jx_vars = jx_vars
-            self.target = target
-            self.best_placed = 0
+            self.best_blocks = 0
         def on_solution_callback(self):
             self.solution_count += 1
-            placed = sum(1 for k in self.x_keys if self.Value(self.x_vars[k]))
-            placed += sum(1 for k in self.jx_keys if self.Value(self.jx_vars[k]))
-            if placed > self.best_placed:
-                self.best_placed = placed
-                if self.solution_count <= 5 or placed >= self.target - 5:
-                    log.info("  Solution #%d: %d/%d placed", self.solution_count, placed, self.target)
-            if placed >= self.target:
-                log.info("Early stop: 100%% at solution #%d (%d/%d)", self.solution_count, placed, self.target)
+            blocks = 0
+            for i, ld in enumerate(loads):
+                c = max(1, ld.get("consecutive", 1))
+                raw = sum(1 for k in load_var_keys.get(i, []) if self.Value(x[k]))
+                blocks += raw // c if c > 1 else raw
+            for j, jt in enumerate(joints):
+                c = max(1, jt.get("consecutive", 1))
+                raw = sum(1 for k in joint_var_keys.get(j, []) if self.Value(jx[k]))
+                blocks += raw // c if c > 1 else raw
+            if blocks > self.best_blocks:
+                self.best_blocks = blocks
+                if self.solution_count <= 3 or blocks >= total_target_blocks - 3:
+                    log.info("  Solution #%d: %d/%d blocks", self.solution_count, blocks, total_target_blocks)
+            if blocks >= total_target_blocks:
+                log.info("Early stop: 100%% at solution #%d (%d/%d blocks)",
+                         self.solution_count, blocks, total_target_blocks)
                 self.StopSearch()
 
-    callback = StopAtFullPlacement(x, jx, total_required_periods)
-    log.info("Target: %d total periods to place", total_required_periods)
+    callback = StopAtFullPlacement()
+    log.info("Target: %d placement blocks", total_target_blocks)
 
     time_limit = data.get("time_limit", 120)
     solver = cp_model.CpSolver()
