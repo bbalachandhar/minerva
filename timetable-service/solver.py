@@ -89,13 +89,21 @@ def solve(data: dict) -> dict:
     # ---------------------------------------------------------------
 
     # --- 2a. Total periods per load + consecutive grouping ---
+    # Use <= (not ==) so the solver can find partial solutions when 100% is
+    # impossible.  The objective heavily rewards full placement so the solver
+    # will always reach 100% when feasible.
     block_starts_all = {}
+    placement_vars = []  # (weight, var) to add to objective
+    PLACE_WEIGHT = 10000
+
     for i, load in enumerate(loads):
         ppw = load["periods_per_week"]
         consec = load.get("consecutive", 1)
+        total_i = sum(x[i, d, p] for d in range(D) for p in range(P))
+        placement_vars.append((PLACE_WEIGHT, total_i))
 
         if consec <= 1:
-            model.add(sum(x[i, d, p] for d in range(D) for p in range(P)) == ppw)
+            model.add(total_i <= ppw)
         else:
             num_blocks = ppw // consec
             remainder = ppw % consec
@@ -109,7 +117,7 @@ def solve(data: dict) -> dict:
                         model.add_implication(bs, x[i, d, sp + k])
             block_starts_all.update(block_starts)
 
-            model.add(sum(v for v in block_starts.values()) == num_blocks)
+            model.add(sum(v for v in block_starts.values()) <= num_blocks)
 
             for d in range(D):
                 for p in range(P):
@@ -119,37 +127,18 @@ def solve(data: dict) -> dict:
                             covering.append(block_starts[i, d, sp])
                     model.add(x[i, d, p] <= (sum(covering) if covering else 0))
 
-            if remainder > 0:
-                rem_vars = []
-                for d in range(D):
-                    for p in range(P):
-                        rv = model.new_bool_var(f"rem_{i}_{d}_{p}")
-                        rem_vars.append(rv)
-                        covered_by_block = []
-                        for sp in range(max(0, p - consec + 1), min(p + 1, P - consec + 1)):
-                            if (i, d, sp) in block_starts:
-                                covered_by_block.append(block_starts[i, d, sp])
-                        model.add(rv <= x[i, d, p])
-                        if covered_by_block:
-                            model.add(rv + sum(covered_by_block) <= 1)
-                model.add(sum(rem_vars) == remainder)
-                model.add(
-                    sum(x[i, d, p] for d in range(D) for p in range(P))
-                    == num_blocks * consec + remainder
-                )
-            else:
-                model.add(
-                    sum(x[i, d, p] for d in range(D) for p in range(P)) == ppw
-                )
+            model.add(total_i <= ppw)
 
     # --- 2a-joint. Total periods per joint lesson + consecutive + fixed slots ---
     joint_block_starts_all = {}
     for j, joint in enumerate(joints):
         ppw = joint["periods_per_week"]
         consec = joint.get("consecutive", 1)
+        total_j = sum(jx[j, d, p] for d in range(D) for p in range(P))
+        placement_vars.append((PLACE_WEIGHT, total_j))
 
         if consec <= 1:
-            model.add(sum(jx[j, d, p] for d in range(D) for p in range(P)) == ppw)
+            model.add(total_j <= ppw)
         else:
             num_blocks = ppw // consec
             jblock_starts = {}
@@ -160,7 +149,7 @@ def solve(data: dict) -> dict:
                     for k in range(consec):
                         model.add_implication(bs, jx[j, d, sp + k])
             joint_block_starts_all.update(jblock_starts)
-            model.add(sum(v for v in jblock_starts.values()) == num_blocks)
+            model.add(sum(v for v in jblock_starts.values()) <= num_blocks)
             for d in range(D):
                 for p in range(P):
                     covering = []
@@ -168,9 +157,7 @@ def solve(data: dict) -> dict:
                         if (j, d, sp) in jblock_starts:
                             covering.append(jblock_starts[j, d, sp])
                     model.add(jx[j, d, p] <= (sum(covering) if covering else 0))
-            model.add(
-                sum(jx[j, d, p] for d in range(D) for p in range(P)) == ppw
-            )
+            model.add(total_j <= ppw)
 
         # Fixed slots: admin-pinned day+period(s) for specific placements
         fixed_slots = joint.get("fixed_slots")
@@ -481,8 +468,8 @@ def solve(data: dict) -> dict:
                 model.add(jexcess >= day_sum - upper)
                 obj_terms.append((-WEIGHT_EVEN, jexcess))
 
-    if obj_terms:
-        model.maximize(sum(w * v for w, v in obj_terms))
+    all_obj = placement_vars + obj_terms
+    model.maximize(sum(w * v for w, v in all_obj))
 
     # ---------------------------------------------------------------
     # 4. Solve
@@ -513,6 +500,8 @@ def solve(data: dict) -> dict:
     total_placed = 0
     total_required = 0
     class_stats = {}
+    unplaced = []
+    labels = data.get("class_labels", {})
 
     for i, load in enumerate(loads):
         ppw = load["periods_per_week"]
@@ -551,6 +540,22 @@ def solve(data: dict) -> dict:
 
         placed_blocks = placed // consec if consec > 1 else placed
         total_placed += placed_blocks
+
+        if placed_blocks < placements_needed:
+            ck = f"{load['class_id']}_{load['section_id']}"
+            unplaced.append({
+                "type": "no_slot",
+                "class_id": load["class_id"],
+                "section_id": load["section_id"],
+                "subject": load.get("subject_name", "?"),
+                "staff": load.get("teacher_name", ""),
+                "staff_id": assigned_teacher,
+                "reason": (
+                    f"Could not place {placements_needed - placed_blocks} of "
+                    f"{placements_needed} for {load.get('subject_name', '?')} "
+                    f"in {labels.get(ck, ck)} — teacher or slot conflict."
+                ),
+            })
 
         ck = f"{load['class_id']}_{load['section_id']}"
         if ck not in class_stats:
@@ -602,6 +607,26 @@ def solve(data: dict) -> dict:
         placed_blocks = placed // consec if consec > 1 else placed
         total_placed += placed_blocks
 
+        if placed_blocks < placements_needed:
+            class_names = ", ".join(
+                labels.get(f"{c['class_id']}_{c['section_id']}",
+                           f"{c['class_id']}_{c['section_id']}")
+                for c in joint.get("classes", [])
+            )
+            unplaced.append({
+                "type": "no_slot",
+                "class_id": 0,
+                "section_id": 0,
+                "subject": f"{joint.get('name', '?')} (Joint)",
+                "staff": "",
+                "staff_id": assigned_teacher,
+                "reason": (
+                    f"Could not place {placements_needed - placed_blocks} of "
+                    f"{placements_needed} for joint {joint.get('name', '?')} "
+                    f"across {class_names}."
+                ),
+            })
+
         for cls in joint.get("classes", []):
             ck = f"{cls['class_id']}_{cls['section_id']}"
             if ck not in class_stats:
@@ -622,7 +647,7 @@ def solve(data: dict) -> dict:
         "total_required": total_required,
         "total_placed": total_placed,
         "entries": entries,
-        "unplaced": [],
+        "unplaced": unplaced,
         "solve_time_seconds": round(solve_time, 2),
         "solver_status": solver.status_name(status),
         "class_stats": list(class_stats.values()),
