@@ -767,30 +767,29 @@ def solve(data: dict) -> dict:
              model.proto.constraints.__len__() if hasattr(model.proto, 'constraints') else 0,
              len(all_obj))
 
-    # Compute the objective value threshold for 100% placement.
-    # If the solver finds a solution at or above this, stop immediately.
-    max_placement_value = 0
-    for i, load in enumerate(loads):
-        max_placement_value += load["periods_per_week"] * PLACE_WEIGHT
-    for j, joint in enumerate(joints):
-        max_placement_value += joint["periods_per_week"] * JOINT_WEIGHT
+    # Early termination: stop solver when 100% placement is found.
+    # Count actual placements (not objective value, which includes soft bonuses).
+    total_required_periods = sum(ld["periods_per_week"] for ld in loads) + \
+                             sum(jt["periods_per_week"] for jt in joints)
 
     class StopAtFullPlacement(cp_model.CpSolverSolutionCallback):
-        def __init__(self):
+        def __init__(self, x_vars, jx_vars):
             super().__init__()
             self.solution_count = 0
-            self.best_obj = -1
+            self.x_keys = list(x_vars.keys())
+            self.x_vars = x_vars
+            self.jx_keys = list(jx_vars.keys())
+            self.jx_vars = jx_vars
         def on_solution_callback(self):
             self.solution_count += 1
-            self.best_obj = self.objective_value
-            # Soft constraints (distribution, early period) subtract small values.
-            # If objective is close to max_placement, all entries are placed.
-            if self.objective_value >= max_placement_value * 0.999:
-                log.info("Early stop: 100%% placement found at solution #%d (obj=%.0f, threshold=%.0f)",
-                         self.solution_count, self.objective_value, max_placement_value)
+            placed = sum(1 for k in self.x_keys if self.value(self.x_vars[k]))
+            placed += sum(1 for k in self.jx_keys if self.value(self.jx_vars[k]))
+            if placed >= total_required_periods:
+                log.info("Early stop: 100%% at solution #%d (%d/%d placed)",
+                         self.solution_count, placed, total_required_periods)
                 self.stop_search()
 
-    callback = StopAtFullPlacement()
+    callback = StopAtFullPlacement(x, jx)
 
     time_limit = data.get("time_limit", 120)
     solver = cp_model.CpSolver()
