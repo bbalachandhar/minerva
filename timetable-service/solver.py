@@ -645,6 +645,8 @@ def solve(data: dict) -> dict:
 
     quality = round((total_placed / total_required) * 100, 2) if total_required > 0 else 100.0
 
+    detected_issues = _analyze_issues(data, days, periods_raw, loads, joints)
+
     return {
         "status": "success",
         "quality": quality,
@@ -652,35 +654,70 @@ def solve(data: dict) -> dict:
         "total_placed": total_placed,
         "entries": entries,
         "unplaced": unplaced,
+        "issues": detected_issues,
         "solve_time_seconds": round(solve_time, 2),
         "solver_status": solver.status_name(status),
         "class_stats": list(class_stats.values()),
     }
 
 
-def _diagnose_infeasibility(data, days, periods, loads, joints):
-    """Quick heuristic check to explain WHY the problem is infeasible."""
+def _analyze_issues(data, days, periods, loads, joints):
+    """Analyze scheduling data and return structured issues with fix instructions."""
     D = len(days)
     P = len(periods)
     total_slots = D * P
     issues = []
     labels = data.get("class_labels", {})
+    settings = data.get("settings", {})
+    max_same_subject_day = settings.get("max_same_subject_day", 2)
 
-    def _class_name(ck):
+    def _cn(ck):
         return labels.get(ck, ck)
 
-    # Build teacher name map from subject loads
     teacher_names = {}
     for load in loads:
         for tid in load.get("teacher_ids", []):
             if tid not in teacher_names and load.get("teacher_name"):
                 teacher_names[tid] = load["teacher_name"]
+    for j in joints:
+        if j.get("teacher_name"):
+            for tid in j.get("teacher_ids", []):
+                if tid not in teacher_names:
+                    teacher_names[tid] = j["teacher_name"]
 
-    def _teacher_name(tid):
-        name = teacher_names.get(tid)
-        return f"{name} (ID {tid})" if name else f"Teacher ID {tid}"
+    def _tn(tid):
+        return teacher_names.get(tid, f"Staff #{tid}")
 
-    # Check per-class overload
+    tc_map = data.get("teacher_constraints", {})
+    t_unavail = data.get("teacher_unavailability", {})
+    default_max_week = 36
+    default_max_day = 6
+
+    # ── Collect teacher workload ──
+    teacher_loads = {}   # tid -> list of {label, ppw, subject, class_key}
+    teacher_ppw = {}     # tid -> total ppw
+    for load in loads:
+        for tid in load.get("teacher_ids", []):
+            ck = f"{load['class_id']}_{load['section_id']}"
+            teacher_loads.setdefault(tid, []).append({
+                "label": f"{_cn(ck)} — {load.get('subject_name', '?')} ({load['periods_per_week']}ppw)",
+                "ppw": load["periods_per_week"],
+                "subject": load.get("subject_name", "?"),
+                "class_key": ck,
+            })
+            teacher_ppw[tid] = teacher_ppw.get(tid, 0) + load["periods_per_week"]
+    for j in joints:
+        for tid in j.get("teacher_ids", []):
+            classes = ", ".join(_cn(f"{c['class_id']}_{c['section_id']}") for c in j.get("classes", []))
+            teacher_loads.setdefault(tid, []).append({
+                "label": f"Joint: {j.get('name', '?')} [{classes}] ({j['periods_per_week']}ppw)",
+                "ppw": j["periods_per_week"],
+                "subject": j.get("name", "?"),
+                "class_key": "joint",
+            })
+            teacher_ppw[tid] = teacher_ppw.get(tid, 0) + j["periods_per_week"]
+
+    # ── 1. Class overflow ──
     class_demand = {}
     for load in loads:
         key = f"{load['class_id']}_{load['section_id']}"
@@ -692,138 +729,204 @@ def _diagnose_infeasibility(data, days, periods, loads, joints):
 
     for ck, demand in class_demand.items():
         if demand > total_slots:
-            issues.append(
-                f"{_class_name(ck)} needs {demand} periods but only {total_slots} "
-                f"slots available ({D} days × {P} periods). "
-                f"Please reduce subject loads by {demand - total_slots} period(s)."
-            )
+            over = demand - total_slots
+            issues.append({
+                "type": "class_overflow",
+                "severity": "error",
+                "title": f"{_cn(ck)}: Too many periods assigned",
+                "detail": (
+                    f"This class needs {demand} periods per week, but only "
+                    f"{total_slots} time slots exist ({D} days × {P} periods per day)."
+                ),
+                "fix": (
+                    f"Go to Auto Timetable → Subject Load for {_cn(ck)}. "
+                    f"Remove or reduce subject periods to free up at least {over} period(s). "
+                    f"For example, reduce a subject from 6 periods/week to {6 - over} periods/week."
+                ),
+            })
 
-    # Check per-teacher overload
-    teacher_demand = {}
-    tc_map = data.get("teacher_constraints", {})
+    # ── 2. Subject max-per-day impossible ──
     for load in loads:
-        for tid in load.get("teacher_ids", []):
-            teacher_demand[tid] = teacher_demand.get(tid, 0) + load["periods_per_week"]
-    for j in joints:
-        for tid in j.get("teacher_ids", []):
-            teacher_demand[tid] = teacher_demand.get(tid, 0) + j["periods_per_week"]
+        ppw = load["periods_per_week"]
+        subj_max_day = load.get("max_per_day", 0)
+        if subj_max_day and subj_max_day > 0:
+            effective_max = subj_max_day
+        elif max_same_subject_day and max_same_subject_day > 0:
+            effective_max = max_same_subject_day
+        else:
+            effective_max = 2
+        if ppw > effective_max * D:
+            ck = f"{load['class_id']}_{load['section_id']}"
+            needed_max = -(-ppw // D)
+            issues.append({
+                "type": "subject_max_per_day",
+                "severity": "error",
+                "title": f"{_cn(ck)} — {load.get('subject_name', '?')}: Cannot fit in the week",
+                "detail": (
+                    f"This subject needs {ppw} periods per week, but it's limited to "
+                    f"{effective_max} period(s) per day. With {D} working days, "
+                    f"the maximum possible is {effective_max} × {D} = {effective_max * D} periods."
+                ),
+                "fix": (
+                    f"Option A: Go to Auto Timetable → Subject Load → {_cn(ck)} → "
+                    f"find \"{load.get('subject_name', '?')}\" → change 'Max Per Day' to {needed_max}.\n"
+                    f"Option B: Reduce this subject's periods per week to {effective_max * D} or less.\n"
+                    f"Option C: If using generation setting 'Max Same Subject Per Day = {max_same_subject_day}', "
+                    f"try increasing it to {needed_max}."
+                ),
+            })
 
-    default_max_week = 36
-    for tid, demand in teacher_demand.items():
+    for j in joints:
+        ppw = j["periods_per_week"]
+        max_day = j.get("max_per_day", 2)
+        if max_day and max_day > 0 and ppw > max_day * D:
+            classes = ", ".join(_cn(f"{c['class_id']}_{c['section_id']}") for c in j.get("classes", []))
+            needed_max = -(-ppw // D)
+            issues.append({
+                "type": "subject_max_per_day",
+                "severity": "error",
+                "title": f"Joint Lesson \"{j.get('name', '?')}\": Cannot fit in the week",
+                "detail": (
+                    f"This joint lesson ({classes}) needs {ppw} periods per week, "
+                    f"but is limited to {max_day} per day. Maximum possible = {max_day * D}."
+                ),
+                "fix": (
+                    f"Go to Auto Timetable → Joint Lessons → \"{j.get('name', '?')}\" → "
+                    f"change 'Max Per Day' to {needed_max}, or reduce periods per week to {max_day * D}."
+                ),
+            })
+
+    # ── 3. Teacher weekly overload ──
+    for tid, total in teacher_ppw.items():
         tc = tc_map.get(str(tid), {})
         cap = tc.get("max_per_week", default_max_week)
-        if cap and demand > cap:
-            issues.append(
-                f"{_teacher_name(tid)} is assigned {demand} periods/week "
-                f"but has a cap of {cap}."
-            )
+        if cap and total > cap:
+            over = total - cap
+            assigns = "\n".join(f"  • {e['label']}" for e in teacher_loads[tid])
+            issues.append({
+                "type": "teacher_weekly_overload",
+                "severity": "error",
+                "title": f"{_tn(tid)}: Assigned more periods than allowed per week",
+                "detail": (
+                    f"{_tn(tid)} is assigned {total} periods per week, but their maximum "
+                    f"limit is {cap} periods per week. They are overloaded by {over} period(s).\n"
+                    f"Current assignments:\n{assigns}"
+                ),
+                "fix": (
+                    f"Option A: Go to Auto Timetable → Teacher Constraints → "
+                    f"find \"{_tn(tid)}\" → increase 'Max Periods Per Week' to at least {total}.\n"
+                    f"Option B: Go to Subject Load and remove {over} period(s) from "
+                    f"this teacher's assignments (reassign some subjects to another teacher)."
+                ),
+            })
 
-    # Check teacher unavailability vs demand
-    t_unavail = data.get("teacher_unavailability", {})
-    for tid, demand in teacher_demand.items():
+    # ── 4. Teacher daily overload ──
+    for tid, total in teacher_ppw.items():
+        if tid in [i.get("_tid") for i in issues if i.get("type") == "teacher_weekly_overload"]:
+            continue
+        tc = tc_map.get(str(tid), {})
+        t_max_day = tc.get("max_per_day", default_max_day)
+        if not t_max_day or t_max_day <= 0:
+            continue
+
+        blocked_days = 0
+        for day_name in days:
+            blocked_pids = t_unavail.get(str(tid), {}).get(day_name, [])
+            if len(blocked_pids) >= P:
+                blocked_days += 1
+        available_days = D - blocked_days
+        max_possible = t_max_day * available_days
+
+        if total > max_possible:
+            assigns = "\n".join(f"  • {e['label']}" for e in teacher_loads[tid])
+            needed_max_day = -(-total // available_days) if available_days > 0 else total
+            issues.append({
+                "type": "teacher_daily_overload",
+                "severity": "error",
+                "title": f"{_tn(tid)}: Cannot fit all periods within daily limit",
+                "detail": (
+                    f"{_tn(tid)} needs to teach {total} periods per week, but is limited to "
+                    f"{t_max_day} periods per day. With {available_days} available working days, "
+                    f"the maximum they can teach is {t_max_day} × {available_days} = {max_possible} periods.\n"
+                    f"Current assignments:\n{assigns}"
+                ),
+                "fix": (
+                    f"Option A: Go to Auto Timetable → Teacher Constraints → "
+                    f"find \"{_tn(tid)}\" → increase 'Max Periods Per Day' to {needed_max_day}.\n"
+                    f"Option B: Reduce this teacher's total load by reassigning "
+                    f"{total - max_possible} period(s) to another teacher."
+                ),
+            })
+
+    # ── 5. Teacher unavailability squeeze ──
+    tids_with_issues = {i.get("_tid") for i in issues}
+    for tid, total in teacher_ppw.items():
         blocked = 0
         for day_map in t_unavail.get(str(tid), {}).values():
             blocked += len(day_map)
         available = total_slots - blocked
-        if demand > available:
-            issues.append(
-                f"{_teacher_name(tid)} needs {demand} slots but only {available} "
-                f"available ({blocked} blocked by unavailability)."
-            )
+        if total > available and tid not in tids_with_issues:
+            assigns = "\n".join(f"  • {e['label']}" for e in teacher_loads[tid])
+            issues.append({
+                "type": "teacher_unavailable",
+                "severity": "error",
+                "title": f"{_tn(tid)}: Too many unavailable slots",
+                "detail": (
+                    f"{_tn(tid)} needs {total} free slots to teach, but {blocked} slots "
+                    f"are marked as unavailable, leaving only {available} available."
+                ),
+                "fix": (
+                    f"Option A: Go to Auto Timetable → Teacher Unavailability → "
+                    f"\"{_tn(tid)}\" → remove some blocked time slots.\n"
+                    f"Option B: Reduce this teacher's workload by reassigning "
+                    f"{total - available} period(s) to another teacher."
+                ),
+            })
 
-    # Check teacher daily overload
-    # Joint lessons count as ONE slot (all classes attend simultaneously)
-    default_max_day = 6
-    teacher_entries = {}   # tid -> list of (label, ppw, is_joint)
-    teacher_real_ppw = {}  # tid -> actual periods consumed
-    for load in loads:
-        for tid in load.get("teacher_ids", []):
-            ck = f"{load['class_id']}_{load['section_id']}"
-            lbl = f"{_class_name(ck)} ({load.get('subject_name', '?')} {load['periods_per_week']}ppw)"
-            teacher_entries.setdefault(tid, []).append((lbl, load["periods_per_week"], False))
-            teacher_real_ppw[tid] = teacher_real_ppw.get(tid, 0) + load["periods_per_week"]
-    for j in joints:
-        for tid in j.get("teacher_ids", []):
-            class_names = "+".join(_class_name(f"{c['class_id']}_{c['section_id']}") for c in j.get("classes", []))
-            lbl = f"{j.get('name', '?')} [{class_names}] {j['periods_per_week']}ppw"
-            teacher_entries.setdefault(tid, []).append((lbl, j["periods_per_week"], True))
-            teacher_real_ppw[tid] = teacher_real_ppw.get(tid, 0) + j["periods_per_week"]
+    # ── 6. Teacher near capacity (warning) ──
+    tids_with_errors = set()
+    for i in issues:
+        for tid_check in teacher_ppw:
+            if _tn(tid_check) in i.get("title", ""):
+                tids_with_errors.add(tid_check)
 
-    for tid, entries in teacher_entries.items():
+    for tid, total in teacher_ppw.items():
+        if tid in tids_with_errors:
+            continue
         tc = tc_map.get(str(tid), {})
-        t_max_day = tc.get("max_per_day", default_max_day)
-        t_max_week = tc.get("max_per_week", default_max_week)
-        total = teacher_real_ppw.get(tid, 0)
+        cap = tc.get("max_per_week", default_max_week) or default_max_week
+        slack = cap - total
+        if 0 <= slack <= 2 and total >= 20:
+            assigns = "\n".join(f"  • {e['label']}" for e in teacher_loads[tid])
+            issues.append({
+                "type": "teacher_near_capacity",
+                "severity": "warning",
+                "title": f"{_tn(tid)}: Almost at full capacity ({total}/{cap} periods/week)",
+                "detail": (
+                    f"{_tn(tid)} has only {slack} period(s) of slack in their weekly schedule. "
+                    f"This makes it hard to find slots without conflicts.\n"
+                    f"Current assignments:\n{assigns}"
+                ),
+                "fix": (
+                    f"This is a warning, not an error. If this teacher's subjects are not fully placed:\n"
+                    f"Option A: Go to Teacher Constraints → \"{_tn(tid)}\" → "
+                    f"increase 'Max Periods Per Week' by 2–4.\n"
+                    f"Option B: Reassign 1–2 subjects to a different teacher with more availability."
+                ),
+            })
 
-        # Check daily feasibility: teacher needs at least ceil(total/max_per_day) days
-        if t_max_day and t_max_day > 0 and total > 0:
-            min_days_needed = -(-total // t_max_day)  # ceil division
-            t_blocked_days = 0
-            for day_name in days:
-                blocked_pids = t_unavail.get(str(tid), {}).get(day_name, [])
-                if len(blocked_pids) >= P:
-                    t_blocked_days += 1
-            available_days = D - t_blocked_days
-            if min_days_needed > available_days:
-                entries_str = ", ".join(lbl for lbl, _, _ in entries)
-                issues.append(
-                    f"{_teacher_name(tid)} teaches {total} periods/week "
-                    f"({entries_str}) but can only do "
-                    f"{t_max_day}/day × {available_days} days = "
-                    f"{t_max_day * available_days} max."
-                )
+    return issues
 
-        # Check if total demand is tight against weekly cap
-        if t_max_week and total > 0 and not any(str(tid) in str(i) for i in issues):
-            slack = t_max_week - total
-            if 0 <= slack <= 2:
-                entries_str = ", ".join(lbl for lbl, _, _ in entries)
-                issues.append(
-                    f"{_teacher_name(tid)} is near capacity: {total}/{t_max_week} "
-                    f"periods/week with only {slack} slack. "
-                    f"Teaches: {entries_str}."
-                )
 
-    # Check max_per_day feasibility per subject
-    for load in loads:
-        ppw = load["periods_per_week"]
-        max_day = load.get("max_per_day", 2)
-        if max_day and max_day > 0 and ppw > max_day * D:
-            ck = f"{load['class_id']}_{load['section_id']}"
-            issues.append(
-                f"{_class_name(ck)} — {load.get('subject_name', '?')}: needs {ppw} "
-                f"periods/week but max {max_day}/day × {D} days = {max_day * D} possible. "
-                f"Increase Max/Day to {-(-ppw // D)}."
-            )
-
-    if not issues:
-        tight = []
-        for tid, entries in teacher_entries.items():
-            total = teacher_real_ppw.get(tid, 0)
-            tc = tc_map.get(str(tid), {})
-            cap = tc.get("max_per_week", default_max_week) or default_max_week
-            ratio = total / cap if cap else 0
-            if ratio >= 0.8 and len(entries) >= 3:
-                entries_str = ", ".join(lbl for lbl, _, _ in entries)
-                tight.append((ratio, tid, total, cap, entries_str))
-        tight.sort(reverse=True)
-
-        if tight:
-            details = []
-            for ratio, tid, total, cap, classes_str in tight[:5]:
-                details.append(
-                    f"{_teacher_name(tid)}: {total}/{cap} ppw across {classes_str}"
-                )
-            issues.append(
-                "No single constraint is violated, but these shared teachers "
-                "create a scheduling bottleneck: " + " | ".join(details)
-                + ". Try increasing a teacher's weekly cap or reducing their load."
-            )
-        else:
-            issues.append(
-                "The combination of constraints makes a complete timetable "
-                "impossible. Check teacher max-per-day limits, subject max-per-day, "
-                "and teacher unavailability — these interact to block placement."
-            )
-
-    return " | ".join(issues)
+def _diagnose_infeasibility(data, days, periods, loads, joints):
+    """Legacy wrapper — returns a single message string for infeasible results."""
+    issues = _analyze_issues(data, days, periods, loads, joints)
+    if issues:
+        return " | ".join(
+            f"{i['title']}: {i['detail'].split(chr(10))[0]}" for i in issues
+        )
+    return (
+        "The combination of constraints makes a complete timetable impossible. "
+        "Check teacher max-per-day limits, subject max-per-day, and teacher "
+        "unavailability — these interact to block placement."
+    )

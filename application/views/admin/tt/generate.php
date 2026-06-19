@@ -371,82 +371,137 @@ $(function(){
     });
   });
 
+  function nl2br(str) {
+    return (str||'').replace(/\n/g, '<br>');
+  }
+
   function showResult(res, isDryRun) {
     if (res.status === '1') {
-      var color = res.quality_score >= 90 ? 'success' : (res.quality_score >= 70 ? 'warning' : 'danger');
+      var color = res.quality_score >= 100 ? 'success' : (res.quality_score >= 90 ? 'warning' : 'danger');
       var cardsLeft = res.cards_left || (res.total_required - res.total_placed);
+      var is100 = (cardsLeft === 0);
 
       var html = '<div style="padding:10px;">';
 
       if (isDryRun) {
-        html += '<div class="alert alert-info"><i class="fa fa-flask"></i> <strong>Dry Run — nothing was saved</strong></div>';
+        html += '<div class="alert alert-info" style="margin-bottom:10px;"><i class="fa fa-flask"></i> <strong>Dry Run</strong> — nothing was saved. Fix any issues below, then Generate.</div>';
       }
 
-      html += '<div class="row text-center" style="margin-bottom:10px;">'
-        + '<div class="col-xs-4"><div style="font-size:32px;font-weight:700;" class="text-success">' + res.total_placed + '</div><small>Cards Placed</small></div>'
-        + '<div class="col-xs-4"><div style="font-size:32px;font-weight:700;" class="text-' + (cardsLeft > 0 ? 'danger' : 'success') + '">' + cardsLeft + '</div><small>Cards Left</small></div>'
-        + '<div class="col-xs-4"><div style="font-size:32px;font-weight:700;" class="text-' + color + '">' + res.quality_score + '%</div><small>Quality</small></div>'
-        + '</div>';
+      // ── Summary banner ──
+      if (is100) {
+        html += '<div class="alert alert-success text-center" style="font-size:16px;padding:15px;">'
+          + '<i class="fa fa-check-circle fa-2x"></i><br>'
+          + '<strong style="font-size:24px;">100% — Perfect Timetable!</strong><br>'
+          + 'All ' + res.total_required + ' periods placed successfully in ' + (res.solve_time_seconds||'?') + ' seconds.'
+          + '</div>';
+      } else {
+        html += '<div class="alert alert-' + color + ' text-center" style="padding:15px;">'
+          + '<div style="font-size:36px;font-weight:700;">' + res.quality_score + '%</div>'
+          + '<div style="font-size:14px;">' + res.total_placed + ' of ' + res.total_required + ' periods placed &mdash; '
+          + '<strong>' + cardsLeft + ' could not be placed</strong></div>'
+          + '<div style="font-size:12px;margin-top:5px;color:#666;">Solve time: ' + (res.solve_time_seconds||'?') + ' seconds</div>'
+          + '</div>';
+      }
 
-      html += '<table class="table table-condensed table-bordered" style="font-size:12px;">'
-        + '<tr><td>Total Required</td><td><strong>' + res.total_required + '</strong></td></tr>'
-        + '<tr><td>Conditions Broken</td><td><strong class="text-' + (res.total_conflicts > 0 ? 'danger' : 'success') + '">' + res.total_conflicts + '</strong></td></tr>'
-        + '</table>';
+      // ── ISSUES section (the main focus) ──
+      var errors = [], warnings = [];
+      $.each(res.issues || [], function(i, issue) {
+        if (issue.severity === 'warning') warnings.push(issue); else errors.push(issue);
+      });
 
-      // Per-class breakdown
+      if (errors.length > 0) {
+        html += '<div style="margin-bottom:15px;">'
+          + '<h4 style="color:#c0392b;margin-bottom:10px;"><i class="fa fa-exclamation-triangle"></i> '
+          + errors.length + ' Issue' + (errors.length > 1 ? 's' : '') + ' Blocking 100% Placement</h4>'
+          + '<p style="font-size:13px;color:#666;margin-bottom:10px;">Fix these issues one by one, then run Test again. Each fix will improve the placement rate.</p>';
+        $.each(errors, function(i, issue) {
+          html += '<div style="border:1px solid #e74c3c;border-left:4px solid #e74c3c;border-radius:4px;padding:12px;margin-bottom:10px;background:#fdf2f2;">'
+            + '<div style="font-size:14px;font-weight:700;color:#c0392b;margin-bottom:6px;">'
+            + '<i class="fa fa-times-circle"></i> ' + (issue.title||'Issue') + '</div>'
+            + '<div style="font-size:12px;color:#555;margin-bottom:8px;">' + nl2br(issue.detail||'') + '</div>'
+            + '<div style="background:#fff;border:1px solid #ddd;border-radius:3px;padding:10px;font-size:12px;">'
+            + '<strong style="color:#27ae60;"><i class="fa fa-wrench"></i> How to Fix:</strong><br>'
+            + '<div style="margin-top:4px;color:#333;">' + nl2br(issue.fix||'') + '</div>'
+            + '</div></div>';
+        });
+        html += '</div>';
+      }
+
+      if (warnings.length > 0) {
+        html += '<div style="margin-bottom:15px;">'
+          + '<h4 style="color:#f39c12;margin-bottom:10px;"><i class="fa fa-info-circle"></i> '
+          + warnings.length + ' Warning' + (warnings.length > 1 ? 's' : '') + '</h4>';
+        $.each(warnings, function(i, issue) {
+          html += '<div style="border:1px solid #f0ad4e;border-left:4px solid #f0ad4e;border-radius:4px;padding:12px;margin-bottom:10px;background:#fef9e7;">'
+            + '<div style="font-size:13px;font-weight:700;color:#e67e22;margin-bottom:4px;">'
+            + '<i class="fa fa-exclamation-circle"></i> ' + (issue.title||'Warning') + '</div>'
+            + '<div style="font-size:12px;color:#555;margin-bottom:6px;">' + nl2br(issue.detail||'') + '</div>'
+            + '<div style="font-size:11px;color:#888;"><i class="fa fa-wrench"></i> ' + nl2br(issue.fix||'') + '</div>'
+            + '</div>';
+        });
+        html += '</div>';
+      }
+
+      // ── Unplaced entries ──
+      var unplaced = res.unplaced || [];
+      if (unplaced.length > 0 && errors.length === 0) {
+        html += '<div style="margin-bottom:12px;">'
+          + '<h4 style="color:#c0392b;"><i class="fa fa-times-circle"></i> ' + unplaced.length + ' Unplaced Subject' + (unplaced.length > 1 ? 's' : '') + '</h4>';
+        $.each(unplaced, function(i, u) {
+          html += '<div style="font-size:12px;padding:6px 10px;border-left:3px solid #e74c3c;margin-bottom:4px;background:#fdf2f2;">'
+            + '<strong>' + (u.subject||'?') + '</strong>'
+            + (u.staff ? ' (Teacher: ' + u.staff + ')' : '')
+            + '<br><span style="color:#888;">' + (u.reason||'') + '</span></div>';
+        });
+        html += '</div>';
+      }
+
+      // ── Class-by-class breakdown (collapsed) ──
       if (res.class_stats && res.class_stats.length > 0) {
         var classMap = {};
         $('.scope-chk').each(function(){
           var k = $(this).data('class')+'_'+$(this).data('section');
           classMap[k] = ($(this).data('class-name')||'Class '+$(this).data('class'))+' '+($(this).data('section-name')||'Sec '+$(this).data('section'));
         });
-        html += '<div style="margin-bottom:8px;"><strong style="font-size:12px;"><i class="fa fa-list"></i> Class-by-Class</strong>'
-          +'<div style="max-height:130px;overflow-y:auto;margin-top:4px;">';
+        var hasIncomplete = false;
+        $.each(res.class_stats, function(i, cs) {
+          if (cs.placed < cs.required) hasIncomplete = true;
+        });
+        html += '<div style="margin-bottom:12px;">'
+          + '<a data-toggle="collapse" href="#class-breakdown" style="font-size:13px;font-weight:600;cursor:pointer;">'
+          + '<i class="fa fa-list"></i> Class-by-Class Breakdown '
+          + (hasIncomplete ? '<span class="label label-warning">some incomplete</span>' : '<span class="label label-success">all complete</span>')
+          + ' <i class="fa fa-chevron-down" style="font-size:10px;"></i></a>'
+          + '<div class="collapse" id="class-breakdown" style="margin-top:6px;max-height:200px;overflow-y:auto;">';
         $.each(res.class_stats, function(i, cs){
           var pct   = cs.required > 0 ? Math.round(cs.placed/cs.required*100) : 100;
           var cl    = pct === 100 ? 'success' : (pct >= 70 ? 'warning' : 'danger');
           var label = classMap[cs.class_id+'_'+cs.section_id] || ('Class '+cs.class_id+' Sec '+cs.section_id);
-          html += '<div style="font-size:11px;display:flex;justify-content:space-between;padding:1px 0;">'
+          html += '<div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #f4f4f4;">'
             + '<span>'+label+'</span>'
             + '<span><span class="label label-'+cl+'">'+cs.placed+'/'+cs.required+' ('+pct+'%)</span></span></div>';
         });
         html += '</div></div>';
       }
 
-      // Separate real failures from On1 warnings
-      var realConflicts = [], on1Warnings = [];
-      $.each(res.conflicts || [], function(i, c){
-        if (c.type === 'on1') on1Warnings.push(c); else realConflicts.push(c);
-      });
-
-      if (realConflicts.length > 0) {
-        html += '<div class="alert alert-danger text-left" style="font-size:11px;max-height:160px;overflow-y:auto;">'
-          + '<strong><i class="fa fa-times-circle"></i> Unplaced (' + realConflicts.length + '):</strong><ul style="margin-top:5px;margin-bottom:0;">';
-        $.each(realConflicts, function(i, c){
-          html += '<li><strong>' + (c.subject||'') + '</strong> — ' + (c.staff||'') + '<br><small class="text-muted">' + (c.reason||'') + '</small></li>';
-        });
-        html += '</ul></div>';
-      }
-      if (on1Warnings.length > 0) {
-        html += '<div class="alert alert-info text-left" style="font-size:11px;max-height:100px;overflow-y:auto;opacity:0.85;">'
-          + '<strong><i class="fa fa-info-circle"></i> Min 1/Day Warnings (' + on1Warnings.length + '):</strong> '
-          + '<small>These subjects were placed but couldn\'t cover every working day.</small>'
-          + '<ul style="margin-top:4px;margin-bottom:0;">';
-        $.each(on1Warnings, function(i, c){
-          html += '<li><small>' + (c.subject||'') + ' — ' + (c.reason||'') + '</small></li>';
-        });
-        html += '</ul></div>';
-      }
-
+      // ── Action button ──
       if (!isDryRun) {
-        html += '<a href="<?php echo site_url('admin/tt/preview/'); ?>' + res.log_id + '" class="btn btn-primary btn-block btn-lg">'
-          + '<i class="fa fa-eye"></i> Review & Confirm</a>';
+        if (is100) {
+          html += '<a href="<?php echo site_url('admin/tt/preview/'); ?>' + res.log_id + '" class="btn btn-success btn-block btn-lg" style="margin-top:10px;">'
+            + '<i class="fa fa-eye"></i> Review & Confirm Timetable</a>';
+        } else {
+          html += '<a href="<?php echo site_url('admin/tt/preview/'); ?>' + res.log_id + '" class="btn btn-primary btn-block" style="margin-top:10px;">'
+            + '<i class="fa fa-eye"></i> Review Draft (' + res.quality_score + '% placed)</a>'
+            + '<p class="text-center text-muted" style="font-size:11px;margin-top:5px;">Fix the issues above and regenerate for a better result.</p>';
+        }
       }
 
       html += '</div>';
 
-      var icon = isDryRun ? '<i class="fa fa-flask text-info"></i> Test Result'
-                           : '<i class="fa fa-check text-success"></i> Generation Complete';
+      var icon = isDryRun
+        ? '<i class="fa fa-flask text-info"></i> Test Result'
+        : (is100 ? '<i class="fa fa-check-circle text-success"></i> Generation Complete'
+                  : '<i class="fa fa-exclamation-triangle text-warning"></i> Generation Complete — Issues Found');
       $('#result-header').find('.box-title').html(icon);
       $('#result-body').html(html);
       $('#result-box').show();

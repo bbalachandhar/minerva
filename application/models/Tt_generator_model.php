@@ -378,6 +378,7 @@ class Tt_generator_model extends MY_Model
             'quality_score'      => $quality,
             'conflicts'          => [],
             'unplaced'           => $result['unplaced'] ?? [],
+            'issues'             => $result['issues'] ?? [],
             'class_stats'        => $result['class_stats'] ?? [],
             'dry_run'            => $dry_run,
             'gap_filled_subject' => 0,
