@@ -803,6 +803,8 @@ def solve(data: dict) -> dict:
             super().__init__()
             self.solution_count = 0
             self.best_blocks = 0
+            self.best_time = time.time()
+            self.stagnation_limit = 60
         def on_solution_callback(self):
             self.solution_count += 1
             blocks = 0
@@ -816,11 +818,16 @@ def solve(data: dict) -> dict:
                 blocks += raw // c if c > 1 else raw
             if blocks > self.best_blocks:
                 self.best_blocks = blocks
+                self.best_time = time.time()
                 if self.solution_count <= 3 or blocks >= total_target_blocks - 3:
                     log.info("  Solution #%d: %d/%d blocks", self.solution_count, blocks, total_target_blocks)
             if blocks >= total_target_blocks:
-                log.info("Early stop: 100%% at solution #%d (%d/%d blocks)",
-                         self.solution_count, blocks, total_target_blocks)
+                log.info("Early stop: 100%% at solution #%d (%d/%d blocks) in %.1fs",
+                         self.solution_count, blocks, total_target_blocks, time.time() - t0)
+                self.StopSearch()
+            elif blocks >= total_target_blocks - 3 and time.time() - self.best_time > self.stagnation_limit:
+                log.info("Stagnation stop: %d/%d blocks, no improvement for %ds — repair will handle rest",
+                         blocks, total_target_blocks, self.stagnation_limit)
                 self.StopSearch()
 
     callback = StopAtFullPlacement()
