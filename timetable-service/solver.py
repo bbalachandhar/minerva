@@ -342,12 +342,16 @@ def solve(data: dict) -> dict:
                         model.add(x[i, d, p] == 0)
 
     # --- 2f. Max per day (per subject load) ---
+    # Per-subject max_per_day takes priority. The global max_same_subject_day
+    # only applies as a fallback when the subject doesn't set its own limit.
     for i, load in enumerate(loads):
-        max_day = load.get("max_per_day", 2)
-        if max_day is None or max_day <= 0:
+        max_day = load.get("max_per_day", 0)
+        if max_day and max_day > 0:
+            pass  # use the subject's own setting
+        elif max_same_subject_day and max_same_subject_day > 0:
+            max_day = max_same_subject_day
+        else:
             max_day = 2
-        if max_same_subject_day and max_same_subject_day > 0:
-            max_day = min(max_day, max_same_subject_day)
         for d in range(D):
             model.add(sum(x[i, d, p] for p in range(P)) <= max_day)
 
