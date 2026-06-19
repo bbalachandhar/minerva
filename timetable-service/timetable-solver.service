@@ -1,0 +1,16 @@
+[Unit]
+Description=Minerva Timetable Solver (OR-Tools CP-SAT)
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/var/www/timetable-service
+ExecStart=/var/www/timetable-service/venv/bin/uvicorn app:app --host 127.0.0.1 --port 5050 --workers 1
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
