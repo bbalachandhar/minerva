@@ -703,62 +703,12 @@ def solve(data: dict) -> dict:
                 break
 
     # ---------------------------------------------------------------
-    # 3. Objective (soft constraints)
+    # 3. Objective — PLACEMENT ONLY for speed
     # ---------------------------------------------------------------
-
-    obj_terms = []
-    WEIGHT_EVEN = 5
-    WEIGHT_EARLY = 1
-    WEIGHT_AVOID = 3
-
-    # --- 3a. Distribute evenly across days ---
-    for i, load in enumerate(loads):
-        if not load.get("distribute_evenly", False):
-            continue
-        ppw = load["periods_per_week"]
-        upper = (ppw + D - 1) // D  # ceil(ppw / D)
-        for d in range(D):
-            day_sum = sum(_x(i, d, p) for p in range(P))
-            excess = model.new_int_var(0, P, f"excess_{i}_{d}")
-            model.add(excess >= day_sum - upper)
-            obj_terms.append((-WEIGHT_EVEN, excess))
-
-    # --- 3b. Prefer earlier periods ---
-    for i in range(len(loads)):
-        for d in range(D):
-            for p in range(P):
-                obj_terms.append((WEIGHT_EARLY * (P - p), _x(i, d, p)))
-    for j in range(len(joints)):
-        for d in range(D):
-            for p in range(P):
-                obj_terms.append((WEIGHT_EARLY * (P - p), _jx(j, d, p)))
-
-    # --- 3c. Avoid first/last period for teachers ---
-    for tid in all_teacher_ids_in_model:
-        tc = _get_tc(tid)
-        if tc.get("avoid_first_period", False):
-            for d in range(D):
-                for var in teacher_contribs[tid].get((d, 0), []):
-                    obj_terms.append((-WEIGHT_AVOID, var))
-        if tc.get("avoid_last_period", False):
-            for d in range(D):
-                for var in teacher_contribs[tid].get((d, P - 1), []):
-                    obj_terms.append((-WEIGHT_AVOID, var))
-
-    # --- 3d. Spread joint lessons across days ---
-    for j, joint in enumerate(joints):
-        ppw = joint["periods_per_week"]
-        consec = joint.get("consecutive", 1)
-        if ppw >= 2:
-            upper = max(1, (ppw + D - 1) // D)
-            for d in range(D):
-                day_sum = sum(_jx(j, d, p) for p in range(P))
-                jexcess = model.new_int_var(0, P, f"jexcess_{j}_{d}")
-                model.add(jexcess >= day_sum - upper)
-                obj_terms.append((-WEIGHT_EVEN, jexcess))
-
-    all_obj = placement_vars + obj_terms
-    model.maximize(sum(w * v for w, v in all_obj))
+    # Stripped soft constraints (distribution, early period, avoid).
+    # These added 9000+ objective terms that slowed the solver massively.
+    # Quality is handled by max_per_day constraints + natural distribution.
+    model.maximize(sum(w * v for w, v in placement_vars))
 
     # ---------------------------------------------------------------
     # 4. Solve (with joint hints from pre-solve)
@@ -836,7 +786,8 @@ def solve(data: dict) -> dict:
     time_limit = data.get("time_limit", 120)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit
-    solver.parameters.num_workers = 4
+    solver.parameters.num_workers = 8
+    solver.parameters.log_search_progress = False
 
     _tick("solve_start")
     status = solver.Solve(model, callback)
