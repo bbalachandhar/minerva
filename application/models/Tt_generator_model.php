@@ -112,16 +112,15 @@ class Tt_generator_model extends MY_Model
         if (empty($periods)) return ['status' => '0', 'message' => 'No period slots configured.'];
 
         // Class labels for human-readable solver diagnostics
-        $class_ids = array_unique(array_column($class_scope, 'class_id'));
         $class_labels = [];
-        if (!empty($class_ids)) {
-            $rows = $this->db->select('classes.id as class_id, sections.id as section_id, classes.class, sections.section')
+        foreach ($class_scope as $cs) {
+            $r = $this->db->select('classes.class, sections.section')
                 ->from('classes')
-                ->join('sections', 'sections.id IN (' . implode(',', array_unique(array_column($class_scope, 'section_id'))) . ')', 'cross')
-                ->where_in('classes.id', $class_ids)
-                ->get()->result();
-            foreach ($rows as $r) {
-                $class_labels[$r->class_id . '_' . $r->section_id] = trim($r->class . ' ' . $r->section);
+                ->join('sections', 'sections.id = ' . (int)$cs['section_id'])
+                ->where('classes.id', (int)$cs['class_id'])
+                ->get()->row();
+            if ($r) {
+                $class_labels[$cs['class_id'] . '_' . $cs['section_id']] = trim($r->class . ' ' . $r->section);
             }
         }
 
@@ -140,6 +139,7 @@ class Tt_generator_model extends MY_Model
                 'sgs_id'             => (int)$l->subject_group_subject_id,
                 'sg_id'              => (int)$l->subject_group_id,
                 'subject_name'       => $l->subject_name ?? '',
+                'teacher_name'       => trim(($l->staff_name ?? '') . ' ' . ($l->staff_surname ?? '')),
                 'periods_per_week'   => (int)$l->periods_per_week,
                 'consecutive'        => max(1, (int)($l->consecutive_periods ?? 1)),
                 'teacher_ids'        => array_values(array_map('intval', $teacher_ids)),

@@ -213,7 +213,20 @@ class Tt_joint_model extends MY_Model
             $class_id   = (int) $cs['class_id'];
             $section_id = (int) $cs['section_id'];
 
-            if (!isset($sgs_map[$class_id])) continue; // subject not in this class's group — skip
+            if (!isset($sgs_map[$class_id])) {
+                // Subject not in this class's curriculum — auto-create the entry
+                $sg_row = $this->db->where('session_id', $session_id)
+                    ->where('class_id', $class_id)
+                    ->get('subject_groups')->row();
+                if (!$sg_row) continue;
+                $this->db->insert('subject_group_subjects', [
+                    'subject_group_id' => (int) $sg_row->id,
+                    'subject_id'       => $subject_id,
+                    'session_id'       => $session_id,
+                ]);
+                $new_sgs_id = $this->db->insert_id();
+                $sgs_map[$class_id] = ['sgs_id' => $new_sgs_id, 'sg_id' => (int) $sg_row->id];
+            }
 
             $sgs_id = $sgs_map[$class_id]['sgs_id'];
             $sg_id  = $sgs_map[$class_id]['sg_id'];
