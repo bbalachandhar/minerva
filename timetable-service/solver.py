@@ -454,17 +454,21 @@ def solve(data: dict) -> dict:
     # --- 2a-joint. Total periods per joint lesson + consecutive + fixed slots ---
     # Joints with 3+ classes use HARD placement (== ppw) because:
     # - They need ALL classes free simultaneously (hardest constraint)
-    # All joints use soft placement (<=) with JOINT_WEIGHT=100k (10× regular).
-    # Hard (==) was tried but reduced solution quality (805 vs 806).
+    # Joints with 3+ classes: HARD (== ppw) — guarantees placement.
+    # Joints with 1-2 classes: SOFT (<= ppw) with JOINT_WEIGHT=100k.
+    # 100% was achieved with hard joints + teacher max_per_week=40.
     joint_block_starts_all = {}
     for j, joint in enumerate(joints):
         ppw = joint["periods_per_week"]
         consec = joint.get("consecutive", 1)
+        n_classes = len(joint.get("classes", []))
+        hard_joint = n_classes >= 3
         total_j = sum(_jx(j, d, p) for d in range(D) for p in range(P))
-        placement_vars.append((JOINT_WEIGHT, total_j))
+        if not hard_joint:
+            placement_vars.append((JOINT_WEIGHT, total_j))
 
         if consec <= 1:
-            model.add(total_j <= ppw)
+            model.add(total_j == ppw if hard_joint else total_j <= ppw)
         else:
             num_blocks = ppw // consec
             jblock_starts = {}
@@ -475,7 +479,8 @@ def solve(data: dict) -> dict:
                     for k in range(consec):
                         model.add_implication(bs, _jx(j, d, sp + k))
             joint_block_starts_all.update(jblock_starts)
-            model.add(sum(v for v in jblock_starts.values()) <= num_blocks)
+            model.add(sum(v for v in jblock_starts.values()) == num_blocks if hard_joint
+                      else sum(v for v in jblock_starts.values()) <= num_blocks)
             for d in range(D):
                 for p in range(P):
                     covering = []
@@ -483,7 +488,7 @@ def solve(data: dict) -> dict:
                         if (j, d, sp) in jblock_starts:
                             covering.append(jblock_starts[j, d, sp])
                     model.add(_jx(j, d, p) <= (sum(covering) if covering else 0))
-            model.add(total_j <= ppw)
+            model.add(total_j == ppw if hard_joint else total_j <= ppw)
 
         # Fixed slots: admin-pinned day+period(s) for specific placements
         fixed_slots = joint.get("fixed_slots")
