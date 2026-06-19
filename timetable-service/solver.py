@@ -208,6 +208,7 @@ def solve(data: dict) -> dict:
     block_starts_all = {}
     placement_vars = []  # (weight, var) to add to objective
     PLACE_WEIGHT = 10000
+    JOINT_WEIGHT = 100000  # 10× regular — joints get absolute priority
 
     for i, load in enumerate(loads):
         ppw = load["periods_per_week"]
@@ -248,7 +249,7 @@ def solve(data: dict) -> dict:
         ppw = joint["periods_per_week"]
         consec = joint.get("consecutive", 1)
         total_j = sum(_jx(j, d, p) for d in range(D) for p in range(P))
-        placement_vars.append((PLACE_WEIGHT, total_j))
+        placement_vars.append((JOINT_WEIGHT, total_j))
 
         if consec <= 1:
             model.add(total_j <= ppw)

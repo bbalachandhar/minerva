@@ -144,6 +144,40 @@ def generate(req: GenerateRequest):
     return result
 
 
+@app.post("/debug-joints")
+def debug_joints(req: GenerateRequest):
+    """Solve ONLY joint lessons (no regular subjects) to check if they can coexist."""
+    log.info("DEBUG-JOINTS: %d joints, %d days × %d periods",
+             len(req.joint_lessons), len(req.working_days), len(req.periods))
+    data = {
+        "working_days": req.working_days,
+        "periods": [p.model_dump() for p in req.periods],
+        "subject_loads": [],
+        "joint_lessons": [j.model_dump() for j in req.joint_lessons],
+        "teacher_constraints": req.teacher_constraints,
+        "teacher_unavailability": req.teacher_unavailability,
+        "class_unavailability": req.class_unavailability,
+        "subject_unavailability": req.subject_unavailability,
+        "locked_entries": [],
+        "class_labels": req.class_labels,
+        "settings": req.settings.model_dump(),
+        "time_limit": 30,
+    }
+    try:
+        result = solver.solve(data)
+    except Exception as e:
+        log.exception("Debug-joints error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    log.info("DEBUG-JOINTS result: %s quality=%.2f placed=%d/%d in %.1fs",
+             result.get("status"), result.get("quality", 0),
+             result.get("total_placed", 0), result.get("total_required", 0),
+             result.get("solve_time_seconds", 0))
+    for u in result.get("unplaced", []):
+        log.info("  UNPLACED: %s", u.get("reason", u))
+    return result
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=5050)
