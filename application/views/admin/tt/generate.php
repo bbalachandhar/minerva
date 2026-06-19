@@ -108,28 +108,17 @@
           </div>
 
           <hr>
-          <!-- Complexity & Strictness -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label><i class="fa fa-tachometer"></i> Generation Size</label>
-                <div class="btn-group btn-group-justified gen-radio-group" data-toggle="buttons">
-                  <label class="btn btn-default active"><input type="radio" name="gen_size" value="normal" checked> Normal</label>
-                  <label class="btn btn-default"><input type="radio" name="gen_size" value="large"> Large</label>
-                  <label class="btn btn-default"><input type="radio" name="gen_size" value="huge"> Huge</label>
-                </div>
-                <small class="text-muted" id="gen-size-hint">Quick single pass — good for most timetables.</small>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label><i class="fa fa-sliders"></i> Constraint Strictness</label>
-                <div class="btn-group btn-group-justified gen-radio-group" data-toggle="buttons">
-                  <label class="btn btn-default"><input type="radio" name="gen_strictness" value="relaxed"> Relaxed</label>
-                  <label class="btn btn-default active"><input type="radio" name="gen_strictness" value="normal" checked> Normal</label>
-                  <label class="btn btn-default"><input type="radio" name="gen_strictness" value="strict"> Strict</label>
-                </div>
-                <small class="text-muted" id="gen-strict-hint">Balanced constraint enforcement.</small>
+                <label><i class="fa fa-clock-o"></i> Solver Time Limit</label>
+                <select class="form-control" name="time_limit">
+                  <option value="60">60 seconds — Quick (small schools, few joints)</option>
+                  <option value="120">120 seconds — Standard</option>
+                  <option value="180" selected>180 seconds — Recommended (most schools)</option>
+                  <option value="300">300 seconds — Maximum (complex, 48/48 packed classes)</option>
+                </select>
+                <small class="text-muted">More time = better quality. Schools with zero free periods may need 300s.</small>
               </div>
             </div>
           </div>

@@ -1347,25 +1347,21 @@ class Tt extends Admin_Controller
 
     public function run_generate()
     {
-        set_time_limit(300);
+        set_time_limit(600);
         if (!$this->rbac->hasPrivilege('tt_generate', 'can_add')) {
             access_denied();
         }
         $session_id    = $this->setting_model->getCurrentSession();
         $staff_id      = $this->customlib->getStaffID();
-        $class_scope   = json_decode($this->input->post('class_scope'), true); // array of {class_id, section_id}
-        $gen_size_raw       = $this->input->post('gen_size');
-        $gen_strictness_raw = $this->input->post('gen_strictness');
-        $valid_sizes        = ['normal', 'large', 'huge'];
-        $valid_strict       = ['relaxed', 'normal', 'strict'];
+        $class_scope   = json_decode($this->input->post('class_scope'), true);
+        $time_limit    = max(60, min(300, (int) $this->input->post('time_limit') ?: 180));
         $settings      = [
             'allow_saturday'           => (int) $this->input->post('allow_saturday'),
             'max_same_subject_day'     => (int) $this->input->post('max_same_subject_day') ?: 1,
             'spread_evenly'            => (int) $this->input->post('spread_evenly'),
             'fill_free_periods'        => (int) $this->input->post('fill_free_periods'),
             'respect_soft_constraints' => 1,
-            'gen_size'                 => in_array($gen_size_raw, $valid_sizes) ? $gen_size_raw : 'normal',
-            'gen_strictness'           => in_array($gen_strictness_raw, $valid_strict) ? $gen_strictness_raw : 'normal',
+            'time_limit'               => $time_limit,
         ];
 
         $result = $this->Tt_generator_model->generate($session_id, $staff_id, $class_scope, $settings);
@@ -2644,24 +2640,20 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
 
     public function test_generate()
     {
-        set_time_limit(300);
+        set_time_limit(600);
         if (!$this->rbac->hasPrivilege('tt_generate', 'can_view')) {
             access_denied();
         }
-        $session_id         = $this->setting_model->getCurrentSession();
-        $class_scope        = json_decode($this->input->post('class_scope'), true);
-        $gen_size_raw       = $this->input->post('gen_size');
-        $gen_strictness_raw = $this->input->post('gen_strictness');
-        $valid_sizes        = ['normal', 'large', 'huge'];
-        $valid_strict       = ['relaxed', 'normal', 'strict'];
+        $session_id  = $this->setting_model->getCurrentSession();
+        $class_scope = json_decode($this->input->post('class_scope'), true);
+        $time_limit  = max(60, min(300, (int) $this->input->post('time_limit') ?: 180));
         $settings    = [
             'allow_saturday'           => (int) $this->input->post('allow_saturday'),
             'max_same_subject_day'     => (int) $this->input->post('max_same_subject_day') ?: 1,
             'spread_evenly'            => (int) $this->input->post('spread_evenly'),
             'fill_free_periods'        => (int) $this->input->post('fill_free_periods'),
             'respect_soft_constraints' => 1,
-            'gen_size'                 => in_array($gen_size_raw, $valid_sizes) ? $gen_size_raw : 'normal',
-            'gen_strictness'           => in_array($gen_strictness_raw, $valid_strict) ? $gen_strictness_raw : 'normal',
+            'time_limit'               => $time_limit,
         ];
         $result = $this->Tt_generator_model->testGenerate($session_id, $class_scope, $settings);
         echo json_encode($result);
