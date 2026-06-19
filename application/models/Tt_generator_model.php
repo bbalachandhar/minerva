@@ -277,7 +277,7 @@ class Tt_generator_model extends MY_Model
                 'max_same_subject_day' => (int)($settings['max_same_subject_day'] ?? 1),
                 'fill_free_periods'    => !empty($settings['fill_free_periods']),
             ],
-            'time_limit' => 30,
+            'time_limit' => 120,
         ]);
 
         $ch = curl_init($url);
