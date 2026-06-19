@@ -781,23 +781,29 @@ def solve(data: dict) -> dict:
                              sum(jt["periods_per_week"] for jt in joints)
 
     class StopAtFullPlacement(cp_model.CpSolverSolutionCallback):
-        def __init__(self, x_vars, jx_vars):
+        def __init__(self, x_vars, jx_vars, target):
             super().__init__()
             self.solution_count = 0
             self.x_keys = list(x_vars.keys())
             self.x_vars = x_vars
             self.jx_keys = list(jx_vars.keys())
             self.jx_vars = jx_vars
+            self.target = target
+            self.best_placed = 0
         def on_solution_callback(self):
             self.solution_count += 1
-            placed = sum(1 for k in self.x_keys if self.value(self.x_vars[k]))
-            placed += sum(1 for k in self.jx_keys if self.value(self.jx_vars[k]))
-            if placed >= total_required_periods:
-                log.info("Early stop: 100%% at solution #%d (%d/%d placed)",
-                         self.solution_count, placed, total_required_periods)
-                self.stop_search()
+            placed = sum(1 for k in self.x_keys if self.Value(self.x_vars[k]))
+            placed += sum(1 for k in self.jx_keys if self.Value(self.jx_vars[k]))
+            if placed > self.best_placed:
+                self.best_placed = placed
+                if self.solution_count <= 5 or placed >= self.target - 5:
+                    log.info("  Solution #%d: %d/%d placed", self.solution_count, placed, self.target)
+            if placed >= self.target:
+                log.info("Early stop: 100%% at solution #%d (%d/%d)", self.solution_count, placed, self.target)
+                self.StopSearch()
 
-    callback = StopAtFullPlacement(x, jx)
+    callback = StopAtFullPlacement(x, jx, total_required_periods)
+    log.info("Target: %d total periods to place", total_required_periods)
 
     time_limit = data.get("time_limit", 120)
     solver = cp_model.CpSolver()
@@ -805,7 +811,7 @@ def solve(data: dict) -> dict:
     solver.parameters.num_workers = 4
 
     _tick("solve_start")
-    status = solver.solve(model, callback)
+    status = solver.Solve(model, callback)
     _tick("solve_end")
     solve_time = time.time() - t0
 
