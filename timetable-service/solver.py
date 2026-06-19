@@ -767,24 +767,30 @@ def solve(data: dict) -> dict:
              model.proto.constraints.__len__() if hasattr(model.proto, 'constraints') else 0,
              len(all_obj))
 
-    # Pre-solve joints only to get optimal placements, then hint them
+    # Pre-solve joints only, then LOCK their placements in the full model.
+    # Debug proved all 45 joints place at 100% alone (4.3s OPTIMAL).
+    # Locking guarantees joints keep their slots; regular subjects (with
+    # max_per_day+1 flexibility) fill around them.
     if joints:
         _tick("joint_presolve")
         jresult = _solve_joints_only(data, days, period_ids, D, P, day_idx, pid_idx,
                                      joints, tc_map, t_unavail, c_unavail, default_tc)
         if jresult:
-            hinted = 0
+            locked_count = 0
             for j in range(len(joints)):
                 placed = set(jresult["slots"].get(j, []))
                 for d in range(D):
                     for p in range(P):
                         key = (j, d, p)
                         if key in jx:
-                            model.add_hint(jx[key], 1 if (d, p) in placed else 0)
-                            hinted += 1
-            log.info("Joint pre-solve: hinted %d jx vars from optimal joint placement", hinted)
+                            if (d, p) in placed:
+                                model.add(jx[key] == 1)
+                            else:
+                                model.add(jx[key] == 0)
+                            locked_count += 1
+            log.info("Joint pre-solve: LOCKED %d jx vars (all joints placed)", locked_count)
         else:
-            log.info("Joint pre-solve: infeasible (no hints)")
+            log.info("Joint pre-solve: infeasible — joints use soft placement")
         _tick("hints_done")
 
     time_limit = data.get("time_limit", 120)
