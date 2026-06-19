@@ -251,15 +251,17 @@ $(function(){
         setTimeout(function(){ $('#btn-save-loads, #btn-save-loads-bottom').html('<i class="fa fa-save"></i> Save All').removeClass('btn-success'); }, 5000);
         updateStatusBadge();
         if (res.warning) {
-          alert('⚠ ' + res.warning);
+          showSlAlert('warning', 'Saved with Warnings', res.warning);
+        } else {
+          toastr.success('Subject loads saved successfully.', '', {timeOut:3000, positionClass:'toast-top-right'});
         }
       } else {
-        alert(res.message || 'Error saving. Please try again.');
+        showSlAlert('error', 'Cannot Save', res.message || 'Error saving. Please try again.');
         $btn.html('<i class="fa fa-save"></i> Save All');
       }
     },'json').fail(function(xhr, status, err){
       $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save All');
-      alert('Network error: ' + (err || status) + '. Please try again.');
+      toastr.error('Network error: ' + (err || status), '', {timeOut:5000, positionClass:'toast-top-right'});
     });
   }
 
@@ -408,5 +410,38 @@ $(function(){
     }
   });
 });
+
+function showSlAlert(type, title, message) {
+  var icon, color, bgColor, borderColor;
+  if (type === 'error') {
+    icon = 'fa-times-circle'; color = '#c0392b'; bgColor = '#fdf2f2'; borderColor = '#e74c3c';
+  } else if (type === 'warning') {
+    icon = 'fa-exclamation-triangle'; color = '#e67e22'; bgColor = '#fef9e7'; borderColor = '#f0ad4e';
+  } else if (type === 'success') {
+    icon = 'fa-check-circle'; color = '#27ae60'; bgColor = '#eafaf1'; borderColor = '#2ecc71';
+  } else {
+    icon = 'fa-info-circle'; color = '#2980b9'; bgColor = '#ebf5fb'; borderColor = '#3498db';
+  }
+  var lines = (message || '').split('\n\n');
+  var bodyHtml = '';
+  for (var i = 0; i < lines.length; i++) {
+    bodyHtml += '<div style="margin-bottom:8px;padding:10px 14px;background:#fff;border-left:4px solid '
+      + borderColor + ';border-radius:3px;font-size:13px;line-height:1.5;">'
+      + lines[i].replace(/\n/g, '<br>') + '</div>';
+  }
+  var html = '<div class="modal fade" id="sl-alert-modal" tabindex="-1">'
+    + '<div class="modal-dialog"><div class="modal-content">'
+    + '<div class="modal-header" style="background:' + bgColor + ';border-bottom:2px solid ' + borderColor + ';">'
+    + '<button type="button" class="close" data-dismiss="modal">&times;</button>'
+    + '<h4 class="modal-title" style="color:' + color + ';"><i class="fa ' + icon + '"></i> ' + title + '</h4>'
+    + '</div>'
+    + '<div class="modal-body" style="padding:15px;">' + bodyHtml + '</div>'
+    + '<div class="modal-footer">'
+    + '<button type="button" class="btn btn-default" data-dismiss="modal">OK</button>'
+    + '</div></div></div></div>';
+  $('#sl-alert-modal').remove();
+  $('body').append(html);
+  $('#sl-alert-modal').modal('show');
+}
 </script>
 </div>
