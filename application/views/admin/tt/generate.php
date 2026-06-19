@@ -113,12 +113,13 @@
               <div class="form-group">
                 <label><i class="fa fa-clock-o"></i> Solver Time Limit</label>
                 <select class="form-control" name="time_limit">
-                  <option value="60">60 seconds — Quick (small schools, few joints)</option>
-                  <option value="120">120 seconds — Standard</option>
-                  <option value="180" selected>180 seconds — Recommended (most schools)</option>
-                  <option value="300">300 seconds — Maximum (complex, 48/48 packed classes)</option>
+                  <option value="60">1 min — Quick (small schools)</option>
+                  <option value="120">2 min — Standard</option>
+                  <option value="180" selected>3 min — Recommended</option>
+                  <option value="300">5 min — Thorough</option>
+                  <option value="600">10 min — Maximum (very complex schools)</option>
                 </select>
-                <small class="text-muted">More time = better quality. Schools with zero free periods may need 300s.</small>
+                <small class="text-muted">More time = better quality. Schools with zero free periods may need 5-10 min.</small>
               </div>
             </div>
           </div>

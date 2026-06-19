@@ -1354,7 +1354,7 @@ class Tt extends Admin_Controller
         $session_id    = $this->setting_model->getCurrentSession();
         $staff_id      = $this->customlib->getStaffID();
         $class_scope   = json_decode($this->input->post('class_scope'), true);
-        $time_limit    = max(60, min(300, (int) $this->input->post('time_limit') ?: 180));
+        $time_limit    = max(60, min(600, (int) $this->input->post('time_limit') ?: 180));
         $settings      = [
             'allow_saturday'           => (int) $this->input->post('allow_saturday'),
             'max_same_subject_day'     => (int) $this->input->post('max_same_subject_day') ?: 1,
@@ -2646,7 +2646,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         }
         $session_id  = $this->setting_model->getCurrentSession();
         $class_scope = json_decode($this->input->post('class_scope'), true);
-        $time_limit  = max(60, min(300, (int) $this->input->post('time_limit') ?: 180));
+        $time_limit  = max(60, min(600, (int) $this->input->post('time_limit') ?: 180));
         $settings    = [
             'allow_saturday'           => (int) $this->input->post('allow_saturday'),
             'max_same_subject_day'     => (int) $this->input->post('max_same_subject_day') ?: 1,
