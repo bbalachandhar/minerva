@@ -767,8 +767,27 @@ def solve(data: dict) -> dict:
              model.proto.constraints.__len__() if hasattr(model.proto, 'constraints') else 0,
              len(all_obj))
 
+    # Hint joint placements from a fast pre-solve (4s, OPTIMAL).
+    # Combined with JOINT_WEIGHT=100k, solver starts from proven-good
+    # joint arrangement and explores around it.
+    if joints:
+        _tick("joint_presolve")
+        jresult = _solve_joints_only(data, days, period_ids, D, P, day_idx, pid_idx,
+                                     joints, tc_map, t_unavail, c_unavail, default_tc)
+        if jresult:
+            hinted = 0
+            for j in range(len(joints)):
+                placed_set = set(jresult["slots"].get(j, []))
+                for d in range(D):
+                    for p in range(P):
+                        key = (j, d, p)
+                        if key in jx:
+                            model.add_hint(jx[key], 1 if (d, p) in placed_set else 0)
+                            hinted += 1
+            log.info("Joint pre-solve: hinted %d jx vars from OPTIMAL solution", hinted)
+        _tick("hints_done")
+
     # Early termination: stop solver when 100% placement is found.
-    # Count actual placements (not objective value, which includes soft bonuses).
     total_required_periods = sum(ld["periods_per_week"] for ld in loads) + \
                              sum(jt["periods_per_week"] for jt in joints)
 
