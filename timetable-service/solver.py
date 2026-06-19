@@ -789,24 +789,59 @@ def solve(data: dict) -> dict:
                          self.solution_count, placed, total_required_periods)
                 self.stop_search()
 
-    callback = StopAtFullPlacement(x, jx)
-
     time_limit = data.get("time_limit", 120)
-    solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = time_limit
-    solver.parameters.num_workers = 4
+    max_attempts = 3
+    per_attempt = max(60, time_limit // max_attempts)
+    best_solver = None
+    best_placed = -1
+    best_callback = None
+    total_solutions = 0
 
-    _tick("solve_start")
-    status = solver.solve(model, callback)
+    for attempt in range(max_attempts):
+        elapsed = time.time() - t0
+        remaining = time_limit - elapsed + 5  # +5s buffer for overhead
+        if remaining < 30:
+            break
+        attempt_limit = min(per_attempt, remaining)
+
+        cb = StopAtFullPlacement(x, jx)
+        s = cp_model.CpSolver()
+        s.parameters.max_time_in_seconds = attempt_limit
+        s.parameters.num_workers = 4
+        if attempt > 0:
+            s.parameters.random_seed = attempt * 42
+
+        st = s.solve(model, cb)
+        total_solutions += cb.solution_count
+
+        if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            continue
+
+        placed = sum(1 for k in x if s.value(x[k])) + sum(1 for k in jx if s.value(jx[k]))
+
+        log.info("Attempt %d/%d: %d/%d placed in %.0fs (%d solutions, status=%s)",
+                 attempt + 1, max_attempts, placed, total_required_periods,
+                 time.time() - t0 - elapsed, cb.solution_count, s.status_name(st))
+
+        if placed > best_placed:
+            best_placed = placed
+            best_solver = s
+            best_callback = cb
+
+        if placed >= total_required_periods:
+            log.info("100%% found on attempt %d — stopping", attempt + 1)
+            break
+
+    solver = best_solver
+    callback = best_callback or StopAtFullPlacement(x, jx)
+    status = cp_model.FEASIBLE if solver else cp_model.INFEASIBLE
+
     _tick("solve_end")
     solve_time = time.time() - t0
 
-    log.info("Solve: %.1fs (build=%.1fs, solve=%.1fs), status=%s, solutions=%d",
-             solve_time,
-             timings["model_built"] - timings["start"],
-             timings["solve_end"] - timings["solve_start"],
-             solver.status_name(status),
-             callback.solution_count)
+    log.info("Solve: %.1fs, best=%d/%d, attempts=%d, total_solutions=%d",
+             solve_time, best_placed, total_required_periods,
+             min(attempt + 1, max_attempts), total_solutions)
 
     # ---------------------------------------------------------------
     # 5. Extract solution
