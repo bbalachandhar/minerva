@@ -1035,31 +1035,86 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
                      day_idx, pid_idx, tc_map, default_tc, labels,
                      pool_load_set, joint_pool_set,
                      solver, x, jx, teacher_pick, joint_teacher_pick):
-    """Post-solve local search: try to place unplaced entries by finding free slots
-    or swapping with flexible entries."""
+    """Post-solve cascading repair: direct → 1-level swap → 2-level swap → joint swap."""
 
-    # Build occupancy maps from the solver's solution
-    class_occ = {}   # (class_id, section_id, d, p) -> entry index in entries list
-    teacher_occ = {} # (staff_id, d, p) -> True
-    teacher_day_count = {}  # staff_id -> {d: count}
-    teacher_week_count = {} # staff_id -> count
+    class_occ = {}
+    teacher_occ = {}
+    teacher_day_count = {}
+    teacher_week_count = {}
 
     for ei, e in enumerate(entries):
-        ck = (e["class_id"], e["section_id"])
-        d_idx = day_idx.get(e["day"])
-        p_idx = pid_idx.get(e["period_id"])
-        if d_idx is not None and p_idx is not None:
-            class_occ[(ck[0], ck[1], d_idx, p_idx)] = ei
-            if e["staff_id"]:
-                teacher_occ[(e["staff_id"], d_idx, p_idx)] = True
-                teacher_day_count.setdefault(e["staff_id"], {})
-                teacher_day_count[e["staff_id"]][d_idx] = teacher_day_count[e["staff_id"]].get(d_idx, 0) + 1
-                teacher_week_count[e["staff_id"]] = teacher_week_count.get(e["staff_id"], 0) + 1
+        d = day_idx.get(e["day"])
+        p = pid_idx.get(e["period_id"])
+        if d is None or p is None:
+            continue
+        class_occ[(e["class_id"], e["section_id"], d, p)] = ei
+        if e["staff_id"]:
+            teacher_occ[(e["staff_id"], d, p)] = True
+            teacher_day_count.setdefault(e["staff_id"], {})
+            teacher_day_count[e["staff_id"]][d] = teacher_day_count[e["staff_id"]].get(d, 0) + 1
+            teacher_week_count[e["staff_id"]] = teacher_week_count.get(e["staff_id"], 0) + 1
 
     def _get_tc(tid):
         return tc_map.get(str(tid), default_tc)
 
-    # Build joint lookup for repair
+    def _can_teach(tid, d):
+        tc = _get_tc(tid)
+        md = (tc.get("max_per_day", 6) or 6) + 1
+        return teacher_day_count.get(tid, {}).get(d, 0) < md
+
+    def _find_blocker(staff_id, d, p):
+        for bi, be in enumerate(entries):
+            if (be["staff_id"] == staff_id
+                    and day_idx.get(be["day"]) == d
+                    and pid_idx.get(be["period_id"]) == p):
+                return bi, be
+        return None, None
+
+    def _can_relocate(be, from_d, from_p):
+        """Find a free slot for entry be (excluding its current slot)."""
+        b_cid, b_sid, b_staff = be["class_id"], be["section_id"], be["staff_id"]
+        for d2 in range(D):
+            if not _can_teach(b_staff, d2) and d2 != from_d:
+                continue
+            for p2 in range(P):
+                if d2 == from_d and p2 == from_p:
+                    continue
+                if (b_cid, b_sid, d2, p2) in class_occ:
+                    continue
+                if (b_staff, d2, p2) in teacher_occ:
+                    continue
+                return d2, p2
+        return None, None
+
+    def _do_move(entry_idx, entry, from_d, from_p, to_d, to_p):
+        """Move an entry from one slot to another, updating all maps."""
+        cid, sid, staff = entry["class_id"], entry["section_id"], entry["staff_id"]
+        del class_occ[(cid, sid, from_d, from_p)]
+        if staff:
+            del teacher_occ[(staff, from_d, from_p)]
+            teacher_day_count[staff][from_d] -= 1
+        entries[entry_idx]["day"] = days[to_d]
+        entries[entry_idx]["period_id"] = period_ids[to_p]
+        class_occ[(cid, sid, to_d, to_p)] = entry_idx
+        if staff:
+            teacher_occ[(staff, to_d, to_p)] = True
+            teacher_day_count.setdefault(staff, {})[to_d] = teacher_day_count.get(staff, {}).get(to_d, 0) + 1
+
+    def _place_new(cid, sid, staff_id, d, p, sg_id=0, sgs_id=0, batch_id=None):
+        """Place a new entry and update maps."""
+        entries.append({
+            "class_id": cid, "section_id": sid,
+            "subject_group_id": sg_id, "subject_group_subject_id": sgs_id,
+            "staff_id": staff_id, "period_id": period_ids[p], "day": days[d],
+            "room_id": None, "batch_id": batch_id,
+            "is_free_period": 0, "free_period_label": None,
+        })
+        class_occ[(cid, sid, d, p)] = len(entries) - 1
+        if staff_id:
+            teacher_occ[(staff_id, d, p)] = True
+            teacher_day_count.setdefault(staff_id, {})[d] = teacher_day_count.get(staff_id, {}).get(d, 0) + 1
+            teacher_week_count[staff_id] = teacher_week_count.get(staff_id, 0) + 1
+
     joint_by_name = {}
     for j, joint in enumerate(joints):
         joint_by_name[joint.get("name", "")] = joint
@@ -1067,18 +1122,13 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
     repaired = 0
     still_unplaced = []
 
-    # Process regular subjects first, then joints
     regular_unplaced = [u for u in unplaced if "(Joint)" not in u.get("subject", "")]
     joint_unplaced = [u for u in unplaced if "(Joint)" in u.get("subject", "")]
 
     for u in regular_unplaced + joint_unplaced:
-        cid = u.get("class_id", 0)
-        sid = u.get("section_id", 0)
-        staff_id = u.get("staff_id")
         is_joint = "(Joint)" in u.get("subject", "")
 
         if is_joint:
-            # Joint repair: find slot where ALL classes + teacher are free
             joint_name = u.get("subject", "").replace(" (Joint)", "")
             joint = joint_by_name.get(joint_name)
             if not joint:
@@ -1093,174 +1143,156 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
                 if placed:
                     break
                 for p in range(P):
-                    # Check ALL classes free
-                    all_free = True
-                    for jc, js in j_classes:
-                        if (jc, js, d, p) in class_occ:
-                            all_free = False
-                            break
-                    if not all_free:
+                    all_classes_free = all((jc, js, d, p) not in class_occ for jc, js in j_classes)
+                    if not all_classes_free:
                         continue
-                    # Check teacher(s) free
-                    teacher_ok = True
-                    for tid in j_tids:
-                        if (tid, d, p) in teacher_occ:
-                            teacher_ok = False
+
+                    # Check teachers — direct free
+                    all_teachers_free = all(
+                        (tid, d, p) not in teacher_occ and _can_teach(tid, d)
+                        for tid in j_tids
+                    )
+                    if all_teachers_free:
+                        for jc, js in j_classes:
+                            _place_new(jc, js, j_staff, d, p)
+                        repaired += 1
+                        placed = True
+                        log.info("  REPAIR-JOINT: placed %s at %s p%d", joint_name, days[d], period_ids[p])
+                        break
+
+                    # Teachers blocked — try swapping each blocker
+                    if not placed:
+                        blockers = []
+                        can_swap_all = True
+                        for tid in j_tids:
+                            if (tid, d, p) not in teacher_occ:
+                                continue
+                            bi, be = _find_blocker(tid, d, p)
+                            if not be:
+                                can_swap_all = False
+                                break
+                            rd, rp = _can_relocate(be, d, p)
+                            if rd is None:
+                                can_swap_all = False
+                                break
+                            blockers.append((bi, be, d, p, rd, rp))
+                        if can_swap_all and blockers:
+                            for bi, be, fd, fp, td, tp in blockers:
+                                _do_move(bi, be, fd, fp, td, tp)
+                                log.info("  REPAIR-JSWAP: moved teacher %s entry to %s p%d",
+                                         be["staff_id"], days[td], period_ids[tp])
+                            for jc, js in j_classes:
+                                _place_new(jc, js, j_staff, d, p)
+                            repaired += 1
+                            placed = True
+                            log.info("  REPAIR-JSWAP: placed %s at %s p%d", joint_name, days[d], period_ids[p])
                             break
-                        tc = _get_tc(tid)
-                        md = (tc.get("max_per_day", 6) or 6) + 1
-                        if teacher_day_count.get(tid, {}).get(d, 0) >= md:
-                            teacher_ok = False
-                            break
-                    if not teacher_ok:
-                        continue
-                    # Place joint entry for all classes
-                    for jc, js in j_classes:
-                        entries.append({
-                            "class_id": jc, "section_id": js,
-                            "subject_group_id": 0, "subject_group_subject_id": 0,
-                            "staff_id": j_staff, "period_id": period_ids[p],
-                            "day": days[d], "room_id": None, "batch_id": None,
-                            "is_free_period": 0, "free_period_label": None,
-                        })
-                        class_occ[(jc, js, d, p)] = len(entries) - 1
-                    for tid in j_tids:
-                        teacher_occ[(tid, d, p)] = True
-                        teacher_day_count.setdefault(tid, {})[d] = teacher_day_count.get(tid, {}).get(d, 0) + 1
-                        teacher_week_count[tid] = teacher_week_count.get(tid, 0) + 1
-                    repaired += 1
-                    placed = True
-                    log.info("  REPAIR-JOINT: placed %s at %s period %d", joint_name, days[d], period_ids[p])
-                    break
+
             if not placed:
                 still_unplaced.append(u)
             continue
 
+        # Regular subject repair
+        cid = u.get("class_id", 0)
+        sid = u.get("section_id", 0)
+        staff_id = u.get("staff_id")
         if not staff_id:
             still_unplaced.append(u)
             continue
 
-        tc = _get_tc(staff_id)
-        max_day = (tc.get("max_per_day", 6) or 6) + 1
-        max_week = tc.get("max_per_week", 36) or 36
-
-        # Check weekly capacity
-        if teacher_week_count.get(staff_id, 0) >= max_week:
+        mw = (_get_tc(staff_id).get("max_per_week", 36) or 36)
+        if teacher_week_count.get(staff_id, 0) >= mw:
             still_unplaced.append(u)
             continue
 
         placed = False
-        # Try direct placement: find a slot where class AND teacher are both free
+
+        # Level 0: direct placement
         for d in range(D):
             if placed:
                 break
-            day_count = teacher_day_count.get(staff_id, {}).get(d, 0)
-            if day_count >= max_day:
+            if not _can_teach(staff_id, d):
                 continue
             for p in range(P):
-                if (cid, sid, d, p) in class_occ:
-                    continue
-                if (staff_id, d, p) in teacher_occ:
-                    continue
-                # Found a free slot — place it
-                entries.append({
-                    "class_id": cid, "section_id": sid,
-                    "subject_group_id": u.get("subject_group_id", 0),
-                    "subject_group_subject_id": u.get("subject_group_subject_id", 0),
-                    "staff_id": staff_id,
-                    "period_id": period_ids[p], "day": days[d],
-                    "room_id": None, "batch_id": None,
-                    "is_free_period": 0, "free_period_label": None,
-                })
-                class_occ[(cid, sid, d, p)] = len(entries) - 1
-                teacher_occ[(staff_id, d, p)] = True
-                teacher_day_count.setdefault(staff_id, {})[d] = day_count + 1
-                teacher_week_count[staff_id] = teacher_week_count.get(staff_id, 0) + 1
-                repaired += 1
-                placed = True
-                log.info("  REPAIR: placed %s in %s at %s period %d",
-                         u.get("subject", "?"), labels.get(f"{cid}_{sid}", "?"),
-                         days[d], period_ids[p])
-                break
+                if (cid, sid, d, p) not in class_occ and (staff_id, d, p) not in teacher_occ:
+                    _place_new(cid, sid, staff_id, d, p,
+                               u.get("subject_group_id", 0), u.get("subject_group_subject_id", 0))
+                    repaired += 1
+                    placed = True
+                    log.info("  REPAIR-L0: placed %s in %s at %s p%d",
+                             u.get("subject", "?"), labels.get(f"{cid}_{sid}", "?"), days[d], period_ids[p])
+                    break
 
+        # Level 1: swap 1 blocker
         if not placed:
-            # Try swap: find a slot where class is free but teacher is busy,
-            # then check if the blocking teacher entry can move elsewhere
             for d in range(D):
                 if placed:
                     break
-                day_count = teacher_day_count.get(staff_id, {}).get(d, 0)
-                if day_count >= max_day:
+                if not _can_teach(staff_id, d):
                     continue
                 for p in range(P):
                     if (cid, sid, d, p) in class_occ:
                         continue
                     if (staff_id, d, p) not in teacher_occ:
                         continue
-                    # Teacher is busy here — find which entry blocks
-                    blocker_idx = None
-                    blocker_entry = None
-                    for bi, be in enumerate(entries):
-                        if (be["staff_id"] == staff_id
-                                and day_idx.get(be["day"]) == d
-                                and pid_idx.get(be["period_id"]) == p):
-                            blocker_idx = bi
-                            blocker_entry = be
-                            break
-                    if not blocker_entry:
+                    bi, be = _find_blocker(staff_id, d, p)
+                    if not be:
                         continue
-                    # Try to relocate the blocker to another free slot
-                    b_cid, b_sid = blocker_entry["class_id"], blocker_entry["section_id"]
-                    b_staff = blocker_entry["staff_id"]
-                    relocated = False
+                    rd, rp = _can_relocate(be, d, p)
+                    if rd is not None:
+                        _do_move(bi, be, d, p, rd, rp)
+                        _place_new(cid, sid, staff_id, d, p,
+                                   u.get("subject_group_id", 0), u.get("subject_group_subject_id", 0))
+                        repaired += 1
+                        placed = True
+                        log.info("  REPAIR-L1: placed %s by moving blocker to %s p%d",
+                                 u.get("subject", "?"), days[rd], period_ids[rp])
+                        break
+
+        # Level 2: swap blocker, then swap blocker's blocker
+        if not placed:
+            for d in range(D):
+                if placed:
+                    break
+                if not _can_teach(staff_id, d):
+                    continue
+                for p in range(P):
+                    if (cid, sid, d, p) in class_occ:
+                        continue
+                    if (staff_id, d, p) not in teacher_occ:
+                        continue
+                    bi, be = _find_blocker(staff_id, d, p)
+                    if not be:
+                        continue
+                    b_cid, b_sid, b_staff = be["class_id"], be["section_id"], be["staff_id"]
+                    # Try each slot for blocker — even if blocked by a 2nd entry
                     for d2 in range(D):
-                        if relocated:
+                        if placed:
                             break
-                        b_day_count = teacher_day_count.get(b_staff, {}).get(d2, 0)
-                        if d2 == d:
-                            b_day_count -= 1
-                        b_tc = _get_tc(b_staff)
-                        b_max_day = (b_tc.get("max_per_day", 6) or 6) + 1
-                        if b_day_count >= b_max_day:
+                        if not _can_teach(b_staff, d2) and d2 != d:
                             continue
                         for p2 in range(P):
                             if d2 == d and p2 == p:
                                 continue
                             if (b_cid, b_sid, d2, p2) in class_occ:
                                 continue
-                            if (b_staff, d2, p2) in teacher_occ:
+                            if (b_staff, d2, p2) not in teacher_occ:
                                 continue
-                            # Can relocate blocker to (d2, p2)
-                            # Remove blocker from old slot
-                            del class_occ[(b_cid, b_sid, d, p)]
-                            del teacher_occ[(b_staff, d, p)]
-                            teacher_day_count[b_staff][d] -= 1
-                            # Place blocker at new slot
-                            entries[blocker_idx]["day"] = days[d2]
-                            entries[blocker_idx]["period_id"] = period_ids[p2]
-                            class_occ[(b_cid, b_sid, d2, p2)] = blocker_idx
-                            teacher_occ[(b_staff, d2, p2)] = True
-                            teacher_day_count.setdefault(b_staff, {})[d2] = teacher_day_count.get(b_staff, {}).get(d2, 0) + 1
-                            # Place unplaced entry at freed slot
-                            entries.append({
-                                "class_id": cid, "section_id": sid,
-                                "subject_group_id": u.get("subject_group_id", 0),
-                                "subject_group_subject_id": u.get("subject_group_subject_id", 0),
-                                "staff_id": staff_id,
-                                "period_id": period_ids[p], "day": days[d],
-                                "room_id": None, "batch_id": None,
-                                "is_free_period": 0, "free_period_label": None,
-                            })
-                            class_occ[(cid, sid, d, p)] = len(entries) - 1
-                            teacher_occ[(staff_id, d, p)] = True
-                            teacher_day_count.setdefault(staff_id, {})[d] = day_count + 1
-                            teacher_week_count[staff_id] = teacher_week_count.get(staff_id, 0) + 1
+                            # Blocker's target is also teacher-blocked — find 2nd blocker
+                            bi2, be2 = _find_blocker(b_staff, d2, p2)
+                            if not be2:
+                                continue
+                            rd2, rp2 = _can_relocate(be2, d2, p2)
+                            if rd2 is None:
+                                continue
+                            # Chain: move be2 → move be → place unplaced
+                            _do_move(bi2, be2, d2, p2, rd2, rp2)
+                            _do_move(bi, be, d, p, d2, p2)
+                            _place_new(cid, sid, staff_id, d, p,
+                                       u.get("subject_group_id", 0), u.get("subject_group_subject_id", 0))
                             repaired += 1
                             placed = True
-                            relocated = True
-                            log.info("  REPAIR-SWAP: placed %s by moving %s to %s p%d",
-                                     u.get("subject", "?"), blocker_entry.get("subject_group_subject_id"),
-                                     days[d2], period_ids[p2])
+                            log.info("  REPAIR-L2: placed %s via 2-chain swap", u.get("subject", "?"))
                             break
 
         if not placed:
