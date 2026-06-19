@@ -109,7 +109,21 @@ class Tt_generator_model extends MY_Model
                 'sort_order' => (int)$p->sort_order,
             ];
         }
-        if (empty($periods)) return null;
+        if (empty($periods)) return ['status' => '0', 'message' => 'No period slots configured.'];
+
+        // Class labels for human-readable solver diagnostics
+        $class_ids = array_unique(array_column($class_scope, 'class_id'));
+        $class_labels = [];
+        if (!empty($class_ids)) {
+            $rows = $this->db->select('classes.id as class_id, sections.id as section_id, classes.class, sections.section')
+                ->from('classes')
+                ->join('sections', 'sections.id IN (' . implode(',', array_unique(array_column($class_scope, 'section_id'))) . ')', 'cross')
+                ->where_in('classes.id', $class_ids)
+                ->get()->result();
+            foreach ($rows as $r) {
+                $class_labels[$r->class_id . '_' . $r->section_id] = trim($r->class . ' ' . $r->section);
+            }
+        }
 
         // Subject loads
         $raw_loads = $this->CI->Tt_subjectload_model->getAllForClassScope($session_id, $class_scope);
@@ -258,6 +272,7 @@ class Tt_generator_model extends MY_Model
             'class_unavailability'    => (object) $class_unavailability,
             'subject_unavailability'  => (object) $subject_unavailability,
             'locked_entries'          => $locked_entries,
+            'class_labels'            => (object) $class_labels,
             'settings' => [
                 'max_same_subject_day' => (int)($settings['max_same_subject_day'] ?? 1),
                 'fill_free_periods'    => !empty($settings['fill_free_periods']),

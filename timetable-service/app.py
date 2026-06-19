@@ -85,6 +85,7 @@ class GenerateRequest(BaseModel):
     class_unavailability: dict = {}
     subject_unavailability: dict = {}
     locked_entries: list[LockedEntry] = []
+    class_labels: dict = {}
     settings: Settings = Settings()
     time_limit: int = 60
 
@@ -116,6 +117,7 @@ def generate(req: GenerateRequest):
         "class_unavailability": req.class_unavailability,
         "subject_unavailability": req.subject_unavailability,
         "locked_entries": [e.model_dump() for e in req.locked_entries],
+        "class_labels": req.class_labels,
         "settings": req.settings.model_dump(),
         "time_limit": req.time_limit,
     }

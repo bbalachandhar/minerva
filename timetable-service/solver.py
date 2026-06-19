@@ -635,6 +635,21 @@ def _diagnose_infeasibility(data, days, periods, loads, joints):
     P = len(periods)
     total_slots = D * P
     issues = []
+    labels = data.get("class_labels", {})
+
+    def _class_name(ck):
+        return labels.get(ck, ck)
+
+    # Build teacher name map from subject loads
+    teacher_names = {}
+    for load in loads:
+        for tid in load.get("teacher_ids", []):
+            if tid not in teacher_names and load.get("teacher_name"):
+                teacher_names[tid] = load["teacher_name"]
+
+    def _teacher_name(tid):
+        name = teacher_names.get(tid)
+        return f"{name} (ID {tid})" if name else f"Teacher ID {tid}"
 
     # Check per-class overload
     class_demand = {}
@@ -649,8 +664,9 @@ def _diagnose_infeasibility(data, days, periods, loads, joints):
     for ck, demand in class_demand.items():
         if demand > total_slots:
             issues.append(
-                f"Class {ck} needs {demand} periods but only {total_slots} "
-                f"slots available ({D} days × {P} periods)."
+                f"{_class_name(ck)} needs {demand} periods but only {total_slots} "
+                f"slots available ({D} days × {P} periods). "
+                f"Please reduce subject loads by {demand - total_slots} period(s)."
             )
 
     # Check per-teacher overload
@@ -669,7 +685,8 @@ def _diagnose_infeasibility(data, days, periods, loads, joints):
         cap = tc.get("max_per_week", default_max_week)
         if cap and demand > cap:
             issues.append(
-                f"Teacher {tid} is assigned {demand} periods/week but has a cap of {cap}."
+                f"{_teacher_name(tid)} is assigned {demand} periods/week "
+                f"but has a cap of {cap}."
             )
 
     # Check teacher unavailability vs demand
@@ -681,7 +698,7 @@ def _diagnose_infeasibility(data, days, periods, loads, joints):
         available = total_slots - blocked
         if demand > available:
             issues.append(
-                f"Teacher {tid} needs {demand} slots but only {available} "
+                f"{_teacher_name(tid)} needs {demand} slots but only {available} "
                 f"available ({blocked} blocked by unavailability)."
             )
 
