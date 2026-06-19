@@ -201,12 +201,12 @@ $(function(){
   $(document).on('click', '.btn-edit-tc', function(){
     var d = $(this).data();
     $('#tc_id').val(d.id);
-    $('#tc_staff').val(d.staff);
+    $('#tc_staff').val(d.staff).trigger('change');
     $('#tc_max_day').val(d.maxday);
     $('#tc_max_week').val(d.maxweek);
     $('#tc_min_free').val(d.minfree);
     $('#tc_max_gap').val(d.maxgap || '');
-    $('#tc_pref_room').val(d.prefroom || '');
+    $('#tc_pref_room').val(d.prefroom || '').trigger('change');
     $('#tc_pref_start').val(d.prefstart);
     $('#tc_pref_end').val(d.prefend);
     $('#tc_avoid_first').prop('checked', d.avoidfirst == 1);
@@ -226,7 +226,7 @@ $(function(){
       $(this).serialize() + '&' + csrf_name + '=' + csrf_val,
       function(res){
         if (res.status === '1') { location.reload(); }
-        else { alert('Error saving.'); $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save Constraint'); }
+        else { alert(res.message || 'Error saving.'); $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save Constraint'); }
       },'json');
   });
 

@@ -251,7 +251,7 @@ $(function(){
         setTimeout(function(){ $('#btn-save-loads, #btn-save-loads-bottom').html('<i class="fa fa-save"></i> Save All').removeClass('btn-success'); }, 2000);
         updateStatusBadge();
       } else {
-        alert('Error saving. Please try again.');
+        alert(res.message || 'Error saving. Please try again.');
         $btn.html('<i class="fa fa-save"></i> Save All');
       }
     },'json');

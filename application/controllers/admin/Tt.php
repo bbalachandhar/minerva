@@ -788,22 +788,19 @@ class Tt extends Admin_Controller
         }
 
         // VALIDATION 2: Teacher capacity — each teacher's total load must fit
-        $warnings = [];
-        foreach ($rows as $row) {
+        foreach ($rows as $sgs_key => $row) {
             $teacher_ids = [];
-            if (!empty($row['teacher_ids'])) {
-                $teacher_ids = is_array($row['teacher_ids']) ? $row['teacher_ids'] : [$row['teacher_ids']];
-            } elseif (!empty($row['staff_id'])) {
-                $teacher_ids = [$row['staff_id']];
+            if (!empty($row['teacher_ids']) && is_array($row['teacher_ids'])) {
+                $teacher_ids = array_map('intval', $row['teacher_ids']);
             }
             $ppw = (int)($row['periods_per_week'] ?? 0);
+            $load_id = (int)($row['load_id'] ?? 0);
             foreach ($teacher_ids as $tid) {
-                $tid = (int)$tid;
                 if (!$tid) continue;
                 $current_total = $this->_getTeacherWorkload($session_id, $tid);
                 $old_ppw = 0;
-                if (!empty($row['id'])) {
-                    $old = $this->db->where('id', (int)$row['id'])->get('tt_subject_load')->row();
+                if ($load_id > 0) {
+                    $old = $this->db->where('id', $load_id)->get('tt_subject_load')->row();
                     if ($old) $old_ppw = (int)$old->periods_per_week;
                 }
                 $new_total = $current_total - $old_ppw + $ppw;
@@ -815,18 +812,6 @@ class Tt extends Admin_Controller
                         'message' => "{$tname}: Total load would be {$new_total} periods/week, "
                             . "but max allowed is {$tc['max_per_week']}. "
                             . "Either reduce this teacher's subjects or increase their Max Per Week in Teacher Constraints."
-                    ]);
-                    return;
-                }
-                $available_slots = $total_slots - $this->_getTeacherUnavailCount($session_id, $tid);
-                if ($new_total > $available_slots) {
-                    $tname = $this->_getTeacherName($tid);
-                    $unavail = $total_slots - $available_slots;
-                    echo json_encode([
-                        'status' => '0',
-                        'message' => "{$tname}: Has {$new_total} periods assigned but only {$available_slots} "
-                            . "available slots ({$unavail} blocked by unavailability). "
-                            . "Remove some unavailable slots or reduce this teacher's load."
                     ]);
                     return;
                 }
