@@ -819,7 +819,37 @@ class Tt extends Admin_Controller
         }
 
         $result = $this->Tt_subjectload_model->saveRows($session_id, $class_id, $section_id, $rows);
-        echo json_encode(['status' => $result ? '1' : '0']);
+
+        $warning = null;
+        if ($result) {
+            $cls_name = $this->_getClassName($class_id, $section_id);
+            if ($total_demand == $total_slots) {
+                $warning = "{$cls_name}: This class uses ALL {$total_slots} slots ({$new_regular_ppw} regular + {$joint_ppw} joint). "
+                    . "Zero free periods — every subject must fit perfectly for 100% timetable generation.";
+            }
+            // Check tight teachers
+            $tight_teachers = [];
+            foreach ($rows as $row) {
+                $tids = (!empty($row['teacher_ids']) && is_array($row['teacher_ids'])) ? array_map('intval', $row['teacher_ids']) : [];
+                foreach ($tids as $tid) {
+                    if (!$tid || isset($tight_teachers[$tid])) continue;
+                    $load = $this->_getTeacherWorkload($session_id, $tid);
+                    $tc = $this->_getTeacherConstraint($session_id, $tid);
+                    $slack = $tc['max_per_week'] - $load;
+                    if ($slack <= 4 && $load >= 28) {
+                        $tight_teachers[$tid] = $this->_getTeacherName($tid) . " ({$load}/{$tc['max_per_week']}ppw, {$slack} slack)";
+                    }
+                }
+            }
+            if ($tight_teachers) {
+                $warning = ($warning ? $warning . "\n\n" : '') . "Near-capacity teachers: " . implode(', ', $tight_teachers)
+                    . ". These teachers may cause scheduling conflicts.";
+            }
+        }
+
+        $resp = ['status' => $result ? '1' : '0'];
+        if ($warning) $resp['warning'] = $warning;
+        echo json_encode($resp);
     }
 
     public function diagnose_joint_lessons()

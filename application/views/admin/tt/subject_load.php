@@ -248,13 +248,19 @@ $(function(){
       $btn.prop('disabled',false);
       if (res.status === '1') {
         $('#btn-save-loads, #btn-save-loads-bottom').html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
-        setTimeout(function(){ $('#btn-save-loads, #btn-save-loads-bottom').html('<i class="fa fa-save"></i> Save All').removeClass('btn-success'); }, 2000);
+        setTimeout(function(){ $('#btn-save-loads, #btn-save-loads-bottom').html('<i class="fa fa-save"></i> Save All').removeClass('btn-success'); }, 5000);
         updateStatusBadge();
+        if (res.warning) {
+          alert('⚠ ' + res.warning);
+        }
       } else {
         alert(res.message || 'Error saving. Please try again.');
         $btn.html('<i class="fa fa-save"></i> Save All');
       }
-    },'json');
+    },'json').fail(function(xhr, status, err){
+      $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save All');
+      alert('Network error: ' + (err || status) + '. Please try again.');
+    });
   }
 
   $('#btn-save-loads, #btn-save-loads-bottom').on('click', saveLoads);
