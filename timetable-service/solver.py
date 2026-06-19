@@ -1060,16 +1060,84 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
     def _get_tc(tid):
         return tc_map.get(str(tid), default_tc)
 
+    # Build joint lookup for repair
+    joint_by_name = {}
+    for j, joint in enumerate(joints):
+        joint_by_name[joint.get("name", "")] = joint
+
     repaired = 0
     still_unplaced = []
 
-    for u in list(unplaced):
+    # Process regular subjects first, then joints
+    regular_unplaced = [u for u in unplaced if "(Joint)" not in u.get("subject", "")]
+    joint_unplaced = [u for u in unplaced if "(Joint)" in u.get("subject", "")]
+
+    for u in regular_unplaced + joint_unplaced:
         cid = u.get("class_id", 0)
         sid = u.get("section_id", 0)
         staff_id = u.get("staff_id")
         is_joint = "(Joint)" in u.get("subject", "")
 
-        if not staff_id or is_joint:
+        if is_joint:
+            # Joint repair: find slot where ALL classes + teacher are free
+            joint_name = u.get("subject", "").replace(" (Joint)", "")
+            joint = joint_by_name.get(joint_name)
+            if not joint:
+                still_unplaced.append(u)
+                continue
+            j_classes = [(c["class_id"], c["section_id"]) for c in joint.get("classes", [])]
+            j_tids = joint.get("teacher_ids", [])
+            j_staff = j_tids[0] if j_tids else None
+
+            placed = False
+            for d in range(D):
+                if placed:
+                    break
+                for p in range(P):
+                    # Check ALL classes free
+                    all_free = True
+                    for jc, js in j_classes:
+                        if (jc, js, d, p) in class_occ:
+                            all_free = False
+                            break
+                    if not all_free:
+                        continue
+                    # Check teacher(s) free
+                    teacher_ok = True
+                    for tid in j_tids:
+                        if (tid, d, p) in teacher_occ:
+                            teacher_ok = False
+                            break
+                        tc = _get_tc(tid)
+                        md = (tc.get("max_per_day", 6) or 6) + 1
+                        if teacher_day_count.get(tid, {}).get(d, 0) >= md:
+                            teacher_ok = False
+                            break
+                    if not teacher_ok:
+                        continue
+                    # Place joint entry for all classes
+                    for jc, js in j_classes:
+                        entries.append({
+                            "class_id": jc, "section_id": js,
+                            "subject_group_id": 0, "subject_group_subject_id": 0,
+                            "staff_id": j_staff, "period_id": period_ids[p],
+                            "day": days[d], "room_id": None, "batch_id": None,
+                            "is_free_period": 0, "free_period_label": None,
+                        })
+                        class_occ[(jc, js, d, p)] = len(entries) - 1
+                    for tid in j_tids:
+                        teacher_occ[(tid, d, p)] = True
+                        teacher_day_count.setdefault(tid, {})[d] = teacher_day_count.get(tid, {}).get(d, 0) + 1
+                        teacher_week_count[tid] = teacher_week_count.get(tid, 0) + 1
+                    repaired += 1
+                    placed = True
+                    log.info("  REPAIR-JOINT: placed %s at %s period %d", joint_name, days[d], period_ids[p])
+                    break
+            if not placed:
+                still_unplaced.append(u)
+            continue
+
+        if not staff_id:
             still_unplaced.append(u)
             continue
 
