@@ -767,31 +767,9 @@ def solve(data: dict) -> dict:
              model.proto.constraints.__len__() if hasattr(model.proto, 'constraints') else 0,
              len(all_obj))
 
-    # Pre-solve joints only, then LOCK their placements in the full model.
-    # Debug proved all 45 joints place at 100% alone (4.3s OPTIMAL).
-    # Locking guarantees joints keep their slots; regular subjects (with
-    # max_per_day+1 flexibility) fill around them.
-    if joints:
-        _tick("joint_presolve")
-        jresult = _solve_joints_only(data, days, period_ids, D, P, day_idx, pid_idx,
-                                     joints, tc_map, t_unavail, c_unavail, default_tc)
-        if jresult:
-            locked_count = 0
-            for j in range(len(joints)):
-                placed = set(jresult["slots"].get(j, []))
-                for d in range(D):
-                    for p in range(P):
-                        key = (j, d, p)
-                        if key in jx:
-                            if (d, p) in placed:
-                                model.add(jx[key] == 1)
-                            else:
-                                model.add(jx[key] == 0)
-                            locked_count += 1
-            log.info("Joint pre-solve: LOCKED %d jx vars (all joints placed)", locked_count)
-        else:
-            log.info("Joint pre-solve: infeasible — joints use soft placement")
-        _tick("hints_done")
+    # Joint pre-solve disabled — locking/hinting both degraded results.
+    # JOINT_WEIGHT=100000 (10× regular) handles priority within the
+    # single unified model, which consistently produces the best results.
 
     time_limit = data.get("time_limit", 120)
     solver = cp_model.CpSolver()
