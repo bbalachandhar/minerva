@@ -418,33 +418,14 @@ def solve(data: dict) -> dict:
     PLACE_WEIGHT = 10000
     JOINT_WEIGHT = 100000
 
-    # Pre-compute which classes are fully packed (demand == slots).
-    # For these classes, every subject MUST be placed (== ppw).
-    total_slots = D * P
-    class_demand = {}
-    for load in loads:
-        ck = (load["class_id"], load["section_id"])
-        class_demand[ck] = class_demand.get(ck, 0) + load["periods_per_week"]
-    for joint in joints:
-        for cls in joint.get("classes", []):
-            ck = (cls["class_id"], cls["section_id"])
-            class_demand[ck] = class_demand.get(ck, 0) + joint["periods_per_week"]
-    packed_classes = {ck for ck, demand in class_demand.items() if demand >= total_slots}
-    if packed_classes:
-        log.info("Fully packed classes (%d/%d): %s", len(packed_classes), len(class_demand),
-                 ", ".join(labels.get(f"{c}_{s}", f"{c}_{s}") for c, s in packed_classes))
-
     for i, load in enumerate(loads):
         ppw = load["periods_per_week"]
         consec = load.get("consecutive", 1)
-        ck = (load["class_id"], load["section_id"])
-        hard_load = ck in packed_classes
         total_i = sum(_x(i, d, p) for d in range(D) for p in range(P))
-        if not hard_load:
-            placement_vars.append((PLACE_WEIGHT, total_i))
+        placement_vars.append((PLACE_WEIGHT, total_i))
 
         if consec <= 1:
-            model.add(total_i == ppw if hard_load else total_i <= ppw)
+            model.add(total_i <= ppw)
         else:
             num_blocks = ppw // consec
             remainder = ppw % consec
@@ -458,8 +439,7 @@ def solve(data: dict) -> dict:
                         model.add_implication(bs, _x(i, d, sp + k))
             block_starts_all.update(block_starts)
 
-            model.add(sum(v for v in block_starts.values()) == num_blocks if hard_load
-                      else sum(v for v in block_starts.values()) <= num_blocks)
+            model.add(sum(v for v in block_starts.values()) <= num_blocks)
 
             for d in range(D):
                 for p in range(P):
@@ -469,7 +449,7 @@ def solve(data: dict) -> dict:
                             covering.append(block_starts[i, d, sp])
                     model.add(_x(i, d, p) <= (sum(covering) if covering else 0))
 
-            model.add(total_i == ppw if hard_load else total_i <= ppw)
+            model.add(total_i <= ppw)
 
     # --- 2a-joint. Total periods per joint lesson + consecutive + fixed slots ---
     # Joints with 3+ classes use HARD placement (== ppw) because:
