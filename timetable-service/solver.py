@@ -95,6 +95,7 @@ def solve(data: dict) -> dict:
     block_starts_all = {}
     placement_vars = []  # (weight, var) to add to objective
     PLACE_WEIGHT = 10000
+    JOINT_BONUS_PER_CLASS = 5000  # extra weight per class in joint
 
     for i, load in enumerate(loads):
         ppw = load["periods_per_week"]
@@ -130,12 +131,16 @@ def solve(data: dict) -> dict:
             model.add(total_i <= ppw)
 
     # --- 2a-joint. Total periods per joint lesson + consecutive + fixed slots ---
+    # Joints get a bonus weight proportional to the number of classes they span.
+    # This tells the solver to prioritise hard-to-place multi-class joints.
     joint_block_starts_all = {}
     for j, joint in enumerate(joints):
         ppw = joint["periods_per_week"]
         consec = joint.get("consecutive", 1)
+        n_classes = len(joint.get("classes", []))
+        joint_weight = PLACE_WEIGHT + JOINT_BONUS_PER_CLASS * max(0, n_classes - 1)
         total_j = sum(jx[j, d, p] for d in range(D) for p in range(P))
-        placement_vars.append((PLACE_WEIGHT, total_j))
+        placement_vars.append((joint_weight, total_j))
 
         if consec <= 1:
             model.add(total_j <= ppw)
@@ -479,7 +484,7 @@ def solve(data: dict) -> dict:
     # 4. Solve
     # ---------------------------------------------------------------
 
-    time_limit = data.get("time_limit", 60)
+    time_limit = data.get("time_limit", 120)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit
     solver.parameters.num_workers = 4
