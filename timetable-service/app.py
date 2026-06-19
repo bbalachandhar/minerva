@@ -137,6 +137,9 @@ def generate(req: GenerateRequest):
         result.get("solve_time_seconds", 0),
     )
 
+    for u in result.get("unplaced", []):
+        log.info("  UNPLACED: %s", u.get("reason", u))
+
     return result
 
 

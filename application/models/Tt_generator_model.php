@@ -287,7 +287,7 @@ class Tt_generator_model extends MY_Model
             CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_TIMEOUT        => 120,
+            CURLOPT_TIMEOUT        => 180,
         ]);
         $response  = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -377,6 +377,7 @@ class Tt_generator_model extends MY_Model
             'total_conflicts'    => 0,
             'quality_score'      => $quality,
             'conflicts'          => [],
+            'unplaced'           => $result['unplaced'] ?? [],
             'class_stats'        => $result['class_stats'] ?? [],
             'dry_run'            => $dry_run,
             'gap_filled_subject' => 0,
