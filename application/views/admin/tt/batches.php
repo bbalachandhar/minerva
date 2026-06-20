@@ -164,12 +164,12 @@ $(function(){
     var $btn = $(this).find('[type=submit]').prop('disabled',true).text('Saving...');
     $.post('<?php echo site_url('admin/tt/save_batch'); ?>', $(this).serialize()+'&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo $this->security->get_csrf_hash(); ?>', function(res){
       if (res.status==='1') { location.reload(); }
-      else { alert('Error saving.'); $btn.prop('disabled',false).text('Save Batch'); }
+      else { swal({title:'Alert',text:'Error saving.',type:'warning'}); $btn.prop('disabled',false).text('Save Batch'); }
     },'json');
   });
 
   $(document).on('click','.btn-delete', function(e){
-    if (!confirm($(this).data('confirm')||'Are you sure?')) e.preventDefault();
+    e.preventDefault(); var _href=$(this).attr('href'); var _msg=$(this).data('confirm')||'Are you sure?'; swal({title:'Confirm',text:_msg,type:'warning',showCancelButton:true,confirmButtonColor:'#dd4b39',confirmButtonText:'Yes'},function(ok){if(ok)window.location.href=_href;});
   });
 });
 </script>

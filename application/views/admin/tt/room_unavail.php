@@ -92,7 +92,7 @@ $(function(){
 
   $('#btn-load-ru').on('click', function(){
     var room_id = $('#ru_room_id').val();
-    if (!room_id) { alert('Please select a room.'); return; }
+    if (!room_id) { swal({title:'Alert',text:'Please select a room.',type:'warning'}); return; }
     current_room_id = room_id;
     $('#ru-room-name').text($('#ru_room_id option:selected').text());
 
@@ -143,7 +143,7 @@ $(function(){
           $btn.html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
           setTimeout(function(){ $btn.html('<i class="fa fa-save"></i> Save').removeClass('btn-success'); }, 2000);
         } else {
-          alert('Error saving. Please try again.');
+          swal({title:'Alert',text:'Error saving. Please try again.',type:'warning'});
         }
       },'json');
   });

@@ -11,6 +11,7 @@
 
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/bootstrap/css/bootstrap.min.css">
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/toast-alert/toastr.css">
+        <link rel="stylesheet" href="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.css">
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/jquery.mCustomScrollbar.min.css">
         <?php
 $this->load->view('layout/theme');
@@ -63,6 +64,7 @@ $this->load->view('layout/theme');
         <script src="<?php echo base_url(); ?>backend/js/school-custom.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/school-admin-custom.js?v=<?php echo time(); ?>"></script>
         <script src="<?php echo base_url(); ?>backend/toast-alert/toastr.js"></script>
+        <script src="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/sstoast.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/export_lib.js?v=2"></script>
         

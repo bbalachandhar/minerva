@@ -101,7 +101,7 @@ $(function(){
 
   function loadTeacher(){
     var staff_id = $('#tv_staff').val();
-    if (!staff_id) { alert('Please select a teacher.'); return; }
+    if (!staff_id) { swal({title:'Alert',text:'Please select a teacher.',type:'warning'}); return; }
     lastStaffName = $('#tv_staff option:selected').text().trim();
     var $btn = $('#btn-load-teacher-grid').prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/load_teacher_grid'); ?>',
@@ -137,7 +137,7 @@ $(function(){
 
   $('#btn-print-teacher').on('click', function(){
     var staff_id = $('#tv_staff').val();
-    if (!staff_id) { alert('Please load a timetable first.'); return; }
+    if (!staff_id) { swal({title:'Alert',text:'Please load a timetable first.',type:'warning'}); return; }
     window.open('<?php echo site_url('admin/tt/print_teacher_grid'); ?>?staff_id=' + staff_id + '&week_offset=' + weekOffset, '_blank');
   });
 });

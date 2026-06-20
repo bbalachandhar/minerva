@@ -92,7 +92,7 @@ $(function(){
 
   $('#btn-load-avail').on('click', function(){
     var staff_id = $('#avail_staff_id').val();
-    if (!staff_id) { alert('Please select a teacher.'); return; }
+    if (!staff_id) { swal({title:'Alert',text:'Please select a teacher.',type:'warning'}); return; }
     current_staff_id = staff_id;
     var name = $('#avail_staff_id option:selected').text();
     $('#avail-teacher-name').text(name);
@@ -146,7 +146,7 @@ $(function(){
           $btn.html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
           setTimeout(function(){ $btn.html('<i class="fa fa-save"></i> Save').removeClass('btn-success'); }, 2000);
         } else {
-          alert('Error saving. Please try again.');
+          swal({title:'Alert',text:'Error saving. Please try again.',type:'warning'});
         }
       },'json');
   });

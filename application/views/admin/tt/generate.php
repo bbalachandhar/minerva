@@ -284,7 +284,7 @@ $(function(){
       scope.push({class_id: $(this).data('class'), section_id: $(this).data('section')});
     });
     if (scope.length === 0) {
-      alert('Please select at least one class-section.'); return;
+      swal({title:'Alert',text:'Please select at least one class-section.',type:'warning'}); return;
     }
 
     $('#progress-result-row').show();
@@ -313,9 +313,9 @@ $(function(){
         $('#progress-box').hide();
         $('#generate-form').find('button[type=submit]').prop('disabled', false);
         if (status === 'timeout') {
-          alert('Request timed out. The solver may still be running on the server. Try increasing the time limit or check if the solver service is running.');
+          swal({title:'Alert',text:'Request timed out. The solver may still be running on the server. Try increasing the time limit or check if the solver service is running.',type:'warning'});
         } else {
-          alert('Server error (HTTP ' + xhr.status + '). Please try again.');
+          swal({title:'Alert',text:'Server error (HTTP ' + xhr.status + ',type:'warning'}). Please try again.');
         }
       }
     });
@@ -326,7 +326,7 @@ $(function(){
     $('.scope-chk:checked').each(function(){
       scope.push({class_id: $(this).data('class'), section_id: $(this).data('section')});
     });
-    if (scope.length === 0) { alert('Please select at least one class-section.'); return; }
+    if (scope.length === 0) { swal({title:'Alert',text:'Please select at least one class-section.',type:'warning'}); return; }
 
     $('#progress-result-row').show();
     $('#progress-box').show();
@@ -354,9 +354,9 @@ $(function(){
         $('#progress-box').hide();
         $('#btn-test-generate').prop('disabled', false).html('<i class="fa fa-flask"></i> Test (Dry Run)');
         if (status === 'timeout') {
-          alert('Request timed out. Try increasing the time limit or check if the solver service is running.');
+          swal({title:'Alert',text:'Request timed out. Try increasing the time limit or check if the solver service is running.',type:'warning'});
         } else {
-          alert('Server error (HTTP ' + xhr.status + '). Please try again.');
+          swal({title:'Alert',text:'Server error (HTTP ' + xhr.status + ',type:'warning'}). Please try again.');
         }
       }
     });
@@ -367,7 +367,7 @@ $(function(){
     $('.scope-chk:checked').each(function(){
       scope.push({class_id: $(this).data('class'), section_id: $(this).data('section')});
     });
-    if (scope.length === 0) { alert('Please select at least one class-section.'); return; }
+    if (scope.length === 0) { swal({title:'Alert',text:'Please select at least one class-section.',type:'warning'}); return; }
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Checking...');
     var formData = $('#generate-form').serialize() + '&' + csrf_name + '=' + csrf_val;
     formData += '&class_scope=' + encodeURIComponent(JSON.stringify(scope));
@@ -395,7 +395,7 @@ $(function(){
       $('#result-box').show();
     },'json').fail(function(){
       $btn.prop('disabled',false).html('<i class="fa fa-check-circle"></i> Verify Constraints &amp; Readiness');
-      alert('Server error during verification.');
+      swal({title:'Alert',text:'Server error during verification.',type:'warning'});
     });
   });
 

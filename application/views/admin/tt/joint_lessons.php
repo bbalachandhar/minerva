@@ -405,7 +405,7 @@ $(function(){
     var id = $(this).data('id');
     $.post('<?php echo site_url('admin/tt/get_joint_lesson'); ?>',
       {id: id, [csrf_name]: csrf_val}, function(res){
-        if (res.status !== '1') { alert('Error loading lesson.'); return; }
+        if (res.status !== '1') { swal({title:'Alert',text:'Error loading lesson.',type:'warning'}); return; }
         var l = res.lesson;
         $('#jl-modal-title').text('Edit Joint Lesson');
         $('#jl_id').val(l.id);
@@ -497,18 +497,19 @@ $(function(){
       } else {
         $('#jl-conflict-msg').text(res.message || 'Error saving.').show();
       }
-    },'json').fail(function(){ $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save Joint Lesson'); alert('Server error.'); });
+    },'json').fail(function(){ $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save Joint Lesson'); swal({title:'Alert',text:'Server error.',type:'warning'}); });
   });
 
   $('.btn-delete-joint').on('click', function(){
     var id   = $(this).data('id');
     var name = $(this).data('name');
-    if (!confirm('Delete joint lesson "' + name + '"? This cannot be undone.')) return;
-    $.post('<?php echo site_url('admin/tt/delete_joint_lesson/'); ?>'+id, {[csrf_name]: csrf_val}, function(res){
-      if (res.status === '1') { location.reload(); }
-      else { alert('Error deleting.'); }
-    },'json');
+    swal({title:'Delete Joint Lesson?',text:'Delete "' + name + '"? This cannot be undone.',type:'warning',showCancelButton:true,confirmButtonColor:'#dd4b39',confirmButtonText:'Yes, delete'},function(isConfirm){
+      if (!isConfirm) return;
+      $.post('<?php echo site_url('admin/tt/delete_joint_lesson/'); ?>'+id, {[csrf_name]: csrf_val}, function(res){
+        if (res.status === '1') { location.reload(); }
+        else { swal({title:'Error',text:'Error deleting.',type:'error'}); }
+      },'json');
+    });
   });
-});
 </script>
 </div>

@@ -59,12 +59,12 @@ $color = $score >= 90 ? 'success' : ($score >= 70 ? 'warning' : 'danger');
 <div class="row" style="margin-bottom:15px;">
   <div class="col-md-12">
     <a href="<?php echo site_url('admin/tt/confirm_draft/'.$log->id); ?>"
-       onclick="return confirm('Confirm and save this timetable? Existing non-locked entries will be replaced.')"
+       onclick="return false" data-swal-confirm="Confirm and save this timetable? Existing non-locked entries will be replaced."
        class="btn btn-success btn-lg">
       <i class="fa fa-check-circle"></i> Confirm & Save Timetable
     </a>
     <a href="<?php echo site_url('admin/tt/discard_draft/'.$log->id); ?>"
-       onclick="return confirm('Discard this draft?')"
+       onclick="return false" data-swal-confirm="Discard this draft?"
        class="btn btn-danger btn-lg" style="margin-left:10px;">
       <i class="fa fa-trash"></i> Discard Draft
     </a>
@@ -273,11 +273,31 @@ foreach ($warnings as $w) {
 <!-- Confirm button at bottom too -->
 <div class="text-center" style="margin:20px 0;">
   <a href="<?php echo site_url('admin/tt/confirm_draft/'.$log->id); ?>"
-     onclick="return confirm('Confirm and save this timetable?')"
+     onclick="return false" data-swal-confirm="Confirm and save this timetable?"
      class="btn btn-success btn-lg">
     <i class="fa fa-check-circle"></i> Confirm & Save Timetable
   </a>
 </div>
 
+<script>
+$(function(){
+  $('[data-swal-confirm]').on('click', function(e){
+    e.preventDefault();
+    var href = $(this).attr('href');
+    var msg  = $(this).data('swal-confirm');
+    var isDelete = $(this).hasClass('btn-danger');
+    swal({
+      title: isDelete ? 'Discard Draft?' : 'Confirm Timetable?',
+      text: msg,
+      type: isDelete ? 'warning' : 'info',
+      showCancelButton: true,
+      confirmButtonColor: isDelete ? '#dd4b39' : '#00a65a',
+      confirmButtonText: isDelete ? 'Yes, discard' : 'Yes, confirm & save'
+    }, function(isConfirm){
+      if (isConfirm) window.location.href = href;
+    });
+  });
+});
+</script>
 </section>
 </div>

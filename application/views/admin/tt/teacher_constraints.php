@@ -1,5 +1,3 @@
-<link rel="stylesheet" href="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.css">
-<script src="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.min.js"></script>
 <?php if (isset($msg)) { echo $msg; } ?>
 <div class="content-wrapper">
 <section class="content-header">
@@ -233,7 +231,7 @@ $(function(){
       $(this).serialize() + '&' + csrf_name + '=' + csrf_val,
       function(res){
         if (res.status === '1') { location.reload(); }
-        else { alert(res.message || 'Error saving.'); $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save Constraint'); }
+        else { swal({title:'Error',text:res.message || 'Error saving.',type:'error'}); $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save Constraint'); }
       },'json');
   });
 

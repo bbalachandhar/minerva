@@ -147,7 +147,7 @@ $(function(){
     $('#workload-tbody').html('<tr><td colspan="6" class="text-center text-muted p-3"><i class="fa fa-spinner fa-spin"></i></td></tr>');
     $.post('<?php echo site_url('admin/tt/get_pregeneration_workload'); ?>', {}, function(res) {
       $('#workload-loading').hide();
-      if (res.status !== '1') { alert('Failed to load workload data.'); return; }
+      if (res.status !== '1') { swal({title:'Alert',text:'Failed to load workload data.',type:'warning'}); return; }
       allData = res.data;
       // refresh CSRF from response headers or assume same
       renderTable();
@@ -268,7 +268,7 @@ $(function(){
   // Do reassign
   $('#btn-do-reassign').on('click', function(){
     var newT = $('#reassign-new-teacher').val();
-    if (!newT) { alert('Please select a teacher.'); return; }
+    if (!newT) { swal({title:'Alert',text:'Please select a teacher.',type:'warning'}); return; }
     var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/reassign_subject_teacher'); ?>', {
       load_id:       $('#reassign-load-id').val(),
@@ -281,7 +281,7 @@ $(function(){
         $('#reassign-modal').modal('hide');
         loadData();
       } else {
-        alert('Failed to reassign: ' + (res.message || 'Unknown error'));
+        swal({title:'Alert',text:'Failed to reassign: ' + (res.message || 'Unknown error',type:'warning'}));
       }
     }, 'json');
   });

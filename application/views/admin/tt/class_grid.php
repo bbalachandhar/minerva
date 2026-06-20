@@ -306,7 +306,7 @@ $(function(){
 
   function loadGrid(resetWeek) {
     var class_id = $('#cg_class').val(), section_id = $('#cg_section').val();
-    if (!class_id || !section_id) { alert('Please select Class and Section.'); return; }
+    if (!class_id || !section_id) { swal({title:'Alert',text:'Please select Class and Section.',type:'warning'}); return; }
     if (resetWeek) weekOffset = 0;
     var $btn = $('#btn-load-grid').prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Loading...');
     $.post('<?php echo site_url('admin/tt/load_class_grid'); ?>',
@@ -340,17 +340,20 @@ $(function(){
 
   // Fill All Classes
   $('#btn-fill-all').on('click', function(){
-    if (!confirm('This will run Fill Empty Cells on ALL classes. Continue?')) return;
-    var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Filling...');
-    $.post('<?php echo site_url('admin/tt/fill_all_classes'); ?>', {[csrf_name]: csrf_val}, function(res){
-      $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill All Classes');
-      if (res.status === '1') {
-        alert('Done! ' + res.cross_swapped + ' cell(s) filled via swap, ' + res.filled_subject + ' via gap-fill, across ' + res.classes_fixed + ' class(es).');
-        if (loaded_class_id) loadGrid(false);
-      } else {
-        alert(res.message || 'Failed');
-      }
-    },'json').fail(function(xhr){ $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill All Classes'); alert('Failed: ' + xhr.statusText); });
+    var $btn = $('#btn-fill-all');
+    swal({title:'Fill All Classes?',text:'This will run Fill Empty Cells on ALL classes. Continue?',type:'warning',showCancelButton:true,confirmButtonColor:'#3c8dbc',confirmButtonText:'Yes, fill'},function(isConfirm){
+      if (!isConfirm) return;
+      $btn.prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Filling...');
+      $.post('<?php echo site_url('admin/tt/fill_all_classes'); ?>', {[csrf_name]: csrf_val}, function(res){
+        $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill All Classes');
+        if (res.status === '1') {
+          swal({title:'Done!',text:res.cross_swapped + ' cell(s) filled via swap, ' + res.filled_subject + ' via gap-fill, across ' + res.classes_fixed + ' class(es).',type:'success'});
+          if (loaded_class_id) loadGrid(false);
+        } else {
+          swal({title:'Error',text:res.message||'Failed',type:'error'});
+        }
+      },'json').fail(function(xhr){ $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill All Classes'); swal({title:'Error',text:'Failed: '+xhr.statusText,type:'error'}); });
+    });
   });
 
   // Gaps Overview
@@ -358,7 +361,7 @@ $(function(){
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/gaps_overview'); ?>', {[csrf_name]: csrf_val}, function(res){
       $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps');
-      if (res.status !== '1') { alert('Failed'); return; }
+      if (res.status !== '1') { swal({title:'Alert',text:'Failed',type:'warning'}); return; }
       var html = '<p><strong>' + res.total_complete + ' class(es) fully filled</strong>';
       if (res.rows.length === 0) {
         html += ' — All timetables are 100% complete!</p>';
@@ -377,7 +380,7 @@ $(function(){
       }
       $('#gaps-body').html(html);
       $('#gaps-modal').modal('show');
-    },'json').fail(function(xhr){ $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps'); alert('Request failed: ' + (xhr.statusText || 'unknown error')); });
+    },'json').fail(function(xhr){ $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps'); swal({title:'Alert',text:'Request failed: ' + (xhr.statusText || 'unknown error',type:'warning'})); });
   });
   $(document).on('click', '.gaps-load-class', function(e){
     e.preventDefault();
@@ -399,7 +402,7 @@ $(function(){
       if (res.status === '1') {
         loadGrid(false);
         var subj = res.filled_subject||0, free = res.filled_free||0, xswap = res.cross_swapped||0;
-        if (subj + free + xswap === 0) { alert('No empty cells found — grid is already full.'); return; }
+        if (subj + free + xswap === 0) { swal({title:'Alert',text:'No empty cells found — grid is already full.',type:'warning'}); return; }
         var html = '';
         if (xswap > 0) html += '<p><strong>' + xswap + ' cell(s) filled via cross-class teacher swap</strong> <span class="text-muted">(moved entries in other classes to free up teachers)</span></p>';
         html += '<p><strong>Filled ' + subj + ' cell(s) with subjects, ' + free + ' with Free Period.</strong></p>';
@@ -422,9 +425,9 @@ $(function(){
         $('#fill-diag-body').html(html);
         $('#fill-diag-modal').modal('show');
       } else {
-        alert(res.message || 'Fill failed.');
+        swal({title:'Error',text:res.message||'Fill failed.',type:'error'});
       }
-    },'json').fail(function(){ $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill Empty Cells'); alert('Request failed.'); });
+    },'json').fail(function(){ $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Fill Empty Cells'); swal({title:'Alert',text:'Request failed.',type:'warning'}); });
   });
 
   // Print: server-side page with header, auto-triggers window.print()
@@ -580,11 +583,13 @@ $(function(){
 
   // Delete cell
   $('#btn-delete-cell').on('click', function(){
-    if (!confirm('Remove this slot?')) return;
-    var id = $('#cell_id').val();
-    $.post('<?php echo site_url('admin/tt/delete_cell/'); ?>'+id, {[csrf_name]: csrf_val}, function(res){
-      if (res.status === '1') { $('#cell-modal').modal('hide'); loadGrid(false); }
-    },'json');
+    swal({title:'Remove Slot?',text:'This will remove the timetable entry.',type:'warning',showCancelButton:true,confirmButtonColor:'#dd4b39',confirmButtonText:'Yes, remove'},function(isConfirm){
+      if (!isConfirm) return;
+      var id = $('#cell_id').val();
+      $.post('<?php echo site_url('admin/tt/delete_cell/'); ?>'+id, {[csrf_name]: csrf_val}, function(res){
+        if (res.status === '1') { $('#cell-modal').modal('hide'); loadGrid(false); }
+      },'json');
+    });
   });
 
   // Lock/unlock

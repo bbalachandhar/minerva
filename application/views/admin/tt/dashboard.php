@@ -301,7 +301,7 @@ $(function(){
         .prependTo('#sync-msg-area').delay(6000).fadeOut(400, function(){ $(this).remove(); });
     }, 'json').fail(function(){
       $btn.prop('disabled', false).html('<i class="fa fa-refresh"></i> Sync to Attendance');
-      alert('Sync request failed. Please try again.');
+      swal({title:'Alert',text:'Sync request failed. Please try again.',type:'warning'});
     });
   });
 });

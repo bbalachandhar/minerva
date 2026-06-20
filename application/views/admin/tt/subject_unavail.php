@@ -94,7 +94,7 @@ $(function(){
 
   $('#btn-load-su').on('click', function(){
     var subject_id = $('#su_subject_id').val();
-    if (!subject_id) { alert('Please select a subject.'); return; }
+    if (!subject_id) { swal({title:'Alert',text:'Please select a subject.',type:'warning'}); return; }
     current_subject_id = subject_id;
     $('#su-subject-name').text($('#su_subject_id option:selected').text());
 
@@ -145,7 +145,7 @@ $(function(){
           $btn.html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
           setTimeout(function(){ $btn.html('<i class="fa fa-save"></i> Save').removeClass('btn-success'); }, 2000);
         } else {
-          alert('Error saving. Please try again.');
+          swal({title:'Alert',text:'Error saving. Please try again.',type:'warning'});
         }
       },'json');
   });

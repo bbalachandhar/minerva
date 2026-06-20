@@ -109,7 +109,7 @@ $(function(){
           $('#btn-save-colors, #btn-save-colors-bottom').html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
           setTimeout(function(){ $('#btn-save-colors, #btn-save-colors-bottom').html('<i class="fa fa-save"></i> Save All').removeClass('btn-success'); }, 2000);
         } else {
-          alert('Error saving. Please try again.');
+          swal({title:'Alert',text:'Error saving. Please try again.',type:'warning'});
           $btn.html('<i class="fa fa-save"></i> Save All');
         }
       },'json');

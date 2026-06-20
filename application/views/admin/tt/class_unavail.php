@@ -177,7 +177,7 @@ $(function(){
   $('#btn-load-cu').on('click', function(){
     current_class   = $('#cu_class_id').val();
     current_section = $('#cu_section_id').val();
-    if (!current_class || !current_section) { alert('Please select Class and Section.'); return; }
+    if (!current_class || !current_section) { swal({title:'Alert',text:'Please select Class and Section.',type:'warning'}); return; }
 
     var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/get_class_unavail'); ?>',
@@ -207,7 +207,7 @@ $(function(){
 
   // Save
   $('#btn-save-cu').on('click', function(){
-    if (!current_class || !current_section) { alert('Please load a class first.'); return; }
+    if (!current_class || !current_section) { swal({title:'Alert',text:'Please load a class first.',type:'warning'}); return; }
     var slots = [];
     $('.cu-cell.unavail').each(function(){
       slots.push({day: $(this).data('day'), period_id: $(this).data('period')});
@@ -222,7 +222,7 @@ $(function(){
           $btn.html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
           setTimeout(function(){ $btn.html('<i class="fa fa-save"></i> Save Class Availability').removeClass('btn-success'); }, 2000);
         } else {
-          alert('Error saving. Please try again.');
+          swal({title:'Alert',text:'Error saving. Please try again.',type:'warning'});
         }
       },'json');
   });

@@ -100,8 +100,6 @@
 
 </section>
 
-<link rel="stylesheet" href="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.css">
-<script src="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.min.js"></script>
 
 <style>
 .sub-day-header {

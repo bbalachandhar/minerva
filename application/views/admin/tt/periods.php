@@ -196,7 +196,7 @@ $(function(){
       if (res.status === '1') {
         location.reload();
       } else {
-        alert('Error saving period. Please try again.');
+        swal({title:'Alert',text:'Error saving period. Please try again.',type:'warning'});
         $btn.prop('disabled', false).text('Save Period');
       }
     }, 'json');
@@ -204,7 +204,7 @@ $(function(){
 
   // Delete confirm
   $(document).on('click', '.btn-delete', function(e){
-    if (!confirm($(this).data('confirm') || 'Are you sure?')) e.preventDefault();
+    e.preventDefault(); var _href=$(this).attr('href'); var _msg=$(this).data('confirm')||'Are you sure?'; swal({title:'Confirm',text:_msg,type:'warning',showCancelButton:true,confirmButtonColor:'#dd4b39',confirmButtonText:'Yes'},function(ok){if(ok)window.location.href=_href;});
   });
 });
 </script>

@@ -139,7 +139,7 @@ $(function(){
   function loadSubjects() {
     var class_id   = $('#sl_class_id').val();
     var section_id = $('#sl_section_id').val();
-    if (!class_id || !section_id) { alert('Please select Class and Section.'); return; }
+    if (!class_id || !section_id) { swal({title:'Alert',text:'Please select Class and Section.',type:'warning'}); return; }
 
     $('#subject-load-container, #subject-load-empty').hide();
     $('#copy-from-panel').hide();
@@ -169,15 +169,17 @@ $(function(){
   $(document).on('click', '.btn-remove-sl-row', function(){
     var $row = $(this).closest('tr');
     var load_id = $(this).data('load-id');
-    if (!confirm('Remove this subject from the class?')) return;
-    if (load_id > 0) {
-      $.post('<?php echo site_url('admin/tt/delete_subject_load_row'); ?>',
-        {id: load_id, [csrf_name]: csrf_val},
-        function(res){ if (res.status === '1') { $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); }); }
-          else { alert('Error removing subject.'); } }, 'json');
-    } else {
-      $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); });
-    }
+    swal({title:'Remove Subject?',text:'Remove this subject from the class?',type:'warning',showCancelButton:true,confirmButtonColor:'#dd4b39',confirmButtonText:'Yes, remove'},function(isConfirm){
+      if (!isConfirm) return;
+      if (load_id > 0) {
+        $.post('<?php echo site_url('admin/tt/delete_subject_load_row'); ?>',
+          {id: load_id, [csrf_name]: csrf_val},
+          function(res){ if (res.status === '1') { $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); }); }
+            else { swal({title:'Error',text:'Error removing subject.',type:'error'}); } }, 'json');
+      } else {
+        $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); });
+      }
+    });
   });
 
   // Add subjects
@@ -185,7 +187,7 @@ $(function(){
     var class_id   = $('#sl_class_id_hidden').val();
     var section_id = $('#sl_section_id_hidden').val();
     var subject_ids = $('#sl-add-subject-picker').val();
-    if (!subject_ids || subject_ids.length === 0) { alert('Please select at least one subject.'); return; }
+    if (!subject_ids || subject_ids.length === 0) { swal({title:'Alert',text:'Please select at least one subject.',type:'warning'}); return; }
     var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/add_subjects_to_load'); ?>',
       {class_id: class_id, section_id: section_id, subject_ids: subject_ids, [csrf_name]: csrf_val},
@@ -193,7 +195,7 @@ $(function(){
         $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Add Selected');
         if (res.status === '1') {
           loadSubjects(); // reload the table to show new rows
-        } else { alert('Error adding subjects: ' + (res.error || 'Unknown error')); }
+        } else { swal({title:'Alert',text:'Error adding subjects: ' + (res.error || 'Unknown error',type:'warning'})); }
       }, 'json');
   });
 
@@ -217,7 +219,7 @@ $(function(){
   $('#btn-apply-copy').on('click', function(){
     var class_id   = $('#cp_class_id').val();
     var section_id = $('#cp_section_id').val();
-    if (!class_id || !section_id) { alert('Select source class and section first.'); return; }
+    if (!class_id || !section_id) { swal({title:'Alert',text:'Select source class and section first.',type:'warning'}); return; }
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/get_subject_load_raw'); ?>',
       {class_id: class_id, section_id: section_id, [csrf_name]: csrf_val},
@@ -233,10 +235,10 @@ $(function(){
             }
           });
           updateStatusBadge();
-          alert('Applied periods/week for '+applied+' subject(s). Review and save.');
+          swal({title:'Alert',text:'Applied periods/week for '+applied+' subject(s). Review and save.',type:'warning'});
           $('#copy-from-panel').slideUp(200);
         } else {
-          alert('No load data found for selected section.');
+          swal({title:'Alert',text:'No load data found for selected section.',type:'warning'});
         }
       },'json');
   });
