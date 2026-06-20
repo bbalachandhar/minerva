@@ -504,7 +504,7 @@ class Onlinestudent_model extends MY_Model
                     $user_password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
 
                     $data_student_login = array(
-                        'username' => $this->student_login_prefix . $student_id,
+                        'username' => $data['admission_no'],
                         'password' => $user_password,
                         'user_id'  => $student_id,
                         'role'     => 'student',
@@ -517,7 +517,7 @@ class Onlinestudent_model extends MY_Model
                     $parent_password   = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
                     $temp              = $student_id;
                     $data_parent_login = array(
-                        'username' => $this->parent_login_prefix . $student_id,
+                        'username' => $this->parent_login_prefix . $data['admission_no'],
                         'password' => $parent_password,
                         'user_id'  => 0,
                         'role'     => 'parent',

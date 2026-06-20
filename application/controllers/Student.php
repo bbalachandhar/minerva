@@ -934,13 +934,13 @@ class Student extends Admin_Controller
 		
 						$sibling_id         = $this->input->post('sibling_id');
 						$data_student_login = array(
-							'username' => $this->student_login_prefix . $insert_id,
+							'username' => $data_insert['admission_no'],
 							'password' => $user_password,
 							'user_id'  => $insert_id,
 							'role'     => 'student',
 							'lang_id'  => $this->sch_setting_detail->lang_id,
 						);
-		
+
 						$this->user_model->add($data_student_login);
 
 						if ($sibling_id > 0) {
@@ -954,7 +954,7 @@ class Student extends Admin_Controller
 							$parent_password   = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
 							$temp              = $insert_id;
 							$data_parent_login = array(
-								'username' => $this->parent_login_prefix . $insert_id,
+								'username' => $this->parent_login_prefix . $data_insert['admission_no'],
 								'password' => $parent_password,
 								'user_id'  => 0,
 								'role'     => 'parent',
@@ -1019,13 +1019,13 @@ class Student extends Admin_Controller
 		
 						$this->mailsmsconf->mailsms('student_admission', $sender_details);
 		
-						$student_login_detail = array('id' => $insert_id, 'credential_for' => 'student', 'firstname' => $this->input->post('firstname'), 'lastname' => $this->input->post('lastname'), 'username' => $this->student_login_prefix . $insert_id, 'password' => $user_password, 'contact_no' => $this->input->post('mobileno'), 'email' => $this->input->post('email'), 'admission_no' => $data_insert['admission_no'], 'student_session_id' => $student_session_id);
+						$student_login_detail = array('id' => $insert_id, 'credential_for' => 'student', 'firstname' => $this->input->post('firstname'), 'lastname' => $this->input->post('lastname'), 'username' => $data_insert['admission_no'], 'password' => $user_password, 'contact_no' => $this->input->post('mobileno'), 'email' => $this->input->post('email'), 'admission_no' => $data_insert['admission_no'], 'student_session_id' => $student_session_id);
 		
 						$this->mailsmsconf->mailsms('student_login_credential', $student_login_detail);
 
 						if ($sibling_id > 0) {
 						} else {
-							$parent_login_detail = array('id' => $insert_id, 'credential_for' => 'parent', 'username' => $this->parent_login_prefix . $insert_id, 'password' => $parent_password, 'contact_no' => $this->input->post('guardian_phone'), 'email' => $this->input->post('guardian_email'), 'admission_no' => $data_insert['admission_no'], 'student_session_id' => $student_session_id, 'guardian_name' => $this->input->post('guardian_name'), 'firstname' => $this->input->post('firstname'), 'lastname' => $this->input->post('lastname'));
+							$parent_login_detail = array('id' => $insert_id, 'credential_for' => 'parent', 'username' => $this->parent_login_prefix . $data_insert['admission_no'], 'password' => $parent_password, 'contact_no' => $this->input->post('guardian_phone'), 'email' => $this->input->post('guardian_email'), 'admission_no' => $data_insert['admission_no'], 'student_session_id' => $student_session_id, 'guardian_name' => $this->input->post('guardian_name'), 'firstname' => $this->input->post('firstname'), 'lastname' => $this->input->post('lastname'));
 							$this->mailsmsconf->mailsms('student_login_credential', $parent_login_detail);
 						}
 		
@@ -1509,7 +1509,7 @@ catch (Exception $e) {
                                 $sibling_id    = $this->input->post('sibling_id');
 
                                 $data_student_login = array(
-                                    'username' => $this->student_login_prefix . $insert_id,
+                                    'username' => $admission_no,
                                     'password' => $user_password,
                                     'user_id'  => $insert_id,
                                     'role'     => 'student',
@@ -1520,7 +1520,7 @@ catch (Exception $e) {
 
                                 $temp              = $insert_id;
                                 $data_parent_login = array(
-                                    'username' => $this->parent_login_prefix . $insert_id,
+                                    'username' => $this->parent_login_prefix . $admission_no,
                                     'password' => $parent_password,
                                     'user_id'  => $insert_id,
                                     'role'     => 'parent',
@@ -1537,10 +1537,10 @@ catch (Exception $e) {
                                 $sender_details = array('student_id' => $insert_id, 'contact_no' => $guardian_phone, 'email' => $guardian_email);
                                 $this->mailsmsconf->mailsms('student_admission', $sender_details);
 
-                                $student_login_detail = array('id' => $insert_id, 'credential_for' => 'student', 'username' => $this->student_login_prefix . $insert_id, 'password' => $user_password, 'contact_no' => $mobile_no, 'email' => $email, 'admission_no' => $admission_no, 'firstname' => $student_data[$i]['firstname'], 'lastname' => $student_data[$i]['lastname']);
+                                $student_login_detail = array('id' => $insert_id, 'credential_for' => 'student', 'username' => $admission_no, 'password' => $user_password, 'contact_no' => $mobile_no, 'email' => $email, 'admission_no' => $admission_no, 'firstname' => $student_data[$i]['firstname'], 'lastname' => $student_data[$i]['lastname']);
                                 $this->mailsmsconf->mailsms('student_login_credential', $student_login_detail);
 
-                                $parent_login_detail = array('id' => $insert_id, 'credential_for' => 'parent', 'username' => $this->parent_login_prefix . $insert_id, 'password' => $parent_password, 'contact_no' => $guardian_phone, 'email' => $guardian_email, 'admission_no' => $admission_no, 'guardian_name' => $student_data[$i]['guardian_name']);
+                                $parent_login_detail = array('id' => $insert_id, 'credential_for' => 'parent', 'username' => $this->parent_login_prefix . $admission_no, 'password' => $parent_password, 'contact_no' => $guardian_phone, 'email' => $guardian_email, 'admission_no' => $admission_no, 'guardian_name' => $student_data[$i]['guardian_name']);
 
                                 $this->mailsmsconf->mailsms('student_login_credential', $parent_login_detail);
 
@@ -2111,7 +2111,7 @@ catch (Exception $e) {
                 $parent_password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
 
                 $data_parent_login = array(
-                    'username' => $this->parent_login_prefix . $student_id . "_1",
+                    'username' => $this->parent_login_prefix . $this->input->post('admission_no'),
                     'password' => $parent_password,
                     'user_id'  => "",
                     'role'     => 'parent',
