@@ -1175,7 +1175,7 @@ class Studentfeemaster_model extends MY_Model
     public function findOnlineObjectById($array, $st_date, $ed_date)
     {
         $ar    = json_decode($array->amount_detail);
-        $gateway_modes = array('online', 'billdesk', 'card', 'razorpay', 'paytm', 'payumoney', 'ccavenue', 'instamojo', 'stripe', 'paypal', 'payu');
+        $gateway_modes = array('online', 'billdesk', 'card', 'razorpay', 'paytm', 'payumoney', 'ccavenue', 'instamojo', 'stripe', 'paypal', 'payu', 'upi', 'bank_transfer', 'neft', 'imps', 'rtgs', 'net_banking', 'netbanking');
         $array = array();
         for ($i = $st_date; $i <= $ed_date; $i += 86400) {
             $find = date('Y-m-d', $i);
