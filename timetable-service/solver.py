@@ -9,6 +9,7 @@ joint lessons (with fixed slots), teacher capacity, distribution.
 from ortools.sat.python import cp_model
 import time
 import logging
+import os
 
 log = logging.getLogger("timetable-service")
 
@@ -197,7 +198,7 @@ def _solve_joints_only(data: dict, days, period_ids, D, P, day_idx, pid_idx,
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 15
-    solver.parameters.num_workers = 4
+    solver.parameters.num_workers = os.cpu_count() or 2
     status = solver.Solve(model)
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
@@ -834,10 +835,11 @@ def solve(data: dict) -> dict:
     log.info("Target: %d placement blocks", total_target_blocks)
 
     time_limit = data.get("time_limit", 180)
-    log.info("Solver time limit: %ds (%d min)", time_limit, time_limit // 60)
+    num_cpus = os.cpu_count() or 2
+    log.info("Solver time limit: %ds (%d min), workers: %d", time_limit, time_limit // 60, num_cpus)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit
-    solver.parameters.num_workers = 4
+    solver.parameters.num_workers = num_cpus
 
     _tick("solve_start")
     status = solver.Solve(model, callback)
