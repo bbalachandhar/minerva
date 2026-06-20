@@ -389,6 +389,10 @@ function mcc_abbr($db_name) {
     </div>
     <div class="row" style="margin-top:18px">
       <div class="col-md-12">
+        <div id="fees-type-filter" style="display:none; margin-bottom:12px">
+          <span style="font-size:12px; font-weight:600; color:#666; margin-right:8px"><i class="fa fa-filter"></i> Fee Type:</span>
+          <span id="fees-type-chips"></span>
+        </div>
         <div id="fees-table-skeleton">
           <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
           <div class="sk-shimmer sk-block"></div><div class="sk-shimmer sk-block alt"></div>
@@ -782,6 +786,8 @@ function loadAdmissions() {
 // FEES
 // ================================================================
 var feesDrilldownData  = {};  // keyed by db_name, stores year[] from API
+var feesRawRows        = []; // raw response rows for re-filtering
+var feesActiveFeeType  = 'all'; // current filter
 var assetsDrilldownData = {}; // keyed by db_name, stores item[] from API
 
 function feesPct(b, c) {
@@ -856,6 +862,98 @@ function buildYearRows(dbName, years) {
     return html;
 }
 
+function renderFeesTable(rows, feeType) {
+    var totalFees=0, totalPaid=0, totalBalance=0;
+    var tFP=0, tFPAmt=0, tPR=0, tPRAmt=0, tNP=0, tNPBilled=0;
+
+    rows.forEach(function(row) {
+        if (feeType === 'all') {
+            totalFees    += row.total_fees;
+            totalPaid    += row.total_paid;
+            totalBalance += row.total_balance;
+        } else if (row.fee_type_breakdown && row.fee_type_breakdown[feeType]) {
+            var ftd = row.fee_type_breakdown[feeType];
+            totalFees    += ftd.billed;
+            totalPaid    += ftd.collected;
+            totalBalance += ftd.balance;
+        }
+        tFP    += (row.fully_paid_count || 0);
+        tFPAmt += (row.fully_paid_amt   || 0);
+        tPR    += (row.partial_count    || 0);
+        tPRAmt += (row.partial_amt      || 0);
+        tNP    += (row.not_paid_count   || 0);
+        tNPBilled += (row.not_paid_billed || 0);
+    });
+
+    $('#kpi-fees-collected').text(MCC.currency + Number(totalPaid).toLocaleString('en-IN'));
+
+    var pct = totalFees > 0 ? ((totalPaid/totalFees)*100).toFixed(1) : 0;
+    var filterLabel = feeType === 'all' ? '' : ' <small style="color:#888">(' + feeType + ')</small>';
+    $('#fees-summary-cards').html(
+        mkStatCard('#3c8dbc','Total Billed' ,    MCC.currency+numFmt(totalFees))    +
+        mkStatCard('#00a65a','Collected',       MCC.currency+numFmt(totalPaid))    +
+        mkStatCard('#dd4b39','Balance',         MCC.currency+numFmt(totalBalance)) +
+        mkStatCard('#f39c12','Collection Rate', pct+'%')                           +
+        (feeType === 'all' ?
+            mkStatCard('#27ae60','Fully Paid',      fmtCr(tFPAmt)+'<br><small style="color:#777">'+numFmt(tFP)+' students</small>') +
+            mkStatCard('#e67e22','Partially Paid',  fmtCr(tPRAmt)+'<br><small style="color:#777">'+numFmt(tPR)+' students</small>') +
+            mkStatCard('#c0392b','Not Paid',        numFmt(tNP)+' students'+(tNPBilled > 0 ? '<br><small style="color:#777">'+fmtCr(tNPBilled)+'</small>' : ''))
+        : '')
+    );
+
+    var tbody='', tfees=0, tpaid=0, tbal=0;
+    rows.forEach(function(row, i) {
+        var rFees, rPaid, rBal;
+        if (feeType === 'all') {
+            rFees = row.total_fees; rPaid = row.total_paid; rBal = row.total_balance;
+        } else if (row.fee_type_breakdown && row.fee_type_breakdown[feeType]) {
+            var ftd = row.fee_type_breakdown[feeType];
+            rFees = ftd.billed; rPaid = ftd.collected; rBal = ftd.balance;
+        } else {
+            rFees = 0; rPaid = 0; rBal = 0;
+        }
+        var rowPct = feesPct(rFees, rPaid);
+        var color  = MCC.colors[i]||'#3c8dbc';
+        tfees+=rFees; tpaid+=rPaid; tbal+=rBal;
+        tbody +=
+            '<tr class="mcc-inst-row" data-db="'+escHtml(row.db_name)+'" style="cursor:pointer" title="Click to expand year-wise breakdown">'+
+            '<td>'+
+                '<i class="fa fa-chevron-right mcc-inst-chevron" style="font-size:11px;margin-right:6px;color:#666;transition:transform .2s"></i>'+
+                '<span class="mcc-dot" style="background:'+color+'"></span>'+
+                escHtml(MCC.names[row.db_name]||row.db_name)+
+            '</td>'+
+            '<td>'+(branchSessions[row.db_name]||'—')+'</td>'+
+            '<td class="text-right">'+fmtAmt(rFees)+'</td>'+
+            '<td class="text-right"><strong class="text-success">'+fmtAmt(rPaid)+'</strong></td>'+
+            '<td class="text-right text-danger">'+fmtAmt(rBal)+'</td>'+
+            (feeType === 'all'
+                ? '<td>'+stuStatus(row.fully_paid_count||0, row.fully_paid_amt||0, row.partial_count||0, row.partial_amt||0, row.not_paid_count||0, row.not_paid_billed||0, row.db_name, 0)+'</td>'
+                : '<td></td>') +
+            '<td class="text-center">'+feesBar(rowPct)+'</td>'+
+            '</tr>';
+    });
+    var fpct = tfees>0 ? ((tpaid/tfees)*100).toFixed(1) : 0;
+    $('#fees-tbody').html(tbody);
+    $('#fees-tfoot').html(
+        '<tr class="mcc-tfoot-row"><td colspan="2"><strong>Grand Total</strong></td>'+
+        '<td class="text-right"><strong>'+MCC.currency+numFmt(tfees)+'</strong></td>'+
+        '<td class="text-right"><strong class="text-success">'+MCC.currency+numFmt(tpaid)+'</strong></td>'+
+        '<td class="text-right text-danger"><strong>'+MCC.currency+numFmt(tbal)+'</strong></td>'+
+        (feeType === 'all' ? '<td>'+stuStatus(tFP, tFPAmt, tPR, tPRAmt, tNP, tNPBilled)+'</td>' : '<td></td>') +
+        '<td class="text-center"><strong>'+fpct+'%</strong></td></tr>'
+    );
+}
+
+function renderFeesSubRows(rows) {
+    if (!feesDrilldownData) return;
+    rows.forEach(function(row) {
+        var years = feesDrilldownData[row.db_name];
+        if (!years || !years.length) return;
+        var subHtml = buildYearRows(row.db_name, years);
+        $('#fees-tbody tr.mcc-inst-row[data-db="'+row.db_name+'"]').after(subHtml);
+    });
+}
+
 function loadFees() {
     if (loaded.fees) return;
     loaded.fees = true;
@@ -867,80 +965,42 @@ function loadFees() {
     reqSummary.done(function(resp) {
         if (!resp || resp.status !== 'success') return;
 
-        var totalFees=0, totalPaid=0, totalBalance=0;
-        var tFP=0, tFPAmt=0, tPR=0, tPRAmt=0, tNP=0, tNPBilled=0;
-
         if (resp.rows) {
+            feesRawRows = resp.rows;
+
+            // Build fee type chip bar from all fee types across institutions
+            var allFeeTypes = {};
             resp.rows.forEach(function(row) {
-                totalFees    += row.total_fees;
-                totalPaid    += row.total_paid;
-                totalBalance += row.total_balance;
-                tFP    += (row.fully_paid_count || 0);
-                tFPAmt += (row.fully_paid_amt   || 0);
-                tPR    += (row.partial_count    || 0);
-                tPRAmt += (row.partial_amt      || 0);
-                tNP    += (row.not_paid_count   || 0);
-                tNPBilled += (row.not_paid_billed || 0);
-                $('.mcc-fees-collected[data-db="'+row.db_name+'"]').html(row.total_paid_formatted);
-                $('.mcc-fees-balance[data-db="'+row.db_name+'"]').html(row.total_balance_formatted);
+                if (row.fee_type_breakdown) {
+                    Object.keys(row.fee_type_breakdown).forEach(function(ft) { allFeeTypes[ft] = true; });
+                }
             });
-
-            $('#kpi-fees-collected').text(MCC.currency + Number(totalPaid).toLocaleString('en-IN'));
-
-            var pct = totalFees > 0 ? ((totalPaid/totalFees)*100).toFixed(1) : 0;
-            $('#fees-summary-cards').html(
-                mkStatCard('#3c8dbc','Total Billed',    MCC.currency+numFmt(totalFees))    +
-                mkStatCard('#00a65a','Collected',       MCC.currency+numFmt(totalPaid))    +
-                mkStatCard('#dd4b39','Balance',         MCC.currency+numFmt(totalBalance)) +
-                mkStatCard('#f39c12','Collection Rate', pct+'%')                           +
-                mkStatCard('#27ae60','Fully Paid',      fmtCr(tFPAmt)+'<br><small style="color:#777">'+numFmt(tFP)+' students</small>') +
-                mkStatCard('#e67e22','Partially Paid',  fmtCr(tPRAmt)+'<br><small style="color:#777">'+numFmt(tPR)+' students</small>') +
-                mkStatCard('#c0392b','Not Paid',        numFmt(tNP)+' students'+(tNPBilled > 0 ? '<br><small style="color:#777">'+fmtCr(tNPBilled)+'</small>' : ''))
-            );
-
-            // Build main institution rows
-            var tbody='', tfees=0, tpaid=0, tbal=0;
-            resp.rows.forEach(function(row, i) {
-                var rowPct   = feesPct(row.total_fees, row.total_paid);
-                var color    = MCC.colors[i]||'#3c8dbc';
-                tfees+=row.total_fees; tpaid+=row.total_paid; tbal+=row.total_balance;
-                tbody +=
-                    '<tr class="mcc-inst-row" data-db="'+escHtml(row.db_name)+'" style="cursor:pointer" title="Click to expand year-wise breakdown">'+
-                    '<td>'+
-                        '<i class="fa fa-chevron-right mcc-inst-chevron" style="font-size:11px;margin-right:6px;color:#666;transition:transform .2s"></i>'+
-                        '<span class="mcc-dot" style="background:'+color+'"></span>'+
-                        escHtml(MCC.names[row.db_name]||row.db_name)+
-                    '</td>'+
-                    '<td>'+(branchSessions[row.db_name]||'—')+'</td>'+
-                    '<td class="text-right">'+row.total_fees_formatted+'</td>'+
-                    '<td class="text-right"><strong class="text-success">'+row.total_paid_formatted+'</strong></td>'+
-                    '<td class="text-right text-danger">'+row.total_balance_formatted+'</td>'+
-                    '<td>'+stuStatus(row.fully_paid_count||0, row.fully_paid_amt||0, row.partial_count||0, row.partial_amt||0, row.not_paid_count||0, row.not_paid_billed||0, row.db_name, 0)+'</td>'+
-                    '<td class="text-center">'+feesBar(rowPct)+'</td>'+
-                    '</tr>';
+            var chipStyle = 'display:inline-block; padding:5px 14px; margin:0 4px 4px 0; border-radius:16px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid #ccc; transition:all .15s;';
+            var chips = '<span class="mcc-fee-chip active" data-feetype="all" style="'+chipStyle+'background:#3c8dbc;color:#fff;border-color:#3c8dbc">All</span>';
+            Object.keys(allFeeTypes).sort().forEach(function(ft) {
+                chips += '<span class="mcc-fee-chip" data-feetype="'+escHtml(ft)+'" style="'+chipStyle+'background:#fff;color:#555">'+escHtml(ft)+'</span>';
             });
-            var fpct = tfees>0 ? ((tpaid/tfees)*100).toFixed(1) : 0;
-            $('#fees-tbody').html(tbody);
-            $('#fees-tfoot').html(
-                '<tr class="mcc-tfoot-row"><td colspan="2"><strong>Grand Total</strong></td>'+
-                '<td class="text-right"><strong>'+MCC.currency+numFmt(tfees)+'</strong></td>'+
-                '<td class="text-right"><strong class="text-success">'+MCC.currency+numFmt(tpaid)+'</strong></td>'+
-                '<td class="text-right text-danger"><strong>'+MCC.currency+numFmt(tbal)+'</strong></td>'+
-                '<td>'+stuStatus(tFP, tFPAmt, tPR, tPRAmt, tNP, tNPBilled)+'</td>'+
-                '<td class="text-center"><strong>'+fpct+'%</strong></td></tr>'
-            );
+            $('#fees-type-chips').html(chips);
+            $('#fees-type-filter').show();
 
-            // Once drilldown data arrives, inject sub-rows after each institution row
+            renderFeesTable(resp.rows, 'all');
+
+            // Once drilldown data arrives, inject sub-rows
             reqDrilldown.done(function(dr) {
                 if (!dr || dr.status !== 'success') return;
                 feesDrilldownData = dr.drilldown || {};
-                resp.rows.forEach(function(row) {
-                    var years = feesDrilldownData[row.db_name];
-                    if (!years || !years.length) return;
-                    var subHtml = buildYearRows(row.db_name, years);
-                    // Insert sub-rows immediately after the institution <tr>
-                    $('#fees-tbody tr.mcc-inst-row[data-db="'+row.db_name+'"]').after(subHtml);
-                });
+                renderFeesSubRows(resp.rows);
+                wireFeesToggle();
+            });
+
+            // Chip click handler
+            $(document).off('click.feeChip').on('click.feeChip', '.mcc-fee-chip', function() {
+                var ft = $(this).data('feetype');
+                feesActiveFeeType = ft;
+                $('.mcc-fee-chip').css({background:'#fff',color:'#555','border-color':'#ccc'});
+                $(this).css({background:'#3c8dbc',color:'#fff','border-color':'#3c8dbc'});
+                renderFeesTable(feesRawRows, ft);
+                renderFeesSubRows(feesRawRows);
                 wireFeesToggle();
             });
         }
