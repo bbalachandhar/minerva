@@ -101,6 +101,20 @@ class Student extends Admin_Controller
 
         $data['sch_setting'] = $this->sch_setting_detail;
 
+        $data['alumni_info'] = null;
+        if (!empty($student['is_alumni'])) {
+            $alumni_row = $this->db->query(
+                "SELECT ss.session_id, ses.session, c.class, ss.is_alumni
+                 FROM student_session ss
+                 JOIN sessions ses ON ses.id = ss.session_id
+                 JOIN classes c ON c.id = ss.class_id
+                 WHERE ss.student_id = ? AND ss.is_alumni = 0
+                 ORDER BY ss.session_id DESC LIMIT 1",
+                [$id]
+            )->row_array();
+            $data['alumni_info'] = $alumni_row ?: ['session' => $session, 'class' => $student['class']];
+        }
+
         $data['adm_auto_insert']      = $this->sch_setting_detail->adm_auto_insert;
         $data['student_timeline']     = $this->sch_setting_detail->student_timeline;
         $data["session"]              = !empty($studentSession) ? $studentSession["session"] : '';

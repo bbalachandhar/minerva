@@ -101,11 +101,18 @@ $currency_symbol = $admin_session['currency_symbol'];
                         }
                         ?>
                         <div class="profile-status-badge <?php echo ($student['is_active'] == 'yes') ? 'active' : 'inactive'; ?>"><?php echo ($student['is_active'] == 'yes') ? 'Active' : 'Inactive'; ?></div>
+                        <?php if (!empty($student['is_alumni'])): ?>
+                        <div class="profile-status-badge" style="background:#605ca8; color:#fff; margin-top:4px;">Alumni</div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="student-main-details">
                         <div class="name-section">
-                            <h1><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></h1>
+                            <h1><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?>
+                            <?php if (!empty($student['is_alumni'])): ?>
+                                <span style="display:inline-block; background:#605ca8; color:#fff; font-size:12px; font-weight:600; padding:3px 10px; border-radius:12px; vertical-align:middle; margin-left:8px;">Alumni<?php if (!empty($alumni_info['session'])) echo ' &middot; ' . htmlspecialchars($alumni_info['session']); ?></span>
+                            <?php endif; ?>
+                            </h1>
                             <?php if ($sch_setting->rte && $student['rte']) { ?>
                                 <span class="rte-badge"><?php echo $this->lang->line(strtolower($student['rte'])); ?></span>
                             <?php } ?>
