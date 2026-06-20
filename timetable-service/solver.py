@@ -957,25 +957,29 @@ def solve(data: dict) -> dict:
         elif tids:
             assigned_teacher = tids[0]
 
+        atr = joint.get("all_teachers_required", False)
+        staff_list = tids if (atr and len(tids) > 1) else [assigned_teacher]
+
         placed = 0
         for d in range(D):
             for p in range(P):
                 if solver.value(_jx(j, d, p)):
                     placed += 1
                     for cls in joint.get("classes", []):
-                        entries.append({
-                            "class_id": cls["class_id"],
-                            "section_id": cls["section_id"],
-                            "subject_group_id": cls.get("sg_id", 0),
-                            "subject_group_subject_id": cls.get("sgs_id", 0),
-                            "staff_id": assigned_teacher,
-                            "period_id": period_ids[p],
-                            "day": days[d],
-                            "room_id": None,
-                            "batch_id": None,
-                            "is_free_period": 0,
-                            "free_period_label": None,
-                        })
+                        for tid in staff_list:
+                            entries.append({
+                                "class_id": cls["class_id"],
+                                "section_id": cls["section_id"],
+                                "subject_group_id": cls.get("sg_id", 0),
+                                "subject_group_subject_id": cls.get("sgs_id", 0),
+                                "staff_id": tid,
+                                "period_id": period_ids[p],
+                                "day": days[d],
+                                "room_id": None,
+                                "batch_id": None,
+                                "is_free_period": 0,
+                                "free_period_label": None,
+                            })
 
         placed_blocks = placed // consec if consec > 1 else placed
         total_placed += placed_blocks

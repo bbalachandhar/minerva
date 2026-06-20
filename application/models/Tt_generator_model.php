@@ -512,25 +512,28 @@ class Tt_generator_model extends MY_Model
                     if (!$all_req && $free_teacher === null) continue;
 
                     $assigned = $all_req ? $t_ids[0] : $free_teacher;
+                    $staff_list = $all_req ? $t_ids : [$assigned];
                     $pref_room = !empty($load->preferred_room_id) ? (int)$load->preferred_room_id : null;
                     $room_id = $this->_findRoom($day, [$pid], $load->preferred_room_type ?? 'any',
                         $pref_room, $assigned, $constraints[$assigned] ?? $this->default_tc);
 
-                    $draft_entries[] = [
-                        'gen_log_id'               => $log_id,
-                        'session_id'               => $session_id,
-                        'class_id'                 => $class_id,
-                        'section_id'               => $section_id,
-                        'subject_group_id'         => (int) $load->subject_group_id,
-                        'subject_group_subject_id' => $sgs_id,
-                        'staff_id'                 => $assigned,
-                        'period_id'                => $pid,
-                        'day'                      => $day,
-                        'room_id'                  => $room_id,
-                        'batch_id'                 => null,
-                        'is_free_period'           => 0,
-                        'free_period_label'        => null,
-                    ];
+                    foreach ($staff_list as $s_id) {
+                        $draft_entries[] = [
+                            'gen_log_id'               => $log_id,
+                            'session_id'               => $session_id,
+                            'class_id'                 => $class_id,
+                            'section_id'               => $section_id,
+                            'subject_group_id'         => (int) $load->subject_group_id,
+                            'subject_group_subject_id' => $sgs_id,
+                            'staff_id'                 => $s_id,
+                            'period_id'                => $pid,
+                            'day'                      => $day,
+                            'room_id'                  => $room_id,
+                            'batch_id'                 => null,
+                            'is_free_period'           => 0,
+                            'free_period_label'        => null,
+                        ];
+                    }
 
                     $this->class_occ[$class_id][$section_id][$day][$pid][0] = true;
                     $teachers_to_mark = $all_req ? $t_ids : [$assigned];
