@@ -100,6 +100,9 @@
 
 </section>
 
+<link rel="stylesheet" href="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.css">
+<script src="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.min.js"></script>
+
 <style>
 .sub-day-header {
   background: linear-gradient(135deg,#2980b9,#3498db);
@@ -175,7 +178,7 @@ $(function(){
   $('#btn-load-slots').on('click', function(){
     var staff_ids = $('#absent_staff').val();
     var date      = $('#absence_date').val();
-    if (!staff_ids || staff_ids.length === 0 || !date) { alert('Please select at least one teacher and a date.'); return; }
+    if (!staff_ids || staff_ids.length === 0 || !date) { Swal.fire({icon:'warning',title:'Missing Selection',text:'Please select at least one teacher and a date.',confirmButtonColor:'#3c8dbc'}); return; }
 
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Searching...');
     var postData = {date: date};
@@ -297,12 +300,17 @@ $(function(){
     $.post('<?php echo site_url('admin/tt/bulk_auto_assign'); ?>', postData, function(res){
       $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Auto-Assign All');
       if (res.status === '1') {
-        var msg = res.assigned + ' of ' + res.total + ' slots assigned.';
-        if (res.assigned < res.total) msg += ' ' + (res.total - res.assigned) + ' could not find a substitute.';
-        alert(msg);
-        $('#btn-load-slots').trigger('click');
+        var allDone = res.assigned === res.total;
+        Swal.fire({
+          icon: allDone ? 'success' : 'warning',
+          title: allDone ? 'All Assigned!' : 'Partially Assigned',
+          html: '<strong>' + res.assigned + '</strong> of <strong>' + res.total + '</strong> slots assigned.'
+            + (res.assigned < res.total ? '<br><span style="color:#e67e22">' + (res.total - res.assigned) + ' slot(s) could not find a substitute.</span>' : ''),
+          confirmButtonColor: '#3c8dbc',
+          confirmButtonText: 'OK'
+        }).then(function(){ $('#btn-load-slots').trigger('click'); });
       } else {
-        alert(res.message || 'Error during bulk assignment.');
+        Swal.fire({icon:'error',title:'Error',text:res.message || 'Error during bulk assignment.',confirmButtonColor:'#3c8dbc'});
       }
     },'json');
   });
@@ -323,8 +331,9 @@ $(function(){
         $card.removeClass('pending').addClass('assigned');
         $card.find('.slot-card-head .label').removeClass('label-warning').addClass('label-success').html('<i class="fa fa-check"></i> Assigned');
         $card.data('sub-id', res.substitute_id || existing_id || 1);
+        toastr.success('Substitute assigned successfully');
       } else {
-        alert('Error saving substitution. Please try again.');
+        Swal.fire({icon:'error',title:'Error',text:'Error saving substitution. Please try again.',confirmButtonColor:'#3c8dbc'});
       }
     },'json');
   }
@@ -343,13 +352,27 @@ $(function(){
 
   // Cancel substitution
   $(document).on('click', '.btn-cancel-sub', function(){
-    if (!confirm('Cancel this substitution?')) return;
     var id   = $(this).data('id');
     var $row = $(this).closest('tr');
-    $.post('<?php echo site_url('admin/tt/cancel_substitution/'); ?>'+id,
-      {[csrf_name]: csrf_val}, function(res){
-        if (res.status === '1') { location.reload(); }
-      },'json');
+    Swal.fire({
+      title: 'Cancel Substitution?',
+      text: 'This will remove the substitute assignment.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dd4b39',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, cancel it'
+    }).then(function(result) {
+      if (result.isConfirmed) {
+        $.post('<?php echo site_url('admin/tt/cancel_substitution/'); ?>'+id,
+          {[csrf_name]: csrf_val}, function(res){
+            if (res.status === '1') {
+              toastr.success('Substitution cancelled');
+              location.reload();
+            }
+          },'json');
+      }
+    });
   });
 });
 </script>
