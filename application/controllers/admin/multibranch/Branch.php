@@ -977,7 +977,7 @@ class Branch extends MY_Addon_MBController
      */
     private function _mcc_fees_drilldown($db, $session_id)
     {
-        // ── 1. Billed per class_id ─────────────────────────────────────────────
+        // ── 1. Billed per class_id + fee type ─────────────────────────────────
         $billed_rows = $db->query(
             "SELECT
                 ss.class_id,
@@ -986,6 +986,7 @@ class Branch extends MY_Addon_MBController
                 TRIM(REPLACE(
                     SUBSTRING(c.class, LENGTH(SUBSTRING_INDEX(c.class, ' ', 1)) + 2),
                     'YEAR ', ''))                                               AS class_display,
+                ft.type                                                          AS fee_type,
                 SUM(COALESCE(sfo.override_amount, fgf.amount))                  AS billed
              FROM student_fees_master sfm
              JOIN student_session ss  ON ss.id  = sfm.student_session_id
@@ -999,17 +1000,19 @@ class Branch extends MY_Addon_MBController
                     ON sfo.student_session_id    = sfm.student_session_id
                    AND sfo.fee_groups_feetype_id = fgf.id
              WHERE ss.session_id = ? AND sfm.is_active = 'yes'
-             GROUP BY ss.class_id, c.class
-             ORDER BY FIELD(SUBSTRING_INDEX(c.class,' ',1),'I','II','III','IV','V'), c.class",
+             GROUP BY ss.class_id, c.class, ft.type
+             ORDER BY FIELD(SUBSTRING_INDEX(c.class,' ',1),'I','II','III','IV','V'), c.class, ft.type",
             [$session_id]
         )->result();
 
-        // ── 2. Collected per class_id (JSON parse) ─────────────────────────────
+        // ── 2. Collected per class_id + fee type (JSON parse) ──────────────────
         $deposit_rows = $db->query(
-            "SELECT ss.class_id, sfd.amount_detail
+            "SELECT ss.class_id, sfd.amount_detail, ft.type AS fee_type
              FROM student_fees_deposite sfd
              JOIN student_fees_master sfm ON sfm.id = sfd.student_fees_master_id
                                          AND sfm.is_active = 'yes'
+             JOIN fee_groups_feetype fgf  ON fgf.id = sfd.fee_groups_feetype_id
+             JOIN feetype ft             ON ft.id  = fgf.feetype_id
              JOIN student_session ss ON ss.id = sfm.student_session_id
              JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
              WHERE ss.session_id = ?
@@ -1018,16 +1021,19 @@ class Branch extends MY_Addon_MBController
         )->result();
 
         $collected_by_class = [];
+        $collected_by_class_ft = [];
         foreach ($deposit_rows as $dep) {
             $detail = json_decode($dep->amount_detail);
             if (!is_object($detail)) continue;
             $cid = (int)$dep->class_id;
+            $ft  = $dep->fee_type;
             if (!isset($collected_by_class[$cid])) $collected_by_class[$cid] = 0;
+            if (!isset($collected_by_class_ft[$cid])) $collected_by_class_ft[$cid] = [];
+            if (!isset($collected_by_class_ft[$cid][$ft])) $collected_by_class_ft[$cid][$ft] = 0;
             foreach ($detail as $payment) {
-                $collected_by_class[$cid] += (float)$payment->amount;
-                if (isset($payment->amount_discount)) {
-                    $collected_by_class[$cid] += (float)$payment->amount_discount;
-                }
+                $amt = (float)$payment->amount + (float)(isset($payment->amount_discount) ? $payment->amount_discount : 0);
+                $collected_by_class[$cid] += $amt;
+                $collected_by_class_ft[$cid][$ft] += $amt;
             }
         }
 
@@ -1035,17 +1041,42 @@ class Branch extends MY_Addon_MBController
         $counts          = $this->_mcc_student_counts($db, $session_id);
         $counts_by_class = $counts['by_class'];
 
-        // ── 4. Assemble year → classes tree ───────────────────────────────────
+        // ── 4. Assemble year → classes tree with fee type breakdown ──────────
         $year_order = ['I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4, 'V' => 5];
-        $years      = [];   // keyed by year_ord string
+        $years      = [];
+        $class_data = [];
 
         foreach ($billed_rows as $row) {
-            $yr  = $row->year_ord;
             $cid = (int)$row->class_id;
+            $ft  = $row->fee_type;
             $b   = (float)$row->billed;
+
+            if (!isset($class_data[$cid])) {
+                $class_data[$cid] = [
+                    'year_ord'      => $row->year_ord,
+                    'class_display' => $row->class_display,
+                    'billed'        => 0,
+                    'ft_billed'     => [],
+                ];
+            }
+            $class_data[$cid]['billed'] += $b;
+            $class_data[$cid]['ft_billed'][$ft] = ($class_data[$cid]['ft_billed'][$ft] ?? 0) + $b;
+        }
+
+        foreach ($class_data as $cid => $cd) {
+            $yr  = $cd['year_ord'];
+            $b   = $cd['billed'];
             $col = isset($collected_by_class[$cid]) ? $collected_by_class[$cid] : 0;
             $cc  = isset($counts_by_class[$cid]) ? $counts_by_class[$cid]
                  : ['fully_paid' => 0, 'fully_paid_amt' => 0.0, 'partial' => 0, 'partial_amt' => 0.0, 'not_paid' => 0, 'not_paid_billed' => 0.0];
+
+            $ft_breakdown = [];
+            $all_fts = array_unique(array_merge(array_keys($cd['ft_billed']), array_keys($collected_by_class_ft[$cid] ?? [])));
+            foreach ($all_fts as $ft) {
+                $fb = $cd['ft_billed'][$ft] ?? 0;
+                $fc = $collected_by_class_ft[$cid][$ft] ?? 0;
+                $ft_breakdown[$ft] = ['billed' => $fb, 'collected' => $fc, 'balance' => $fb - $fc];
+            }
 
             if (!isset($years[$yr])) {
                 $years[$yr] = [
@@ -1053,39 +1084,47 @@ class Branch extends MY_Addon_MBController
                     'fully_paid' => 0, 'fully_paid_amt' => 0.0,
                     'partial'    => 0, 'partial_amt'    => 0.0,
                     'not_paid'   => 0, 'not_paid_billed' => 0.0,
+                    'fee_type_breakdown' => [],
                 ];
             }
             $years[$yr]['billed']           += $b;
             $years[$yr]['collected']        += $col;
-            $years[$yr]['fully_paid']        += $cc['fully_paid'];
-            $years[$yr]['fully_paid_amt']    += $cc['fully_paid_amt'];
-            $years[$yr]['partial']           += $cc['partial'];
-            $years[$yr]['partial_amt']       += $cc['partial_amt'];
-            $years[$yr]['not_paid']          += $cc['not_paid'];
-            $years[$yr]['not_paid_billed']   += $cc['not_paid_billed'];
-            $years[$yr]['classes'][]  = [
-                'class_id'        => $cid,
-                'name'            => $row->class_display,
-                'billed'          => $b,
-                'collected'       => $col,
-                'balance'         => $b - $col,
-                'fully_paid'      => $cc['fully_paid'],
-                'fully_paid_amt'  => $cc['fully_paid_amt'],
-                'partial'         => $cc['partial'],
-                'partial_amt'     => $cc['partial_amt'],
-                'not_paid'        => $cc['not_paid'],
-                'not_paid_billed' => $cc['not_paid_billed'],
+            $years[$yr]['fully_paid']       += $cc['fully_paid'];
+            $years[$yr]['fully_paid_amt']   += $cc['fully_paid_amt'];
+            $years[$yr]['partial']          += $cc['partial'];
+            $years[$yr]['partial_amt']      += $cc['partial_amt'];
+            $years[$yr]['not_paid']         += $cc['not_paid'];
+            $years[$yr]['not_paid_billed']  += $cc['not_paid_billed'];
+            foreach ($ft_breakdown as $ft => $vals) {
+                if (!isset($years[$yr]['fee_type_breakdown'][$ft])) {
+                    $years[$yr]['fee_type_breakdown'][$ft] = ['billed' => 0, 'collected' => 0, 'balance' => 0];
+                }
+                $years[$yr]['fee_type_breakdown'][$ft]['billed']    += $vals['billed'];
+                $years[$yr]['fee_type_breakdown'][$ft]['collected'] += $vals['collected'];
+                $years[$yr]['fee_type_breakdown'][$ft]['balance']   += $vals['balance'];
+            }
+            $years[$yr]['classes'][] = [
+                'class_id'           => $cid,
+                'name'               => $cd['class_display'],
+                'billed'             => $b,
+                'collected'          => $col,
+                'balance'            => $b - $col,
+                'fully_paid'         => $cc['fully_paid'],
+                'fully_paid_amt'     => $cc['fully_paid_amt'],
+                'partial'            => $cc['partial'],
+                'partial_amt'        => $cc['partial_amt'],
+                'not_paid'           => $cc['not_paid'],
+                'not_paid_billed'    => $cc['not_paid_billed'],
+                'fee_type_breakdown' => $ft_breakdown,
             ];
         }
 
-        // Sort years in I→V order
         uasort($years, function($a, $b) use ($year_order) {
             $ao = isset($year_order[$a['year']]) ? $year_order[$a['year']] : 99;
             $bo = isset($year_order[$b['year']]) ? $year_order[$b['year']] : 99;
             return $ao - $bo;
         });
 
-        // Add balance to each year
         foreach ($years as &$y) {
             $y['balance'] = $y['billed'] - $y['collected'];
         }

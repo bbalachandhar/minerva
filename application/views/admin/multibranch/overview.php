@@ -824,37 +824,51 @@ function stuStatus(fp, fpAmt, pr, prAmt, np, npBilled, dbName, classIds) {
     return html;
 }
 
+function getDrillFees(obj, selected) {
+    if (!selected.length) return {f: obj.billed, p: obj.collected, b: obj.balance};
+    var f=0, p=0;
+    if (obj.fee_type_breakdown) {
+        selected.forEach(function(ft) {
+            var d = obj.fee_type_breakdown[ft];
+            if (d) { f += d.billed; p += d.collected; }
+        });
+    }
+    return {f: f, p: p, b: f - p};
+}
+
 function buildYearRows(dbName, years) {
+    var sel = feesSelectedTypes;
+    var isAll = !sel.length;
     var html = '';
     years.forEach(function(yr) {
-        var yPct = feesPct(yr.billed, yr.collected);
-        // Year row (level 2)
+        var yf = getDrillFees(yr, sel);
+        var yPct = feesPct(yf.f, yf.p);
         html += '<tr class="mcc-yr-row" data-db="'+escHtml(dbName)+'" data-year="'+escHtml(yr.year)+'" style="display:none; background:#f7fafc; cursor:pointer">'+
             '<td style="padding-left:32px">'+
                 '<i class="fa fa-chevron-right mcc-yr-chevron" style="font-size:10px;margin-right:6px;transition:transform .2s"></i>'+
                 '<strong>'+escHtml(yr.year)+' Year</strong>'+
             '</td>'+
             '<td></td>'+
-            '<td class="text-right">'+fmtAmt(yr.billed)+'</td>'+
-            '<td class="text-right"><strong class="text-success">'+fmtAmt(yr.collected)+'</strong></td>'+
-            '<td class="text-right text-danger">'+fmtAmt(yr.balance)+'</td>'+
-            '<td>'+stuStatus(yr.fully_paid||0, yr.fully_paid_amt||0, yr.partial||0, yr.partial_amt||0, yr.not_paid||0, yr.not_paid_billed||0, dbName, yr.classes.map(function(c){return c.class_id||0;}).filter(Boolean).join(','))+'</td>'+
+            '<td class="text-right">'+fmtAmt(yf.f)+'</td>'+
+            '<td class="text-right"><strong class="text-success">'+fmtAmt(yf.p)+'</strong></td>'+
+            '<td class="text-right text-danger">'+fmtAmt(yf.b)+'</td>'+
+            (isAll ? '<td>'+stuStatus(yr.fully_paid||0, yr.fully_paid_amt||0, yr.partial||0, yr.partial_amt||0, yr.not_paid||0, yr.not_paid_billed||0, dbName, yr.classes.map(function(c){return c.class_id||0;}).filter(Boolean).join(','))+'</td>' : '<td></td>') +
             '<td class="text-center">'+feesBar(yPct)+'</td>'+
             '</tr>';
 
-        // Class rows (level 3)
         yr.classes.forEach(function(cls) {
-            var cPct = feesPct(cls.billed, cls.collected);
+            var cf = getDrillFees(cls, sel);
+            var cPct = feesPct(cf.f, cf.p);
             html += '<tr class="mcc-cls-row" data-db="'+escHtml(dbName)+'" data-year="'+escHtml(yr.year)+'" style="display:none; background:#fafcff">'+
                 '<td style="padding-left:56px; color:#555">'+
                     '<i class="fa fa-minus" style="font-size:9px;margin-right:6px;color:#aaa"></i>'+
                     escHtml(cls.name)+
                 '</td>'+
                 '<td></td>'+
-                '<td class="text-right">'+fmtAmt(cls.billed)+'</td>'+
-                '<td class="text-right text-success">'+fmtAmt(cls.collected)+'</td>'+
-                '<td class="text-right text-danger">'+fmtAmt(cls.balance)+'</td>'+
-                '<td>'+stuStatus(cls.fully_paid||0, cls.fully_paid_amt||0, cls.partial||0, cls.partial_amt||0, cls.not_paid||0, cls.not_paid_billed||0, dbName, String(cls.class_id||0))+'</td>'+
+                '<td class="text-right">'+fmtAmt(cf.f)+'</td>'+
+                '<td class="text-right text-success">'+fmtAmt(cf.p)+'</td>'+
+                '<td class="text-right text-danger">'+fmtAmt(cf.b)+'</td>'+
+                (isAll ? '<td>'+stuStatus(cls.fully_paid||0, cls.fully_paid_amt||0, cls.partial||0, cls.partial_amt||0, cls.not_paid||0, cls.not_paid_billed||0, dbName, String(cls.class_id||0))+'</td>' : '<td></td>') +
                 '<td class="text-center">'+feesBar(cPct)+'</td>'+
                 '</tr>';
         });
