@@ -389,9 +389,13 @@ class Branch extends MY_Addon_MBController
                      FROM students s
                      JOIN student_session ss ON ss.student_id = s.id
                      JOIN classes c ON c.id = ss.class_id
+                     LEFT JOIN categories cat ON cat.id = s.category_id
                      WHERE ss.session_id = ? AND s.is_active = 'yes' AND ss.is_alumni = 0
-                       AND c.class LIKE 'I %' AND c.class NOT LIKE 'II%' AND c.class NOT LIKE 'III%'
-                       AND c.class NOT LIKE 'IV%' AND c.class NOT LIKE 'V %'",
+                       AND (
+                           (c.class LIKE 'I %' AND c.class NOT LIKE 'II%' AND c.class NOT LIKE 'III%'
+                            AND c.class NOT LIKE 'IV%' AND c.class NOT LIKE 'V %')
+                           OR (c.class LIKE 'II %' AND cat.category LIKE 'LE%')
+                       )",
                     [$session_id]
                 );
                 $r_off    = $db->query("SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?", [$session_id]);
