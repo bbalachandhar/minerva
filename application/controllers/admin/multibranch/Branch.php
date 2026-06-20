@@ -394,7 +394,7 @@ class Branch extends MY_Addon_MBController
                        AND (
                            (c.class LIKE 'I %' AND c.class NOT LIKE 'II%' AND c.class NOT LIKE 'III%'
                             AND c.class NOT LIKE 'IV%' AND c.class NOT LIKE 'V %')
-                           OR (c.class LIKE 'II %' AND cat.category LIKE 'LE%')
+                           OR (c.class LIKE 'II %' AND (cat.category LIKE 'LE%' OR LOWER(cat.category) = 'lateral'))
                        )",
                     [$session_id]
                 );
