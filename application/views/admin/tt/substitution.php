@@ -178,7 +178,7 @@ $(function(){
   $('#btn-load-slots').on('click', function(){
     var staff_ids = $('#absent_staff').val();
     var date      = $('#absence_date').val();
-    if (!staff_ids || staff_ids.length === 0 || !date) { Swal.fire({icon:'warning',title:'Missing Selection',text:'Please select at least one teacher and a date.',confirmButtonColor:'#3c8dbc'}); return; }
+    if (!staff_ids || staff_ids.length === 0 || !date) { swal({title:'Missing Selection',text:'Please select at least one teacher and a date.',type:'warning',confirmButtonColor:'#3c8dbc'}); return; }
 
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i> Searching...');
     var postData = {date: date};
@@ -301,16 +301,16 @@ $(function(){
       $btn.prop('disabled',false).html('<i class="fa fa-magic"></i> Auto-Assign All');
       if (res.status === '1') {
         var allDone = res.assigned === res.total;
-        Swal.fire({
-          icon: allDone ? 'success' : 'warning',
+        swal({
+          type: allDone ? 'success' : 'warning',
           title: allDone ? 'All Assigned!' : 'Partially Assigned',
           html: '<strong>' + res.assigned + '</strong> of <strong>' + res.total + '</strong> slots assigned.'
             + (res.assigned < res.total ? '<br><span style="color:#e67e22">' + (res.total - res.assigned) + ' slot(s) could not find a substitute.</span>' : ''),
           confirmButtonColor: '#3c8dbc',
           confirmButtonText: 'OK'
-        }).then(function(){ $('#btn-load-slots').trigger('click'); });
+        }, function(){ $('#btn-load-slots').trigger('click'); });
       } else {
-        Swal.fire({icon:'error',title:'Error',text:res.message || 'Error during bulk assignment.',confirmButtonColor:'#3c8dbc'});
+        swal({type:'error',title:'Error',text:res.message || 'Error during bulk assignment.',confirmButtonColor:'#3c8dbc'});
       }
     },'json');
   });
@@ -333,7 +333,7 @@ $(function(){
         $card.data('sub-id', res.substitute_id || existing_id || 1);
         toastr.success('Substitute assigned successfully');
       } else {
-        Swal.fire({icon:'error',title:'Error',text:'Error saving substitution. Please try again.',confirmButtonColor:'#3c8dbc'});
+        swal({type:'error',title:'Error',text:'Error saving substitution. Please try again.',confirmButtonColor:'#3c8dbc'});
       }
     },'json');
   }
@@ -354,16 +354,16 @@ $(function(){
   $(document).on('click', '.btn-cancel-sub', function(){
     var id   = $(this).data('id');
     var $row = $(this).closest('tr');
-    Swal.fire({
+    swal({
       title: 'Cancel Substitution?',
       text: 'This will remove the substitute assignment.',
-      icon: 'warning',
+      type: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dd4b39',
       cancelButtonColor: '#6c757d',
       confirmButtonText: 'Yes, cancel it'
-    }).then(function(result) {
-      if (result.isConfirmed) {
+    }, function(isConfirm) {
+      if (isConfirm) {
         $.post('<?php echo site_url('admin/tt/cancel_substitution/'); ?>'+id,
           {[csrf_name]: csrf_val}, function(res){
             if (res.status === '1') {
