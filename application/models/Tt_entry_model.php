@@ -88,7 +88,11 @@ class Tt_entry_model extends MY_Model
             ->where('staff_id IS NOT NULL', null, false)
             ->get('tt_entries')->result_array();
         $busy_ids = array_column($busy, 'staff_id');
-        $busy_ids[] = $exclude_staff_id;
+        if (is_array($exclude_staff_id)) {
+            $busy_ids = array_merge($busy_ids, $exclude_staff_id);
+        } else {
+            $busy_ids[] = $exclude_staff_id;
+        }
 
         // Also exclude unavailable teachers
         $unavail = $this->db->select('staff_id')

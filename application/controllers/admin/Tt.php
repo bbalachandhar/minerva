@@ -2250,25 +2250,173 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
     public function get_absent_slots()
     {
         $session_id     = $this->setting_model->getCurrentSession();
-        $absent_staff   = (int) $this->input->post('absent_staff_id');
         $date           = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date')));
         $day            = date('l', strtotime($date));
 
-        $slots    = $this->Tt_entry_model->getStaffSlotsForDay($session_id, $absent_staff, $day);
-        $existing = $this->Tt_substitution_model->getByDateStaff($session_id, $absent_staff, $date);
+        $staff_ids_raw = $this->input->post('absent_staff_ids');
+        if (is_array($staff_ids_raw)) {
+            $absent_ids = array_map('intval', $staff_ids_raw);
+        } else {
+            $absent_ids = [(int) $this->input->post('absent_staff_id')];
+        }
+        $absent_ids = array_filter($absent_ids);
 
-        $existing_map = [];
-        foreach ($existing as $ex) {
-            $existing_map[$ex->tt_entry_id] = $ex;
+        $all_slots = [];
+        foreach ($absent_ids as $absent_staff) {
+            $slots    = $this->Tt_entry_model->getStaffSlotsForDay($session_id, $absent_staff, $day);
+            $existing = $this->Tt_substitution_model->getByDateStaff($session_id, $absent_staff, $date);
+
+            $existing_map = [];
+            foreach ($existing as $ex) {
+                $existing_map[$ex->tt_entry_id] = $ex;
+            }
+
+            foreach ($slots as &$slot) {
+                $slot->substitution = $existing_map[$slot->id] ?? null;
+                $slot->absent_staff_id = $absent_staff;
+                $slot->available_teachers = $this->Tt_entry_model->getAvailableTeachers($session_id, $day, $slot->period_id, $absent_ids);
+            }
+            $all_slots = array_merge($all_slots, $slots);
         }
 
-        foreach ($slots as &$slot) {
-            $slot->substitution = $existing_map[$slot->id] ?? null;
-            // Find available substitute teachers for this slot
-            $slot->available_teachers = $this->Tt_entry_model->getAvailableTeachers($session_id, $day, $slot->period_id, $absent_staff);
+        echo json_encode(['status' => '1', 'day' => $day, 'slots' => $all_slots]);
+    }
+
+    public function bulk_auto_assign()
+    {
+        if (!$this->rbac->hasPrivilege('tt_substitution', 'can_add')) {
+            echo json_encode(['status' => '0', 'message' => 'Access denied']);
+            return;
+        }
+        $session_id = $this->setting_model->getCurrentSession();
+        $created_by = $this->customlib->getStaffID();
+        $date       = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date')));
+        $day        = date('l', strtotime($date));
+
+        $staff_ids_raw = $this->input->post('absent_staff_ids');
+        $absent_ids    = array_filter(array_map('intval', is_array($staff_ids_raw) ? $staff_ids_raw : []));
+        if (empty($absent_ids)) {
+            echo json_encode(['status' => '0', 'message' => 'No teachers selected']);
+            return;
         }
 
-        echo json_encode(['status' => '1', 'day' => $day, 'slots' => $slots]);
+        $all_slots = [];
+        foreach ($absent_ids as $sid) {
+            $slots = $this->Tt_entry_model->getStaffSlotsForDay($session_id, $sid, $day);
+            $existing = $this->Tt_substitution_model->getByDateStaff($session_id, $sid, $date);
+            $existing_map = [];
+            foreach ($existing as $ex) $existing_map[$ex->tt_entry_id] = $ex;
+            foreach ($slots as $s) {
+                if (isset($existing_map[$s->id])) continue;
+                $s->absent_staff_id = $sid;
+                $all_slots[] = $s;
+            }
+        }
+
+        // Build teacher subject/department index for priority matching
+        $teacher_subjects = [];
+        $teacher_depts = [];
+        $staff_rows = $this->staff_model->getStaffbyrole(2);
+        foreach ($staff_rows as $sr) {
+            $teacher_depts[(int)$sr['id']] = (int)($sr['department_id'] ?? 0);
+        }
+        $load_rows = $this->db->select('staff_id, subject_group_subject_id')
+            ->from('tt_subject_load_teachers')
+            ->join('tt_subject_load', 'tt_subject_load.id = tt_subject_load_teachers.subject_load_id')
+            ->where('tt_subject_load.session_id', $session_id)
+            ->get()->result();
+        foreach ($load_rows as $lr) {
+            $teacher_subjects[(int)$lr->staff_id][(int)$lr->subject_group_subject_id] = true;
+        }
+
+        // Track assignments in this batch to avoid double-booking
+        $batch_assigned = [];
+        $results = [];
+        $assigned_count = 0;
+
+        // Sort slots by fewer available teachers first (most constrained first)
+        usort($all_slots, function($a, $b) use ($session_id, $day, $absent_ids) {
+            $a_avail = count($this->Tt_entry_model->getAvailableTeachers($session_id, $day, $a->period_id, $absent_ids));
+            $b_avail = count($this->Tt_entry_model->getAvailableTeachers($session_id, $day, $b->period_id, $absent_ids));
+            return $a_avail - $b_avail;
+        });
+
+        foreach ($all_slots as $slot) {
+            $available = $this->Tt_entry_model->getAvailableTeachers($session_id, $day, $slot->period_id, $absent_ids);
+            // Filter out teachers already assigned in this batch for this period
+            $available = array_filter($available, function($t) use ($slot, &$batch_assigned) {
+                return empty($batch_assigned[$t->id][$slot->period_id]);
+            });
+
+            // Rank by priority
+            $sgs_id = (int)($slot->subject_group_subject_id ?? 0);
+            $slot_dept = $teacher_depts[$slot->staff_id] ?? 0;
+            $ranked = [];
+            foreach ($available as $t) {
+                $tid = (int)$t->id;
+                $score = 0;
+                if ($sgs_id && !empty($teacher_subjects[$tid][$sgs_id])) $score += 100;
+                $t_dept = $teacher_depts[$tid] ?? 0;
+                if ($t_dept > 0 && $t_dept === $slot_dept) $score += 10;
+                $ranked[] = ['teacher' => $t, 'score' => $score];
+            }
+            usort($ranked, function($a, $b) { return $b['score'] - $a['score']; });
+
+            $best = !empty($ranked) ? $ranked[0]['teacher'] : null;
+            $match_type = 'none';
+            if ($best && !empty($ranked[0]['score'])) {
+                $match_type = $ranked[0]['score'] >= 100 ? 'subject' : 'department';
+            } elseif ($best) {
+                $match_type = 'any_free';
+            }
+
+            // Check auto-fill setting
+            $auto_fill = true;
+            $constraint = $this->db->where('session_id', $session_id)->limit(1)->get('sch_settings')->row();
+
+            if ($best) {
+                $data = [
+                    'session_id'               => $session_id,
+                    'absent_staff_id'          => $slot->absent_staff_id,
+                    'substitute_staff_id'      => $best->id,
+                    'tt_entry_id'              => $slot->id,
+                    'date'                     => $date,
+                    'day'                      => $day,
+                    'period_id'                => $slot->period_id,
+                    'class_id'                 => $slot->class_id,
+                    'section_id'               => $slot->section_id,
+                    'subject_group_subject_id' => $slot->subject_group_subject_id,
+                    'room_id'                  => $slot->room_id,
+                    'substitution_type'        => 'auto_bulk',
+                    'status'                   => 'confirmed',
+                    'note'                     => 'Bulk auto-assigned (' . $match_type . ' match)',
+                    'created_by'               => $created_by,
+                ];
+                $this->Tt_substitution_model->save($data);
+                $batch_assigned[$best->id][$slot->period_id] = true;
+                $assigned_count++;
+                $results[] = [
+                    'entry_id'   => $slot->id,
+                    'substitute' => $best->name . ' ' . $best->surname,
+                    'match_type' => $match_type,
+                    'status'     => 'assigned',
+                ];
+            } else {
+                $results[] = [
+                    'entry_id'   => $slot->id,
+                    'substitute' => null,
+                    'match_type' => 'none',
+                    'status'     => 'no_substitute',
+                ];
+            }
+        }
+
+        echo json_encode([
+            'status'   => '1',
+            'assigned' => $assigned_count,
+            'total'    => count($all_slots),
+            'results'  => $results,
+        ]);
     }
 
     public function save_substitution()
