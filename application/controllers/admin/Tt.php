@@ -2284,6 +2284,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
 
     public function bulk_auto_assign()
     {
+        set_time_limit(60);
         if (!$this->rbac->hasPrivilege('tt_substitution', 'can_add')) {
             echo json_encode(['status' => '0', 'message' => 'Access denied']);
             return;
@@ -2329,26 +2330,27 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
             $teacher_subjects[(int)$lr->staff_id][(int)$lr->subject_group_subject_id] = true;
         }
 
-        // Track assignments in this batch to avoid double-booking
+        // Pre-fetch available teachers per period (one DB query each, not N²)
+        $period_ids = array_unique(array_map(function($s) { return $s->period_id; }, $all_slots));
+        $avail_by_period = [];
+        foreach ($period_ids as $pid) {
+            $avail_by_period[$pid] = $this->Tt_entry_model->getAvailableTeachers($session_id, $day, $pid, $absent_ids);
+        }
+
+        // Sort slots by fewer available teachers first (most constrained first)
+        usort($all_slots, function($a, $b) use ($avail_by_period) {
+            return count($avail_by_period[$a->period_id] ?? []) - count($avail_by_period[$b->period_id] ?? []);
+        });
+
         $batch_assigned = [];
         $results = [];
         $assigned_count = 0;
 
-        // Sort slots by fewer available teachers first (most constrained first)
-        usort($all_slots, function($a, $b) use ($session_id, $day, $absent_ids) {
-            $a_avail = count($this->Tt_entry_model->getAvailableTeachers($session_id, $day, $a->period_id, $absent_ids));
-            $b_avail = count($this->Tt_entry_model->getAvailableTeachers($session_id, $day, $b->period_id, $absent_ids));
-            return $a_avail - $b_avail;
-        });
-
         foreach ($all_slots as $slot) {
-            $available = $this->Tt_entry_model->getAvailableTeachers($session_id, $day, $slot->period_id, $absent_ids);
-            // Filter out teachers already assigned in this batch for this period
-            $available = array_filter($available, function($t) use ($slot, &$batch_assigned) {
+            $available = array_filter($avail_by_period[$slot->period_id] ?? [], function($t) use ($slot, &$batch_assigned) {
                 return empty($batch_assigned[$t->id][$slot->period_id]);
             });
 
-            // Rank by priority
             $sgs_id = (int)($slot->subject_group_subject_id ?? 0);
             $slot_dept = $teacher_depts[$slot->staff_id] ?? 0;
             $ranked = [];
@@ -2369,10 +2371,6 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
             } elseif ($best) {
                 $match_type = 'any_free';
             }
-
-            // Check auto-fill setting
-            $auto_fill = true;
-            $constraint = $this->db->where('session_id', $session_id)->limit(1)->get('sch_settings')->row();
 
             if ($best) {
                 $data = [
