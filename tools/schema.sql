@@ -5343,6 +5343,7 @@ CREATE TABLE `sch_settings` (
   `leave_approver_id` int DEFAULT NULL,
   `weekend_days` varchar(50) DEFAULT '0',
   `isSecondSaturdayHoliday` int DEFAULT '0',
+  `isFourthSaturdayHoliday` int NOT NULL DEFAULT '0',
   `admission_logo_left` varchar(255) DEFAULT NULL,
   `admission_logo_right` varchar(255) DEFAULT NULL,
   `website` varchar(255) DEFAULT NULL,
@@ -7127,6 +7128,7 @@ CREATE TABLE `subject_timetable` (
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL,
   `room_no` varchar(20) DEFAULT NULL,
+  `tt_entry_id` int DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -7136,6 +7138,7 @@ CREATE TABLE `subject_timetable` (
   KEY `subject_group_subject_id` (`subject_group_subject_id`),
   KEY `staff_id` (`staff_id`),
   KEY `session_id` (`session_id`),
+  KEY `idx_st_tt_entry` (`tt_entry_id`),
   CONSTRAINT `subject_timetable_ibfk_1` FOREIGN KEY (`class_id`) REFERENCES `classes` (`id`) ON DELETE CASCADE,
   CONSTRAINT `subject_timetable_ibfk_2` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE CASCADE,
   CONSTRAINT `subject_timetable_ibfk_3` FOREIGN KEY (`subject_group_id`) REFERENCES `subject_groups` (`id`) ON DELETE CASCADE,
@@ -11433,6 +11436,62 @@ CREATE TABLE IF NOT EXISTS `student_incident_comments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
+-- Table structure for table `student_health_records`
+--
+
+CREATE TABLE IF NOT EXISTS `student_health_records` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `emergency_contact_name` varchar(100) DEFAULT NULL,
+  `emergency_contact_relation` varchar(100) DEFAULT NULL,
+  `emergency_contact_mobile` varchar(20) DEFAULT NULL,
+  `emergency_contact_alt_mobile` varchar(20) DEFAULT NULL,
+  `wears_spectacles` tinyint(1) DEFAULT '0',
+  `vision_difficulty` tinyint(1) DEFAULT '0',
+  `hearing_difficulty` tinyint(1) DEFAULT '0',
+  `speech_difficulty` tinyint(1) DEFAULT '0',
+  `special_assistance` tinyint(1) DEFAULT '0',
+  `special_assistance_details` text,
+  `allergy_food` tinyint(1) DEFAULT '0',
+  `allergy_medication` tinyint(1) DEFAULT '0',
+  `allergy_insect` tinyint(1) DEFAULT '0',
+  `allergy_dust` tinyint(1) DEFAULT '0',
+  `allergy_other` tinyint(1) DEFAULT '0',
+  `allergy_none` tinyint(1) DEFAULT '0',
+  `allergy_details` text,
+  `med_asthma` tinyint(1) DEFAULT '0',
+  `med_diabetes` tinyint(1) DEFAULT '0',
+  `med_epilepsy` tinyint(1) DEFAULT '0',
+  `med_heart` tinyint(1) DEFAULT '0',
+  `med_kidney` tinyint(1) DEFAULT '0',
+  `med_thyroid` tinyint(1) DEFAULT '0',
+  `med_physical_disability` tinyint(1) DEFAULT '0',
+  `med_learning_difficulty` tinyint(1) DEFAULT '0',
+  `med_vision_impairment` tinyint(1) DEFAULT '0',
+  `med_hearing_impairment` tinyint(1) DEFAULT '0',
+  `med_other` tinyint(1) DEFAULT '0',
+  `med_details` text,
+  `surgery_history` tinyint(1) DEFAULT '0',
+  `surgery_details` text,
+  `current_medications` text,
+  `vaccinations_uptodate` enum('yes','no','not_sure') DEFAULT NULL,
+  `vaccination_remarks` text,
+  `pe_fit` tinyint(1) DEFAULT '1',
+  `pe_restrictions` text,
+  `special_health_instructions` text,
+  `has_sibling` tinyint(1) DEFAULT '0',
+  `sibling_details` text,
+  `declaration_name` varchar(150) DEFAULT NULL,
+  `declaration_date` date DEFAULT NULL,
+  `form_token` varchar(64) DEFAULT NULL,
+  `submitted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_student` (`student_id`),
+  UNIQUE KEY `idx_token` (`form_token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- CoE (Controller of Examinations) tables
 --
 
@@ -12196,6 +12255,10 @@ CREATE TABLE IF NOT EXISTS `tt_teacher_constraints` (
   `avoid_last_period`     TINYINT(1) NOT NULL DEFAULT 0,
   `max_gap_per_day`       INT        DEFAULT NULL,
   `preferred_room_id`     INT        DEFAULT NULL,
+  `exclude_from_substitution` TINYINT(1) NOT NULL DEFAULT 0,
+  `exclude_from_timetable`    TINYINT(1) NOT NULL DEFAULT 0,
+  `max_consecutive_periods`   TINYINT    NOT NULL DEFAULT 0,
+  `min_break_after_consec`    TINYINT    NOT NULL DEFAULT 1,
   `created_at`            TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`            TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -12355,6 +12418,7 @@ CREATE TABLE IF NOT EXISTS `tt_joint_lessons` (
   `priority`             INT          NOT NULL DEFAULT 5,
   `notes`                 VARCHAR(255) NULL,
   `all_teachers_required` TINYINT(1)   NOT NULL DEFAULT 0,
+  `fixed_slots`           TEXT         NULL,
   `created_at`            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_jl_session` (`session_id`)
@@ -12573,3 +12637,67 @@ SET @sql = IF(@col_exists = 0,
 PREPARE _stmt FROM @sql;
 EXECUTE _stmt;
 DEALLOCATE PREPARE _stmt;
+
+-- tt_teacher_constraints: exclude_from_substitution, exclude_from_timetable,
+-- max_consecutive_periods, min_break_after_consec (added 2026-06-20/21)
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_teacher_constraints' AND COLUMN_NAME = 'exclude_from_substitution'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_teacher_constraints` ADD COLUMN `exclude_from_substitution` TINYINT(1) NOT NULL DEFAULT 0',
+  'SELECT 1 -- exclude_from_substitution already exists'
+);
+PREPARE _stmt FROM @sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_teacher_constraints' AND COLUMN_NAME = 'exclude_from_timetable'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_teacher_constraints` ADD COLUMN `exclude_from_timetable` TINYINT(1) NOT NULL DEFAULT 0',
+  'SELECT 1 -- exclude_from_timetable already exists'
+);
+PREPARE _stmt FROM @sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_teacher_constraints' AND COLUMN_NAME = 'max_consecutive_periods'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_teacher_constraints` ADD COLUMN `max_consecutive_periods` TINYINT NOT NULL DEFAULT 0',
+  'SELECT 1 -- max_consecutive_periods already exists'
+);
+PREPARE _stmt FROM @sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tt_teacher_constraints' AND COLUMN_NAME = 'min_break_after_consec'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `tt_teacher_constraints` ADD COLUMN `min_break_after_consec` TINYINT NOT NULL DEFAULT 1',
+  'SELECT 1 -- min_break_after_consec already exists'
+);
+PREPARE _stmt FROM @sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+-- sch_settings: isFourthSaturdayHoliday (added 2026-06-20)
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sch_settings' AND COLUMN_NAME = 'isFourthSaturdayHoliday'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `sch_settings` ADD COLUMN `isFourthSaturdayHoliday` INT NOT NULL DEFAULT 0 AFTER `isSecondSaturdayHoliday`',
+  'SELECT 1 -- isFourthSaturdayHoliday already exists'
+);
+PREPARE _stmt FROM @sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+-- subject_timetable: tt_entry_id (link to auto-timetable entries)
+SET @col_exists = (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'subject_timetable' AND COLUMN_NAME = 'tt_entry_id'
+);
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE `subject_timetable` ADD COLUMN `tt_entry_id` INT DEFAULT NULL, ADD KEY `idx_st_tt_entry` (`tt_entry_id`)',
+  'SELECT 1 -- tt_entry_id already exists'
+);
+PREPARE _stmt FROM @sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
