@@ -946,7 +946,7 @@ class Branch extends MY_Addon_MBController
                 c.class                                                          AS class_full,
                 SUBSTRING_INDEX(c.class, ' ', 1)                                AS year_ord,
                 TRIM(SUBSTRING(c.class,
-                    LENGTH(SUBSTRING_INDEX(c.class, ' ', 2)) + 2))              AS class_display,
+                    LENGTH(SUBSTRING_INDEX(c.class, ' ', 1)) + 2))              AS class_display,
                 SUM(COALESCE(sfo.override_amount, fgf.amount))                  AS billed
              FROM student_fees_master sfm
              JOIN student_session ss  ON ss.id  = sfm.student_session_id
