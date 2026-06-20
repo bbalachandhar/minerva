@@ -975,7 +975,14 @@ $currency_symbol = $admin_session['currency_symbol'];
 
                         <div class="tab-pane" id="fee">
                             <?php
-                            if (empty($student_due_fee) && empty($student_discount_fee) && empty($transport_fees)) {
+                            if (!empty($student['is_alumni'])) {
+                            ?>
+                                <div class="alert alert-info" style="margin:20px 0;">
+                                    <i class="fa fa-graduation-cap"></i>
+                                    <strong>Alumni</strong> &mdash; This student has been moved to the alumni list<?php if (!empty($alumni_info['session'])) echo ' (last active: ' . htmlspecialchars($alumni_info['session']) . ')'; ?>. Fee records are available under the previous session.
+                                </div>
+                            <?php
+                            } elseif (empty($student_due_fee) && empty($student_discount_fee) && empty($transport_fees)) {
                             ?>
                                 <div class="alert alert-danger">
                                     <?php echo $this->lang->line('no_record_found'); ?>
