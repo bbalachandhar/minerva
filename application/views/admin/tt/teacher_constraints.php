@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.css">
+<script src="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.min.js"></script>
 <?php if (isset($msg)) { echo $msg; } ?>
 <div class="content-wrapper">
 <section class="content-header">
@@ -236,7 +238,20 @@ $(function(){
   });
 
   $(document).on('click','.btn-delete', function(e){
-    if(!confirm($(this).data('confirm')||'Are you sure?')) e.preventDefault();
+    e.preventDefault();
+    var href = $(this).attr('href');
+    var msg = $(this).data('confirm') || 'Are you sure?';
+    swal({
+      title: 'Delete Constraint?',
+      text: msg,
+      type: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dd4b39',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, delete'
+    }, function(isConfirm) {
+      if (isConfirm) window.location.href = href;
+    });
   });
 });
 </script>
