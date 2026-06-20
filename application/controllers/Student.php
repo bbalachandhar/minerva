@@ -1260,7 +1260,7 @@ catch (Exception $e) {
 
         $category = $this->category_model->get();
 
-        $student_fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium', 'allotment_no', 'consortium_no', 'application_no');
+        $student_fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium', 'allotment_no', 'consortium_no', 'application_no', 'is_new_admission');
 
         $data["fields"]       = $student_fields;
         $data['categorylist'] = $category;
@@ -1340,6 +1340,13 @@ catch (Exception $e) {
                                 } elseif (in_array($key, $student_fields)) {
                                     $student_data[$i][$key] = $value;
                                 }
+                            }
+
+                            $is_new_admission = true;
+                            if (isset($student_data[$i]['is_new_admission'])) {
+                                $val = strtolower(trim($student_data[$i]['is_new_admission']));
+                                $is_new_admission = in_array($val, ['yes', 'y', '1', 'true']);
+                                unset($student_data[$i]['is_new_admission']);
                             }
 
                             if (empty($student_data[$i]['firstname'])) {
@@ -1457,13 +1464,17 @@ catch (Exception $e) {
                                 if ($admission_no_exists) {
                                     $insert = "";
                                 } else {
-                                    $student_data[$i]['admission_session_id'] = $session;
+                                    if ($is_new_admission) {
+                                        $student_data[$i]['admission_session_id'] = $session;
+                                    }
                                     $insert_id = $this->student_model->add($student_data[$i], $data_setting);
                                 }
                             } else {
 
                                 if ($this->form_validation->is_unique($adm_no, 'students.admission_no')) {
-                                    $student_data[$i]['admission_session_id'] = $session;
+                                    if ($is_new_admission) {
+                                        $student_data[$i]['admission_session_id'] = $session;
+                                    }
                                     $insert_id = $this->student_model->add($student_data[$i], $data_setting);
                                 } else {
                                     $insert_id = "";
