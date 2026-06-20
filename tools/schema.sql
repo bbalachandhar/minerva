@@ -12356,7 +12356,7 @@ CREATE TABLE IF NOT EXISTS `tt_substitutions` (
   `section_id`               INT(11)      NOT NULL,
   `subject_group_subject_id` INT(11)               DEFAULT NULL,
   `room_id`                  INT(11)               DEFAULT NULL,
-  `substitution_type`        ENUM('manual','auto_suggested') NOT NULL DEFAULT 'manual',
+  `substitution_type`        ENUM('manual','auto_suggested','auto_bulk') NOT NULL DEFAULT 'manual',
   `status`                   ENUM('pending','confirmed','cancelled') NOT NULL DEFAULT 'pending',
   `note`                     VARCHAR(300)          DEFAULT NULL,
   `created_by`               INT(11)      NOT NULL,
@@ -12504,7 +12504,7 @@ INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `key`, `lang_key`, `
 (@tt_menu_id, 'Joint Lessons',        'tt_joint_lessons',   'tt_joint_lessons',       'admin/tt/joint_lessons',       140, "('tt_joint_lessons','can_view')",   3000, 'tt', 'joint_lessons,save_joint_lesson,delete_joint_lesson,get_joint_lesson,get_joint_classes', 1),
 (@tt_menu_id, 'Class Timetable',      'tt_class_grid',      'tt_class_timetable',     'admin/tt/class_grid',          150, "('tt_class_grid','can_view')",      3000, 'tt', 'class_grid,save_cell,delete_cell,toggle_lock', 1),
 (@tt_menu_id, 'Teacher Timetable',    'tt_teacher_view',    'tt_teacher_timetable',   'admin/tt/teacher_view',        160, "('tt_teacher_view','can_view')",    3000, 'tt', 'teacher_view', 1),
-(@tt_menu_id, 'Substitution',         'tt_substitution',    'tt_substitution',        'admin/tt/substitution',        170, "('tt_substitution','can_view')",    3000, 'tt', 'substitution,save_substitution,cancel_substitution', 1),
+(@tt_menu_id, 'Substitution',         'tt_substitution',    'tt_substitution',        'admin/tt/substitution',        170, "('tt_substitution','can_view')",    3000, 'tt', 'substitution,save_substitution,cancel_substitution,get_absent_slots,bulk_auto_assign,get_substitution_report,duty_chart', 1),
 (@tt_menu_id, 'Reports',              'tt_reports',         'tt_reports',             'admin/tt/reports',             180, "('tt_reports','can_view')",         3000, 'tt', 'reports,get_master_report,get_room_utilization,get_teacher_workload', 1);
 
 INSERT INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`, `can_edit`, `can_delete`) VALUES
@@ -12701,3 +12701,9 @@ SET @sql = IF(@col_exists = 0,
   'SELECT 1 -- tt_entry_id already exists'
 );
 PREPARE _stmt FROM @sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+-- tt_substitutions: add 'auto_bulk' to substitution_type enum (bulk substitution feature, 2026-06-21)
+ALTER TABLE `tt_substitutions` MODIFY COLUMN `substitution_type` ENUM('manual','auto_suggested','auto_bulk') NOT NULL DEFAULT 'manual';
+
+-- sidebar_sub_menus: add new substitution methods to activate_methods
+UPDATE `sidebar_sub_menus` SET `activate_methods` = 'substitution,save_substitution,cancel_substitution,get_absent_slots,bulk_auto_assign,get_substitution_report,duty_chart' WHERE `key` = 'tt_substitution';
