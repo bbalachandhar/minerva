@@ -335,6 +335,7 @@ function mcc_abbr($db_name) {
               <thead><tr>
                 <th>Institution</th>
                 <th>Session</th>
+                <th class="text-right">Admitted</th>
                 <th class="text-right">Offline</th>
                 <th class="text-right">App Received</th>
                 <th class="text-right">Fully Paid</th>
@@ -700,10 +701,11 @@ function loadAdmissions() {
         }
 
         var admTbody='', cmpTbody='';
-        var tOffline=0, tOnReceived=0, tOnFullyPaid=0, tOnPartially=0, tOnAppFee=0, tOnRevoked=0;
+        var tAdmitted=0, tOffline=0, tOnReceived=0, tOnFullyPaid=0, tOnPartially=0, tOnAppFee=0, tOnRevoked=0;
         var tOpen=0, tInProg=0, tResolved=0, tClosed=0, tCmpTotal=0;
 
         resp.rows.forEach(function(row, i) {
+            tAdmitted     += row.admitted || 0;
             tOffline      += row.offline_admission;
             tOnReceived   += row.online_received;
             tOnFullyPaid  += row.online_fully_paid;
@@ -722,6 +724,7 @@ function loadAdmissions() {
                 '<tr>'+
                 '<td>'+dot+escHtml(MCC.names[row.db_name]||row.db_name)+'</td>'+
                 '<td>'+escHtml(row.session||'—')+'</td>'+
+                '<td class="text-right"><strong>'+numFmt(row.admitted||0)+'</strong></td>'+
                 '<td class="text-right"><strong>'+numFmt(row.offline_admission)+'</strong></td>'+
                 '<td class="text-right"><strong>'+numFmt(row.online_received)+'</strong></td>'+
                 '<td class="text-right" style="color:#00a65a; font-weight:600">'+numFmt(row.online_fully_paid)+'</td>'+
@@ -743,6 +746,7 @@ function loadAdmissions() {
 
         admTbody += '<tr class="mcc-tfoot-row">'+
             '<td colspan="2"><strong>Total</strong></td>'+
+            '<td class="text-right"><strong>'+numFmt(tAdmitted)+'</strong></td>'+
             '<td class="text-right"><strong>'+numFmt(tOffline)+'</strong></td>'+
             '<td class="text-right"><strong>'+numFmt(tOnReceived)+'</strong></td>'+
             '<td class="text-right" style="color:#00a65a; font-weight:600">'+numFmt(tOnFullyPaid)+'</td>'+
@@ -763,6 +767,7 @@ function loadAdmissions() {
         $('#admc-cmp-tbody').html(cmpTbody);
         $('#admc-summary-cards').html(
             '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:4px">' +
+            mkStatCard('#605ca8', 'I Year Admitted',  numFmt(tAdmitted))     +
             mkStatCard('#00c0ef', 'Offline Admitted', numFmt(tOffline))     +
             mkStatCard('#3c8dbc', 'App Received',     numFmt(tOnReceived))  +
             mkStatCard('#00a65a', 'Fully Paid',       numFmt(tOnFullyPaid)) +

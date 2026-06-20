@@ -384,6 +384,16 @@ class Branch extends MY_Addon_MBController
                     continue;
                 }
 
+                $r_admitted = $db->query(
+                    "SELECT COUNT(DISTINCT s.id) AS c
+                     FROM students s
+                     JOIN student_session ss ON ss.student_id = s.id
+                     JOIN classes c ON c.id = ss.class_id
+                     WHERE ss.session_id = ? AND s.is_active = 'yes' AND ss.is_alumni = 0
+                       AND c.class LIKE 'I %' AND c.class NOT LIKE 'II%' AND c.class NOT LIKE 'III%'
+                       AND c.class NOT LIKE 'IV%' AND c.class NOT LIKE 'V %'",
+                    [$session_id]
+                );
                 $r_off    = $db->query("SELECT COUNT(*) AS c FROM students WHERE admission_session_id = ?", [$session_id]);
                 // Mirror dashboard getOnlineStudentPaymentOverview(): join incidental_fee_collections
                 // to bucket by actual payment, not the stale paid_status column.
@@ -433,6 +443,7 @@ class Branch extends MY_Addon_MBController
                 $r_revok  = $db->query("SELECT COUNT(*) AS c FROM online_admissions WHERE session_id = ? AND COALESCE(admission_status,'active') = 'cancelled'", [$adm_sid]);
                 $r_cmp    = $db->query("SELECT status, COUNT(*) AS c FROM complaint GROUP BY status");
 
+                $admitted          = ($r_admitted && $r_admitted->num_rows() > 0) ? (int)$r_admitted->row()->c : 0;
                 $offline           = ($r_off && $r_off->num_rows() > 0) ? (int)$r_off->row()->c : 0;
                 $online_row        = ($r_online && $r_online->num_rows() > 0) ? $r_online->row_array() : [];
                 $online_fully_paid = (int)($online_row['fully_paid']    ?? 0);
@@ -454,6 +465,7 @@ class Branch extends MY_Addon_MBController
                     'db_name'              => $db_name,
                     'name'                 => $branch_info->name,
                     'session'              => $branch_info->session,
+                    'admitted'             => $admitted,
                     'offline_admission'    => $offline,
                     'online_received'      => $online_received,
                     'online_fully_paid'    => $online_fully_paid,
