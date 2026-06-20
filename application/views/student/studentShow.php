@@ -1021,6 +1021,8 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                     $alot_fee_discount = 0;
                                                     $fees_fine_amount = 0;
 
+                                                    $last_pay_date = null;
+                                                    $last_pay_mode = null;
                                                     if (!empty($fee_value->amount_detail)) {
                                                         $fee_deposits = json_decode(($fee_value->amount_detail));
 
@@ -1028,6 +1030,12 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                             $fee_paid     = $fee_paid + $fee_deposits_value->amount;
                                                             $fee_discount = $fee_discount + (isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0);
                                                             $fee_fine     = $fee_fine + (isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0);
+                                                            if (!empty($fee_deposits_value->date) && $fee_deposits_value->date != '0000-00-00') {
+                                                                $last_pay_date = $fee_deposits_value->date;
+                                                            }
+                                                            if (!empty($fee_deposits_value->payment_mode)) {
+                                                                $last_pay_mode = $fee_deposits_value->payment_mode;
+                                                            }
                                                         }
                                                     }
                                                     $total_amount           = $total_amount + $fee_value->amount;
@@ -1139,9 +1147,9 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                                                     }
                                                             ?>
                                                         </td>
-                                                        <td class="text text-left"></td>
-                                                        <td class="text text-left"></td>
-                                                        <td class="text text-left"></td>
+                                                        <td class="text text-left"><?php if (!empty($fee_value->amount_detail)) { $fd = json_decode($fee_value->amount_detail); $fk = array_keys((array)$fd); echo $fee_value->student_fees_deposite_id . '/' . $fd->{end($fk)}->inv_no; } ?></td>
+                                                        <td class="text text-left"><?php if ($last_pay_mode) echo $this->lang->line(strtolower($last_pay_mode)) ?: $last_pay_mode; ?></td>
+                                                        <td class="text text-left"><?php if ($last_pay_date) echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($last_pay_date)); ?></td>
                                                         <td class="text text-right"><?php
                                                                                     echo amountFormat($fee_discount);
                                                                                     ?></td>
