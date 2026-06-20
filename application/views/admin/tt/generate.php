@@ -227,23 +227,6 @@ $(function(){
     });
   });
 
-  var sizeHints = {
-    normal: 'Quick single pass — good for most timetables.',
-    large:  '3 retry passes with reordering — better quality for complex setups.',
-    huge:   '10 passes exhaustive search — best quality, slower (may take 10-30s).'
-  };
-  var strictHints = {
-    relaxed: 'Fewer constraints enforced — maximises slot fill-rate.',
-    normal:  'Balanced constraint enforcement.',
-    strict:  'All constraints hard-enforced — may leave more slots empty but no violations.'
-  };
-  $('input[name=gen_size]').on('change', function(){
-    $('#gen-size-hint').text(sizeHints[$(this).val()] || '');
-  });
-  $('input[name=gen_strictness]').on('change', function(){
-    $('#gen-strict-hint').text(strictHints[$(this).val()] || '');
-  });
-
   // Load sections for each class
   <?php foreach ($classlist as $cls): ?>
   $.post('<?php echo site_url('admin/tt/get_sections_by_class'); ?>',
