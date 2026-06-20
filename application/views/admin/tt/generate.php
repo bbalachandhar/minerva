@@ -315,7 +315,7 @@ $(function(){
         if (status === 'timeout') {
           swal({title:'Alert',text:'Request timed out. The solver may still be running on the server. Try increasing the time limit or check if the solver service is running.',type:'warning'});
         } else {
-          swal({title:'Alert',text:'Server error (HTTP ' + xhr.status + ',type:'warning'}). Please try again.');
+          swal({title:'Error',text:'Server error (HTTP ' + xhr.status + '). Please try again.',type:'error'});
         }
       }
     });
@@ -356,7 +356,7 @@ $(function(){
         if (status === 'timeout') {
           swal({title:'Alert',text:'Request timed out. Try increasing the time limit or check if the solver service is running.',type:'warning'});
         } else {
-          swal({title:'Alert',text:'Server error (HTTP ' + xhr.status + ',type:'warning'}). Please try again.');
+          swal({title:'Error',text:'Server error (HTTP ' + xhr.status + '). Please try again.',type:'error'});
         }
       }
     });
