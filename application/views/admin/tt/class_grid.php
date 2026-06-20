@@ -380,7 +380,7 @@ $(function(){
       }
       $('#gaps-body').html(html);
       $('#gaps-modal').modal('show');
-    },'json').fail(function(xhr){ $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps'); swal({title:'Alert',text:'Request failed: ' + (xhr.statusText || 'unknown error',type:'warning'})); });
+    },'json').fail(function(xhr){ $btn.prop('disabled',false).html('<i class="fa fa-list-ul"></i> Gaps'); swal({title:'Error',text:'Request failed: ' + (xhr.statusText || 'unknown error'),type:'error'}); });
   });
   $(document).on('click', '.gaps-load-class', function(e){
     e.preventDefault();

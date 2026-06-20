@@ -195,7 +195,7 @@ $(function(){
         $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Add Selected');
         if (res.status === '1') {
           loadSubjects(); // reload the table to show new rows
-        } else { swal({title:'Alert',text:'Error adding subjects: ' + (res.error || 'Unknown error',type:'warning'})); }
+        } else { swal({title:'Error',text:'Error adding subjects: ' + (res.error || 'Unknown error'),type:'error'}); }
       }, 'json');
   });
 

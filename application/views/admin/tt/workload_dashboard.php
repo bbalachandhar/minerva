@@ -281,7 +281,7 @@ $(function(){
         $('#reassign-modal').modal('hide');
         loadData();
       } else {
-        swal({title:'Alert',text:'Failed to reassign: ' + (res.message || 'Unknown error',type:'warning'}));
+        swal({title:'Error',text:'Failed to reassign: ' + (res.message || 'Unknown error'),type:'error'});
       }
     }, 'json');
   });
