@@ -204,9 +204,18 @@ function mcc_abbr($db_name) {
         </tr>
         <tr>
           <td colspan="2" style="border:0; border-top:1px solid #f5f5f5; padding:7px 0 0">
-            <i class="fa fa-money" title="Fees collected" style="color:<?php echo $color; ?>; width:16px; text-align:center; cursor:default"></i>
+            <i class="fa fa-book" title="Total demand" style="color:#3c8dbc; width:16px; text-align:center; cursor:default"></i>
+            <span style="font-size:11px; color:#3c8dbc; font-weight:600; margin-left:3px; text-transform:uppercase; letter-spacing:.4px">Demand</span>
+            <span class="mcc-fees-demand" data-db="<?php echo $db_name; ?>" style="float:right; color:#3c8dbc; font-weight:600">
+              <span class="sk-shimmer sk-inline" style="width:60px"></span>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="border:0; padding:3px 0 0">
+            <i class="fa fa-money" title="Fees collected" style="color:#00a65a; width:16px; text-align:center; cursor:default"></i>
             <span style="font-size:11px; color:#27ae60; font-weight:600; margin-left:3px; text-transform:uppercase; letter-spacing:.4px">Collected</span>
-            <span class="mcc-fees-collected" data-db="<?php echo $db_name; ?>" style="float:right">
+            <span class="mcc-fees-collected" data-db="<?php echo $db_name; ?>" style="float:right; color:#00a65a; font-weight:600">
               <span class="sk-shimmer sk-inline" style="width:60px"></span>
             </span>
           </td>
@@ -918,6 +927,14 @@ function renderFeesTable(rows, selected) {
             mkStatCard('#c0392b','Not Paid',        numFmt(tNP)+' students'+(tNPBilled > 0 ? '<br><small style="color:#777">'+fmtCr(tNPBilled)+'</small>' : ''))
         : '')
     );
+
+    // Update institution cards
+    rows.forEach(function(row) {
+        var r = getRowFees(row, selected);
+        $('.mcc-fees-demand[data-db="'+row.db_name+'"]').html(fmtCr(r.f));
+        $('.mcc-fees-collected[data-db="'+row.db_name+'"]').html(fmtCr(r.p));
+        $('.mcc-fees-balance[data-db="'+row.db_name+'"]').html(fmtCr(r.b));
+    });
 
     var tbody='', tfees=0, tpaid=0, tbal=0;
     rows.forEach(function(row, i) {
