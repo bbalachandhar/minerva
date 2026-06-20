@@ -1412,10 +1412,23 @@ catch (Exception $e) {
                             $class_id = null;
                             $section_id = null;
 
-                            // Log extracted class and section names
                             log_message('debug', 'CSV Class Name: ' . $csv_class_name . ', CSV Section Name: ' . $csv_section_name);
 
                             if (!empty($csv_class_name)) {
+                                $inst_type = isset($this->sch_setting_detail->institution_type) ? $this->sch_setting_detail->institution_type : 'college';
+                                $class_format_valid = false;
+                                if ($inst_type === 'school') {
+                                    $class_format_valid = (bool) preg_match('/^(Grade\s+.+|Pre\s+K\.?G|[JS]\.?K\.?G)$/i', trim($csv_class_name));
+                                } else {
+                                    $class_format_valid = (bool) preg_match('/^(I{1,3}V?|IV|V)\s+YEAR\s+.+$/i', trim($csv_class_name));
+                                }
+                                if (!$class_format_valid) {
+                                    $expected = ($inst_type === 'school') ? 'Grade X (e.g. Grade I, Grade XII, Pre K.G)' : '{ROMAN} YEAR {DEPT} (e.g. I YEAR CSE, II YEAR MBA)';
+                                    log_message('error', 'Row ' . $i . ': Invalid class format: ' . $csv_class_name);
+                                    $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Row ' . ($i+1) . ': Invalid class format "<strong>' . htmlspecialchars($csv_class_name) . '</strong>". Expected: ' . $expected . '</div>');
+                                    continue;
+                                }
+
                                 $class_name_lower = strtolower($csv_class_name);
                                 if (isset($class_map[$class_name_lower])) {
                                     $class_id = $class_map[$class_name_lower];
