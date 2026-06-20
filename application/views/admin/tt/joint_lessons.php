@@ -512,5 +512,6 @@ $(function(){
       },'json');
     });
   });
+});
 </script>
 </div>
