@@ -2321,7 +2321,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         foreach ($staff_rows as $sr) {
             $teacher_depts[(int)$sr['id']] = (int)($sr['department_id'] ?? 0);
         }
-        $load_rows = $this->db->select('staff_id, subject_group_subject_id')
+        $load_rows = $this->db->select('tt_subject_load_teachers.staff_id, tt_subject_load.subject_group_subject_id')
             ->from('tt_subject_load_teachers')
             ->join('tt_subject_load', 'tt_subject_load.id = tt_subject_load_teachers.subject_load_id')
             ->where('tt_subject_load.session_id', $session_id)
