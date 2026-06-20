@@ -231,6 +231,7 @@ $(function(){
       $(this).serialize() + '&' + csrf_name + '=' + csrf_val,
       function(res){
         if (res.status === '1') { location.reload(); }
+        toastr.success('Constraint saved successfully');
         else { swal({title:'Error',text:res.message || 'Error saving.',type:'error'}); $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save Constraint'); }
       },'json');
   });

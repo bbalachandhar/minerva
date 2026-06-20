@@ -149,6 +149,7 @@ $(function(){
     var $btn = $(this).find('[type=submit]').prop('disabled', true).text('Saving...');
     $.post('<?php echo site_url('admin/tt/save_room'); ?>', $(this).serialize() + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo $this->security->get_csrf_hash(); ?>', function(res){
       if (res.status === '1') { location.reload(); }
+      toastr.success('Room saved successfully');
       else { swal({title:'Alert',text:'Error saving. Please try again.',type:'warning'}); $btn.prop('disabled',false).text('Save Room'); }
     },'json');
   });

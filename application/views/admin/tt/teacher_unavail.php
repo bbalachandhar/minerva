@@ -107,6 +107,7 @@ $(function(){
         });
         // Mark blocked
         if (res.status === '1') {
+          toastr.success('Unavailability loaded');
           $.each(res.data, function(i, u){
             var $cell = $('.avail-cell[data-day="'+u.day+'"][data-period="'+u.period_id+'"]');
             $cell.data('blocked', 1).addClass('blocked')
@@ -143,6 +144,7 @@ $(function(){
       function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save');
         if (res.status === '1') {
+          toastr.success('Unavailability saved');
           $btn.html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
           setTimeout(function(){ $btn.html('<i class="fa fa-save"></i> Save').removeClass('btn-success'); }, 2000);
         } else {

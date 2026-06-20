@@ -573,6 +573,7 @@ $(function(){
       function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save');
         if (res.status === '1') {
+          toastr.success('Entry saved');
           $('#cell-modal').modal('hide');
           loadGrid(false);
         } else {
@@ -588,6 +589,7 @@ $(function(){
       var id = $('#cell_id').val();
       $.post('<?php echo site_url('admin/tt/delete_cell/'); ?>'+id, {[csrf_name]: csrf_val}, function(res){
         if (res.status === '1') { $('#cell-modal').modal('hide'); loadGrid(false); }
+      toastr.success('Slot removed');
       },'json');
     });
   });
@@ -600,6 +602,7 @@ $(function(){
     $.post('<?php echo site_url('admin/tt/toggle_lock'); ?>',
       {id: id, locked: locked, [csrf_name]: csrf_val}, function(res){
         if (res.status === '1') { $('#cell-modal').modal('hide'); loadGrid(false); }
+      toastr.success('Entry updated');
       },'json');
   });
 });

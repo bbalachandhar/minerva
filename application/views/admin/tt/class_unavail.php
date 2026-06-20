@@ -187,6 +187,7 @@ $(function(){
         // Reset all cells
         $('.cu-cell').removeClass('unavail');
         if (res.status === '1') {
+          toastr.success('Class unavailability loaded');
           $.each(res.data, function(i, slot){
             $('.cu-cell[data-day="'+slot.day+'"][data-period="'+slot.period_id+'"]').addClass('unavail');
           });
@@ -219,6 +220,7 @@ $(function(){
       function(res){
         $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Class Availability');
         if (res.status === '1') {
+          toastr.success('Unavailability saved');
           $btn.html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
           setTimeout(function(){ $btn.html('<i class="fa fa-save"></i> Save Class Availability').removeClass('btn-success'); }, 2000);
         } else {

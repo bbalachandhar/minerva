@@ -278,6 +278,7 @@ $(function(){
     }, function(res){
       $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Reassign');
       if (res.status === '1') {
+        toastr.success('Teacher reassigned');
         $('#reassign-modal').modal('hide');
         loadData();
       } else {

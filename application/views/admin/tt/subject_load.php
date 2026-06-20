@@ -194,6 +194,7 @@ $(function(){
       function(res){
         $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Add Selected');
         if (res.status === '1') {
+          toastr.success('Subjects added');
           loadSubjects(); // reload the table to show new rows
         } else { swal({title:'Error',text:'Error adding subjects: ' + (res.error || 'Unknown error'),type:'error'}); }
       }, 'json');
@@ -249,6 +250,7 @@ $(function(){
     $.post('<?php echo site_url('admin/tt/save_subject_load'); ?>', formData, function(res){
       $btn.prop('disabled',false);
       if (res.status === '1') {
+        toastr.success('Subject loads saved');
         $('#btn-save-loads, #btn-save-loads-bottom').html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
         setTimeout(function(){ $('#btn-save-loads, #btn-save-loads-bottom').html('<i class="fa fa-save"></i> Save All').removeClass('btn-success'); }, 5000);
         updateStatusBadge();

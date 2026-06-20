@@ -492,6 +492,7 @@ $(function(){
     $.post('<?php echo site_url('admin/tt/save_joint_lesson'); ?>', postData, function(res){
       $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save Joint Lesson');
       if (res.status === '1') {
+        toastr.success('Joint lesson saved');
         $('#joint-modal').modal('hide');
         location.reload();
       } else {

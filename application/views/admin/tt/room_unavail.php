@@ -103,6 +103,7 @@ $(function(){
           $(this).data('blocked', 0).removeClass('blocked').html('<i class="fa fa-check-square-o text-success fa-lg"></i>');
         });
         if (res.status === '1') {
+          toastr.success('Unavailability loaded');
           $.each(res.map, function(key){
             var parts = key.split('_');
             var day = parts.slice(0, -1).join('_'), period = parts[parts.length-1];
@@ -140,6 +141,7 @@ $(function(){
       function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-save"></i> Save');
         if (res.status === '1') {
+          toastr.success('Unavailability saved');
           $btn.html('<i class="fa fa-check"></i> Saved!').addClass('btn-success');
           setTimeout(function(){ $btn.html('<i class="fa fa-save"></i> Save').removeClass('btn-success'); }, 2000);
         } else {
