@@ -165,7 +165,9 @@
         <div class="progress progress-striped active" style="margin:20px 0;">
           <div class="progress-bar progress-bar-info" style="width:100%"></div>
         </div>
-        <p>Scheduling subjects across the week.<br>This may take a few seconds...</p>
+        <p>Scheduling subjects across the week.<br>
+        Time limit: <strong><span id="progress-limit">3</span> min</strong> &mdash;
+        Elapsed: <strong><span id="progress-elapsed">0:00</span></strong></p>
       </div>
     </div>
     <div class="box box-default" id="result-box" style="display:none;">
@@ -252,6 +254,29 @@ $(function(){
     $('.scope-chk').prop('checked', false);
   });
 
+  var _progressTimer = null;
+  function startProgressTimer() {
+    var limitSec = parseInt($('select[name="time_limit"]').val()) || 180;
+    var limitMin = Math.round(limitSec / 60);
+    $('#progress-limit').text(limitMin);
+    var start = Date.now();
+    $('#progress-elapsed').text('0:00');
+    _progressTimer = setInterval(function(){
+      var elapsed = Math.floor((Date.now() - start) / 1000);
+      var m = Math.floor(elapsed / 60);
+      var s = elapsed % 60;
+      $('#progress-elapsed').text(m + ':' + (s < 10 ? '0' : '') + s);
+    }, 1000);
+  }
+  function stopProgressTimer() {
+    if (_progressTimer) { clearInterval(_progressTimer); _progressTimer = null; }
+  }
+
+  function getAjaxTimeout() {
+    var limitSec = parseInt($('select[name="time_limit"]').val()) || 180;
+    return (limitSec + 120) * 1000;
+  }
+
   $('#generate-form').on('submit', function(e){
     e.preventDefault();
     var scope = [];
@@ -266,17 +291,33 @@ $(function(){
     $('#progress-box').show();
     $('#result-box').hide();
     $('#generate-form').find('button[type=submit]').prop('disabled', true);
+    startProgressTimer();
 
     var formData = $(this).serialize() + '&' + csrf_name + '=' + csrf_val;
     formData += '&class_scope=' + encodeURIComponent(JSON.stringify(scope));
 
-    $.post('<?php echo site_url('admin/tt/run_generate'); ?>', formData, function(res){
-      $('#progress-box').hide();
-      $('#generate-form').find('button[type=submit]').prop('disabled', false);
-      showResult(res, false);
-    },'json').fail(function(){
-      $('#progress-box').hide();
-      alert('Server error. Please try again.');
+    $.ajax({
+      url: '<?php echo site_url('admin/tt/run_generate'); ?>',
+      type: 'POST',
+      data: formData,
+      dataType: 'json',
+      timeout: getAjaxTimeout(),
+      success: function(res){
+        stopProgressTimer();
+        $('#progress-box').hide();
+        $('#generate-form').find('button[type=submit]').prop('disabled', false);
+        showResult(res, false);
+      },
+      error: function(xhr, status){
+        stopProgressTimer();
+        $('#progress-box').hide();
+        $('#generate-form').find('button[type=submit]').prop('disabled', false);
+        if (status === 'timeout') {
+          alert('Request timed out. The solver may still be running on the server. Try increasing the time limit or check if the solver service is running.');
+        } else {
+          alert('Server error (HTTP ' + xhr.status + '). Please try again.');
+        }
+      }
     });
   });
 
@@ -291,17 +332,33 @@ $(function(){
     $('#progress-box').show();
     $('#result-box').hide();
     $('#btn-test-generate').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Testing...');
+    startProgressTimer();
 
     var formData = $('#generate-form').serialize() + '&' + csrf_name + '=' + csrf_val;
     formData += '&class_scope=' + encodeURIComponent(JSON.stringify(scope));
 
-    $.post('<?php echo site_url('admin/tt/test_generate'); ?>', formData, function(res){
-      $('#progress-box').hide();
-      $('#btn-test-generate').prop('disabled', false).html('<i class="fa fa-flask"></i> Test (Dry Run)');
-      showResult(res, true);
-    },'json').fail(function(){
-      $('#progress-box').hide();
-      alert('Server error. Please try again.');
+    $.ajax({
+      url: '<?php echo site_url('admin/tt/test_generate'); ?>',
+      type: 'POST',
+      data: formData,
+      dataType: 'json',
+      timeout: getAjaxTimeout(),
+      success: function(res){
+        stopProgressTimer();
+        $('#progress-box').hide();
+        $('#btn-test-generate').prop('disabled', false).html('<i class="fa fa-flask"></i> Test (Dry Run)');
+        showResult(res, true);
+      },
+      error: function(xhr, status){
+        stopProgressTimer();
+        $('#progress-box').hide();
+        $('#btn-test-generate').prop('disabled', false).html('<i class="fa fa-flask"></i> Test (Dry Run)');
+        if (status === 'timeout') {
+          alert('Request timed out. Try increasing the time limit or check if the solver service is running.');
+        } else {
+          alert('Server error (HTTP ' + xhr.status + '). Please try again.');
+        }
+      }
     });
   });
 
