@@ -1178,6 +1178,7 @@ class Tt extends Admin_Controller
             'avoid_first_period'          => (int) $this->input->post('avoid_first_period'),
             'avoid_last_period'           => (int) $this->input->post('avoid_last_period'),
             'exclude_from_substitution'   => (int) $this->input->post('exclude_from_substitution'),
+            'exclude_from_timetable'      => (int) $this->input->post('exclude_from_timetable'),
             'max_consecutive_periods'     => max(0, (int) $this->input->post('max_consecutive_periods')),
             'min_break_after_consec'      => max(1, (int) $this->input->post('min_break_after_consec') ?: 1),
         ];

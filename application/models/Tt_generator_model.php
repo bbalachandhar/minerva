@@ -221,7 +221,12 @@ class Tt_generator_model extends MY_Model
         // Teacher constraints
         $constraints_raw = $this->CI->Tt_teacher_model->getAllConstraintsMap($session_id);
         $teacher_constraints = [];
+        $excluded_from_tt = [];
         foreach ($constraints_raw as $tid => $c) {
+            if (!empty($c->exclude_from_timetable)) {
+                $excluded_from_tt[(int)$tid] = true;
+                continue;
+            }
             $teacher_constraints[(string)$tid] = [
                 'max_per_day'        => (int)($c->max_periods_per_day ?? 6),
                 'max_per_week'       => (int)($c->max_periods_per_week ?? 36),
@@ -229,6 +234,14 @@ class Tt_generator_model extends MY_Model
                 'avoid_last_period'  => !empty($c->avoid_last_period),
                 'max_consecutive'    => (int)($c->max_consecutive_periods ?? 0),
             ];
+        }
+
+        // Remove excluded teachers from subject loads and joint lessons
+        if (!empty($excluded_from_tt)) {
+            foreach ($subject_loads as &$sl) {
+                $sl['teacher_ids'] = array_values(array_filter($sl['teacher_ids'], fn($t) => !isset($excluded_from_tt[$t])));
+            }
+            unset($sl);
         }
 
         // Teacher unavailability

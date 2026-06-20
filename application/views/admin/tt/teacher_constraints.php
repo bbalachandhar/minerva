@@ -100,7 +100,8 @@
           <div class="form-group">
             <label><input type="checkbox" name="avoid_first_period" id="tc_avoid_first" value="1"> Avoid First Period of Day</label><br>
             <label><input type="checkbox" name="avoid_last_period"  id="tc_avoid_last"  value="1"> Avoid Last Period of Day</label><br>
-            <label><input type="checkbox" name="exclude_from_substitution" id="tc_excl_subst" value="1"> Do not include in substitutions</label>
+            <label><input type="checkbox" name="exclude_from_substitution" id="tc_excl_subst" value="1"> Do not include in substitutions</label><br>
+            <label><input type="checkbox" name="exclude_from_timetable" id="tc_excl_tt" value="1"> Exclude from timetable generation (e.g., Principal)</label>
           </div>
           <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-save"></i> Save Constraint</button>
           <button type="button" class="btn btn-default btn-block" id="tc-reset">Reset</button>
@@ -135,6 +136,7 @@
               <th>Avoid 1st</th>
               <th>Avoid Last</th>
               <th>Excl. Subst.</th>
+              <th>Excl. TT</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -154,6 +156,7 @@
               <td><?php echo $c->avoid_first_period ? '<i class="fa fa-check text-success"></i>' : '-'; ?></td>
               <td><?php echo $c->avoid_last_period ? '<i class="fa fa-check text-success"></i>' : '-'; ?></td>
               <td><?php echo !empty($c->exclude_from_substitution) ? '<i class="fa fa-check text-danger"></i>' : '-'; ?></td>
+              <td><?php echo !empty($c->exclude_from_timetable) ? '<i class="fa fa-check text-danger"></i>' : '-'; ?></td>
               <td>
                 <button class="btn btn-xs btn-info btn-edit-tc"
                   data-id="<?php echo $c->id; ?>"
@@ -168,6 +171,7 @@
                   data-avoidfirst="<?php echo $c->avoid_first_period; ?>"
                   data-avoidlast="<?php echo $c->avoid_last_period; ?>"
                   data-exclsubst="<?php echo $c->exclude_from_substitution ?? 0; ?>"
+                  data-excltt="<?php echo $c->exclude_from_timetable ?? 0; ?>"
                   data-maxconsec="<?php echo $c->max_consecutive_periods ?? 0; ?>"
                   data-minbreak="<?php echo $c->min_break_after_consec ?? 1; ?>">
                   <i class="fa fa-edit"></i>
@@ -212,6 +216,7 @@ $(function(){
     $('#tc_avoid_first').prop('checked', d.avoidfirst == 1);
     $('#tc_avoid_last').prop('checked', d.avoidlast == 1);
     $('#tc_excl_subst').prop('checked', d.exclsubst == 1);
+    $('#tc_excl_tt').prop('checked', d.excltt == 1);
     $('#tc_max_consec').val(d.maxconsec || 0);
     $('#tc_min_break').val(d.minbreak || 1);
     $('html,body').animate({scrollTop:0}, 400);
