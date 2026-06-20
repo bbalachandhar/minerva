@@ -787,7 +787,7 @@ function loadAdmissions() {
 // ================================================================
 var feesDrilldownData  = {};  // keyed by db_name, stores year[] from API
 var feesRawRows        = []; // raw response rows for re-filtering
-var feesActiveFeeType  = 'all'; // current filter
+var feesSelectedTypes  = []; // empty = all
 var assetsDrilldownData = {}; // keyed by db_name, stores item[] from API
 
 function feesPct(b, c) {
@@ -862,21 +862,26 @@ function buildYearRows(dbName, years) {
     return html;
 }
 
-function renderFeesTable(rows, feeType) {
+function getRowFees(row, selected) {
+    if (!selected.length) return {f: row.total_fees, p: row.total_paid, b: row.total_balance};
+    var f=0, p=0;
+    if (row.fee_type_breakdown) {
+        selected.forEach(function(ft) {
+            var d = row.fee_type_breakdown[ft];
+            if (d) { f += d.billed; p += d.collected; }
+        });
+    }
+    return {f: f, p: p, b: f - p};
+}
+
+function renderFeesTable(rows, selected) {
+    var isAll = !selected.length;
     var totalFees=0, totalPaid=0, totalBalance=0;
     var tFP=0, tFPAmt=0, tPR=0, tPRAmt=0, tNP=0, tNPBilled=0;
 
     rows.forEach(function(row) {
-        if (feeType === 'all') {
-            totalFees    += row.total_fees;
-            totalPaid    += row.total_paid;
-            totalBalance += row.total_balance;
-        } else if (row.fee_type_breakdown && row.fee_type_breakdown[feeType]) {
-            var ftd = row.fee_type_breakdown[feeType];
-            totalFees    += ftd.billed;
-            totalPaid    += ftd.collected;
-            totalBalance += ftd.balance;
-        }
+        var r = getRowFees(row, selected);
+        totalFees += r.f; totalPaid += r.p; totalBalance += r.b;
         tFP    += (row.fully_paid_count || 0);
         tFPAmt += (row.fully_paid_amt   || 0);
         tPR    += (row.partial_count    || 0);
@@ -888,13 +893,12 @@ function renderFeesTable(rows, feeType) {
     $('#kpi-fees-collected').text(MCC.currency + Number(totalPaid).toLocaleString('en-IN'));
 
     var pct = totalFees > 0 ? ((totalPaid/totalFees)*100).toFixed(1) : 0;
-    var filterLabel = feeType === 'all' ? '' : ' <small style="color:#888">(' + feeType + ')</small>';
     $('#fees-summary-cards').html(
-        mkStatCard('#3c8dbc','Total Billed' ,    MCC.currency+numFmt(totalFees))    +
+        mkStatCard('#3c8dbc','Total Billed',    MCC.currency+numFmt(totalFees))    +
         mkStatCard('#00a65a','Collected',       MCC.currency+numFmt(totalPaid))    +
         mkStatCard('#dd4b39','Balance',         MCC.currency+numFmt(totalBalance)) +
         mkStatCard('#f39c12','Collection Rate', pct+'%')                           +
-        (feeType === 'all' ?
+        (isAll ?
             mkStatCard('#27ae60','Fully Paid',      fmtCr(tFPAmt)+'<br><small style="color:#777">'+numFmt(tFP)+' students</small>') +
             mkStatCard('#e67e22','Partially Paid',  fmtCr(tPRAmt)+'<br><small style="color:#777">'+numFmt(tPR)+' students</small>') +
             mkStatCard('#c0392b','Not Paid',        numFmt(tNP)+' students'+(tNPBilled > 0 ? '<br><small style="color:#777">'+fmtCr(tNPBilled)+'</small>' : ''))
@@ -903,18 +907,10 @@ function renderFeesTable(rows, feeType) {
 
     var tbody='', tfees=0, tpaid=0, tbal=0;
     rows.forEach(function(row, i) {
-        var rFees, rPaid, rBal;
-        if (feeType === 'all') {
-            rFees = row.total_fees; rPaid = row.total_paid; rBal = row.total_balance;
-        } else if (row.fee_type_breakdown && row.fee_type_breakdown[feeType]) {
-            var ftd = row.fee_type_breakdown[feeType];
-            rFees = ftd.billed; rPaid = ftd.collected; rBal = ftd.balance;
-        } else {
-            rFees = 0; rPaid = 0; rBal = 0;
-        }
-        var rowPct = feesPct(rFees, rPaid);
+        var r = getRowFees(row, selected);
+        var rowPct = feesPct(r.f, r.p);
         var color  = MCC.colors[i]||'#3c8dbc';
-        tfees+=rFees; tpaid+=rPaid; tbal+=rBal;
+        tfees+=r.f; tpaid+=r.p; tbal+=r.b;
         tbody +=
             '<tr class="mcc-inst-row" data-db="'+escHtml(row.db_name)+'" style="cursor:pointer" title="Click to expand year-wise breakdown">'+
             '<td>'+
@@ -923,10 +919,10 @@ function renderFeesTable(rows, feeType) {
                 escHtml(MCC.names[row.db_name]||row.db_name)+
             '</td>'+
             '<td>'+(branchSessions[row.db_name]||'—')+'</td>'+
-            '<td class="text-right">'+fmtAmt(rFees)+'</td>'+
-            '<td class="text-right"><strong class="text-success">'+fmtAmt(rPaid)+'</strong></td>'+
-            '<td class="text-right text-danger">'+fmtAmt(rBal)+'</td>'+
-            (feeType === 'all'
+            '<td class="text-right">'+fmtAmt(r.f)+'</td>'+
+            '<td class="text-right"><strong class="text-success">'+fmtAmt(r.p)+'</strong></td>'+
+            '<td class="text-right text-danger">'+fmtAmt(r.b)+'</td>'+
+            (isAll
                 ? '<td>'+stuStatus(row.fully_paid_count||0, row.fully_paid_amt||0, row.partial_count||0, row.partial_amt||0, row.not_paid_count||0, row.not_paid_billed||0, row.db_name, 0)+'</td>'
                 : '<td></td>') +
             '<td class="text-center">'+feesBar(rowPct)+'</td>'+
@@ -939,7 +935,7 @@ function renderFeesTable(rows, feeType) {
         '<td class="text-right"><strong>'+MCC.currency+numFmt(tfees)+'</strong></td>'+
         '<td class="text-right"><strong class="text-success">'+MCC.currency+numFmt(tpaid)+'</strong></td>'+
         '<td class="text-right text-danger"><strong>'+MCC.currency+numFmt(tbal)+'</strong></td>'+
-        (feeType === 'all' ? '<td>'+stuStatus(tFP, tFPAmt, tPR, tPRAmt, tNP, tNPBilled)+'</td>' : '<td></td>') +
+        (isAll ? '<td>'+stuStatus(tFP, tFPAmt, tPR, tPRAmt, tNP, tNPBilled)+'</td>' : '<td></td>') +
         '<td class="text-center"><strong>'+fpct+'%</strong></td></tr>'
     );
 }
@@ -976,14 +972,15 @@ function loadFees() {
                 }
             });
             var chipStyle = 'display:inline-block; padding:5px 14px; margin:0 4px 4px 0; border-radius:16px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid #ccc; transition:all .15s;';
-            var chips = '<span class="mcc-fee-chip active" data-feetype="all" style="'+chipStyle+'background:#3c8dbc;color:#fff;border-color:#3c8dbc">All</span>';
+            var chips = '';
             Object.keys(allFeeTypes).sort().forEach(function(ft) {
                 chips += '<span class="mcc-fee-chip" data-feetype="'+escHtml(ft)+'" style="'+chipStyle+'background:#fff;color:#555">'+escHtml(ft)+'</span>';
             });
             $('#fees-type-chips').html(chips);
             $('#fees-type-filter').show();
 
-            renderFeesTable(resp.rows, 'all');
+            feesSelectedTypes = [];
+            renderFeesTable(resp.rows, feesSelectedTypes);
 
             // Once drilldown data arrives, inject sub-rows
             reqDrilldown.done(function(dr) {
@@ -993,13 +990,22 @@ function loadFees() {
                 wireFeesToggle();
             });
 
-            // Chip click handler
+            // Chip click handler — toggle on/off, empty = All
             $(document).off('click.feeChip').on('click.feeChip', '.mcc-fee-chip', function() {
                 var ft = $(this).data('feetype');
-                feesActiveFeeType = ft;
-                $('.mcc-fee-chip').css({background:'#fff',color:'#555','border-color':'#ccc'});
-                $(this).css({background:'#3c8dbc',color:'#fff','border-color':'#3c8dbc'});
-                renderFeesTable(feesRawRows, ft);
+                var idx = feesSelectedTypes.indexOf(ft);
+                if (idx >= 0) {
+                    feesSelectedTypes.splice(idx, 1);
+                } else {
+                    feesSelectedTypes.push(ft);
+                }
+                // Update chip styles
+                $('.mcc-fee-chip').each(function() {
+                    var t = $(this).data('feetype');
+                    var on = feesSelectedTypes.indexOf(t) >= 0;
+                    $(this).css({background: on ? '#3c8dbc' : '#fff', color: on ? '#fff' : '#555', 'border-color': on ? '#3c8dbc' : '#ccc'});
+                });
+                renderFeesTable(feesRawRows, feesSelectedTypes);
                 renderFeesSubRows(feesRawRows);
                 wireFeesToggle();
             });
