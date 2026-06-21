@@ -54,6 +54,12 @@ class Currency extends Admin_Controller
             'symbol' => $symbol,
         );
         $this->currency_model->add($data);
+
+        $setting = $this->setting_model->getSchoolDetail();
+        if ((string)$setting->currency === (string)$currency_id) {
+            $this->db->where('id', $setting->id)->update('sch_settings', ['currency_symbol' => $symbol]);
+        }
+
         echo json_encode(['status' => 1, 'message' => $this->lang->line('update_message')]);
     }
 
@@ -80,6 +86,12 @@ class Currency extends Admin_Controller
         );
 
         $this->currency_model->update_currency($setting_data);
+
+        $currency = $this->currency_model->get($currency_id);
+        if ($currency) {
+            $this->db->where('id', $id)->update('sch_settings', ['currency_symbol' => $currency->symbol]);
+        }
+
         echo json_encode(['status' => 1, 'message' => $this->lang->line('update_message')]);
     }
 
