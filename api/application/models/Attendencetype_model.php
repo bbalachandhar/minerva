@@ -67,10 +67,38 @@ class Attendencetype_model extends CI_Model
 
     public function studentAttendanceByDate($class_id, $section_id, $day, $date, $student_session_id)
     {
-        $sql        = "SELECT subject_timetable.*,subject_group_subjects.subject_group_id,subjects.id as `subject_id`,subjects.name,subjects.code,subjects.type,student_subject_attendances.student_session_id,student_subject_attendances.attendence_type_id,student_subject_attendances.date,student_subject_attendances.remark,student_subject_attendances.id as `student_subject_attendance_id`,student_subject_attendances.date,student_subject_attendances.date,attendence_type.type,attendence_type.key_value FROM `subject_timetable` INNER JOIN subject_group_subjects on subject_group_subjects.id = subject_timetable.subject_group_subject_id and subject_group_subjects.session_id=" . $this->current_session . " INNER JOIN subjects on subjects.id=subject_group_subjects.subject_id LEFT JOIN student_subject_attendances on student_subject_attendances.subject_timetable_id=subject_timetable.id and student_subject_attendances.student_session_id=" . $this->db->escape($student_session_id) . "INNER JOIN attendence_type on attendence_type.id=student_subject_attendances.attendence_type_id WHERE subject_timetable.class_id=" . $this->db->escape($class_id) . " AND subject_timetable.section_id=" . $this->db->escape($section_id) . " and subject_timetable.day=" . $this->db->escape($day) . "and student_subject_attendances.date=" . $this->db->escape($date);
-        $query      = $this->db->query($sql);
-        $attendance = $query->result();
-        return $attendance;
+        $use_tt = $this->db->where('session_id', $this->current_session)->from('tt_entries')->count_all_results() > 0;
+
+        if ($use_tt) {
+            $sql = "SELECT tt_entries.id, tt_entries.class_id, tt_entries.section_id, tt_entries.staff_id,
+                    tt_entries.subject_group_subject_id, tt_entries.day, tt_entries.session_id,
+                    tt_periods.start_time AS time_from, tt_periods.end_time AS time_to,
+                    subject_group_subjects.subject_group_id,
+                    subjects.id AS subject_id, subjects.name, subjects.code, subjects.type,
+                    student_subject_attendances.student_session_id,
+                    student_subject_attendances.attendence_type_id,
+                    student_subject_attendances.date,
+                    student_subject_attendances.remark,
+                    student_subject_attendances.id AS student_subject_attendance_id,
+                    attendence_type.type, attendence_type.key_value
+                FROM tt_entries
+                INNER JOIN subject_group_subjects ON subject_group_subjects.id = tt_entries.subject_group_subject_id
+                    AND subject_group_subjects.session_id = " . $this->db->escape($this->current_session) . "
+                INNER JOIN subjects ON subjects.id = subject_group_subjects.subject_id
+                LEFT JOIN tt_periods ON tt_periods.id = tt_entries.period_id
+                LEFT JOIN student_subject_attendances ON student_subject_attendances.subject_timetable_id = tt_entries.id
+                    AND student_subject_attendances.student_session_id = " . $this->db->escape($student_session_id) . "
+                INNER JOIN attendence_type ON attendence_type.id = student_subject_attendances.attendence_type_id
+                WHERE tt_entries.class_id = " . $this->db->escape($class_id) . "
+                AND tt_entries.section_id = " . $this->db->escape($section_id) . "
+                AND tt_entries.day = " . $this->db->escape($day) . "
+                AND tt_entries.is_free_period = 0
+                AND student_subject_attendances.date = " . $this->db->escape($date) . "
+                ORDER BY tt_periods.sort_order ASC";
+        } else {
+            $sql = "SELECT subject_timetable.*,subject_group_subjects.subject_group_id,subjects.id as `subject_id`,subjects.name,subjects.code,subjects.type,student_subject_attendances.student_session_id,student_subject_attendances.attendence_type_id,student_subject_attendances.date,student_subject_attendances.remark,student_subject_attendances.id as `student_subject_attendance_id`,student_subject_attendances.date,student_subject_attendances.date,attendence_type.type,attendence_type.key_value FROM `subject_timetable` INNER JOIN subject_group_subjects on subject_group_subjects.id = subject_timetable.subject_group_subject_id and subject_group_subjects.session_id=" . $this->current_session . " INNER JOIN subjects on subjects.id=subject_group_subjects.subject_id LEFT JOIN student_subject_attendances on student_subject_attendances.subject_timetable_id=subject_timetable.id and student_subject_attendances.student_session_id=" . $this->db->escape($student_session_id) . " INNER JOIN attendence_type on attendence_type.id=student_subject_attendances.attendence_type_id WHERE subject_timetable.class_id=" . $this->db->escape($class_id) . " AND subject_timetable.section_id=" . $this->db->escape($section_id) . " and subject_timetable.day=" . $this->db->escape($day) . " and student_subject_attendances.date=" . $this->db->escape($date);
+        }
+        return $this->db->query($sql)->result();
     }
 
 }

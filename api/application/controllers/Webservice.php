@@ -1735,15 +1735,7 @@ class Webservice extends CI_Controller
         if ($caller->role === 'teacher') {
             $current_session = (int) $this->setting_model->getCurrentSession();
             $day_name = date('l', strtotime($date));
-            $this->db->select('id');
-            $this->db->from('subject_timetable');
-            $this->db->where('staff_id', (int) $caller->staff_id);
-            $this->db->where('class_id', $class_id);
-            $this->db->where('section_id', $section_id);
-            $this->db->where('day', $day_name);
-            $this->db->where('session_id', $current_session);
-            $this->db->limit(1);
-            $owned = $this->db->get()->row();
+            $owned = $this->subjecttimetable_model->staffHasPeriodOnDay((int) $caller->staff_id, $class_id, $section_id, $day_name);
             if (empty($owned)) {
                 json_output(403, array('status' => 0, 'message' => 'Not authorized for this class-section on selected date.'));
                 return;
@@ -2214,17 +2206,13 @@ class Webservice extends CI_Controller
             return;
         }
 
-        $this->db->select('id, class_id, section_id, session_id, staff_id, subject_group_subject_id, time_from, time_to, room_no');
-        $this->db->from('subject_timetable');
-        $this->db->where('id', $subject_timetable_id);
-        $subject_timetable = $this->db->get()->row_array();
+        $subject_timetable = $this->subjecttimetable_model->getTimetableEntryById($subject_timetable_id);
 
         if (empty($subject_timetable)) {
             json_output(404, array('status' => 0, 'message' => 'Subject timetable not found.'));
             return;
         }
 
-        // Ensure teacher can only access own period for non-admin staff roles.
         $current_session = (int) $this->setting_model->getCurrentSession();
         if ((int) $subject_timetable['session_id'] !== $current_session) {
             json_output(403, array('status' => 0, 'message' => 'Not authorized for this period in current session.'));
@@ -2351,7 +2339,7 @@ class Webservice extends CI_Controller
 
         $saved_count = 0;
         $current_session = (int) $this->setting_model->getCurrentSession();
-        $subject_cache = array();
+        $entry_cache = array();
         foreach ($rows as $row) {
             $student_session_id = isset($row['student_session_id']) ? (int) $row['student_session_id'] : 0;
             $subject_timetable_id = isset($row['subject_timetable_id']) ? (int) $row['subject_timetable_id'] : 0;
@@ -2363,14 +2351,11 @@ class Webservice extends CI_Controller
                 continue;
             }
 
-            if (!array_key_exists($subject_timetable_id, $subject_cache)) {
-                $this->db->select('id, class_id, section_id, staff_id, session_id');
-                $this->db->from('subject_timetable');
-                $this->db->where('id', $subject_timetable_id);
-                $subject_cache[$subject_timetable_id] = $this->db->get()->row_array();
+            if (!array_key_exists($subject_timetable_id, $entry_cache)) {
+                $entry_cache[$subject_timetable_id] = $this->subjecttimetable_model->getTimetableEntryById($subject_timetable_id);
             }
 
-            $subject_row = $subject_cache[$subject_timetable_id];
+            $subject_row = $entry_cache[$subject_timetable_id];
             if (empty($subject_row)) {
                 continue;
             }
@@ -2394,21 +2379,6 @@ class Webservice extends CI_Controller
 
             if ((int) $student_session_row['class_id'] !== (int) $subject_row['class_id'] || (int) $student_session_row['section_id'] !== (int) $subject_row['section_id']) {
                 continue;
-            }
-
-            if ($caller->role === 'teacher') {
-                $day_name = date('l', strtotime($date));
-                $this->db->select('id');
-                $this->db->from('subject_timetable');
-                $this->db->where('id', $subject_timetable_id);
-                $this->db->where('staff_id', (int) $caller->staff_id);
-                $this->db->where('day', $day_name);
-                $this->db->where('session_id', $current_session);
-                $this->db->limit(1);
-                $owned = $this->db->get()->row();
-                if (empty($owned)) {
-                    continue;
-                }
             }
 
             $payload = array(
@@ -9999,6 +9969,144 @@ class Webservice extends CI_Controller
         }
     }
 
+    public function getMySubstitutions()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+            return;
+        }
 
+        $check_auth_client = $this->auth_model->check_auth_client();
+        if ($check_auth_client != true) {
+            return;
+        }
+
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            return;
+        }
+
+        $login_user_id = trim((string) $this->input->get_request_header('User-ID', true));
+        if ($login_user_id === '') {
+            json_output(422, array('status' => 0, 'message' => 'User-ID header is required.'));
+            return;
+        }
+
+        $this->db->select('users.role, users.user_id as staff_id');
+        $this->db->from('users');
+        $this->db->join('staff', 'staff.id = users.user_id');
+        $this->db->where('users.id', $login_user_id);
+        $staff_user = $this->db->get()->row();
+
+        if (empty($staff_user) || $staff_user->role === 'student' || $staff_user->role === 'parent') {
+            json_output(403, array('status' => 0, 'message' => 'This endpoint is only available for staff users.'));
+            return;
+        }
+
+        $params = json_decode(file_get_contents('php://input'), true);
+        $date = isset($params['date']) ? trim((string) $params['date']) : date('Y-m-d');
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || strtotime($date) === false) {
+            json_output(422, array('status' => 0, 'message' => 'Invalid date. Use YYYY-MM-DD.'));
+            return;
+        }
+
+        $current_session = (int) $this->setting_model->getCurrentSession();
+        $staff_id = (int) $staff_user->staff_id;
+
+        $absent_rows = $this->db->select('tt_substitutions.*, s.name as sub_name, s.surname as sub_surname, subjects.name as subject_name, classes.class as class_name, sections.section as section_name, tt_periods.name as period_name, tt_periods.start_time, tt_periods.sort_order as period_sort')
+            ->from('tt_substitutions')
+            ->join('staff as s', 's.id = tt_substitutions.substitute_staff_id', 'left')
+            ->join('subject_group_subjects', 'subject_group_subjects.id = tt_substitutions.subject_group_subject_id', 'left')
+            ->join('subjects', 'subjects.id = subject_group_subjects.subject_id', 'left')
+            ->join('classes', 'classes.id = tt_substitutions.class_id', 'left')
+            ->join('sections', 'sections.id = tt_substitutions.section_id', 'left')
+            ->join('tt_periods', 'tt_periods.id = tt_substitutions.period_id', 'left')
+            ->where('tt_substitutions.session_id', $current_session)
+            ->where('tt_substitutions.absent_staff_id', $staff_id)
+            ->where('tt_substitutions.date', $date)
+            ->where('tt_substitutions.status !=', 'cancelled')
+            ->order_by('tt_periods.sort_order', 'ASC')
+            ->get()->result_array();
+
+        $covering_rows = $this->db->select('tt_substitutions.*, a.name as absent_name, a.surname as absent_surname, subjects.name as subject_name, classes.class as class_name, sections.section as section_name, tt_periods.name as period_name, tt_periods.start_time, tt_periods.sort_order as period_sort')
+            ->from('tt_substitutions')
+            ->join('staff as a', 'a.id = tt_substitutions.absent_staff_id', 'left')
+            ->join('subject_group_subjects', 'subject_group_subjects.id = tt_substitutions.subject_group_subject_id', 'left')
+            ->join('subjects', 'subjects.id = subject_group_subjects.subject_id', 'left')
+            ->join('classes', 'classes.id = tt_substitutions.class_id', 'left')
+            ->join('sections', 'sections.id = tt_substitutions.section_id', 'left')
+            ->join('tt_periods', 'tt_periods.id = tt_substitutions.period_id', 'left')
+            ->where('tt_substitutions.session_id', $current_session)
+            ->where('tt_substitutions.substitute_staff_id', $staff_id)
+            ->where('tt_substitutions.date', $date)
+            ->where('tt_substitutions.status !=', 'cancelled')
+            ->order_by('tt_periods.sort_order', 'ASC')
+            ->get()->result_array();
+
+        $absent = array();
+        foreach ($absent_rows as $row) {
+            $absent[] = array(
+                'id'              => (int) $row['id'],
+                'period_name'     => (string) ($row['period_name'] ?? ''),
+                'start_time'      => (string) ($row['start_time'] ?? ''),
+                'class'           => (string) ($row['class_name'] ?? ''),
+                'section'         => (string) ($row['section_name'] ?? ''),
+                'subject'         => (string) ($row['subject_name'] ?? ''),
+                'substitute_name' => trim(($row['sub_name'] ?? '') . ' ' . ($row['sub_surname'] ?? '')),
+                'status'          => (string) $row['status'],
+            );
+        }
+
+        $covering = array();
+        foreach ($covering_rows as $row) {
+            $covering[] = array(
+                'id'           => (int) $row['id'],
+                'period_name'  => (string) ($row['period_name'] ?? ''),
+                'start_time'   => (string) ($row['start_time'] ?? ''),
+                'class'        => (string) ($row['class_name'] ?? ''),
+                'section'      => (string) ($row['section_name'] ?? ''),
+                'subject'      => (string) ($row['subject_name'] ?? ''),
+                'absent_name'  => trim(($row['absent_name'] ?? '') . ' ' . ($row['absent_surname'] ?? '')),
+                'status'       => (string) $row['status'],
+            );
+        }
+
+        json_output($response['status'], array(
+            'status'   => 1,
+            'message'  => 'Success',
+            'date'     => $date,
+            'absent'   => $absent,
+            'covering' => $covering,
+        ));
+    }
+
+    public function getTimetableSource()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+            return;
+        }
+
+        $check_auth_client = $this->auth_model->check_auth_client();
+        if ($check_auth_client != true) {
+            return;
+        }
+
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            return;
+        }
+
+        $source = $this->subjecttimetable_model->hasTtEntries() ? 'tt_entries' : 'subject_timetable';
+
+        json_output($response['status'], array(
+            'status'  => 1,
+            'message' => 'Success',
+            'timetable_source' => $source,
+        ));
+    }
 
 }
