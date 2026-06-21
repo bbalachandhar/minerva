@@ -660,6 +660,13 @@ class Webservice extends CI_Controller
                     $result = $this->setting_model->getSchoolDisplay();
                     $result->start_month_name = ucfirst($this->customlib->getMonthList($result->start_month));
 
+                    if (!empty($result->image)) {
+                        $base = rtrim($this->config->item('base_url'), '/');
+                        $result->logo_url = $base . '/uploads/school_content/logo/' . $result->image;
+                    } else {
+                        $result->logo_url = '';
+                    }
+
                     json_output($response['status'], $result);
                 }
             }
