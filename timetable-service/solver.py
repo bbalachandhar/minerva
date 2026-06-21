@@ -831,12 +831,11 @@ def solve(data: dict) -> dict:
                          blocks, total_target_blocks, self.stagnation_limit)
                 self.StopSearch()
 
+    time_limit = data.get("time_limit", 180)
+    num_cpus = os.cpu_count() or 2
     stag_limit = max(60, time_limit // 3)
     callback = StopAtFullPlacement(stag_limit)
     log.info("Target: %d placement blocks (stagnation: %ds)", total_target_blocks, stag_limit)
-
-    time_limit = data.get("time_limit", 180)
-    num_cpus = os.cpu_count() or 2
     log.info("Solver time limit: %ds (%d min), workers: %d", time_limit, time_limit // 60, num_cpus)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit
