@@ -879,6 +879,7 @@ class Student extends Admin_Controller
                         $data_insert['created_by'] = $this->session->userdata['admin']['id'];
                         $data_insert['admission_session_id'] = $session;
 
+						$this->db->trans_start();
 						$insert_id = $this->student_model->add($data_insert, $data_setting);
 						if (!empty($custom_value_array)) {
 							$this->customfield_model->insertRecord($custom_value_array, $insert_id);
@@ -1035,10 +1036,11 @@ class Student extends Admin_Controller
 						$this->customlib->generatebarcode($student_details['admission_no'], $student_details['id'], $scan_type);
 						//generate student id card
 
+						$this->db->trans_complete();
 						$this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('success_message') . '</div>');
 						redirect('student/create');
 					} else {
-		
+
 						$data['error_message'] = $this->lang->line('admission_no') . ' ' . $admission_no . ' ' . $this->lang->line('already_exists');
 						$this->load->view('layout/header', $data);
 						$this->load->view('student/studentCreate', $data);
@@ -1510,6 +1512,7 @@ catch (Exception $e) {
 
                             //-------------------------
                             if (!empty($insert_id)) {
+                                $this->db->trans_start();
                                 $data_new = array(
                                     'student_id' => $insert_id,
                                     'class_id'   => $class_id,
@@ -1569,6 +1572,7 @@ catch (Exception $e) {
                                 $this->customlib->generatebarcode($admission_no, $insert_id, $scan_type);
                                 //generate student id card
 
+                                $this->db->trans_complete();
                             } else {
 
                                 $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('record_already_exist') . '</div>');
