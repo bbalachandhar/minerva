@@ -186,7 +186,7 @@ $(document).on('input','.chat_input',function(){
                     scrollTop: $('.messages')[0].scrollHeight}, "slow"
                         );
                 clearInterval(interval);
-                interval = setInterval(getChatsUpdates, 2000);
+                interval = setInterval(getChatsUpdates, 10000);
             },
             error: function (jqXHR, textStatus, errorThrown) {
 
@@ -356,7 +356,7 @@ $(document).on('input','.chat_input',function(){
                         scrollTop: $('.messages')[0].scrollHeight}, "slow"
                             );
                     clearInterval(interval);
-                    interval = setInterval(getChatsUpdates, 2000);
+                    interval = setInterval(getChatsUpdates, 10000);
 
 
 
