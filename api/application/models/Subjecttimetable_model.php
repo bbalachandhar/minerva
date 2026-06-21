@@ -230,6 +230,7 @@ class Subjecttimetable_model extends CI_Model
                 subject_group_subjects.subject_id, sub.name AS subject_name, sub.code AS subject_code,
                 tt_entries.id, tt_entries.class_id, tt_entries.section_id, tt_entries.staff_id,
                 tt_entries.subject_group_subject_id, tt_entries.day, tt_entries.session_id, tt_entries.period_id,
+                tt_periods.name AS period_name, tt_periods.sort_order AS period_sort,
                 tt_periods.start_time AS time_from, tt_periods.end_time AS time_to,
                 tt_rooms.room_number AS room_no,
                 'tt_entries' AS timetable_source

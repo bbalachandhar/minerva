@@ -1480,6 +1480,7 @@ class Webservice extends CI_Controller
                         'section' => isset($entry['section']) ? (string) $entry['section'] : '',
                         'subject_name' => isset($entry['subject_name']) ? (string) $entry['subject_name'] : '',
                         'subject_code' => isset($entry['subject_code']) ? (string) $entry['subject_code'] : '',
+                        'period_name' => isset($entry['period_name']) ? (string) $entry['period_name'] : '',
                         'time_from' => isset($entry['time_from']) ? (string) $entry['time_from'] : '',
                         'time_to' => isset($entry['time_to']) ? (string) $entry['time_to'] : '',
                         'day' => isset($entry['day']) ? (string) $entry['day'] : '',
