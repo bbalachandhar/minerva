@@ -800,12 +800,12 @@ def solve(data: dict) -> dict:
         joint_var_keys.setdefault(k[0], []).append(k)
 
     class StopAtFullPlacement(cp_model.CpSolverSolutionCallback):
-        def __init__(self):
+        def __init__(self, stag_limit):
             super().__init__()
             self.solution_count = 0
             self.best_blocks = 0
             self.best_time = time.time()
-            self.stagnation_limit = 60
+            self.stagnation_limit = stag_limit
         def on_solution_callback(self):
             self.solution_count += 1
             blocks = 0
@@ -831,8 +831,9 @@ def solve(data: dict) -> dict:
                          blocks, total_target_blocks, self.stagnation_limit)
                 self.StopSearch()
 
-    callback = StopAtFullPlacement()
-    log.info("Target: %d placement blocks", total_target_blocks)
+    stag_limit = max(60, time_limit // 3)
+    callback = StopAtFullPlacement(stag_limit)
+    log.info("Target: %d placement blocks (stagnation: %ds)", total_target_blocks, stag_limit)
 
     time_limit = data.get("time_limit", 180)
     num_cpus = os.cpu_count() or 2
