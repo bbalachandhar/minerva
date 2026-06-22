@@ -20,6 +20,8 @@ class Source extends Admin_Controller
         if (!$this->rbac->hasPrivilege('setup_font_office', 'can_view')) {
             access_denied();
         }
+        $this->session->set_userdata('top_menu', 'front_office');
+        $this->session->set_userdata('sub_menu', 'admin/visitorspurpose');
         $this->form_validation->set_rules('source', $this->lang->line('source'), 'required|trim');
 
         if ($this->form_validation->run() == false) {
@@ -44,6 +46,8 @@ class Source extends Admin_Controller
         if (!$this->rbac->hasPrivilege('setup_font_office', 'can_edit')) {
             access_denied();
         }
+        $this->session->set_userdata('top_menu', 'front_office');
+        $this->session->set_userdata('sub_menu', 'admin/visitorspurpose');
         $this->form_validation->set_rules('source', $this->lang->line('source'), 'required');
 
         if ($this->form_validation->run() == false) {
