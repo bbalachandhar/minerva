@@ -119,10 +119,15 @@ $is_college = ($sch_setting->institution_type == 'college');
                                 <label><?php echo $this->lang->line('class'); ?> <span class="req">*</span></label>
                                 <select id="class_id" name="class_id" class="form-control">
                                     <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                    <?php foreach ($classlist as $class) { ?>
-                                        <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) echo "selected"; ?>><?php echo $class['class'] ?></option>
-                                    <?php } ?>
+                                    <?php if (!$is_college) {
+                                        foreach ($classlist as $class) { ?>
+                                            <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) echo "selected"; ?>><?php echo $class['class'] ?></option>
+                                    <?php }
+                                    } ?>
                                 </select>
+                                <?php if ($is_college) { ?>
+                                    <span class="field-hint">Select department first</span>
+                                <?php } ?>
                                 <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                             </div>
                         </div>
@@ -1219,7 +1224,15 @@ $(document).ready(function () {
     var vehroute_id = '<?php echo set_value('vehroute_id', 0); ?>';
     var route_pickup_point_id = '<?php echo set_value('route_pickup_point_id', 0); ?>';
 
+    <?php if ($is_college) { ?>
+    var department_id = $('#department_id').val();
+    var saved_class_id = '<?php echo set_value('class_id', ''); ?>';
+    if (department_id) {
+        getClassesByDepartment(department_id, saved_class_id, section_id);
+    }
+    <?php } else { ?>
     getSectionByClass(class_id, section_id);
+    <?php } ?>
     getHostel(hostel_id, hostel_room_id);
     get_pickup_point(vehroute_id, route_pickup_point_id);
 
@@ -1303,10 +1316,10 @@ $(document).ready(function () {
 
     // ---- College: Department -> Class cascade ----
     <?php if ($is_college) { ?>
-    $(document).on('change', '#department_id', function () {
+    function getClassesByDepartment(department_id, preselect_class, preselect_section) {
+        if (!department_id) return;
         $('#class_id').html("");
         $('#section_id').html("");
-        var department_id = $(this).val();
         var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
         $.ajax({
             type: "GET",
@@ -1316,12 +1329,20 @@ $(document).ready(function () {
             beforeSend: function () { $('#class_id').addClass('dropdownloading'); },
             success: function (data) {
                 $.each(data, function (i, obj) {
-                    div_data += "<option value=" + obj.id + ">" + obj.class + "</option>";
+                    var sel = (preselect_class && preselect_class == obj.id) ? "selected" : "";
+                    div_data += "<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>";
                 });
-                $('#class_id').append(div_data);
+                $('#class_id').html(div_data);
+                if (preselect_class) {
+                    getSectionByClass(preselect_class, preselect_section || 0);
+                }
             },
             complete: function () { $('#class_id').removeClass('dropdownloading'); }
         });
+    }
+
+    $(document).on('change', '#department_id', function () {
+        getClassesByDepartment($(this).val(), 0, 0);
     });
     <?php } ?>
 
