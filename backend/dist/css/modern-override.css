@@ -75,26 +75,30 @@ body .form-control:focus {
 }
 body textarea.form-control { height: auto; min-height: 80px; }
 
-/* Restore header global search bar to original pill style */
+/* Header global search bar — modern rounded rect */
 .main-header .search-form .form-control {
-  height: 34px;
-  border-radius: 30px 0 0 30px !important;
-  border: 1px solid #ccc !important;
+  height: 36px;
+  border-radius: 6px 0 0 6px !important;
+  border: 1.5px solid #e2e8f0 !important;
   font-size: 13px;
   padding: 6px 14px;
+  background: #fff;
 }
 .main-header .search-form .form-control:focus {
-  border-color: #aaa !important;
-  box-shadow: none;
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 2px rgba(79,70,229,0.1);
 }
 .main-header .search-form .topsidesearchbtn {
-  height: 34px;
-  border-radius: 0 30px 30px 0;
-  border: 1px solid #ccc;
+  height: 36px;
+  border-radius: 0 6px 6px 0 !important;
+  border: 1.5px solid #e2e8f0;
   border-left: 0;
-  background: #fff;
-  color: #555;
+  background: #4f46e5;
+  color: #fff;
   padding: 6px 14px;
+}
+.main-header .search-form .topsidesearchbtn:hover {
+  background: #4338ca;
 }
 .main-header .search-form .input-group {
   display: flex;
