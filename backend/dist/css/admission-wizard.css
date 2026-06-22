@@ -637,20 +637,27 @@
 /* ---------- Modern File Input ---------- */
 .mn-admission-wizard input[type="file"].form-control,
 .mn-admission-wizard input[type="file"] {
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--surface);
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius-sm);
+  display: block !important;
+  visibility: visible !important;
+  position: static !important;
+  opacity: 1 !important;
+  clip: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+  background: #ffffff !important;
+  border: 1.5px dashed #e2e8f0 !important;
+  border-radius: 6px !important;
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .mn-admission-wizard input[type="file"]:hover {
-  border-color: var(--primary);
-  background: rgba(var(--primary-rgb), 0.02);
+  border-color: #4f46e5 !important;
+  background: rgba(79, 70, 229, 0.02) !important;
 }
 
 .mn-admission-wizard input[type="file"]::file-selector-button {
@@ -658,9 +665,9 @@
   margin-right: 12px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--primary);
-  background: var(--primary-light);
-  border: 1px solid rgba(var(--primary-rgb), 0.2);
+  color: #4f46e5;
+  background: #e0e7ff;
+  border: 1px solid rgba(79, 70, 229, 0.2);
   border-radius: 4px;
   cursor: pointer;
   transition: var(--transition-fast);
@@ -668,8 +675,25 @@
 }
 
 .mn-admission-wizard input[type="file"]::file-selector-button:hover {
-  background: var(--primary);
+  background: #4f46e5;
   color: #fff;
+}
+
+.mn-admission-wizard input[type="file"]::-webkit-file-upload-button {
+  padding: 6px 14px;
+  margin-right: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4f46e5;
+  background: #e0e7ff;
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Hide filestyle plugin wrappers inside wizard */
+.mn-admission-wizard .bootstrap-filestyle {
+  display: none !important;
 }
 
 /* ---------- Modern Checkbox ---------- */
