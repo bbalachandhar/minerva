@@ -3082,24 +3082,38 @@ class Student extends Admin_Controller
 
     public function printStudentDetails()
     {
-        $student_id  = $_POST['student_id'];
-        $result      = $this->student_model->getRecentRecord($student_id);
-        $data['student']  = $this->student_model->getStudentByClassSectionID($result['class_id'], $result['section_id'], $student_id);
-        $data['sch_setting']    =    $this->sch_setting_detail;
-        $data['category_list']  = $this->category_model->get();
-        $html  =  $this->load->view('print/printStudentDetails', $data, true);
+        $student_id  = $this->input->post('student_id');
+        if (empty($student_id)) {
+            show_error('Student ID is required', 400);
+            return;
+        }
+
+        $result = $this->student_model->getRecentRecord($student_id);
+        if (empty($result)) {
+            show_error('Student record not found', 404);
+            return;
+        }
+
+        $data['student']       = $this->student_model->getStudentByClassSectionID($result['class_id'], $result['section_id'], $student_id);
+        $data['sch_setting']   = $this->sch_setting_detail;
+        $data['category_list'] = $this->category_model->get();
+
+        $html = $this->load->view('print/printStudentDetails', $data, true);
+
         $this->load->library('m_pdf');
-        $mpdf       = $this->m_pdf->load();
-        $stylesheet = file_get_contents(FCPATH . 'backend/dist/css/ss-print.css'); // read from disk, not via self HTTP request
-        $mpdf->WriteHTML($stylesheet, 1); // Writing style to pdf         
-        $mpdf->SetWatermarkText("", .2); // add watermark text to be show in marksheet
+        $mpdf = $this->m_pdf->load();
+        $stylesheet = file_get_contents(FCPATH . 'backend/dist/css/ss-print.css');
+        $mpdf->WriteHTML($stylesheet, 1);
         $mpdf->SetDisplayMode('fullpage');
-        $mpdf->showWatermarkText = true;
-        $mpdf->autoScriptToLang  = true;
-        $mpdf->baseScript        = 1;
-        $mpdf->autoLangToFont    = true;
+        $mpdf->autoScriptToLang = true;
+        $mpdf->baseScript       = 1;
+        $mpdf->autoLangToFont   = true;
         $mpdf->WriteHTML($html, \Mpdf\HTMLParserMode::HTML_BODY);
-        $content = $mpdf->Output(random_string() . '.pdf', 'I');
+
+        $this->output
+            ->set_content_type('application/pdf')
+            ->set_header('Content-Disposition: inline; filename="student_profile.pdf"')
+            ->set_output($mpdf->Output('', 'S'));
     }
     public function import_progress()
     {
