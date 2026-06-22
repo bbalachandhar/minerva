@@ -580,7 +580,7 @@ class Branch extends MY_Addon_MBController
     {
         // ── 1. Total billed (tuition + other + hostel; no advance) ────────────
         $billed_row = $db->query(
-            "SELECT SUM(COALESCE(sfo.override_amount, fgf.amount)) AS total_billed
+            "SELECT SUM(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS total_billed
              FROM student_fees_master sfm
              JOIN student_session ss  ON ss.id  = sfm.student_session_id
              JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
@@ -599,7 +599,7 @@ class Branch extends MY_Addon_MBController
         // ── 1b. Billed per fee type ──────────────────────────────────────────
         $billed_by_type = $db->query(
             "SELECT ft.type AS fee_type,
-                    SUM(COALESCE(sfo.override_amount, fgf.amount)) AS billed
+                    SUM(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
              FROM student_fees_master sfm
              JOIN student_session ss  ON ss.id  = sfm.student_session_id
              JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
@@ -710,7 +710,7 @@ class Branch extends MY_Addon_MBController
         // ── Billed per student_session (with class_id) ────────────────────────
         $billed_rows = $db->query(
             "SELECT sfm.student_session_id AS ss_id, ss.class_id,
-                    SUM(COALESCE(sfo.override_amount, fgf.amount)) AS billed
+                    SUM(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
              FROM student_fees_master sfm
              JOIN student_session ss  ON ss.id  = sfm.student_session_id
              JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
@@ -893,7 +893,7 @@ class Branch extends MY_Addon_MBController
                         CONCAT(s.firstname, ' ', s.lastname) AS student_name,
                         c.class AS class_name,
                         COALESCE(sec.section, '—') AS section_name,
-                        SUM(COALESCE(sfo.override_amount, fgf.amount)) AS billed
+                        SUM(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
                  FROM student_fees_master sfm
                  JOIN student_session ss  ON ss.id  = sfm.student_session_id $class_filter
                  JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
@@ -987,7 +987,7 @@ class Branch extends MY_Addon_MBController
                     SUBSTRING(c.class, LENGTH(SUBSTRING_INDEX(c.class, ' ', 1)) + 2),
                     'YEAR ', ''))                                               AS class_display,
                 ft.type                                                          AS fee_type,
-                SUM(COALESCE(sfo.override_amount, fgf.amount))                  AS billed
+                SUM(COALESCE(sfo.override_amount, fgf.amount, sfm.amount))      AS billed
              FROM student_fees_master sfm
              JOIN student_session ss  ON ss.id  = sfm.student_session_id
              JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
