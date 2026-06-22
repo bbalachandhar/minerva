@@ -198,7 +198,7 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   margin-bottom: 20px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .mn-admission-wizard .adm-card-header {
@@ -208,6 +208,7 @@
   padding: 16px 22px;
   background: var(--border-light);
   border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .mn-admission-wizard .adm-card-header i {
@@ -602,6 +603,166 @@
   background-repeat: no-repeat !important;
   background-position: right 12px center !important;
   background-size: 18px !important;
+}
+
+/* ---------- Modern Select (taller, visible) ---------- */
+.mn-admission-wizard select.form-control {
+  height: 42px;
+  line-height: 1.4;
+}
+
+/* ---------- Modern File Input ---------- */
+.mn-admission-wizard input[type="file"].form-control,
+.mn-admission-wizard input[type="file"] {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.mn-admission-wizard input[type="file"]:hover {
+  border-color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.02);
+}
+
+.mn-admission-wizard input[type="file"]::file-selector-button {
+  padding: 6px 14px;
+  margin-right: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-family: var(--font-body);
+}
+
+.mn-admission-wizard input[type="file"]::file-selector-button:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ---------- Modern Checkbox ---------- */
+.mn-admission-wizard input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+/* ---------- Modern Radio ---------- */
+.mn-admission-wizard input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+/* ---------- In-Card Action Button (Add Sibling etc.) ---------- */
+.mn-admission-wizard .adm-card-body .btn-wizard {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1.5px solid rgba(var(--primary-rgb), 0.2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-family: var(--font-body);
+}
+
+.mn-admission-wizard .adm-card-body .btn-wizard:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.mn-admission-wizard .adm-card-body .btn-wizard i {
+  font-size: 14px;
+}
+
+/* ---------- Import Student Button (top right) ---------- */
+.mn-admission-wizard .adm-page-actions .btn-primary {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--primary);
+  border-color: var(--primary);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  transition: var(--transition-fast);
+}
+
+.mn-admission-wizard .adm-page-actions .btn-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+/* ---------- Wizard Footer Buttons (larger, pill-shaped) ---------- */
+.mn-admission-wizard .wizard-footer .btn-wizard {
+  padding: 13px 32px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  letter-spacing: -0.2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mn-admission-wizard .wizard-footer .btn-wizard-primary {
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.25);
+}
+
+.mn-admission-wizard .wizard-footer .btn-wizard-primary:hover {
+  box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.35);
+  transform: translateY(-1px);
+}
+
+.mn-admission-wizard .wizard-footer .btn-wizard-success {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.mn-admission-wizard .wizard-footer .btn-wizard-success:hover {
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ---------- Textarea ---------- */
+.mn-admission-wizard textarea.form-control {
+  resize: vertical;
+  min-height: 70px;
+}
+
+/* ---------- Override Bootstrap .btn inside wizard ---------- */
+.mn-admission-wizard .btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+/* ---------- Multiselect widget override ---------- */
+.mn-admission-wizard .ms-options-wrap > button {
+  border: 1.5px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 10px 14px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  font-family: var(--font-body) !important;
 }
 
 /* ---------- Print / Responsive ---------- */
