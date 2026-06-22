@@ -81,12 +81,7 @@ $this->load->view('layout/theme');
         span.flag-icon.flag-icon-us{text-orientation: mixed;}
   </style>
                     <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/select2/css/select2.min.css">
-                    <style>
-            .select2-container--default .select2-selection--multiple .select2-selection__choice {
-                background-color: #007bff !important; /* Bootstrap primary blue */
-                color: white !important;
-            }
-            </style>
+                    <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/modern-override.css">
                     </head>    <body class="skin-blue fixed sidebar-mini">
 
 <script>

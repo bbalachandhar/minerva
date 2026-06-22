@@ -1,0 +1,457 @@
+/* ==========================================================================
+   Modern Override — global visual refresh for AdminLTE (Bootstrap 3).
+   Loaded AFTER all other CSS. Reuses design tokens from admission-wizard.css
+   and profile-v2.css. Avoids !important except where AdminLTE/main.css forces it.
+   Does NOT conflict with .mn-admission-wizard or .mn-profile-v2 scopes.
+   ========================================================================== */
+
+/* -- 1. BASE / BODY / CONTENT WRAPPER ------------------------------------ */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.content-wrapper, .right-side { background-color: #f8fafc; }
+.content { padding: 12px 15px; }
+.content-header { display: none; }
+
+/* -- 2. BOX / CARD PANELS ------------------------------------------------ */
+body .box {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  background: #fff;
+  margin-bottom: 20px;
+}
+body .box.box-primary,
+body .box.box-info,
+body .box.box-success,
+body .box.box-warning,
+body .box.box-danger {
+  border-top: 1px solid #e2e8f0;
+}
+body .box.box-solid.box-primary .box-header,
+body .box.box-solid.box-info .box-header {
+  background: #4f46e5;
+  border-radius: 12px 12px 0 0;
+}
+body .box.box-solid.box-success .box-header {
+  background: #10b981;
+  border-radius: 12px 12px 0 0;
+}
+
+/* -- 3. BOX HEADER -------------------------------------------------------- */
+body .box .box-header {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 20px;
+  border-radius: 12px 12px 0 0;
+}
+body .box .box-header .box-title {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* -- 4. BOX BODY ---------------------------------------------------------- */
+body .box .box-body { padding: 20px; }
+
+/* -- 5. FORM CONTROLS ----------------------------------------------------- */
+/* main.css uses !important on .form-control border, so we must override it */
+body .form-control {
+  height: 40px;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #0f172a;
+  padding: 8px 14px;
+  background-color: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+body .form-control:focus {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+  outline: none;
+}
+body textarea.form-control { height: auto; min-height: 80px; }
+body .form-control[disabled],
+body .form-control[readonly],
+body fieldset[disabled] .form-control {
+  background-color: #f8fafc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+body .form-control::placeholder { color: #94a3b8; }
+body .input-group .input-group-addon {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: #f8fafc;
+  color: #475569;
+}
+body .input-group .input-group-addon:first-child { border-right: 0; border-radius: 6px 0 0 6px; }
+body .input-group .input-group-addon:last-child  { border-left: 0;  border-radius: 0 6px 6px 0; }
+body .input-group .input-group-addon + .form-control { border-radius: 0 6px 6px 0; }
+body .form-group label { font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+
+/* -- 6. BUTTONS ----------------------------------------------------------- */
+body .btn {
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 18px;
+  transition: all 0.15s ease;
+  outline: none;
+}
+body .btn:active { box-shadow: none; }
+
+body .btn-primary              { background-color: #4f46e5; border-color: #4f46e5; color: #fff; }
+body .btn-primary:hover,
+body .btn-primary:focus        { background-color: #4338ca; border-color: #4338ca; color: #fff; }
+body .btn-primary:active,
+body .btn-primary.active       { background-color: #3730a3; border-color: #3730a3; }
+
+body .btn-info                 { background-color: #4f46e5; border-color: #4f46e5; color: #fff; }
+body .btn-info:hover,
+body .btn-info:focus           { background-color: #4338ca; border-color: #4338ca; color: #fff; }
+
+body .btn-success              { background-color: #10b981; border-color: #10b981; color: #fff; }
+body .btn-success:hover,
+body .btn-success:focus        { background-color: #059669; border-color: #059669; color: #fff; }
+
+body .btn-danger               { background-color: #ef4444; border-color: #ef4444; color: #fff; }
+body .btn-danger:hover,
+body .btn-danger:focus         { background-color: #dc2626; border-color: #dc2626; color: #fff; }
+
+body .btn-warning              { background-color: #f59e0b; border-color: #f59e0b; color: #fff; }
+body .btn-warning:hover,
+body .btn-warning:focus        { background-color: #d97706; border-color: #d97706; color: #fff; }
+
+body .btn-default              { background-color: #fff; border: 1.5px solid #e2e8f0; color: #475569; }
+body .btn-default:hover,
+body .btn-default:focus        { background-color: #f8fafc; border-color: #cbd5e1; color: #334155; }
+
+body .btn-sm, body .btn-group-sm > .btn { padding: 6px 14px; font-size: 12px; border-radius: 6px; }
+body .btn-xs, body .btn-group-xs > .btn { padding: 4px 10px; font-size: 11px; border-radius: 4px; }
+
+/* -- 7. NAV TABS ---------------------------------------------------------- */
+body .nav-tabs-custom {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  background: #fff;
+  overflow: hidden;
+}
+body .nav-tabs-custom > .nav-tabs {
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  margin: 0;
+}
+body .nav-tabs-custom > .nav-tabs > li { margin-bottom: -1px; }
+body .nav-tabs-custom > .nav-tabs > li > a {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+  background: transparent;
+}
+body .nav-tabs-custom > .nav-tabs > li > a:hover {
+  color: #4f46e5;
+  background: transparent;
+  border-bottom-color: rgba(79,70,229,0.3);
+}
+body .nav-tabs-custom > .nav-tabs > li.active > a,
+body .nav-tabs-custom > .nav-tabs > li.active > a:hover,
+body .nav-tabs-custom > .nav-tabs > li.active > a:focus {
+  color: #4f46e5;
+  background: #fff;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 2px solid #4f46e5;
+  font-weight: 700;
+}
+body .nav-tabs-custom > .nav-tabs > li.active { border-top-color: transparent; }
+body .nav-tabs-custom > .tab-content { padding: 20px; }
+
+/* -- 8. TABLES ------------------------------------------------------------ */
+body .table > thead > tr > th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  border-bottom: 2px solid #e2e8f0;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+body .table > tbody > tr > td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  border-top: 1px solid #f1f5f9;
+  color: #0f172a;
+  font-size: 13px;
+}
+body .table > tbody > tr:hover > td { background-color: #f8fafc; }
+body .table-bordered { border: 1px solid #e2e8f0; }
+body .table-bordered > thead > tr > th,
+body .table-bordered > tbody > tr > td { border: 1px solid #f1f5f9; }
+body .table-bordered > thead > tr > th  { border-bottom: 2px solid #e2e8f0; }
+body .table-striped > tbody > tr:nth-of-type(odd) { background-color: #fafbfc; }
+
+/* -- 9. ALERTS ------------------------------------------------------------ */
+body .alert { border-radius: 10px; font-size: 14px; padding: 14px 18px; }
+body .alert-success { background-color: #d1fae5; border-color: rgba(16,185,129,0.2); color: #065f46; }
+body .alert-danger,
+body .alert-error   { background-color: #fee2e2; border-color: rgba(239,68,68,0.2);  color: #991b1b; }
+body .alert-warning { background-color: #fef3c7; border-color: rgba(245,158,11,0.2); color: #92400e; }
+body .alert-info    { background-color: #e0e7ff; border-color: rgba(79,70,229,0.2);  color: #3730a3; }
+
+/* -- 10. PAGE TITLE HEADERS ----------------------------------------------- */
+body .pagetitleh2 {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 20px;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  border-radius: 12px 12px 0 0;
+  margin: 0;
+}
+body .pagetitleh {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 12px 20px;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+body .pagetitleh-whitebg {
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 20px;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  border-radius: 12px 12px 0 0;
+  margin: 0;
+}
+body .addmoredetail-title {
+  background: #f8fafc;
+  padding: 10px 20px;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* -- 11. DATATABLES ------------------------------------------------------- */
+body .dataTables_wrapper .dt-buttons .btn {
+  background-color: #fff;
+  border: 1.5px solid #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  margin-right: 4px;
+  transition: all 0.15s ease;
+}
+body .dataTables_wrapper .dt-buttons .btn:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+body .dataTables_wrapper .dataTables_filter input {
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #0f172a;
+  height: 36px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+body .dataTables_wrapper .dataTables_filter input:focus {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+}
+body .dataTables_wrapper .dataTables_length select {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  height: 36px;
+  color: #0f172a;
+}
+body .dataTables_wrapper .dataTables_info { font-size: 13px; color: #475569; padding-top: 12px; }
+body .dataTables_wrapper .dataTables_paginate .paginate_button {
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 6px 12px;
+  margin: 0 2px;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  transition: all 0.15s ease;
+}
+body .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+body .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+body .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #fff;
+}
+body .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+body .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+  color: #94a3b8;
+  background: transparent;
+  border-color: #e2e8f0;
+  cursor: not-allowed;
+}
+
+/* -- 12. SELECT2 ---------------------------------------------------------- */
+body .select2-container--default .select2-selection--single {
+  height: 40px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+body .select2-container--default .select2-selection--single .select2-selection__rendered {
+  line-height: 38px;
+  padding-left: 14px;
+  color: #0f172a;
+  font-size: 14px;
+}
+body .select2-container--default .select2-selection--single .select2-selection__arrow { height: 38px; right: 8px; }
+body .select2-container--default .select2-selection--multiple {
+  min-height: 40px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+body .select2-container--default .select2-selection--multiple .select2-selection__choice {
+  background-color: #e0e7ff;
+  border: none;
+  border-radius: 4px;
+  color: #4f46e5;
+  font-size: 13px;
+  padding: 4px 8px;
+  margin: 2px 4px 2px 0;
+}
+body .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+  color: #4f46e5;
+  margin-right: 4px;
+}
+body .select2-container--default.select2-container--focus .select2-selection--single,
+body .select2-container--default.select2-container--focus .select2-selection--multiple,
+body .select2-container--default.select2-container--open .select2-selection--single,
+body .select2-container--default.select2-container--open .select2-selection--multiple {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+}
+body .select2-dropdown {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+  margin-top: 2px;
+}
+body .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+body .select2-container--default .select2-results__option[aria-selected="true"] { background-color: #f8fafc; }
+body .select2-container--default .select2-search--dropdown .select2-search__field {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* -- 13. SCROLLBAR (Webkit + Firefox) ------------------------------------- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+* { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+
+/* -- 14. REQUIRED STAR ---------------------------------------------------- */
+body .req { color: #ef4444; font-weight: 700; }
+
+/* -- 15. MISC REFINEMENTS ------------------------------------------------- */
+
+/* Modals */
+body .modal-content {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+}
+body .modal-header { border-bottom: 1px solid #e2e8f0; padding: 16px 20px; }
+body .modal-header .modal-title {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #0f172a;
+}
+body .modal-body { padding: 20px; }
+body .modal-footer { border-top: 1px solid #e2e8f0; padding: 14px 20px; }
+
+/* Dropdowns */
+body .dropdown-menu {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+  padding: 6px;
+}
+body .dropdown-menu > li > a {
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #475569;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+body .dropdown-menu > li > a:hover { background-color: #f8fafc; color: #0f172a; }
+
+/* Labels / Badges */
+body .label { border-radius: 4px; font-weight: 600; font-size: 11px; padding: 4px 8px; }
+body .label-primary, body .label-info { background-color: #4f46e5; }
+body .label-success { background-color: #10b981; }
+body .label-danger  { background-color: #ef4444; }
+body .label-warning { background-color: #f59e0b; }
+body .label-default { background-color: #94a3b8; }
+
+/* Pagination (non-DataTable) */
+body .pagination > li > a,
+body .pagination > li > span { color: #475569; border-color: #e2e8f0; font-size: 13px; padding: 6px 12px; }
+body .pagination > li > a:hover { background-color: #f8fafc; border-color: #cbd5e1; color: #334155; }
+body .pagination > .active > a,
+body .pagination > .active > a:hover,
+body .pagination > .active > span,
+body .pagination > .active > span:hover {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+  color: #fff;
+}
+
+/* Progress bars */
+body .progress { border-radius: 6px; height: 8px; background-color: #f1f5f9; box-shadow: none; }
+body .progress-bar         { background-color: #4f46e5; border-radius: 6px; }
+body .progress-bar-success { background-color: #10b981; }
+body .progress-bar-warning { background-color: #f59e0b; }
+body .progress-bar-danger  { background-color: #ef4444; }
+
+/* Tooltips */
+body .tooltip-inner { background-color: #0f172a; border-radius: 6px; font-size: 12px; padding: 6px 10px; }
+
+/* SweetAlert2 */
+body .swal2-popup { border-radius: 16px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body .swal2-confirm, body .swal2-cancel { border-radius: 6px; }
