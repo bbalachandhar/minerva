@@ -150,8 +150,23 @@ if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivil
                             <div class="col-md-12">
                                 <div class="tab-pane active table-responsive no-padding">
                                     <div class="download_label"><?php echo $this->lang->line('approve_leave_request'); ?></div>
+
+                                    <!-- Bulk Action Bar -->
+                                    <div id="bulk-action-bar" style="display:none; background:#f8fafc; border:1.5px solid #4f46e5; border-radius:10px; padding:12px 20px; margin:10px 0; align-items:center; gap:12px; flex-wrap:wrap;">
+                                        <span style="font-weight:700; color:#4f46e5; font-size:14px;"><i class="fa fa-check-square-o"></i> <span id="bulk-selected-count">0</span> selected</span>
+                                        <select id="bulk-status" class="form-control" style="width:auto; display:inline-block; height:34px; font-size:13px;">
+                                            <option value="">-- Select Action --</option>
+                                            <option value="approved">Approve</option>
+                                            <option value="disapproved">Reject</option>
+                                        </select>
+                                        <input type="text" id="bulk-remark" class="form-control" placeholder="Common remark / note (optional)" style="width:280px; display:inline-block; height:34px; font-size:13px;">
+                                        <button type="button" id="bulk-submit-btn" class="btn btn-primary btn-sm" style="height:34px;"><i class="fa fa-paper-plane"></i> Submit</button>
+                                        <button type="button" id="bulk-clear-btn" class="btn btn-default btn-sm" style="height:34px;" onclick="clearBulkSelection()">Clear</button>
+                                    </div>
+
                                     <table class="table table-striped table-bordered table-hover example">
                                         <thead>
+                                        <th style="width:30px;" class="noExport"><input type="checkbox" id="bulk-select-all" title="Select All"></th>
                                         <th><?php echo $this->lang->line('staff'); ?></th>
                                         <th><?php echo $this->lang->line('leave_type'); ?></th>
                                         <th><?php echo $this->lang->line('leave_date'); ?></th>
@@ -168,7 +183,7 @@ $i = 0;
 foreach ($leave_request as $key => $value) {
     ?>
                                                 <tr data-from="<?php echo $value['leave_from']; ?>">
-
+                                                    <td class="noExport"><input type="checkbox" class="bulk-check" value="<?php echo $value['id']; ?>"></td>
                                                     <td><?php echo $value['name'] . " " . $value['surname'] . ' (' . $value['employee_id'] . ')'; ?></td>
                                                     <td><?php echo $value["type"] ?></td>
                                                     <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($value["leave_from"])) ?> - <?php echo date($this->customlib->getSchoolDateFormat(), strtotime($value["leave_to"])) ?></td>
@@ -1936,5 +1951,73 @@ $i++;
         });
     }
 
+    // ── Bulk Approve/Reject ──────────────────────────────────────────
+    function updateBulkBar() {
+        var count = $('.bulk-check:checked').length;
+        $('#bulk-selected-count').text(count);
+        if (count > 0) {
+            $('#bulk-action-bar').css('display', 'flex');
+        } else {
+            $('#bulk-action-bar').hide();
+        }
+    }
+
+    function clearBulkSelection() {
+        $('.bulk-check, #bulk-select-all').prop('checked', false);
+        updateBulkBar();
+    }
+
+    $(document).on('change', '#bulk-select-all', function() {
+        $('.bulk-check').prop('checked', this.checked);
+        updateBulkBar();
+    });
+
+    $(document).on('change', '.bulk-check', function() {
+        if (!this.checked) $('#bulk-select-all').prop('checked', false);
+        updateBulkBar();
+    });
+
+    $(document).on('click', '#bulk-submit-btn', function() {
+        var ids = [];
+        $('.bulk-check:checked').each(function() { ids.push($(this).val()); });
+        var status = $('#bulk-status').val();
+        var remark = $('#bulk-remark').val();
+
+        if (ids.length === 0) { swal('Error', 'No records selected.', 'warning'); return; }
+        if (!status) { swal('Error', 'Please select an action (Approve/Reject).', 'warning'); return; }
+
+        var actionLabel = status === 'approved' ? 'APPROVE' : 'REJECT';
+        swal({
+            title: actionLabel + ' ' + ids.length + ' request(s)?',
+            text: remark ? 'Remark: "' + remark + '"' : 'No remark provided.',
+            type: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: status === 'approved' ? '#10b981' : '#ef4444',
+            confirmButtonText: 'Yes, ' + actionLabel,
+            cancelButtonText: 'Cancel'
+        }, function(isConfirm) {
+            if (isConfirm) {
+                $.ajax({
+                    url: '<?php echo site_url("admin/leaverequest/bulkLeaveStatus"); ?>',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { ids: ids, status: status, remark: remark, '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>' },
+                    beforeSend: function() { $('#bulk-submit-btn').html('<i class="fa fa-spinner fa-spin"></i> Processing...').prop('disabled', true); },
+                    success: function(resp) {
+                        if (resp.status === 'success') {
+                            swal({ title: 'Done', text: resp.message, type: 'success' }, function() { location.reload(); });
+                        } else {
+                            swal('Error', resp.message, 'error');
+                            $('#bulk-submit-btn').html('<i class="fa fa-paper-plane"></i> Submit').prop('disabled', false);
+                        }
+                    },
+                    error: function() {
+                        swal('Error', 'Server error. Please try again.', 'error');
+                        $('#bulk-submit-btn').html('<i class="fa fa-paper-plane"></i> Submit').prop('disabled', false);
+                    }
+                });
+            }
+        });
+    });
 
 </script>

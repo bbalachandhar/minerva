@@ -1561,6 +1561,110 @@ class Leaverequest extends Admin_Controller
         }
     }
 
+    public function bulkLeaveStatus()
+    {
+        $ids    = $this->input->post('ids');
+        $status = $this->input->post('status');
+        $remark = $this->input->post('remark');
+
+        if (empty($ids) || !is_array($ids) || empty($status)) {
+            echo json_encode(['status' => 'fail', 'message' => 'No records selected or status missing.']);
+            return;
+        }
+
+        $current_user_id = $this->customlib->getStaffID();
+        $is_admin = $this->currentUserIsAdminOrSuperAdmin() || $this->rbac->hasPrivilege('approve_leave_request', 'can_edit');
+
+        $success = 0;
+        $failed  = 0;
+        $errors  = [];
+
+        foreach ($ids as $leave_request_id) {
+            $leave_request = $this->leaverequest_model->get_staff_leave($leave_request_id);
+            if (!$leave_request) { $failed++; continue; }
+
+            $is_recommender = ($leave_request['recommender_id'] == $current_user_id);
+            $is_approver    = ($leave_request['approver_id'] == $current_user_id);
+
+            if (!$is_recommender && !$is_approver && !$is_admin) {
+                $failed++;
+                $errors[] = $leave_request['admission_no'] ?? '#' . $leave_request_id . ': Unauthorized';
+                continue;
+            }
+
+            $data = [];
+            $act_as_recommender = false;
+            $act_as_approver    = false;
+            $act_as_admin       = false;
+
+            if ($is_admin) {
+                $recommender_done = in_array((string)($leave_request['recommender_status'] ?? ''), ['recommended', 'approved', 'rejected'], true);
+                if (!$recommender_done) {
+                    $act_as_recommender = true;
+                } else {
+                    $act_as_admin = true;
+                }
+            } elseif ($is_recommender) {
+                $act_as_recommender = true;
+            } elseif ($is_approver) {
+                $act_as_approver = true;
+            }
+
+            if ($act_as_recommender) {
+                if ($status == 'approved') {
+                    $data['recommender_status'] = 'recommended';
+                    $data['status'] = 'recommended';
+                } elseif ($status == 'disapproved') {
+                    $data['recommender_status'] = 'rejected';
+                    $data['status'] = 'disapproved';
+                }
+                $data['recommender_remark'] = $remark;
+                $data['recommender_action_date'] = date('Y-m-d');
+            } elseif ($act_as_approver) {
+                if ($status == 'disapproved') {
+                    $data['approver_status'] = 'rejected';
+                    $data['status'] = 'disapproved';
+                } else {
+                    $data['approver_status'] = $status;
+                    $data['status'] = $status;
+                }
+                $data['approver_remark'] = $remark;
+                $data['approver_action_date'] = date('Y-m-d');
+                $data['approve_date'] = date('Y-m-d');
+            } elseif ($act_as_admin) {
+                $data['status'] = $status;
+                $data['admin_remark'] = $remark;
+                $data['approve_date'] = date('Y-m-d');
+                if ($status == 'approved') {
+                    $data['approver_status'] = 'approved';
+                    $data['approver_action_date'] = date('Y-m-d');
+                } elseif ($status == 'disapproved') {
+                    $data['approver_status'] = 'rejected';
+                    $data['approver_action_date'] = date('Y-m-d');
+                }
+            }
+
+            if (!empty($data)) {
+                $result = $this->leaverequest_model->changeLeaveStatus($data, $leave_request_id);
+                if ($result) {
+                    if ($status == 'approved' && ($act_as_approver || $act_as_admin)) {
+                        $this->leaverequest_model->logLeaveApprovalCredit($leave_request_id, $current_user_id);
+                    }
+                    $success++;
+                } else {
+                    $failed++;
+                }
+            } else {
+                $failed++;
+            }
+        }
+
+        $msg = $success . ' request(s) updated.';
+        if ($failed > 0) $msg .= ' ' . $failed . ' failed.';
+
+        echo json_encode(['status' => 'success', 'message' => $msg, 'success_count' => $success, 'failed_count' => $failed]);
+    }
+
     /**
      * AJAX: Revert an approved leave request back to pending and restore the balance.
      * Accessible by: admin, super admin, or the configured approver for this request.
