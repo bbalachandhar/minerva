@@ -921,11 +921,9 @@ function renderFeesTable(rows, selected) {
         mkStatCard('#00a65a','Collected',       MCC.currency+numFmt(totalPaid))    +
         mkStatCard('#dd4b39','Balance',         MCC.currency+numFmt(totalBalance)) +
         mkStatCard('#f39c12','Collection Rate', pct+'%')                           +
-        (isAll ?
-            mkStatCard('#27ae60','Fully Paid',      fmtCr(tFPAmt)+'<br><small style="color:#777">'+numFmt(tFP)+' students</small>') +
-            mkStatCard('#e67e22','Partially Paid',  fmtCr(tPRAmt)+'<br><small style="color:#777">'+numFmt(tPR)+' students</small>') +
-            mkStatCard('#c0392b','Not Paid',        numFmt(tNP)+' students'+(tNPBilled > 0 ? '<br><small style="color:#777">'+fmtCr(tNPBilled)+'</small>' : ''))
-        : '')
+        mkStatCard('#27ae60','Fully Paid',      fmtCr(tFPAmt)+'<br><small style="color:#777">'+numFmt(tFP)+' students</small>') +
+        mkStatCard('#e67e22','Partially Paid',  fmtCr(tPRAmt)+'<br><small style="color:#777">'+numFmt(tPR)+' students</small>') +
+        mkStatCard('#c0392b','Not Paid',        numFmt(tNP)+' students'+(tNPBilled > 0 ? '<br><small style="color:#777">'+fmtCr(tNPBilled)+'</small>' : ''))
     );
 
     // Update institution cards
@@ -953,9 +951,7 @@ function renderFeesTable(rows, selected) {
             '<td class="text-right">'+fmtAmt(r.f)+'</td>'+
             '<td class="text-right"><strong class="text-success">'+fmtAmt(r.p)+'</strong></td>'+
             '<td class="text-right text-danger">'+fmtAmt(r.b)+'</td>'+
-            (isAll
-                ? '<td>'+stuStatus(row.fully_paid_count||0, row.fully_paid_amt||0, row.partial_count||0, row.partial_amt||0, row.not_paid_count||0, row.not_paid_billed||0, row.db_name, 0)+'</td>'
-                : '<td></td>') +
+            '<td>'+stuStatus(row.fully_paid_count||0, row.fully_paid_amt||0, row.partial_count||0, row.partial_amt||0, row.not_paid_count||0, row.not_paid_billed||0, row.db_name, 0)+'</td>'+
             '<td class="text-center">'+feesBar(rowPct)+'</td>'+
             '</tr>';
     });
@@ -966,7 +962,7 @@ function renderFeesTable(rows, selected) {
         '<td class="text-right"><strong>'+MCC.currency+numFmt(tfees)+'</strong></td>'+
         '<td class="text-right"><strong class="text-success">'+MCC.currency+numFmt(tpaid)+'</strong></td>'+
         '<td class="text-right text-danger"><strong>'+MCC.currency+numFmt(tbal)+'</strong></td>'+
-        (isAll ? '<td>'+stuStatus(tFP, tFPAmt, tPR, tPRAmt, tNP, tNPBilled)+'</td>' : '<td></td>') +
+        '<td>'+stuStatus(tFP, tFPAmt, tPR, tPRAmt, tNP, tNPBilled)+'</td>'+
         '<td class="text-center"><strong>'+fpct+'%</strong></td></tr>'
     );
 }
