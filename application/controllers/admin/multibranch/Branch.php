@@ -890,7 +890,7 @@ class Branch extends MY_Addon_MBController
                 "SELECT sfm.student_session_id AS ss_id,
                         ss.class_id,
                         s.admission_no,
-                        CONCAT(s.firstname, ' ', s.lastname) AS student_name,
+                        TRIM(CONCAT(COALESCE(s.firstname,''), ' ', COALESCE(s.lastname,''))) AS student_name,
                         c.class AS class_name,
                         COALESCE(sec.section, '—') AS section_name,
                         SUM(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
