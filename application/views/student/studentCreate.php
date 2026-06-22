@@ -1323,7 +1323,7 @@ $(document).ready(function () {
         var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
         $.ajax({
             type: "GET",
-            url: "<?php echo base_url(); ?>admin/classes/getClassesByDepartment",
+            url: "<?php echo site_url('classes/getClassesByDepartment'); ?>",
             data: { 'department_id': department_id },
             dataType: "json",
             beforeSend: function () { $('#class_id').addClass('dropdownloading'); },
