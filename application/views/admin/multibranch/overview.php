@@ -1036,9 +1036,11 @@ function loadFees() {
                     var on = feesSelectedTypes.indexOf(t) >= 0;
                     $(this).css({background: on ? '#3c8dbc' : '#fff', color: on ? '#fff' : '#555', 'border-color': on ? '#3c8dbc' : '#ccc'});
                 });
+                var scrollPos = $(window).scrollTop();
                 renderFeesTable(feesRawRows, feesSelectedTypes);
                 renderFeesSubRows(feesRawRows);
                 wireFeesToggle();
+                $(window).scrollTop(scrollPos);
             });
         }
 
