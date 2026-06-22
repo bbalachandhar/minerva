@@ -104,6 +104,9 @@ body textarea.form-control { height: auto; min-height: 80px; }
 .main-header .navbar-form.search-form .input-group {
   display: flex;
 }
+.main-header .navbar-form.search-form {
+  margin-right: 12px;
+}
 body .form-control[disabled],
 body .form-control[readonly],
 body fieldset[disabled] .form-control {
