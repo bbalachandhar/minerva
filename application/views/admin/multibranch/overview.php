@@ -86,7 +86,7 @@ function mcc_abbr($db_name) {
 .mcc-table thead th { background: #f5f5f5; font-size: 12px; white-space: nowrap; }
 .mcc-table td  { font-size: 13px; vertical-align: middle !important; }
 .mcc-table-sm td, .mcc-table-sm th { padding: 5px 8px !important; font-size: 12px; }
-.mcc-stat-card { border-left: 4px solid; border-radius: 3px; background: #fafafa; padding: 10px 14px; margin-bottom: 10px; flex: 1; min-width: 150px; }
+.mcc-stat-card { border-left: 4px solid; border-radius: 6px; background: #fafafa; padding: 10px 14px; margin-bottom: 0; flex: 1; min-width: 130px; }
 .mcc-stat-card .lbl { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
 .mcc-stat-card .val { font-size: 18px; font-weight: 700; color: #222; margin-top: 2px; }
 .mcc-load-err { text-align: center; color: #cc0000; padding: 20px; font-size: 13px; }
@@ -385,16 +385,12 @@ function mcc_abbr($db_name) {
     <span class="pull-right" style="color:rgba(255,255,255,.75); font-size:12px">Current session &mdash; billed vs collected across all institutions</span>
   </div>
   <div class="box-body">
-    <div class="row">
-      <div class="col-md-8">
-        <div id="fees-chart-skeleton"><div class="sk-shimmer sk-chart"></div></div>
-        <div id="fees-chart-box" style="display:none; position:relative; height:300px"><canvas id="fees_chart"></canvas></div>
-      </div>
-      <div class="col-md-4">
-        <div id="fees-summary-cards">
-          <div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div>
-        </div>
-      </div>
+    <div id="fees-summary-cards" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+      <div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div><div class="sk-shimmer sk-card"></div>
+    </div>
+    <div>
+      <div id="fees-chart-skeleton"><div class="sk-shimmer sk-chart"></div></div>
+      <div id="fees-chart-box" style="display:none; position:relative; height:260px"><canvas id="fees_chart"></canvas></div>
     </div>
     <div class="row" style="margin-top:18px">
       <div class="col-md-12">

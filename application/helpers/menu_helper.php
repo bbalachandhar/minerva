@@ -146,6 +146,9 @@ if (!function_exists('main_menu_array')) {
                 'receive'         => array('index','editreceive'),
                 'complaint'       => array('index','edit'),
                 'visitorspurpose' => array('index','edit'),
+                'complainttype'   => array('index','editcomplainttype'),
+                'source'          => array('index','edit'),
+                'reference'       => array('index','edit'),
             ),
             
             'student_information' => array(                
