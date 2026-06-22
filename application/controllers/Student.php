@@ -1073,7 +1073,7 @@ class Student extends Admin_Controller
 						$this->load->view('layout/footer', $data);
 					}
 				 }
-catch (Exception $e) {
+				 } catch (Exception $e) {
 					if ($is_ajax) {
 						echo json_encode(array('status' => 'error', 'message' => 'Server error: ' . $e->getMessage()));
 						return;
