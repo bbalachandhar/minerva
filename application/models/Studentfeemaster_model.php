@@ -160,6 +160,7 @@ class Studentfeemaster_model extends MY_Model
                 $student_list[]                           = $student_data[$i]['student_session_id'];
                 $student_data[$i]['id']                   = 0;
                 $student_data[$i]['fee_session_group_id'] = $parentid;
+                $student_data[$i]['is_active']            = 'yes';
             }
             $check_insert_feemaster = $this->selectInArray($parentid, $student_list);
             if (!empty($check_insert_feemaster)) {
