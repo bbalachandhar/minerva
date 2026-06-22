@@ -987,6 +987,7 @@ class Student extends Admin_Controller
 						$upload_directory = './uploads/student_documents/' . $insert_id . '/';
                         $this->customlib->ensureDirectoryExists($upload_directory);
 		
+						if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
 							$first_title = $this->input->post('first_title');
 							                            $upload_result = $this->media_storage->fileupload("first_doc", $upload_directory);
 							                            if ($upload_result['status'] === false) {
@@ -3007,6 +3008,8 @@ catch (Exception $e) {
 
             return true;
         }
+
+        return true;
     }
 
     public function countAttendance($session_year_start, $student_session_id)
