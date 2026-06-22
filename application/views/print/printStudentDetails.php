@@ -39,7 +39,7 @@ if (!empty($category_list)) { foreach ($category_list as $c) { if ($student['cat
 
 <table style="width:100%; margin-bottom:4px;">
 <tr>
-<td class="photo-cell" style="width:60px;"><img src="<?php echo $img; ?>"></td>
+<td class="photo-cell" style="width:60px;"><img src="<?php echo $img; ?>" width="55" height="55" style="width:55px; height:55px; object-fit:cover; border-radius:3px; border:1px solid #ccc;"></td>
 <td style="padding-left:6px; vertical-align:top;">
 <div style="font-size:15px; font-weight:bold; margin-bottom:1px;"><?php echo $name; ?></div>
 <table class="d">
