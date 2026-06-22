@@ -76,31 +76,32 @@ body .form-control:focus {
 body textarea.form-control { height: auto; min-height: 80px; }
 
 /* Header global search bar — modern rounded rect */
-.main-header .search-form .form-control {
-  height: 36px;
+.main-header .navbar-form.search-form input.form-control.search-form,
+.main-header .navbar-form.search-form input.form-control.search-form3 {
+  height: 36px !important;
   border-radius: 6px 0 0 6px !important;
-  border: 1.5px solid #e2e8f0 !important;
-  font-size: 13px;
-  padding: 6px 14px;
-  background: #fff;
+  border: 1.5px solid #d1d5db !important;
+  font-size: 13px !important;
+  padding: 6px 14px !important;
+  background: #fff !important;
+  box-shadow: none !important;
 }
-.main-header .search-form .form-control:focus {
+.main-header .navbar-form.search-form input.form-control:focus {
   border-color: #4f46e5 !important;
-  box-shadow: 0 0 0 2px rgba(79,70,229,0.1);
+  box-shadow: 0 0 0 2px rgba(79,70,229,0.1) !important;
 }
-.main-header .search-form .topsidesearchbtn {
-  height: 36px;
+.main-header .navbar-form.search-form .topsidesearchbtn {
+  height: 36px !important;
   border-radius: 0 6px 6px 0 !important;
-  border: 1.5px solid #e2e8f0;
-  border-left: 0;
-  background: #4f46e5;
-  color: #fff;
-  padding: 6px 14px;
+  border: 1.5px solid #4f46e5 !important;
+  background: #4f46e5 !important;
+  color: #fff !important;
+  padding: 6px 14px !important;
 }
-.main-header .search-form .topsidesearchbtn:hover {
-  background: #4338ca;
+.main-header .navbar-form.search-form .topsidesearchbtn:hover {
+  background: #4338ca !important;
 }
-.main-header .search-form .input-group {
+.main-header .navbar-form.search-form .input-group {
   display: flex;
 }
 body .form-control[disabled],
