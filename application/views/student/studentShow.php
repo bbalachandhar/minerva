@@ -3422,51 +3422,50 @@ $currency_symbol = $admin_session['currency_symbol'];
 </script>
 
 <script type="text/javascript">
-	$(document).on('click', '.print_student_details', function() {
-    let $button_ = $(this);
-    var student_id = "<?php echo $student["id"] ?>";
-    var admission_no = $(this).attr('data-admission_no');
-	var student_name = $(this).attr('data-student_name');
-    $.ajax({
-        type: 'POST',
-        url: baseurl + 'student/printStudentDetails',  // Assuming baseurl is defined elsewhere
-        data: {'student_id':student_id},  // Add any data you need to send here
-		 
-        beforeSend: function() {
-            $button_.button('loading');  // Change button state to loading
-            if (window.mnpShowToast) window.mnpShowToast('Preparing PDF…');
-        },
-        xhr: function() {
-            var xhr = new XMLHttpRequest();  // Fixed the typo here
-            xhr.responseType = 'blob';  // Set response type to blob
-            return xhr;
-        },
-        success: function(data, jqXHR, response) {
-            // Create a Blob with the response data (PDF)
-            var blob = new Blob([data], {type: 'application/pdf'});
+	$(document).on('click', '.print_student_details', function(e) {
+    e.preventDefault();
+    var $btn = $(this);
+    if ($btn.data('printing')) return;
+    $btn.data('printing', true);
 
-            // Create an anchor element to trigger the file download
+    var origHtml = $btn.html();
+    $btn.html('<i class="fa fa-spinner fa-spin"></i> Print');
+
+    var student_id = "<?php echo $student["id"] ?>";
+    var admission_no = $btn.attr('data-admission_no') || '<?php echo $student["admission_no"]; ?>';
+    var student_name = $btn.attr('data-student_name') || '<?php echo addslashes($student["firstname"]); ?>';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', baseurl + 'student/printStudentDetails', true);
+    xhr.responseType = 'blob';
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+    xhr.onload = function() {
+        $btn.html(origHtml).data('printing', false);
+        if (xhr.status === 200 && xhr.response.type === 'application/pdf') {
+            var blob = xhr.response;
             var link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
-            link.download = student_name + '_' + admission_no + '.pdf';  // Assumes student_name and admission_no are defined
-            document.body.appendChild(link);  // Append to body to trigger download
+            link.download = student_name + '_' + admission_no + '.pdf';
+            document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);  // Clean up by removing the link
-
-            if (window.mnpShowToast) window.mnpShowToast('PDF downloaded.');
-            $button_.button('reset');  // Reset the button to its original state
-        },
-        error: function(xhr, status, error) {
-            // If an error occurs, reset the button
-            console.error("Error occurred:", status, error, xhr && xhr.status);  // You can log errors for debugging
-            if (window.mnpShowToast) window.mnpShowToast('Print failed (' + (xhr && xhr.status ? xhr.status : status) + '). Check console for details.');
-            $button_.button('reset');
-        },
-        complete: function() {
-            // Reset the button regardless of success or failure
-            $button_.button('reset');
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(link.href);
+        } else {
+            swal('Print Error', 'Could not generate PDF. Please try again.', 'error');
+            console.error('Print failed:', xhr.status, xhr.response && xhr.response.type);
         }
-    });
+    };
+
+    xhr.onerror = function() {
+        $btn.html(origHtml).data('printing', false);
+        swal('Print Error', 'Network error. Please try again.', 'error');
+    };
+
+    var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
+    var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
+    xhr.send('student_id=' + encodeURIComponent(student_id) + '&' + csrfName + '=' + encodeURIComponent(csrfHash));
 });
 
 $(document).on('click', '#btn-generate-codes', function() {
