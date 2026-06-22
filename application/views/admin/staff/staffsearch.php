@@ -127,7 +127,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <?php } else {
                                     $count = 1;
                                 ?>
-                                <div class="row" style="margin: 0 -8px;">
+                                <div class="row" style="display:flex; flex-wrap:wrap; margin:0 -8px;">
                                     <?php foreach ($resultlist as $staff) {
                                         if (!empty($staff["image"])) {
                                             $image = $staff["image"];
@@ -151,8 +151,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             $can_edit = true;
                                         }
                                     ?>
-                                    <div class="col-lg-3 col-md-4 col-sm-6" style="padding:8px;">
-                                        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; height:100%; display:flex; flex-direction:column;">
+                                    <div class="col-lg-3 col-md-4 col-sm-6" style="padding:8px; display:flex;">
+                                        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; width:100%; min-height:320px; display:flex; flex-direction:column;">
                                             <!-- Avatar & Name -->
                                             <div style="padding:20px 20px 12px; text-align:center;">
                                                 <div style="width:72px; height:72px; border-radius:50%; overflow:hidden; margin:0 auto 12px; border:3px solid #e2e8f0;">
@@ -169,7 +169,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             </div>
 
                                             <!-- Details -->
-                                            <div style="padding:0 20px 16px; font-size:13px; flex:1;">
+                                            <div style="padding:0 20px 16px; font-size:13px; flex:1; overflow:hidden;">
                                                 <?php if (!empty($staff["contact_no"])) { ?>
                                                 <div style="margin-bottom:6px; color:#475569;">
                                                     <i class="fa fa-phone" style="width:16px; color:#94a3b8;"></i> <?php echo $staff["contact_no"]; ?>
@@ -177,13 +177,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <?php } ?>
 
                                                 <?php if (!empty($staff["department"])) { ?>
-                                                <div style="margin-bottom:6px; color:#475569;">
+                                                <div style="margin-bottom:6px; color:#475569; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="<?php echo htmlspecialchars($staff["department"]); ?>">
                                                     <i class="fa fa-building-o" style="width:16px; color:#94a3b8;"></i> <?php echo $staff["department"]; ?>
                                                 </div>
                                                 <?php } ?>
 
                                                 <?php if (!empty($staff["location"])) { ?>
-                                                <div style="margin-bottom:6px; color:#475569;">
+                                                <div style="margin-bottom:6px; color:#475569; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="<?php echo htmlspecialchars($staff["location"]); ?>">
                                                     <i class="fa fa-map-marker" style="width:16px; color:#94a3b8;"></i> <?php echo $staff["location"]; ?>
                                                 </div>
                                                 <?php } ?>
