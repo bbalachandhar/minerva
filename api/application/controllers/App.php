@@ -40,6 +40,12 @@ class App extends CI_Controller
             $app_logo = $site_root . '/uploads/school_content/logo/app_logo/' . $setting->app_logo;
         }
 
+        $currency_symbol = isset($setting->currency_symbol) ? (string) $setting->currency_symbol : '';
+        if (empty($currency_symbol) && isset($setting->currency)) {
+            $cur = $this->db->where('id', $setting->currency)->get('currencies')->row();
+            if ($cur) $currency_symbol = $cur->symbol;
+        }
+
         json_output(200, array(
             'status'                   => 1,
             'url'                      => isset($setting->mobile_api_url) ? (string) $setting->mobile_api_url : '',
@@ -50,6 +56,9 @@ class App extends CI_Controller
             'app_secondary_color_code' => isset($setting->app_secondary_color_code) ? (string) $setting->app_secondary_color_code : '',
             'lang_code'                => isset($setting->language_code) ? (string) $setting->language_code : '',
             'school_name'              => isset($setting->name) ? (string) $setting->name : '',
+            'school_code'              => isset($setting->dise_code) ? (string) $setting->dise_code : '',
+            'currency_symbol'          => $currency_symbol,
+            'institution_type'         => isset($setting->institution_type) ? (string) $setting->institution_type : 'school',
             'app_ver'                  => (string) $this->config->item('app_ver'),
             'student_profile_edit'     => isset($setting->student_profile_edit) ? (int) $setting->student_profile_edit : 0,
             'staff_profile_edit'       => isset($setting->staff_profile_edit) ? (int) $setting->staff_profile_edit : 0,
