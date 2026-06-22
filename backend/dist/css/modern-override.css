@@ -74,6 +74,31 @@ body .form-control:focus {
   outline: none;
 }
 body textarea.form-control { height: auto; min-height: 80px; }
+
+/* Restore header global search bar to original pill style */
+.main-header .search-form .form-control {
+  height: 34px;
+  border-radius: 30px 0 0 30px !important;
+  border: 1px solid #ccc !important;
+  font-size: 13px;
+  padding: 6px 14px;
+}
+.main-header .search-form .form-control:focus {
+  border-color: #aaa !important;
+  box-shadow: none;
+}
+.main-header .search-form .topsidesearchbtn {
+  height: 34px;
+  border-radius: 0 30px 30px 0;
+  border: 1px solid #ccc;
+  border-left: 0;
+  background: #fff;
+  color: #555;
+  padding: 6px 14px;
+}
+.main-header .search-form .input-group {
+  display: flex;
+}
 body .form-control[disabled],
 body .form-control[readonly],
 body fieldset[disabled] .form-control {
