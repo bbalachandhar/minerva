@@ -1,15 +1,14 @@
-//     $(document).ready(function() {
-//     formmodified=0;
-//     $('form *').change(function(){
-//         formmodified=1;
-//     });
-//     window.onbeforeunload = confirmExit;
-//     function confirmExit() {
-//         if (formmodified == 1) {
-//             return "New information not saved. Do you wish to leave the page?";
-//         }
-//     }
-//     $("input[name='commit']").click(function() {
-//         formmodified = 0;
-//     });
-// });
+$(document).ready(function() {
+    var formmodified = 0;
+    $('form *').on('change input', function(){
+        formmodified = 1;
+    });
+    window.onbeforeunload = function() {
+        if (formmodified == 1) {
+            return "You have unsaved changes. Do you wish to leave the page?";
+        }
+    };
+    $('form').on('submit', function() {
+        formmodified = 0;
+    });
+});
