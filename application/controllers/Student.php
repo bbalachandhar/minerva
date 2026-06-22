@@ -579,11 +579,12 @@ class Student extends Admin_Controller
         }
 
         if ($this->form_validation->run() == false) {
-
+            log_message('error', 'Student create validation FAILED: ' . validation_errors());
             $this->load->view('layout/header', $data);
             $this->load->view('student/studentCreate', $data);
             $this->load->view('layout/footer', $data);
         } else {
+            log_message('error', 'Student create validation PASSED, proceeding to save');
 			
 			 try {
 				

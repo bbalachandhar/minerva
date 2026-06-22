@@ -33,6 +33,20 @@ $is_college = ($sch_setting->institution_type == 'college');
         $this->session->unset_userdata('msg');
     } ?>
 
+    <?php if ($this->session->flashdata('error')) { ?>
+        <div class="adm-alert adm-alert-danger">
+            <strong><i class="fa fa-exclamation-triangle"></i> Error</strong>
+            <p><?php echo $this->session->flashdata('error'); ?></p>
+        </div>
+    <?php } ?>
+
+    <?php if (isset($error_message) && !empty($error_message)) { ?>
+        <div class="adm-alert adm-alert-danger">
+            <strong><i class="fa fa-exclamation-triangle"></i> Error</strong>
+            <p><?php echo $error_message; ?></p>
+        </div>
+    <?php } ?>
+
     <!-- Step Indicator -->
     <div class="wizard-steps-bar">
         <button type="button" class="wizard-step-btn active" data-step="1">
