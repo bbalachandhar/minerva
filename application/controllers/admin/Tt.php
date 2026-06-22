@@ -1961,6 +1961,47 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         $this->load->view('admin/tt/print_teacher_grid', $data);
     }
 
+    public function print_all_teacher_grids()
+    {
+        if (!$this->rbac->hasPrivilege('tt_teacher_view', 'can_view')) { access_denied(); }
+        $session_id  = $this->setting_model->getCurrentSession();
+        $week_offset = (int) $this->input->get('week_offset');
+        $days        = $this->_getWorkingDays();
+        $day_dates   = $this->_calcWeekDates($days, $week_offset);
+        $periods     = $this->Tt_period_model->getAll($session_id);
+
+        $header_img     = $this->setting_model->get_general_purpose_header();
+        $header_img_url = $header_img
+            ? $this->media_storage->getImageURL('/uploads/print_headerfooter/general_purpose/' . $header_img)
+            : null;
+
+        $staff_list = $this->staff_model->getStaffbyrole(2);
+        $teachers = [];
+        foreach ($staff_list as $st) {
+            $staff_id = (int)$st['id'];
+            $entries  = $this->Tt_entry_model->getTeacherEntries($session_id, $staff_id);
+            $entry_map = [];
+            foreach ($entries as $e) {
+                $entry_map[$e->day][$e->period_id] = $e;
+            }
+            if (empty($entries)) continue;
+            $teachers[] = [
+                'staff'     => (object)$st,
+                'entry_map' => $entry_map,
+            ];
+        }
+
+        $data = [
+            'teachers'       => $teachers,
+            'periods'        => $periods,
+            'days'           => $days,
+            'day_dates'      => $day_dates,
+            'header_img_url' => $header_img_url,
+            'school_name'    => $this->sch_setting_detail->name ?? '',
+        ];
+        $this->load->view('admin/tt/print_all_teacher_grids', $data);
+    }
+
     public function save_cell()
     {
         if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_add')) {

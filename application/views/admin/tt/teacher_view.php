@@ -29,9 +29,13 @@
           <span class="input-group-btn"><button class="btn btn-default" id="btn-next-teacher" title="Next Teacher" disabled><i class="fa fa-chevron-right"></i></button></span>
         </div>
       </div>
-      <div class="col-md-4 text-right">
+      <div class="col-md-2 text-right">
         <label>&nbsp;</label>
         <button class="btn btn-default btn-block" id="btn-print-teacher"><i class="fa fa-print"></i> Print</button>
+      </div>
+      <div class="col-md-2 text-right">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary btn-block" id="btn-print-all"><i class="fa fa-print"></i> Print All</button>
       </div>
     </div>
     <!-- Week navigation (shown after first load) -->
@@ -139,6 +143,21 @@ $(function(){
     var staff_id = $('#tv_staff').val();
     if (!staff_id) { swal({title:'Alert',text:'Please load a timetable first.',type:'warning'}); return; }
     window.open('<?php echo site_url('admin/tt/print_teacher_grid'); ?>?staff_id=' + staff_id + '&week_offset=' + weekOffset, '_blank');
+  });
+
+  $('#btn-print-all').on('click', function(){
+    swal({
+      title: 'Print Teacher Timetables',
+      text: 'This will open a print page with ALL teacher timetables. Continue?',
+      type: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Print All Teachers',
+      cancelButtonText: 'Cancel'
+    }, function(isConfirm){
+      if (isConfirm) {
+        window.open('<?php echo site_url('admin/tt/print_all_teacher_grids'); ?>?week_offset=' + weekOffset, '_blank');
+      }
+    });
   });
 });
 </script>
