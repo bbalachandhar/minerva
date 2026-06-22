@@ -424,5 +424,36 @@ $('#addonModal').modal({
 
         });
     }));
-      
+
+    // ── Global file upload validation: 300KB max, PDF/JPG/PNG only ──
+    $(document).on('change', 'input[type="file"]', function () {
+        var input = this;
+        var maxSize = 300 * 1024; // 300 KB
+        var allowed = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+        var allowedExt = ['jpg', 'jpeg', 'png', 'pdf'];
+        var errors = [];
+
+        if (!input.files || !input.files.length) return;
+
+        for (var i = 0; i < input.files.length; i++) {
+            var file = input.files[i];
+            var ext = file.name.split('.').pop().toLowerCase();
+
+            if (allowedExt.indexOf(ext) === -1 && allowed.indexOf(file.type) === -1) {
+                errors.push(file.name + ': Only JPG, PNG, PDF files are allowed.');
+            } else if (file.size > maxSize) {
+                errors.push(file.name + ': File size ' + (file.size / 1024).toFixed(0) + 'KB exceeds 300KB limit.');
+            }
+        }
+
+        if (errors.length > 0) {
+            $(input).val('');
+            if (typeof swal === 'function') {
+                swal({ title: 'File Upload Error', html: errors.join('<br>'), type: 'error', confirmButtonText: 'OK' });
+            } else {
+                alert(errors.join('\n'));
+            }
+        }
+    });
+
     });
