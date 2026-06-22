@@ -3102,13 +3102,11 @@ class Student extends Admin_Controller
 
         $this->load->library('m_pdf');
         $mpdf = $this->m_pdf->load();
-        $stylesheet = file_get_contents(FCPATH . 'backend/dist/css/ss-print.css');
-        $mpdf->WriteHTML($stylesheet, 1);
         $mpdf->SetDisplayMode('fullpage');
         $mpdf->autoScriptToLang = true;
         $mpdf->baseScript       = 1;
         $mpdf->autoLangToFont   = true;
-        $mpdf->WriteHTML($html, \Mpdf\HTMLParserMode::HTML_BODY);
+        $mpdf->WriteHTML($html, 0);
 
         $this->output
             ->set_content_type('application/pdf')
