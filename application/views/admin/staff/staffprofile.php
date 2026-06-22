@@ -794,53 +794,87 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
                         <div class="tab-pane" id="attendance">
                             <style type="text/css">
-                                .att-card {
-                                    border-radius: 10px;
+                                .att-cell {
+                                    display: inline-block;
+                                    min-width: 26px;
+                                    padding: 3px 5px;
+                                    border-radius: 4px;
+                                    font-size: 11px;
+                                    font-weight: 700;
                                     color: #fff;
-                                    padding: 10px 12px;
-                                    position: relative;
+                                    text-align: center;
+                                    line-height: 1.3;
+                                    text-decoration: none;
+                                }
+                                .att-cell-present      { background: #10b981; }
+                                .att-cell-fhl          { background: #f59e0b; }
+                                .att-cell-shl          { background: #ea580c; }
+                                .att-cell-fhp          { background: #06b6d4; }
+                                .att-cell-shp          { background: #3b82f6; }
+                                .att-cell-fha          { background: #fca5a5; color: #991b1b; }
+                                .att-cell-sha          { background: #fca5a5; color: #991b1b; }
+                                .att-cell-absent       { background: #ef4444; }
+                                .att-cell-halfday      { background: #8b5cf6; }
+                                .att-cell-weekend      { background: #64748b; }
+                                .att-cell-holiday      { background: #06b6d4; }
+                                .att-cell-compensation { background: #f59e0b; }
+                                a.att-cell:hover { opacity: 0.85; text-decoration: none; color: #fff; }
+                                .att-cell-fha:hover, .att-cell-sha:hover { color: #991b1b; }
+                                .att-stat-card {
+                                    background: #fff;
+                                    border: 1px solid #e2e8f0;
+                                    border-radius: 10px;
+                                    padding: 16px;
+                                    text-align: center;
+                                    transition: box-shadow 0.15s;
+                                }
+                                .att-stat-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+                                .att-stat-label {
+                                    font-size: 11px;
+                                    text-transform: uppercase;
+                                    color: #94a3b8;
+                                    font-weight: 600;
+                                    letter-spacing: 0.5px;
+                                    margin-bottom: 4px;
+                                }
+                                .att-stat-value {
+                                    font-size: 28px;
+                                    font-weight: 800;
+                                    line-height: 1.2;
+                                }
+                                .att-stat-eye {
+                                    cursor: pointer;
+                                    font-size: 12px;
+                                    margin-left: 4px;
+                                    opacity: 0.5;
+                                    transition: opacity 0.15s;
+                                }
+                                .att-stat-eye:hover { opacity: 1; }
+                                .att-pill-toggle {
+                                    display: inline-flex;
+                                    border: 1.5px solid #e2e8f0;
+                                    border-radius: 8px;
                                     overflow: hidden;
                                 }
-                                .att-card .icon {
-                                    position: absolute;
-                                    right: 10px;
-                                    bottom: 8px;
-                                    opacity: 0.45;
-                                    color: #fff;
-                                    font-size: 40px;
-                                }
-                                .att-card h5 {
-                                    color: #fff;
+                                .att-pill-btn {
+                                    padding: 8px 20px;
+                                    font-size: 13px;
                                     font-weight: 600;
-                                    margin-bottom: 10px;
+                                    border: none;
+                                    cursor: pointer;
+                                    transition: background 0.15s, color 0.15s;
+                                    outline: none;
                                 }
-                                .att-card h4 {
-                                    color: #fff;
-                                    font-weight: 700;
-                                    font-size: 28px;
-                                }
-                                .att-cell {
-                                    color: #fff;
-                                    font-weight: 600;
-                                    text-align: center;
-                                    border-radius: 6px;
-                                    padding: 2px 6px;
+                                .att-legend-dot {
                                     display: inline-block;
-                                    min-width: 28px;
+                                    width: 10px;
+                                    height: 10px;
+                                    border-radius: 50%;
+                                    margin-right: 4px;
+                                    vertical-align: middle;
                                 }
-                                .att-cell-present  { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-                                .att-cell-fhl      { background: linear-gradient(135deg, #f39c12, #e67e22); } /* orange – First Half Late */
-                                .att-cell-shl      { background: linear-gradient(135deg, #e67e22, #d35400); } /* dark orange – Second Half Late */
-                                .att-cell-fhp      { background: linear-gradient(135deg, #1abc9c, #16a085); } /* teal – First Half Permission */
-                                .att-cell-shp      { background: linear-gradient(135deg, #3498db, #2980b9); } /* blue – Second Half Permission */
-                                .att-cell-fha      { background: linear-gradient(135deg, #e74c3c, #c0392b); opacity:.7; } /* light red – First Half Absent */
-                                .att-cell-sha      { background: linear-gradient(135deg, #e74c3c, #c0392b); opacity:.7; } /* light red – Second Half Absent */
-                                .att-cell-absent   { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-                                .att-cell-halfday  { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-                                .att-cell-weekend  { background: linear-gradient(135deg, #34495e, #2c3e50); }
-                                .att-cell-holiday  { background: linear-gradient(135deg, #3498db, #2980b9); }
-                                .att-cell-compensation { background: linear-gradient(135deg, #f39c12, #f1c40f); }
                             </style>
+
                             <?php
                             $summary = isset($month_summary) ? $month_summary : [
                                 'label' => date('F Y'),
@@ -859,146 +893,102 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 return rtrim(rtrim(number_format((float)$value, 1, '.', ''), '0'), '.');
                             };
                             ?>
-                            <div class="row" style="display:flex; flex-wrap:wrap; margin:0 -6px;">
-                                <div class="col-md-3 col-sm-6 col-xs-12" style="padding:6px;">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
-                                        <h5><?php echo $this->lang->line('total_present'); ?> (P*)</h5>
-                                        <h4 class="total_present"><?php echo $format_count($total_present); ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-check-square-o"></i>
-                                        </div>
-                                    </div>
+
+                            <!-- Summary Stats Grid -->
+                            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:20px;">
+                                <div class="att-stat-card">
+                                    <div class="att-stat-label"><?php echo $this->lang->line('total_present'); ?></div>
+                                    <div class="att-stat-value total_present" style="color:#10b981;"><?php echo $format_count($total_present); ?></div>
                                 </div>
-                                <div class="col-md-3 col-sm-6 col-xs-12" style="padding:6px;">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
-                                        <h5><?php echo $this->lang->line('total_absent'); ?> (A*)</h5>
-                                        <h4 class="total_absent"><?php echo $format_count($total_absent); ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-times-circle"></i>
-                                        </div>
-                                    </div>
+                                <div class="att-stat-card">
+                                    <div class="att-stat-label"><?php echo $this->lang->line('total_absent'); ?></div>
+                                    <div class="att-stat-value total_absent" style="color:#ef4444;"><?php echo $format_count($total_absent); ?></div>
                                 </div>
-                                <div class="col-md-3 col-sm-6 col-xs-12" style="padding:6px;">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #f1c40f, #f39c12); position: relative;">
-                                        <h5><?php echo $this->lang->line('total_late'); ?>
-                                            <?php if ((int)$summary['late'] > 0) { ?>
-                                                <i class="fa fa-eye" style="cursor: pointer; font-size: 14px; margin-left: 5px;" onclick="showAttendanceDetails('late', <?php echo $staff['id']; ?>)" title="View Details"></i>
-                                            <?php } ?>
-                                        </h5>
-                                        <h4 class="total_late"><?php echo $summary['late']; ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-clock-o"></i>
-                                        </div>
+                                <div class="att-stat-card">
+                                    <div class="att-stat-label">
+                                        <?php echo $this->lang->line('total_late'); ?>
+                                        <?php if ((int)$summary['late'] > 0) { ?>
+                                            <i class="fa fa-eye att-stat-eye" onclick="showAttendanceDetails('late', <?php echo $staff['id']; ?>)" title="View Details"></i>
+                                        <?php } ?>
                                     </div>
+                                    <div class="att-stat-value total_late" style="color:#f59e0b;"><?php echo $summary['late']; ?></div>
                                 </div>
-                                <div class="col-md-3 col-sm-6 col-xs-12" style="padding:6px;">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #17a2b8, #138496); position: relative;">
-                                        <h5><?php echo $this->lang->line('total_permission'); ?>
-                                            <?php if ((int)(isset($summary['permission']) ? $summary['permission'] : 0) > 0) { ?>
-                                                <i class="fa fa-eye" style="cursor: pointer; font-size: 14px; margin-left: 5px;" onclick="showAttendanceDetails('permission', <?php echo $staff['id']; ?>)" title="View Details"></i>
-                                            <?php } ?>
-                                        </h5>
-                                        <h4 class="total_permission"><?php echo isset($summary['permission']) ? $summary['permission'] : 0; ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-user-plus"></i>
-                                        </div>
+                                <div class="att-stat-card">
+                                    <div class="att-stat-label">
+                                        <?php echo $this->lang->line('total_permission'); ?>
+                                        <?php if ((int)(isset($summary['permission']) ? $summary['permission'] : 0) > 0) { ?>
+                                            <i class="fa fa-eye att-stat-eye" onclick="showAttendanceDetails('permission', <?php echo $staff['id']; ?>)" title="View Details"></i>
+                                        <?php } ?>
                                     </div>
+                                    <div class="att-stat-value total_permission" style="color:#3b82f6;"><?php echo isset($summary['permission']) ? $summary['permission'] : 0; ?></div>
                                 </div>
-                                <div class="col-md-3 col-sm-6 col-xs-12" style="padding:6px;">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); position: relative;">
-                                        <h5><?php echo $this->lang->line('total_half_day'); ?>
-                                            <?php if ((int)$summary['half_day'] > 0) { ?>
-                                                <i class="fa fa-eye" style="cursor: pointer; font-size: 14px; margin-left: 5px;" onclick="showAttendanceDetails('halfday', <?php echo $staff['id']; ?>)" title="View Details"></i>
-                                            <?php } ?>
-                                        </h5>
-                                        <h4 class="total_half_day"><?php echo $summary['half_day']; ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-adjust"></i>
-                                        </div>
+                                <div class="att-stat-card">
+                                    <div class="att-stat-label">
+                                        <?php echo $this->lang->line('total_half_day'); ?>
+                                        <?php if ((int)$summary['half_day'] > 0) { ?>
+                                            <i class="fa fa-eye att-stat-eye" onclick="showAttendanceDetails('halfday', <?php echo $staff['id']; ?>)" title="View Details"></i>
+                                        <?php } ?>
                                     </div>
+                                    <div class="att-stat-value total_half_day" style="color:#8b5cf6;"><?php echo $summary['half_day']; ?></div>
                                 </div>
-                                <div class="col-md-3 col-sm-6 col-xs-12" style="padding:6px;">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #3498db, #2980b9);">
-                                        <h5><?php echo $this->lang->line('total_holiday'); ?></h5>
-                                        <h4 class="total_holiday"><?php echo $summary['holidays']; ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-calendar"></i>
-                                        </div>
-                                    </div>
+                                <div class="att-stat-card">
+                                    <div class="att-stat-label"><?php echo $this->lang->line('total_holiday'); ?></div>
+                                    <div class="att-stat-value total_holiday" style="color:#06b6d4;"><?php echo $summary['holidays']; ?></div>
                                 </div>
-                                <div class="col-md-3 col-sm-6 col-xs-12" style="padding:6px;">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #16a085, #1abc9c);">
-                                        <h5>Working Days</h5>
-                                        <h4 class="total_working_days"><?php echo $summary['working_days']; ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-briefcase"></i>
-                                        </div>
-                                    </div>
+                                <div class="att-stat-card">
+                                    <div class="att-stat-label">Working Days</div>
+                                    <div class="att-stat-value total_working_days" style="color:#0f172a;"><?php echo $summary['working_days']; ?></div>
                                 </div>
-                                <div class="col-md-3 col-sm-6 col-xs-12" style="padding:6px;">
-                                    <div class="staffprofile" style="background: linear-gradient(135deg, #34495e, #2c3e50);">
-                                        <h5>Weekends</h5>
-                                        <h4 class="total_weekends"><?php echo $summary['weekends']; ?></h4>
-                                        <div class="icon mt12font40">
-                                            <i class="fa fa-bed"></i>
-                                        </div>
-                                    </div>
-                                </div><!--./col-md-3-->
-                            </div>
-                            <div class="row" style="margin-top: 20px;">
-                                <div class="col-md-12" style="margin-bottom: 10px;">
-                                    <div class="btn-group" id="att_view_toggle">
-                                        <button type="button" class="btn btn-sm btn-primary active" id="btn_year_view" onclick="switchAttView('year')"><i class="fa fa-calendar"></i> Year View</button>
-                                        <button type="button" class="btn btn-sm btn-default" id="btn_month_view" onclick="switchAttView('month')"><i class="fa fa-list"></i> Month View</button>
-                                    </div>
-                                </div>
-                                <div class="col-md-3 col-sm-3">
-                                    <form id="" action="" method="">
-                                        <div class="form-group">
-                                            <label class="sess18"><?php echo $this->lang->line('year'); ?></label>
-                                            <div class="sessyearbox">
-                                                <select class="form-control" id="attendance_year" style="margin-top: -5px;" name="year" onchange="ajax_attendance('<?php echo $staff["id"]; ?>', this.value)">
-                                                    <?php foreach ($yearlist as $yearkey => $yearvalue) {
-                                                    ?>
-                                                        <option <?php
-                                                                if ($yearvalue["year"] == date("Y")) {
-                                                                    echo "selected";
-                                                                }
-                                                                ?> value="<?php echo $yearvalue["year"]; ?>"><?php echo $yearvalue["year"]; ?></option>
-                                                    <?php } ?>
-                                                </select>
-                                            </div>
-                                            <span class="text-danger"><?php echo form_error('year'); ?></span>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="col-md-3 col-sm-3" id="att_month_selector" style="display:none;">
-                                    <div class="form-group">
-                                        <label class="sess18">Month</label>
-                                        <select class="form-control" id="attendance_month" onchange="renderMonthView()">
-                                            <?php for ($mi = 1; $mi <= 12; $mi++) { ?>
-                                                <option value="<?php echo $mi; ?>" <?php echo ($mi == date('n')) ? 'selected' : ''; ?>><?php echo date('F', mktime(0,0,0,$mi,1)); ?></option>
-                                            <?php } ?>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 col-sm-6">
-                                    <div class="halfday pull-right">
-                                        <?php
-                                        foreach ($attendencetypeslist as $key_type => $value_type) {
-                                        ?>
-                                            <b>
-                                                <?php
-                                                $att_type = str_replace(" ", "_", strtolower($value_type['type']));
-                                                echo $this->lang->line($att_type) . ": " . $value_type['key_value'] . "";
-                                                ?>
-                                            </b>
-                                        <?php
-                                        }
-                                        ?>
-                                    </div>
+                                <div class="att-stat-card">
+                                    <div class="att-stat-label">Weekends</div>
+                                    <div class="att-stat-value total_weekends" style="color:#64748b;"><?php echo $summary['weekends']; ?></div>
                                 </div>
                             </div>
+
+                            <!-- Controls Bar -->
+                            <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap;">
+                                <!-- Pill toggle -->
+                                <div class="att-pill-toggle">
+                                    <button type="button" id="btn_year_view" class="att-pill-btn" onclick="switchAttView('year')" style="background:#4f46e5; color:#fff;">
+                                        <i class="fa fa-calendar"></i> Year View
+                                    </button>
+                                    <button type="button" id="btn_month_view" class="att-pill-btn" onclick="switchAttView('month')" style="background:#fff; color:#475569;">
+                                        <i class="fa fa-list"></i> Month View
+                                    </button>
+                                </div>
+
+                                <!-- Year dropdown -->
+                                <select class="form-control" id="attendance_year" style="width:auto; display:inline-block;" name="year" onchange="ajax_attendance('<?php echo $staff["id"]; ?>', this.value)">
+                                    <?php foreach ($yearlist as $yearkey => $yearvalue) { ?>
+                                        <option <?php if ($yearvalue["year"] == date("Y")) { echo "selected"; } ?> value="<?php echo $yearvalue["year"]; ?>"><?php echo $yearvalue["year"]; ?></option>
+                                    <?php } ?>
+                                </select>
+
+                                <!-- Month dropdown (hidden initially) -->
+                                <div id="att_month_selector" style="display:none;">
+                                    <select class="form-control" id="attendance_month" style="width:auto; display:inline-block;" onchange="renderMonthView()">
+                                        <?php for ($mi = 1; $mi <= 12; $mi++) { ?>
+                                            <option value="<?php echo $mi; ?>" <?php echo ($mi == date('n')) ? 'selected' : ''; ?>><?php echo date('F', mktime(0,0,0,$mi,1)); ?></option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Legend -->
+                            <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; font-size:12px; color:#64748b; align-items:center;">
+                                <span><span class="att-legend-dot" style="background:#10b981;"></span>P Present</span>
+                                <span><span class="att-legend-dot" style="background:#ef4444;"></span>A Absent</span>
+                                <span><span class="att-legend-dot" style="background:#f59e0b;"></span>FHL First Half Late</span>
+                                <span><span class="att-legend-dot" style="background:#ea580c;"></span>SHL Second Half Late</span>
+                                <span><span class="att-legend-dot" style="background:#06b6d4;"></span>FHP First Half Permission</span>
+                                <span><span class="att-legend-dot" style="background:#3b82f6;"></span>SHP Second Half Permission</span>
+                                <span><span class="att-legend-dot" style="background:#fca5a5;"></span>FHA/SHA Half Absent</span>
+                                <span><span class="att-legend-dot" style="background:#8b5cf6;"></span>HD Half Day</span>
+                                <span><span class="att-legend-dot" style="background:#06b6d4;"></span>H Holiday</span>
+                                <span><span class="att-legend-dot" style="background:#64748b;"></span>W Weekend</span>
+                                <span><span class="att-legend-dot" style="background:#f59e0b;"></span>C Compensation</span>
+                            </div>
+
                             <?php
                             // Embed attendance data as JS for client-side month view rendering
                             $att_js_data = [];
@@ -1019,6 +1009,27 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 window.staffCompDates    = <?php echo json_encode($compensation_dates_year); ?>;
                                 window.staffId           = <?php echo (int)$staff['id']; ?>;
                             </script>
+
+                            <!-- Override switchAttView for pill toggle design -->
+                            <script>
+                                window.switchAttView = function(view) {
+                                    if (view === 'year') {
+                                        $('#btn_year_view').css({background:'#4f46e5', color:'#fff'});
+                                        $('#btn_month_view').css({background:'#fff', color:'#475569'});
+                                        $('#att_month_selector').hide();
+                                        $('#ajaxattendance').show();
+                                        $('#monthattendance').hide();
+                                    } else {
+                                        $('#btn_month_view').css({background:'#4f46e5', color:'#fff'});
+                                        $('#btn_year_view').css({background:'#fff', color:'#475569'});
+                                        $('#att_month_selector').show();
+                                        $('#ajaxattendance').hide();
+                                        $('#monthattendance').show();
+                                        renderMonthView();
+                                    }
+                                };
+                            </script>
+
                             <div style="position: relative;" class="row">
                                 <div class="modal_inner_loader displaynone"></div>
                                 <div id="ajaxattendance" class="table-responsive mt10">
@@ -1026,20 +1037,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <table class="table table-striped table-bordered table-hover" id="attendancetable">
                                         <thead>
                                             <tr>
-                                                <th>
-                                                    <?php echo $this->lang->line('date_month'); ?>
-                                                </th>
-                                                <?php foreach ($monthlist as $monthkey => $monthvalue) {
-                                                ?>
+                                                <th><?php echo $this->lang->line('date_month'); ?></th>
+                                                <?php foreach ($monthlist as $monthkey => $monthvalue) { ?>
                                                     <th><?php echo $monthvalue; ?></th>
-                                                <?php }
-                                                ?>
+                                                <?php } ?>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php
                                             $j = 0;
-
                                             for ($i = 1; $i <= 31; $i++) {
                                             ?>
                                                 <tr>
@@ -1050,11 +1056,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                         $att_dates = date("Y") . "-" . $datemonth . "-" . sprintf("%02d", $i);
                                                         $display_key = '';
                                                         $display_class = '';
-                                                        // compensatory working day? mark specially but still allow attendance override
                                                         if (!empty($compensation_dates_year) && in_array($att_dates, $compensation_dates_year, true)) {
                                                             $display_class = 'att-cell-compensation';
                                                         }
-                                                        // Check holidays first (to prioritize 'H' over 'W' if a date is both)
                                                         if (!empty($holiday_dates_year) && in_array($att_dates, $holiday_dates_year, true)) {
                                                             $display_key = 'H';
                                                             $display_class = 'att-cell-holiday';
@@ -1062,7 +1066,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                             $display_key = 'W';
                                                             $display_class = 'att-cell-weekend';
                                                         } elseif (array_key_exists($att_dates, $resultlist) && !empty($resultlist[$att_dates]["key"]) && !in_array($att_dates, $holiday_dates_year, true)) {
-                                                            // Only show database record if it's NOT a holiday
                                                             $display_key = $resultlist[$att_dates]["key"];
                                                             $display_class = match($display_key) {
                                                                 'P'   => 'att-cell-present',
@@ -1085,7 +1088,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                         }
                                                     ?>
                                                         <td>
-                                                            <span <?php if ($tooltip_title): ?>data-toggle="tooltip" data-placement="top" title="<?php echo htmlspecialchars($tooltip_title, ENT_QUOTES); ?>"<?php endif; ?>><a href="#" class="att-cell <?php echo $display_class; ?>"><?php echo $display_key; ?></a></span>
+                                                            <span <?php if ($tooltip_title): ?>data-toggle="tooltip" data-placement="top" title="<?php echo htmlspecialchars($tooltip_title, ENT_QUOTES); ?>"<?php endif; ?>><span class="att-cell <?php echo $display_class; ?>"><?php echo $display_key; ?></span></span>
                                                         </td>
                                                     <?php
                                                     } ?>
