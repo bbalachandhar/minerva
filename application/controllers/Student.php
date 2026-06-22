@@ -578,8 +578,14 @@ class Student extends Admin_Controller
             $this->form_validation->set_rules('transport_feemaster_id[]', $this->lang->line('fees_month'), 'trim|required|xss_clean');
         }
 
+        $is_ajax = $this->input->is_ajax_request();
+
         if ($this->form_validation->run() == false) {
             log_message('error', 'Student create validation FAILED: ' . validation_errors());
+            if ($is_ajax) {
+                echo json_encode(array('status' => 'error', 'message' => strip_tags(validation_errors())));
+                return;
+            }
             $this->load->view('layout/header', $data);
             $this->load->view('student/studentCreate', $data);
             $this->load->view('layout/footer', $data);
@@ -846,33 +852,37 @@ class Student extends Admin_Controller
 					if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
 						                $upload_result = $this->media_storage->fileupload("file", "./uploads/student_images/");
 						                if ($upload_result['status'] === false) {
+						                    if ($is_ajax) { echo json_encode(array('status' => 'error', 'message' => 'Student Photo: ' . $upload_result['message'])); return; }
 						                    $this->session->set_flashdata('error', $upload_result['message']);
 						                    redirect('student/create');
 						                }
 						                $img_name             = $upload_result['message'];
 						                $data_insert['image'] = "uploads/student_images/" . $img_name;					}
-		
+
 					if (isset($_FILES["father_pic"]) && !empty($_FILES['father_pic']['name'])) {
 						                $upload_result = $this->media_storage->fileupload("father_pic", "./uploads/student_images/");
 						                if ($upload_result['status'] === false) {
+						                    if ($is_ajax) { echo json_encode(array('status' => 'error', 'message' => 'Father Photo: ' . $upload_result['message'])); return; }
 						                    $this->session->set_flashdata('error', $upload_result['message']);
 						                    redirect('student/create');
 						                }
 						                $img_name                  = $upload_result['message'];
 						                $data_insert['father_pic'] = "uploads/student_images/" . $img_name;					}
-		
+
 					if (isset($_FILES["mother_pic"]) && !empty($_FILES['mother_pic']['name'])) {
 						                $upload_result = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/");
 						                if ($upload_result['status'] === false) {
+						                    if ($is_ajax) { echo json_encode(array('status' => 'error', 'message' => 'Mother Photo: ' . $upload_result['message'])); return; }
 						                    $this->session->set_flashdata('error', $upload_result['message']);
 						                    redirect('student/create');
 						                }
 						                $img_name                  = $upload_result['message'];
 						                $data_insert['mother_pic'] = "uploads/student_images/" . $img_name;					}
-		
+
 					if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
 						                $upload_result = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/");
 						                if ($upload_result['status'] === false) {
+						                    if ($is_ajax) { echo json_encode(array('status' => 'error', 'message' => 'Guardian Photo: ' . $upload_result['message'])); return; }
 						                    $this->session->set_flashdata('error', $upload_result['message']);
 						                    redirect('student/create');
 						                }
@@ -980,6 +990,7 @@ class Student extends Admin_Controller
 							$first_title = $this->input->post('first_title');
 							                            $upload_result = $this->media_storage->fileupload("first_doc", $upload_directory);
 							                            if ($upload_result['status'] === false) {
+							                                if ($is_ajax) { echo json_encode(array('status' => 'error', 'message' => 'Document 1: ' . $upload_result['message'])); return; }
 							                                $this->session->set_flashdata('error', $upload_result['message']);
 							                                redirect('student/create');
 							                            }
@@ -991,6 +1002,7 @@ class Student extends Admin_Controller
 							$second_title = $this->input->post('second_title');
 							                            $upload_result = $this->media_storage->fileupload("second_doc", $upload_directory);
 							                            if ($upload_result['status'] === false) {
+							                                if ($is_ajax) { echo json_encode(array('status' => 'error', 'message' => 'Document 2: ' . $upload_result['message'])); return; }
 							                                $this->session->set_flashdata('error', $upload_result['message']);
 							                                redirect('student/create');
 							                            }
@@ -1002,6 +1014,7 @@ class Student extends Admin_Controller
 							$fourth_title = $this->input->post('fourth_title');
 							                            $upload_result = $this->media_storage->fileupload("fourth_doc", $upload_directory);
 							                            if ($upload_result['status'] === false) {
+							                                if ($is_ajax) { echo json_encode(array('status' => 'error', 'message' => 'Document 3: ' . $upload_result['message'])); return; }
 							                                $this->session->set_flashdata('error', $upload_result['message']);
 							                                redirect('student/create');
 							                            }
@@ -1013,6 +1026,7 @@ class Student extends Admin_Controller
 							$fifth_title = $this->input->post('fifth_title');
 							                            $upload_result = $this->media_storage->fileupload("fifth_doc", $upload_directory);
 							                            if ($upload_result['status'] === false) {
+							                                if ($is_ajax) { echo json_encode(array('status' => 'error', 'message' => 'Document 4: ' . $upload_result['message'])); return; }
 							                                $this->session->set_flashdata('error', $upload_result['message']);
 							                                redirect('student/create');
 							                            }
@@ -1041,10 +1055,17 @@ class Student extends Admin_Controller
 						//generate student id card
 
 						$this->db->trans_complete();
+						if ($is_ajax) {
+							echo json_encode(array('status' => 'success', 'message' => $this->lang->line('success_message') ?: 'Student added successfully', 'student_id' => $insert_id, 'admission_no' => $data_insert['admission_no']));
+							return;
+						}
 						$this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('success_message') . '</div>');
 						redirect('student/create');
 					} else {
-
+						if ($is_ajax) {
+							echo json_encode(array('status' => 'error', 'message' => $this->lang->line('admission_no') . ' ' . $admission_no . ' ' . $this->lang->line('already_exists')));
+							return;
+						}
 						$data['error_message'] = $this->lang->line('admission_no') . ' ' . $admission_no . ' ' . $this->lang->line('already_exists');
 						$this->load->view('layout/header', $data);
 						$this->load->view('student/studentCreate', $data);
@@ -1052,10 +1073,10 @@ class Student extends Admin_Controller
 					}
 				 }
 catch (Exception $e) {
-					  // Print the exception message for debugging or logging purposes
-						// echo 'Error: ' . $e->getMessage();
-						// die;
-			  
+					if ($is_ajax) {
+						echo json_encode(array('status' => 'error', 'message' => 'Server error: ' . $e->getMessage()));
+						return;
+					}
 			 }
         }
     }

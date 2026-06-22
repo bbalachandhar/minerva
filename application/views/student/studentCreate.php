@@ -1226,7 +1226,53 @@ $(document).ready(function () {
             swal({ title: '<?php echo $this->lang->line("required_field") ?: "Required Fields Missing"; ?>', html: msg, type: 'warning', confirmButtonText: 'OK' });
             return false;
         }
-        $('#addloader').html('<i class="fa fa-spinner fa-spin"></i> <?php echo $this->lang->line("loading") ?: "Saving..."; ?>');
+
+        e.preventDefault();
+        var $btn = $('#addloader');
+        var btnOrigHtml = $btn.html();
+        $btn.html('<i class="fa fa-spinner fa-spin"></i> <?php echo $this->lang->line("loading") ?: "Saving..."; ?>').prop('disabled', true);
+        $('.adm-alert').remove();
+
+        var formData = new FormData(this);
+
+        $.ajax({
+            url: $('#form1').attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    swal({
+                        title: '<?php echo $this->lang->line("success") ?: "Success"; ?>!',
+                        html: response.message + (response.admission_no ? '<br><strong>' + response.admission_no + '</strong>' : ''),
+                        type: 'success',
+                        confirmButtonText: 'Add Another Student',
+                        showCancelButton: true,
+                        cancelButtonText: 'View Student'
+                    }).then(function(result) {
+                        if (result.value) {
+                            window.location.href = '<?php echo site_url("student/create"); ?>';
+                        } else {
+                            window.location.href = '<?php echo site_url("student/view/"); ?>' + response.student_id;
+                        }
+                    });
+                } else {
+                    $btn.html(btnOrigHtml).prop('disabled', false);
+                    var alertHtml = '<div class="adm-alert adm-alert-danger"><strong><i class="fa fa-exclamation-triangle"></i> Error</strong><p>' + response.message + '</p></div>';
+                    $('.wizard-steps-bar').after(alertHtml);
+                    $('html, body').animate({ scrollTop: $('.adm-alert-danger').first().offset().top - 100 }, 300);
+                    swal({ title: 'Error', text: response.message, type: 'error', confirmButtonText: 'OK' });
+                }
+            },
+            error: function(xhr) {
+                $btn.html(btnOrigHtml).prop('disabled', false);
+                var errMsg = 'Server error. Please try again.';
+                try { var r = JSON.parse(xhr.responseText); if (r.message) errMsg = r.message; } catch(ex) {}
+                swal({ title: 'Error', text: errMsg, type: 'error', confirmButtonText: 'OK' });
+            }
+        });
     });
 
     // ---- Section loading ----
