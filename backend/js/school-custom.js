@@ -425,34 +425,55 @@ $('#addonModal').modal({
         });
     }));
 
-    // ── Global file upload validation: 300KB max, PDF/JPG/PNG only ──
+    // ── Global file upload: hint labels + validation (300KB, PDF/JPG/PNG) ──
+    $('input[type="file"]').each(function () {
+        if ($(this).next('.file-upload-hint').length === 0) {
+            $(this).after(
+                '<div class="file-upload-hint" style="font-size:11px; color:#94a3b8; margin-top:4px; line-height:1.4;">' +
+                '<i class="fa fa-info-circle" style="margin-right:3px;"></i>' +
+                'JPG, PNG, PDF only &middot; Max 300KB' +
+                '</div>'
+            );
+        }
+    });
+
     $(document).on('change', 'input[type="file"]', function () {
         var input = this;
-        var maxSize = 300 * 1024; // 300 KB
-        var allowed = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+        var $hint = $(input).next('.file-upload-hint');
+        var maxSize = 300 * 1024;
         var allowedExt = ['jpg', 'jpeg', 'png', 'pdf'];
+        var allowed = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
         var errors = [];
 
-        if (!input.files || !input.files.length) return;
+        if (!input.files || !input.files.length) {
+            $hint.html('<i class="fa fa-info-circle" style="margin-right:3px;"></i>JPG, PNG, PDF only &middot; Max 300KB').css('color', '#94a3b8');
+            return;
+        }
 
         for (var i = 0; i < input.files.length; i++) {
             var file = input.files[i];
             var ext = file.name.split('.').pop().toLowerCase();
+            var sizeKB = (file.size / 1024).toFixed(0);
 
             if (allowedExt.indexOf(ext) === -1 && allowed.indexOf(file.type) === -1) {
                 errors.push(file.name + ': Only JPG, PNG, PDF files are allowed.');
             } else if (file.size > maxSize) {
-                errors.push(file.name + ': File size ' + (file.size / 1024).toFixed(0) + 'KB exceeds 300KB limit.');
+                errors.push(file.name + ': File size ' + sizeKB + 'KB exceeds 300KB limit.');
             }
         }
 
         if (errors.length > 0) {
             $(input).val('');
+            $hint.html('<i class="fa fa-exclamation-circle" style="margin-right:3px;"></i>' + errors.join('<br>')).css('color', '#ef4444');
             if (typeof swal === 'function') {
                 swal({ title: 'File Upload Error', html: errors.join('<br>'), type: 'error', confirmButtonText: 'OK' });
             } else {
                 alert(errors.join('\n'));
             }
+        } else {
+            var f = input.files[0];
+            var fSizeKB = (f.size / 1024).toFixed(0);
+            $hint.html('<i class="fa fa-check-circle" style="margin-right:3px;"></i>' + f.name + ' (' + fSizeKB + 'KB)').css('color', '#10b981');
         }
     });
 
