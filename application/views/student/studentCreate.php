@@ -1244,15 +1244,18 @@ $(document).ready(function () {
             dataType: 'json',
             success: function(response) {
                 if (response.status === 'success') {
+                    $btn.html(btnOrigHtml).prop('disabled', false);
                     swal({
                         title: '<?php echo $this->lang->line("success") ?: "Success"; ?>!',
                         html: response.message + (response.admission_no ? '<br><strong>' + response.admission_no + '</strong>' : ''),
                         type: 'success',
-                        confirmButtonText: 'Add Another Student',
                         showCancelButton: true,
-                        cancelButtonText: 'View Student'
-                    }).then(function(result) {
-                        if (result.value) {
+                        confirmButtonText: '<i class="fa fa-plus"></i> Add Another Student',
+                        cancelButtonText: '<i class="fa fa-eye"></i> View Student',
+                        confirmButtonColor: '#10b981',
+                        cancelButtonColor: '#4f46e5'
+                    }, function(isConfirm) {
+                        if (isConfirm) {
                             window.location.href = '<?php echo site_url("student/create"); ?>';
                         } else {
                             window.location.href = '<?php echo site_url("student/view/"); ?>' + response.student_id;
