@@ -206,7 +206,12 @@ class Route_model extends MY_Model
             ->join("vehicles", "vehicle_routes.vehicle_id = vehicles.id")
             ->order_by("classes.class", 'asc')
             ->order_by("sections.section", 'asc')
-            ->where('student_session.session_id', $this->current_session)->get("students");
+            ->where('student_session.session_id', $this->current_session)
+            ->group_start()
+                ->where('student_session.is_alumni', 0)
+                ->or_where('student_session.is_alumni IS NULL', null, false)
+            ->group_end()
+            ->get("students");
 
         $result = $query->result_array();
         if (($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes") && (empty($class_section_array))) {
