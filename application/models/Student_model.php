@@ -397,6 +397,10 @@ class Student_model extends MY_Model
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('students.is_active', 'yes');
         $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
+        $this->db->group_start();
         $this->db->like('students.firstname', $searchterm);
         $this->db->or_like('students.middlename', $searchterm);
         $this->db->or_like('students.lastname', $searchterm);
