@@ -34,7 +34,9 @@ class Onlineexam extends Admin_Controller
         $data['question_type']  = $this->config->item('question_type');
         $data['question_level'] = $this->config->item('question_level');
         $data['classList']      = $this->class_model->get();
-        
+        $this->load->model('Onlineadmissioncourses_model');
+        $data['admission_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses();
+
         $this->load->view('layout/header', $data);
         $this->load->view('admin/onlineexam/index', $data);
         $this->load->view('layout/footer', $data);

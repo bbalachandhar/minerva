@@ -342,11 +342,12 @@ function findOption($questionOpt, $find)
                                 <label style="font-size:12px; font-weight:600; color:#475569;">Applicable Courses <small class="text-muted">(select which courses this exam covers)</small></label>
                                 <select name="scholarship_courses[]" id="scholarship_courses" class="form-control" multiple="multiple" style="width:100%;">
                                     <?php
-                                    $this->load->model('Onlineadmissioncourses_model');
-                                    $courses = $this->Onlineadmissioncourses_model->getActiveCourses();
-                                    if (!empty($courses)) {
-                                        foreach ($courses as $course) {
-                                            echo '<option value="' . $course['id'] . '">' . htmlspecialchars($course['course_name']) . ' (' . htmlspecialchars($course['course_code']) . ')</option>';
+                                    if (!empty($admission_courses)) {
+                                        foreach ($admission_courses as $course) {
+                                            $cid = is_array($course) ? $course['id'] : $course->id;
+                                            $cname = is_array($course) ? $course['course_name'] : $course->course_name;
+                                            $ccode = is_array($course) ? $course['course_code'] : $course->course_code;
+                                            echo '<option value="' . $cid . '">' . htmlspecialchars($cname) . ' (' . htmlspecialchars($ccode) . ')</option>';
                                         }
                                     }
                                     ?>
