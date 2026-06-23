@@ -43,6 +43,7 @@
                 <?php if (empty($categorylist)): ?>
                 <div class="empty-state"><i class="fa fa-money"></i><p><?php echo $this->lang->line('no_record_found'); ?></p></div>
                 <?php else: ?>
+                <div style="padding:12px;">
                 <table class="crud-table example">
                     <thead>
                         <tr>
@@ -74,6 +75,7 @@
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
                 <?php endif; ?>
             </div>
         </div>
