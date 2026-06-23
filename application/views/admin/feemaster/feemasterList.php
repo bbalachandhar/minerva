@@ -1,32 +1,50 @@
-<style type="text/css">
-    .liststyle1 {
-        margin: 0;
-        list-style: none;
-        line-height: 28px;
-    }
+<style>
+.liststyle1 { margin:0; list-style:none; line-height:28px; }
+.fm-panel { background:#fff; border-radius:10px; box-shadow:0 2px 12px rgba(0,0,0,.06); margin-bottom:20px; overflow:visible; }
+.fm-panel-header { background:linear-gradient(135deg,#5b73e8 0%,#7c5ce7 100%); color:#fff; padding:14px 20px; border-radius:10px 10px 0 0; display:flex; align-items:center; justify-content:space-between; }
+.fm-panel-header h3 { margin:0; font-size:15px; font-weight:600; color:#fff; }
+.fm-panel-header h3 i { margin-right:8px; }
+.fm-panel-body { padding:18px; }
+.fm-label { font-weight:600; font-size:13px; color:#495057; margin-bottom:5px; display:block; }
+.fm-label .req { color:#e74c3c; }
+.fm-select, .fm-input { width:100%; background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:9px 12px; font-size:14px; color:#333; transition:border-color .2s; box-sizing:border-box; }
+.fm-select:focus, .fm-input:focus { border-color:#5b73e8; outline:none; background:#fff; }
+.fm-radio-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.fm-radio-item { display:flex; align-items:center; gap:6px; font-size:13px; color:#495057; cursor:pointer; padding:5px 8px; border-radius:6px; transition:background .15s; }
+.fm-radio-item:hover { background:#f0f2ff; }
+.fm-radio-item input[type=radio] { accent-color:#5b73e8; }
+.btn-fm-save { background:linear-gradient(135deg,#5b73e8,#7c5ce7); color:#fff; border:none; border-radius:8px; padding:10px 24px; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+.btn-fm-save:hover { opacity:.9; transform:translateY(-1px); }
+.fm-list-header { padding:14px 20px; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.fm-list-header h4 { margin:0; font-size:16px; font-weight:700; color:#2c3e50; }
+.fm-list-header h4 i { margin-right:6px; color:#5b73e8; }
+.btn-fm-upload { background:linear-gradient(135deg,#3498db,#2980b9); color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px; text-decoration:none; }
+.btn-fm-upload:hover { opacity:.9; color:#fff; text-decoration:none; }
+.btn-action { width:28px; height:28px; border-radius:5px; border:none; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:all .2s; font-size:12px; text-decoration:none; }
+.btn-action-edit { background:#e8f4fd; color:#3498db; }
+.btn-action-edit:hover { background:#3498db; color:#fff; }
+.btn-action-delete { background:#fde8e8; color:#e74c3c; }
+.btn-action-delete:hover { background:#e74c3c; color:#fff; }
+.btn-action-assign { background:#e8fdf0; color:#27ae60; }
+.btn-action-assign:hover { background:#27ae60; color:#fff; }
 </style>
 
 <?php $currency_symbol = $this->customlib->getSchoolCurrencyFormat(); ?>
-<!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
     <section class="content-header">
-        <h1>
-            <i class="fa fa-money"></i> <?php echo $this->lang->line('fees_collection'); ?></h1>
+        <h1><i class="fa fa-money"></i> <?php echo $this->lang->line('fees_collection'); ?></h1>
     </section>
 
-    <!-- Main content -->
     <section class="content">
         <div class="row">
-            <?php if ($this->rbac->hasPrivilege('fees_master', 'can_add')) {
-                ?>
+            <?php if ($this->rbac->hasPrivilege('fees_master', 'can_add')) { ?>
                 <div class="col-md-3">
-                    <!-- Horizontal Form -->
-                    <div class="box box-primary">
-                        <div class="box-header with-border">
-                            <h3 class="box-title"><?php echo $this->lang->line('add_fees_master') . " : " . $this->setting_model->getCurrentSessionName(); ?></h3>
-                        </div><!-- /.box-header -->
+                    <div class="fm-panel">
+                        <div class="fm-panel-header">
+                            <h3><i class="fa fa-plus-circle"></i> <?php echo $this->lang->line('add_fees_master') . " : " . $this->setting_model->getCurrentSessionName(); ?></h3>
+                        </div>
 						<form id="form1" action="<?php echo base_url() ?>admin/feemaster/save_data"  name="feemasterform" method="post" accept-charset="utf-8">
-                            <div class="box-body">
+                            <div class="fm-panel-body">
                                 <?php if ($this->session->flashdata('msg')) { ?>
                                     <?php 
                                         echo $this->session->flashdata('msg');
@@ -165,8 +183,8 @@
                                     </div>
                                 </div>
                             </div><!-- /.box-body -->
-                            <div class="box-footer">
-                                <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
+                            <div style="padding:0 18px 18px; text-align:right;">
+                                <button type="submit" class="btn-fm-save"><i class="fa fa-check"></i> <?php echo $this->lang->line('save'); ?></button>
                             </div>
                         </form>
                     </div>
@@ -180,14 +198,12 @@
                 echo "12";
             }
             ?>">
-                <!-- Horizontal Form -->
-                <div class="box box-primary">
-                                            <div class="box-header ptbnull">
-                                                <h3 class="box-title titlefix"><?php echo $this->lang->line('fees_master_list') . " : " . $this->setting_model->getCurrentSessionName(); ?></h3>
-                                                <div class="box-tools pull-right">
-                                                    <a href="<?php echo base_url(); ?>admin/feemaster/bulk_import" class="btn btn-primary btn-sm"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_import'); ?></a>
-                                                </div>
-                                            </div><!-- /.box-header -->                    <div class="box-body">
+                <div class="fm-panel">
+                    <div class="fm-list-header">
+                        <h4><i class="fa fa-list-alt"></i> <?php echo $this->lang->line('fees_master_list') . " : " . $this->setting_model->getCurrentSessionName(); ?></h4>
+                        <a href="<?php echo base_url(); ?>admin/feemaster/bulk_import" class="btn-fm-upload"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_import'); ?></a>
+                    </div>
+                    <div style="padding:12px;">
                         <div class="download_label"><?php echo $this->lang->line('fees_master_list') . " : " . $this->setting_model->getCurrentSessionName(); ?></div>
                         <div class="mailbox-messages">
                             <div class="table-responsive">  
@@ -271,9 +287,9 @@
                                                                     																	<div class="col-md-1 col-lg-1 col-sm-1 col-xs-1 white-space-nowrap">
                                                                     
                                                                                                                                         <?php if ($this->rbac->hasPrivilege('fees_master', 'can_edit')) {   ?>
-                                                                    																		<a href="<?php echo base_url(); ?>admin/feemaster/edit/<?php echo $feetype_value->id ?>"   data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i></a>&nbsp;
+                                                                    																		<a href="<?php echo base_url(); ?>admin/feemaster/edit/<?php echo $feetype_value->id ?>" class="btn-action btn-action-edit" data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i></a>&nbsp;
                                                                                                                                         <?php }	if ($this->rbac->hasPrivilege('fees_master', 'can_delete')) {  ?>
-                                                                    																		<a href="<?php echo base_url(); ?>admin/feemaster/delete/<?php echo $feetype_value->id ?>" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');"><i class="fa fa-remove"></i></a>
+                                                                    																		<a href="<?php echo base_url(); ?>admin/feemaster/delete/<?php echo $feetype_value->id ?>" class="btn-action btn-action-delete" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');"><i class="fa fa-trash"></i></a>
                                                                     																	<?php } ?>
                                                                     
                                                                     																</div>                                                           
@@ -288,14 +304,14 @@
                                                                                                                     </td>
                                                                                                                     <td class="mailbox-date pull-right">
                                                                                                                         <?php if ($this->rbac->hasPrivilege('fees_group_assign', 'can_view')) { ?>
-                                                                                                                            <a data-placement="top" href="<?php echo base_url(); ?>admin/feemaster/assign/<?php echo $feegroup->id ?>"
-                                                                                                                               class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('assign_view_student'); ?>">
+                                                                                                                            <a href="<?php echo base_url(); ?>admin/feemaster/assign/<?php echo $feegroup->id ?>"
+                                                                                                                               class="btn-action btn-action-assign" data-toggle="tooltip" title="<?php echo $this->lang->line('assign_view_student'); ?>">
                                                                                                                                 <i class="fa fa-tag"></i>
                                                                                                                             </a>
                                                                                                                         <?php } ?>
                                                                                                                         <?php if ($this->rbac->hasPrivilege('fees_master', 'can_delete')) { ?>
-                                                                                                                            <a data-placement="top" href="<?php echo base_url(); ?>admin/feemaster/deletegrp/<?php echo $feegroup->id ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');">
-                                                                                                                                <i class="fa fa-remove"></i>
+                                                                                                                            <a href="<?php echo base_url(); ?>admin/feemaster/deletegrp/<?php echo $feegroup->id ?>" class="btn-action btn-action-delete" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');">
+                                                                                                                                <i class="fa fa-trash"></i>
                                                                                                                             </a>
                                                                                                                         <?php } ?>
                                                                                                                     </td>
