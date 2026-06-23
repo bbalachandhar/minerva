@@ -6,7 +6,6 @@ class Waiting_list extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('Onlineadmission_model');
     }
 
     public function index()
