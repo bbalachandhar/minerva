@@ -14,12 +14,19 @@ class Scholarship_register extends CI_Controller
         $this->load->model('Onlinestudent_model', 'onlinestudent_model');
         $this->load->model('Onlineadmissioncourses_model');
         $this->load->library('customlib');
-        $this->sch_setting = $this->setting_model->getSetting();
+        $raw = $this->setting_model->getSetting();
+        if (is_array($raw) && isset($raw[0])) {
+            $this->sch_setting = is_object($raw[0]) ? (array) $raw[0] : $raw[0];
+        } elseif (is_object($raw)) {
+            $this->sch_setting = (array) $raw;
+        } else {
+            $this->sch_setting = $raw;
+        }
     }
 
     public function index()
     {
-        $session_id = $this->sch_setting[0]['session_id'];
+        $session_id = $this->sch_setting['session_id'];
 
         $scholarship_exams = $this->db
             ->select('id, exam, scholarship_courses, exam_from, exam_to')
@@ -53,7 +60,7 @@ class Scholarship_register extends CI_Controller
             }
         }
 
-        $data['sch_setting'] = $this->sch_setting[0];
+        $data['sch_setting'] = $this->sch_setting;
         $data['title'] = 'Scholarship Exam Registration';
 
         $this->load->view('scholarship/register', $data);
@@ -71,7 +78,7 @@ class Scholarship_register extends CI_Controller
             return;
         }
 
-        $session_id = $this->sch_setting[0]['session_id'];
+        $session_id = $this->sch_setting['session_id'];
         $preferred_course_id = (int) $this->input->post('preferred_course_id');
 
         // Generate unique reference number
@@ -147,7 +154,7 @@ class Scholarship_register extends CI_Controller
             'password'        => $password_plain,
             'firstname'       => $this->input->post('firstname'),
             'assigned_exams'  => $assigned_count,
-            'sch_setting'     => $this->sch_setting[0],
+            'sch_setting'     => $this->sch_setting,
             'title'           => 'Registration Successful',
         ];
 
