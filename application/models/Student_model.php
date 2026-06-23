@@ -68,6 +68,10 @@ class Student_model extends MY_Model
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('students.is_active', 'yes');
         $this->db->where('users.role', 'student');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($department_id != null) {
             $this->db->where('classes.department_id', $department_id); // Add department filter
         }
@@ -568,6 +572,10 @@ class Student_model extends MY_Model
             ->group_start()
                 ->where('students.disable_at', null)
             ->group_end();
+        $this->datatables->group_start();
+        $this->datatables->where('student_session.is_alumni', 0);
+        $this->datatables->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->datatables->group_end();
         if ($class_id != null) {
             if (is_array($class_id)) {
                 $this->datatables->where_in('student_session.class_id', $class_id);
@@ -614,6 +622,10 @@ class Student_model extends MY_Model
         $this->datatables->where('students.is_active', 'yes');
         $this->datatables->group_start();
         $this->datatables->where('students.disable_at', null);
+        $this->datatables->group_end();
+        $this->datatables->group_start();
+        $this->datatables->where('student_session.is_alumni', 0);
+        $this->datatables->or_where('student_session.is_alumni IS NULL', null, false);
         $this->datatables->group_end();
         $this->datatables->sort('students.admission_no', 'asc');
         $this->datatables->searchable('class_id,section_id,admission_no,students.firstname,students.middlename,  students.lastname,students.father_name,students.dob,students.guardian_phone');
@@ -741,6 +753,10 @@ class Student_model extends MY_Model
         $this->db->join('vehicles', 'vehicle_routes.vehicle_id = vehicles.id', 'left');
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('students.is_active', "yes");
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($class_id != null) {
             $this->db->where('student_session.class_id', $class_id);
         }
@@ -830,6 +846,10 @@ class Student_model extends MY_Model
             ->where('students.is_active', 'yes')
             ->sort('students.id')
             ->from('students');
+        $this->datatables->group_start();
+        $this->datatables->where('student_session.is_alumni', 0);
+        $this->datatables->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->datatables->group_end();
         return $this->datatables->generate('json');
     }
 
@@ -956,6 +976,10 @@ class Student_model extends MY_Model
         $this->datatables->join('categories', 'students.category_id = categories.id', 'left');
         $this->datatables->where('student_session.session_id', $this->current_session);
         $this->datatables->where('students.is_active', 'yes');
+        $this->datatables->group_start();
+        $this->datatables->where('student_session.is_alumni', 0);
+        $this->datatables->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->datatables->group_end();
         if (!empty($class_section_array)) {
             $this->datatables->group_start();
             foreach ($class_section_array as $class_sectionkey => $class_sectionvalue) {
@@ -999,6 +1023,10 @@ class Student_model extends MY_Model
         $this->db->join('class_sections', 'class_sections.class_id = classes.id and class_sections.section_id=sections.id', 'inner');
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('students.is_active', 'yes');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($department_id != null) {
             $this->db->where('classes.department_id', $department_id);
         }
@@ -1039,6 +1067,10 @@ class Student_model extends MY_Model
         $this->db->join('categories', 'students.category_id = categories.id', 'left');
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('students.is_active', 'yes');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($condition != null) {
             $this->db->where($condition);
         }
@@ -1081,6 +1113,10 @@ class Student_model extends MY_Model
         $this->db->join('categories', 'students.category_id = categories.id', 'left');
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('students.is_active', 'yes');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($condition != null) {
             $this->db->where($condition);
         }
@@ -1433,6 +1469,10 @@ class Student_model extends MY_Model
         $this->db->join('categories', 'students.category_id = categories.id', 'left');
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('students.is_active', 'yes');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($class_id != null) {
             if (is_array($class_id)) {
                 $this->db->where_in('student_session.class_id', $class_id);
@@ -1487,6 +1527,10 @@ class Student_model extends MY_Model
         $this->db->join("sections", "student_session.section_id = sections.id");
         $this->db->where("students.is_active", "yes");
         $this->db->where('student_session.session_id', $this->current_session);
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if (($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes")) {
             if (!empty($carray)) {
                 $this->db->where_in("student_session.class_id", $carray);
@@ -1506,6 +1550,10 @@ class Student_model extends MY_Model
         $this->db->join("sections", "student_session.section_id = sections.id");
         $this->db->where("students.is_active", "yes");
         $this->db->where('student_session.session_id', $this->current_session);
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         $this->db->where(array('student_session.class_id' => $class_id, 'student_session.section_id' => $section_id));
         if ($department_id != null) {
             $this->db->where('classes.department_id', $department_id);
@@ -1553,6 +1601,10 @@ class Student_model extends MY_Model
             ->orderable('students.admission_no,students.firstname,students.admission_date," "," "," ",students.mobileno,students.guardian_name,students.guardian_phone')
             ->sort('students.id')
             ->from('students');
+        $this->datatables->group_start();
+        $this->datatables->where('student_session.is_alumni', 0);
+        $this->datatables->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->datatables->group_end();
         return $this->datatables->generate('json');
     }
 
@@ -1903,6 +1955,10 @@ class Student_model extends MY_Model
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('users.role', 'student');
         $this->db->where('students.is_active', 'yes');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($condition1 != '') {
             $this->db->where($condition1);
         }
@@ -2177,6 +2233,10 @@ class Student_model extends MY_Model
             ->join('categories', 'students.category_id = categories.id', 'left')
             ->where('student_session.session_id', $this->current_session)
             ->where('students.is_active', "yes");
+        $this->datatables->group_start();
+        $this->datatables->where('student_session.is_alumni', 0);
+        $this->datatables->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->datatables->group_end();
         if ($class_id != null) {
             if (is_array($class_id)) {
                 $this->datatables->where_in('student_session.class_id', $class_id);
@@ -2223,6 +2283,10 @@ class Student_model extends MY_Model
         $this->db->where('student_session.session_id', $session_id);
         $this->db->where('students.is_active', 'yes');
         $this->db->where('users.role', 'student');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($department_id != null) {
             $this->db->where('classes.department_id', $department_id);
         }
@@ -2310,6 +2374,10 @@ class Student_model extends MY_Model
         $this->db->join('users', 'users.user_id = students.id', 'left');
         $this->db->where('student_session.session_id', $this->current_session);
                 $this->db->where('students.is_active', "yes");
+                $this->db->group_start();
+                $this->db->where('student_session.is_alumni', 0);
+                $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+                $this->db->group_end();
                 if ($class_id != null) {
                     if(is_array($class_id)){
                          $this->db->where_in('student_session.class_id', $class_id);
@@ -2392,9 +2460,13 @@ class Student_model extends MY_Model
         $this->datatables->or_like_string('students.firstname,students.middlename,students.lastname,school_houses.house_name,students.guardian_name,students.adhar_no,students.samagra_id,students.roll_no,students.admission_no,students.mobileno,students.email,students.religion,students.cast,students.gender,students.current_address,students.permanent_address,students.blood_group,students.bank_name,students.ifsc_code,students.father_name,students.father_phone,students.father_occupation,students.mother_name,students.mother_phone,students.mother_occupation,students.guardian_name,students.guardian_relation,students.guardian_phone,students.guardian_occupation,students.guardian_address,students.guardian_email,students.previous_school,students.note', $searchterm);
         $this->datatables->group_end();
         $this->datatables->where('student_session.session_id', $this->current_session);
-        $this->datatables->where('students.is_active', 'yes');       
-        $this->datatables->searchable('students.admission_no,students.firstname,students.middlename,students.lastname,students.roll_no,classes.id,students.father_name,students.dob,students.gender,categories.category,students.mobileno' . $field_variable);            
-        $this->datatables->orderable('students.admission_no,students.firstname,students.middlename,students.lastname,students.roll_no,classes.id,students.father_name,students.dob,students.gender,categories.category,students.mobileno' . $field_name);       
+        $this->datatables->where('students.is_active', 'yes');
+        $this->datatables->group_start();
+        $this->datatables->where('student_session.is_alumni', 0);
+        $this->datatables->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->datatables->group_end();
+        $this->datatables->searchable('students.admission_no,students.firstname,students.middlename,students.lastname,students.roll_no,classes.id,students.father_name,students.dob,students.gender,categories.category,students.mobileno' . $field_variable);
+        $this->datatables->orderable('students.admission_no,students.firstname,students.middlename,students.lastname,students.roll_no,classes.id,students.father_name,students.dob,students.gender,categories.category,students.mobileno' . $field_name);
         $this->datatables->sort('students.id');
         $this->datatables->from('students');
         $std_data = $this->datatables->generate('json');
@@ -2444,7 +2516,11 @@ class Student_model extends MY_Model
         $this->db->join('users', 'users.user_id = students.id', 'left');
 
         $this->db->where('student_session.session_id', $this->current_session);
-        $this->db->where('students.is_active', 'yes');       
+        $this->db->where('students.is_active', 'yes');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
 
         if (!empty($class_section_array)) {
             $this->db->group_start();
@@ -2509,6 +2585,10 @@ class Student_model extends MY_Model
             ->where('students.is_active', "yes")
             ->from('students');
 
+        $this->datatables->group_start();
+        $this->datatables->where('student_session.is_alumni', 0);
+        $this->datatables->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->datatables->group_end();
         if ($class_id != null) {
             $this->datatables->where('student_session.class_id', $class_id);
         }
@@ -2546,6 +2626,10 @@ class Student_model extends MY_Model
             ->where('students.is_active', "yes")
             ->from('students');
 
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($class_id != null) {
             $this->db->where('student_session.class_id', $class_id);
         }
@@ -2842,7 +2926,7 @@ class Student_model extends MY_Model
     {
         $this->db->select('classes.id AS class_id, classes.class AS class_name, categories.id AS category_id, categories.category AS category_name, COUNT(students.id) AS student_count');
         $this->db->from('classes');
-        $this->db->join('student_session', 'classes.id = student_session.class_id AND student_session.session_id = ' . $this->current_session, 'left');
+        $this->db->join('student_session', 'classes.id = student_session.class_id AND student_session.session_id = ' . $this->current_session . ' AND (student_session.is_alumni = 0 OR student_session.is_alumni IS NULL)', 'left');
         $this->db->join('students', 'student_session.student_id = students.id AND students.is_active = \'yes\'', 'left');
         $this->db->join('categories', 'students.category_id = categories.id', 'left');
         $this->db->group_by('classes.id, categories.id');
@@ -2853,7 +2937,7 @@ class Student_model extends MY_Model
         $this->db->select('categories.id AS category_id, categories.category AS category_name, COUNT(students.id) AS total_student_count');
         $this->db->from('categories');
         $this->db->join('students', 'categories.id = students.category_id AND students.is_active = \'yes\'', 'left');
-        $this->db->join('student_session', 'students.id = student_session.student_id AND student_session.session_id = ' . $this->current_session, 'left');
+        $this->db->join('student_session', 'students.id = student_session.student_id AND student_session.session_id = ' . $this->current_session . ' AND (student_session.is_alumni = 0 OR student_session.is_alumni IS NULL)', 'left');
         $this->db->group_by('categories.id');
         $this->db->order_by('categories.category');
         $query = $this->db->get();

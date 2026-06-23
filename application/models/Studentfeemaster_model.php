@@ -249,7 +249,7 @@ class Studentfeemaster_model extends MY_Model
 
         $where_condition_string = implode(" ", $where_condition);
 
-        $sql = "SELECT student_fees_master.*,student_session.id as `student_session_id`,student_session.route_pickup_point_id,students.firstname,students.middlename,students.lastname,student_session.class_id,classes.class,sections.section,students.category_id,students.image,students.id as student_id,students.father_name,students.admission_no,students.mobileno,students.roll_no,students.rte, IFNULL(categories.category, '') as `category` FROM `student_fees_master` INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id INNER JOIN classes on classes.id =student_session.class_id left join  categories on students.category_id = categories.id INNER join sections on sections.id=student_session.section_id  WHERE student_session.session_id=" . $this->db->escape($this->current_session) . $where_condition_string;
+        $sql = "SELECT student_fees_master.*,student_session.id as `student_session_id`,student_session.route_pickup_point_id,students.firstname,students.middlename,students.lastname,student_session.class_id,classes.class,sections.section,students.category_id,students.image,students.id as student_id,students.father_name,students.admission_no,students.mobileno,students.roll_no,students.rte, IFNULL(categories.category, '') as `category` FROM `student_fees_master` INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id INNER JOIN classes on classes.id =student_session.class_id left join  categories on students.category_id = categories.id INNER join sections on sections.id=student_session.section_id  WHERE student_session.session_id=" . $this->db->escape($this->current_session) . " AND (student_session.is_alumni = 0 OR student_session.is_alumni IS NULL)" . $where_condition_string;
 
         $query        = $this->db->query($sql);
         $result       = $query->result();
@@ -726,6 +726,10 @@ class Studentfeemaster_model extends MY_Model
             $this->db->where('fee_groups_feetype.feetype_id', $feetype_id);
         }
         $this->db->where('fee_groups_feetype.session_id', $this->current_session);
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($class_id != null) {
             if (is_array($class_id)) {
                 $this->db->where_in('student_session.class_id', $class_id);
@@ -750,6 +754,10 @@ class Studentfeemaster_model extends MY_Model
             $this->db->join('classes', 'classes.id= student_session.class_id');
             $this->db->join('sections', 'sections.id= student_session.section_id');
             $this->db->join('students', 'students.id=student_session.student_id');
+            $this->db->group_start();
+            $this->db->where('student_session.is_alumni', 0);
+            $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+            $this->db->group_end();
             if ($class_id != null) {
                 if (is_array($class_id)) {
                     $this->db->where_in('student_session.class_id', $class_id);
@@ -1204,6 +1212,10 @@ class Studentfeemaster_model extends MY_Model
         $this->db->join('sections', 'sections.id= student_session.section_id');
         $this->db->join('students', 'students.id=student_session.student_id');
         $this->db->where('student_session.session_id', $this->current_session);
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         $this->db->order_by('student_fees_deposite.id');
 
         $query        = $this->db->get();
@@ -1219,6 +1231,10 @@ class Studentfeemaster_model extends MY_Model
             $this->db->join('sections', 'sections.id= student_session.section_id');
             $this->db->join('students', 'students.id=student_session.student_id');
             $this->db->where('student_session.session_id', $this->current_session);
+            $this->db->group_start();
+            $this->db->where('student_session.is_alumni', 0);
+            $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+            $this->db->group_end();
             $this->db->order_by('student_fees_deposite.id', 'desc');
 
             $query1        = $this->db->get();
@@ -1291,7 +1307,7 @@ class Studentfeemaster_model extends MY_Model
 
     public function getCurrentSessionStudentFees()
     {
-        $sql = "SELECT student_fees_master.*,fee_session_groups.fee_groups_id,fee_session_groups.session_id,fee_groups.name,fee_groups.is_system,COALESCE(sfo.override_amount, fee_groups_feetype.amount) as `fee_amount`,fee_groups_feetype.id as fee_groups_feetype_id,student_fees_deposite.id as `student_fees_deposite_id`,student_fees_deposite.amount_detail,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.father_name,students.image, students.mobileno, students.email ,students.state ,   students.city , students.pincode ,students.is_active,classes.class,sections.section FROM `student_fees_master` INNER JOIN fee_session_groups on fee_session_groups.id=student_fees_master.fee_session_group_id INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id inner join classes on student_session.class_id=classes.id INNER JOIN sections on sections.id=student_session.section_id inner join fee_groups on fee_groups.id=fee_session_groups.fee_groups_id INNER JOIN fee_groups_feetype on fee_groups.id=fee_groups_feetype.fee_groups_id LEFT JOIN student_fees_deposite on student_fees_deposite.student_fees_master_id=student_fees_master.id and student_fees_deposite.fee_groups_feetype_id=fee_groups_feetype.id LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = student_fees_master.student_session_id AND sfo.fee_groups_feetype_id = fee_groups_feetype.id WHERE student_session.session_id='" . $this->current_session . "' and  fee_session_groups.session_id='" . $this->current_session . "'";
+        $sql = "SELECT student_fees_master.*,fee_session_groups.fee_groups_id,fee_session_groups.session_id,fee_groups.name,fee_groups.is_system,COALESCE(sfo.override_amount, fee_groups_feetype.amount) as `fee_amount`,fee_groups_feetype.id as fee_groups_feetype_id,student_fees_deposite.id as `student_fees_deposite_id`,student_fees_deposite.amount_detail,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.father_name,students.image, students.mobileno, students.email ,students.state ,   students.city , students.pincode ,students.is_active,classes.class,sections.section FROM `student_fees_master` INNER JOIN fee_session_groups on fee_session_groups.id=student_fees_master.fee_session_group_id INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id inner join classes on student_session.class_id=classes.id INNER JOIN sections on sections.id=student_session.section_id inner join fee_groups on fee_groups.id=fee_session_groups.fee_groups_id INNER JOIN fee_groups_feetype on fee_groups.id=fee_groups_feetype.fee_groups_id LEFT JOIN student_fees_deposite on student_fees_deposite.student_fees_master_id=student_fees_master.id and student_fees_deposite.fee_groups_feetype_id=fee_groups_feetype.id LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = student_fees_master.student_session_id AND sfo.fee_groups_feetype_id = fee_groups_feetype.id WHERE student_session.session_id='" . $this->current_session . "' and  fee_session_groups.session_id='" . $this->current_session . "' AND (student_session.is_alumni = 0 OR student_session.is_alumni IS NULL)";
 
         $query  = $this->db->query($sql);
         $result_value = $query->result();
@@ -1305,6 +1321,10 @@ class Studentfeemaster_model extends MY_Model
             $this->db->join('sections', 'sections.id= student_session.section_id');
             $this->db->join('students', 'students.id=student_session.student_id');
             $this->db->where('student_session.session_id', $this->current_session);
+            $this->db->group_start();
+            $this->db->where('student_session.is_alumni', 0);
+            $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+            $this->db->group_end();
             $this->db->order_by('student_fees_deposite.id', 'desc');
 
             $query1        = $this->db->get();
@@ -1327,7 +1347,7 @@ class Studentfeemaster_model extends MY_Model
     {
         $id_implode = $imp = "'" . implode("','", $id_array) . "'";
       
-        $sql = "SELECT student_fees_master.*,fee_session_groups.fee_groups_id,fee_session_groups.session_id,fee_groups.name,fee_groups.is_system,COALESCE(sfo.override_amount, fee_groups_feetype.amount) as `fee_amount`,fee_groups_feetype.id as fee_groups_feetype_id,student_fees_deposite.id as `student_fees_deposite_id`,student_fees_deposite.amount_detail,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.father_name,students.image, students.mobileno, students.email ,students.state ,   students.city , students.pincode ,students.is_active,classes.class,sections.section FROM `student_fees_master` INNER JOIN fee_session_groups on fee_session_groups.id=student_fees_master.fee_session_group_id INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id inner join classes on student_session.class_id=classes.id INNER JOIN sections on sections.id=student_session.section_id inner join fee_groups on fee_groups.id=fee_session_groups.fee_groups_id INNER JOIN fee_groups_feetype on fee_groups.id=fee_groups_feetype.fee_groups_id  JOIN student_fees_deposite on student_fees_deposite.student_fees_master_id=student_fees_master.id and student_fees_deposite.fee_groups_feetype_id=fee_groups_feetype.id LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = student_fees_master.student_session_id AND sfo.fee_groups_feetype_id = fee_groups_feetype.id WHERE student_session.session_id='" . $this->current_session . "' and  fee_session_groups.session_id='" . $this->current_session . "' and student_fees_deposite.id in (" . $id_implode . ")";
+        $sql = "SELECT student_fees_master.*,fee_session_groups.fee_groups_id,fee_session_groups.session_id,fee_groups.name,fee_groups.is_system,COALESCE(sfo.override_amount, fee_groups_feetype.amount) as `fee_amount`,fee_groups_feetype.id as fee_groups_feetype_id,student_fees_deposite.id as `student_fees_deposite_id`,student_fees_deposite.amount_detail,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.father_name,students.image, students.mobileno, students.email ,students.state ,   students.city , students.pincode ,students.is_active,classes.class,sections.section FROM `student_fees_master` INNER JOIN fee_session_groups on fee_session_groups.id=student_fees_master.fee_session_group_id INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id inner join classes on student_session.class_id=classes.id INNER JOIN sections on sections.id=student_session.section_id inner join fee_groups on fee_groups.id=fee_session_groups.fee_groups_id INNER JOIN fee_groups_feetype on fee_groups.id=fee_groups_feetype.fee_groups_id  JOIN student_fees_deposite on student_fees_deposite.student_fees_master_id=student_fees_master.id and student_fees_deposite.fee_groups_feetype_id=fee_groups_feetype.id LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = student_fees_master.student_session_id AND sfo.fee_groups_feetype_id = fee_groups_feetype.id WHERE student_session.session_id='" . $this->current_session . "' and  fee_session_groups.session_id='" . $this->current_session . "' AND (student_session.is_alumni = 0 OR student_session.is_alumni IS NULL) and student_fees_deposite.id in (" . $id_implode . ")";
 
         $query  = $this->db->query($sql);
         $result_value = $query->result();
@@ -1343,6 +1363,10 @@ class Studentfeemaster_model extends MY_Model
             $this->db->join('students', 'students.id=student_session.student_id');
 
             $this->db->where('student_session.session_id', $this->current_session);
+            $this->db->group_start();
+            $this->db->where('student_session.is_alumni', 0);
+            $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+            $this->db->group_end();
             $this->db->where_in('student_fees_deposite.id', $id_array);
 			$query1        = $this->db->get();
             $result_value1 = $query1->result();
@@ -1376,7 +1400,7 @@ class Studentfeemaster_model extends MY_Model
             $where_condition_string = " AND " . implode(" AND ", $where_condition);
         }
 
-        $sql = "SELECT student_fees_master.*,fee_session_groups.fee_groups_id,fee_session_groups.session_id,fee_groups.name,fee_groups.is_system,COALESCE(sfo.override_amount, fee_groups_feetype.amount) as `fee_amount`,fee_groups_feetype.id as fee_groups_feetype_id,student_fees_deposite.amount_detail,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.father_name,students.image, students.mobileno, students.email ,students.state ,   students.city , students.pincode ,students.is_active,classes.class,classes.id as class_id,sections.section,sections.id as section_id,students.id as student_id FROM `student_fees_master` INNER JOIN fee_session_groups on fee_session_groups.id=student_fees_master.fee_session_group_id INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id inner join classes on student_session.class_id=classes.id INNER JOIN sections on sections.id=student_session.section_id inner join fee_groups on fee_groups.id=fee_session_groups.fee_groups_id INNER JOIN fee_groups_feetype on fee_groups.id=fee_groups_feetype.fee_groups_id LEFT JOIN student_fees_deposite on student_fees_deposite.student_fees_master_id=student_fees_master.id and student_fees_deposite.fee_groups_feetype_id=fee_groups_feetype.id LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = student_fees_master.student_session_id AND sfo.fee_groups_feetype_id = fee_groups_feetype.id WHERE student_session.session_id='" . $this->current_session . "' and  fee_session_groups.session_id='" . $this->current_session . "' and fee_groups_feetype.due_date <=" . $this->db->escape($date) . $where_condition_string;
+        $sql = "SELECT student_fees_master.*,fee_session_groups.fee_groups_id,fee_session_groups.session_id,fee_groups.name,fee_groups.is_system,COALESCE(sfo.override_amount, fee_groups_feetype.amount) as `fee_amount`,fee_groups_feetype.id as fee_groups_feetype_id,student_fees_deposite.amount_detail,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.father_name,students.image, students.mobileno, students.email ,students.state ,   students.city , students.pincode ,students.is_active,classes.class,classes.id as class_id,sections.section,sections.id as section_id,students.id as student_id FROM `student_fees_master` INNER JOIN fee_session_groups on fee_session_groups.id=student_fees_master.fee_session_group_id INNER JOIN student_session on student_session.id=student_fees_master.student_session_id INNER JOIN students on students.id=student_session.student_id inner join classes on student_session.class_id=classes.id INNER JOIN sections on sections.id=student_session.section_id inner join fee_groups on fee_groups.id=fee_session_groups.fee_groups_id INNER JOIN fee_groups_feetype on fee_groups.id=fee_groups_feetype.fee_groups_id LEFT JOIN student_fees_deposite on student_fees_deposite.student_fees_master_id=student_fees_master.id and student_fees_deposite.fee_groups_feetype_id=fee_groups_feetype.id LEFT JOIN student_fee_overrides sfo ON sfo.student_session_id = student_fees_master.student_session_id AND sfo.fee_groups_feetype_id = fee_groups_feetype.id WHERE student_session.session_id='" . $this->current_session . "' and  fee_session_groups.session_id='" . $this->current_session . "' and fee_groups_feetype.due_date <=" . $this->db->escape($date) . " AND (student_session.is_alumni = 0 OR student_session.is_alumni IS NULL)" . $where_condition_string;
 
         $query  = $this->db->query($sql);
         $result = $query->result();

@@ -318,6 +318,10 @@ class Onlineexam_model extends MY_model
         $this->db->join('onlineexam_students', 'onlineexam_students.student_session_id = student_session.id and onlineexam_students.onlineexam_id=' . $onlineexam_id);
         $this->db->where('student_session.session_id', $this->current_session);
          $this->db->where('students.is_active', 'yes');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         if ($class_id != null) {
             $this->db->where('student_session.class_id', $class_id);
         }

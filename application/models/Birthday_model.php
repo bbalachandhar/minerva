@@ -33,6 +33,10 @@ class Birthday_model extends MY_Model
         $this->db->join('users', 'users.user_id = students.id', 'left');
         $this->db->where('users.role', 'student'); // Ensure user role is student
         $this->db->where('students.is_active', 'yes');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         $month_day_from = date('m-d', strtotime($date_from_formatted));
         $month_day_to   = date('m-d', strtotime($date_to_formatted));
 

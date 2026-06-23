@@ -766,8 +766,10 @@ class Studentfee extends Admin_Controller
             if ($module['is_active']) {
                 $month_list = $this->customlib->getMonthDropdown($this->sch_setting_detail->start_month);
                 foreach ($month_list as $key => $value) {
-
-                    $transportfesstype[] = $this->transportfee_model->transportfesstype($this->current_session, $key);
+                    $tfee = $this->transportfee_model->transportfesstype($this->current_session, $key);
+                    if (!empty($tfee)) {
+                        $transportfesstype[] = $tfee;
+                    }
                 }
 
                 if (!empty($transportfesstype)) {

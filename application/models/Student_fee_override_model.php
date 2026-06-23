@@ -80,6 +80,7 @@ class Student_fee_override_model extends CI_Model {
                 WHERE ss.session_id = " . $this->db->escape($session_id) . "
                   AND ss.class_id   = " . $this->db->escape($class_id) . "
                   AND s.is_active   = 'yes'
+                  AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
                   AND ft.id NOT IN (3, 4, 5, 6, 7)
                   " . $section_filter . "
                 ORDER BY s.firstname, s.lastname, ft.id";
