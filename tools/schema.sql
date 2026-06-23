@@ -4565,6 +4565,7 @@ CREATE TABLE `online_admissions` (
   `course_fee_total` decimal(12,2) DEFAULT NULL,
   `first_login` tinyint(1) NOT NULL DEFAULT '1',
   `admission_status` enum('active','cancelled','waiting_list') NOT NULL DEFAULT 'active' COMMENT 'active=normal, cancelled=revoked by staff, waiting_list=on hold pending decision',
+  `source` varchar(20) DEFAULT 'admission' COMMENT 'admission=regular applicant, scholarship=scholarship exam candidate',
   `cancelled_at` datetime DEFAULT NULL COMMENT 'Timestamp when admission was cancelled',
   `cancelled_by` int DEFAULT NULL COMMENT 'Staff ID who cancelled the admission',
   `cancellation_reason` text COMMENT 'Reason provided by staff for cancellation',
@@ -4620,6 +4621,8 @@ CREATE TABLE `onlineexam` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `publish_result_no_answers` tinyint(1) NOT NULL DEFAULT '0',
+  `is_scholarship` tinyint(1) NOT NULL DEFAULT '0' COMMENT '1=scholarship exam, shown in Admissions > Scholarship Exams',
+  `scholarship_courses` text DEFAULT NULL COMMENT 'Comma-separated online_admission_courses.id values',
   PRIMARY KEY (`id`),
   KEY `session_id` (`session_id`),
   CONSTRAINT `onlineexam_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `sessions` (`id`) ON DELETE CASCADE
@@ -12707,3 +12710,32 @@ ALTER TABLE `tt_substitutions` MODIFY COLUMN `substitution_type` ENUM('manual','
 
 -- sidebar_sub_menus: add new substitution methods to activate_methods
 UPDATE `sidebar_sub_menus` SET `activate_methods` = 'substitution,save_substitution,cancel_substitution,get_absent_slots,bulk_auto_assign,get_substitution_report,duty_chart' WHERE `key` = 'tt_substitution';
+
+-- ============================================================
+-- Schema updates — 2026-06-22 / 2026-06-23 session
+-- ============================================================
+
+-- students: add missing registration/ID columns (for colleges)
+ALTER TABLE `students` ADD COLUMN IF NOT EXISTS `allotment_no` VARCHAR(50) DEFAULT NULL;
+ALTER TABLE `students` ADD COLUMN IF NOT EXISTS `consortium_no` VARCHAR(50) DEFAULT NULL;
+ALTER TABLE `students` ADD COLUMN IF NOT EXISTS `application_no` VARCHAR(50) DEFAULT NULL;
+
+-- online_admissions: add source flag for scholarship candidates
+ALTER TABLE `online_admissions` ADD COLUMN IF NOT EXISTS `source` VARCHAR(20) DEFAULT 'admission';
+
+-- onlineexam: add scholarship exam support
+ALTER TABLE `onlineexam` ADD COLUMN IF NOT EXISTS `is_scholarship` TINYINT(1) DEFAULT 0;
+ALTER TABLE `onlineexam` ADD COLUMN IF NOT EXISTS `scholarship_courses` TEXT DEFAULT NULL;
+
+-- student_fees_master: ensure is_active defaults to 'yes' for new records
+-- (Previous Session Balance bulk upload was inserting with default 'no')
+
+-- sidebar_sub_menus: Waiting List under Admissions
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `lang_key`, `url`, `level`, `access_permissions`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT 40, 'Waiting List', 'waiting_list', 'admin/waiting_list', 4, 'online_admission,can_view', 'waiting_list', 'index', 1
+FROM dual WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `url` = 'admin/waiting_list');
+
+-- sidebar_sub_menus: Scholarship Exams under Admissions
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `lang_key`, `url`, `level`, `access_permissions`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT 40, 'Scholarship Exams', 'scholarship_exams', 'admin/scholarshipexam', 5, 'online_examination,can_view', 'scholarshipexam', 'index,candidates', 1
+FROM dual WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `url` = 'admin/scholarshipexam');
