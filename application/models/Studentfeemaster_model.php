@@ -1886,7 +1886,7 @@ class Studentfeemaster_model extends MY_Model
             $join_condition .= " AND sfm.fee_session_group_id IN (" . $in_clause . ")";
         }
 
-        $this->db->join("student_fees_master as sfm", $join_condition, "inner");
+        $this->db->join("student_fees_master as sfm", $join_condition, "left");
 
         $this->db->where("student_session.session_id", $this->current_session);
         $this->db->where("students.is_active", "yes");
