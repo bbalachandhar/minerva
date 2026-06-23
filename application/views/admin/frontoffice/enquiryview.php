@@ -164,7 +164,7 @@ if ($enkey == $status) {
                             <div class="box-body">
                                 <div class="download_label"><?php echo $this->lang->line('admission_enquiry_list'); ?></div>
                                 <div class="mailbox-messages">
-                                    <div class="table-responsive overflow-visible-lg">
+                                    <div class="table-responsive" style="overflow-x:auto;">
                                         <table class="table table-hover table-striped table-bordered" id="enquirytable">
                                             <thead>
                                                 <tr>
