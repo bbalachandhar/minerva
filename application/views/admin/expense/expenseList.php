@@ -171,25 +171,31 @@ $(function() {
 
 function openAddModal() {
     document.getElementById('form1').reset();
-    <?php if (set_value('exp_head_id')) { ?>
-        $('#exp_head_id').val('<?php echo set_value('exp_head_id'); ?>');
-    <?php } ?>
-    <?php if (set_value('name')) { ?>
-        $('#name').val('<?php echo set_value('name'); ?>');
-    <?php } ?>
-    <?php if (set_value('invoice_no')) { ?>
-        $('#invoice_no').val('<?php echo set_value('invoice_no'); ?>');
-    <?php } ?>
-    <?php if (set_value('date')) { ?>
-        $('#date').val('<?php echo set_value('date'); ?>');
-    <?php } ?>
-    <?php if (set_value('amount')) { ?>
-        $('#amount').val('<?php echo set_value('amount'); ?>');
-    <?php } ?>
-    <?php if (set_value('description')) { ?>
-        $('#description').val('<?php echo set_value('description'); ?>');
-    <?php } ?>
+    $('#form1').attr('action', '<?php echo base_url(); ?>admin/expense');
+    $('.crud-modal-header h3').html('<i class="fa fa-plus-circle" style="color:#5b73e8;margin-right:6px;"></i> <?php echo $this->lang->line('add_expense'); ?>');
+    <?php if (set_value('exp_head_id')) { ?>$('#exp_head_id').val('<?php echo set_value('exp_head_id'); ?>');<?php } ?>
+    <?php if (set_value('name')) { ?>$('#name').val('<?php echo set_value('name'); ?>');<?php } ?>
+    <?php if (set_value('invoice_no')) { ?>$('#invoice_no').val('<?php echo set_value('invoice_no'); ?>');<?php } ?>
+    <?php if (set_value('date')) { ?>$('#date').val('<?php echo set_value('date'); ?>');<?php } ?>
+    <?php if (set_value('amount')) { ?>$('#amount').val('<?php echo set_value('amount'); ?>');<?php } ?>
+    <?php if (set_value('description')) { ?>$('#description').val('<?php echo set_value('description'); ?>');<?php } ?>
     $('#crudModal').addClass('show');
+    setTimeout(function(){ $('#name').focus(); }, 200);
+}
+
+function openEditModal(el) {
+    document.getElementById('form1').reset();
+    var $el = $(el);
+    $('#form1').attr('action', '<?php echo base_url(); ?>admin/expense/edit/' + $el.data('id'));
+    $('.crud-modal-header h3').html('<i class="fa fa-pencil" style="color:#5b73e8;margin-right:6px;"></i> <?php echo $this->lang->line('edit'); ?> <?php echo $this->lang->line('expense'); ?>');
+    $('#exp_head_id').val($el.data('head'));
+    $('#name').val($el.data('name'));
+    $('#invoice_no').val($el.data('invoice'));
+    $('#date').val($el.data('date'));
+    $('#amount').val($el.data('amount'));
+    $('#description').val($el.data('desc'));
+    $('#crudModal').addClass('show');
+    setTimeout(function(){ $('#name').focus(); }, 200);
 }
 
 function closeModal() {

@@ -199,9 +199,8 @@ class Income extends Admin_Controller
         $this->form_validation->set_rules('name', $this->lang->line('name'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
-            $this->load->view('layout/header', $data);
-            $this->load->view('admin/income/incomeEdit', $data);
-            $this->load->view('layout/footer', $data);
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . validation_errors() . '</div>');
+            redirect('admin/income');
         } else {
             $data = array(
                 'id'          => $id,
@@ -278,7 +277,7 @@ class Income extends Admin_Controller
                 }
 
                 if ($this->rbac->hasPrivilege('income', 'can_edit')) {
-                    $editbtn = "<a href='" . base_url() . "admin/income/edit/" . $value->id . "'   class='btn btn-default btn-xs'  data-toggle='tooltip' title='" . $this->lang->line('edit') . "'><i class='fa fa-pencil'></i></a>";
+                    $editbtn = "<a href='javascript:void(0)' class='btn btn-default btn-xs' data-toggle='tooltip' title='" . $this->lang->line('edit') . "' onclick='openEditModal(this)' data-id='" . $value->id . "' data-name='" . htmlspecialchars($value->name, ENT_QUOTES) . "' data-head='" . $value->income_head_id . "' data-invoice='" . htmlspecialchars($value->invoice_no, ENT_QUOTES) . "' data-date='" . $this->customlib->dateformat($value->date) . "' data-amount='" . $value->amount . "' data-desc='" . htmlspecialchars($value->note, ENT_QUOTES) . "'><i class='fa fa-pencil'></i></a>";
                 }
 				
                 if ($this->rbac->hasPrivilege('income', 'can_delete')) {
