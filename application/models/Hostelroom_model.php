@@ -158,7 +158,7 @@ class Hostelroom_model extends MY_Model
 
     public function searchHostelDetails($section_id, $class_id, $hostel_name = "")
     {
-        $condition = " students.is_active='yes' AND student_session.session_id='" . $this->current_session . "' ";
+        $condition = " students.is_active='yes' AND student_session.session_id='" . $this->current_session . "' AND (student_session.is_alumni=0 OR student_session.is_alumni IS NULL) ";
 
         if (!empty($class_id)) {
             $condition .= " and student_session.class_id='" . $class_id . "'";
