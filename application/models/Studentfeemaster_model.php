@@ -1886,10 +1886,15 @@ class Studentfeemaster_model extends MY_Model
             $join_condition .= " AND sfm.fee_session_group_id IN (" . $in_clause . ")";
         }
 
-        $this->db->join("student_fees_master as sfm", $join_condition, "left");
+        $this->db->join("student_fees_master as sfm", $join_condition, "inner");
 
         $this->db->where("student_session.session_id", $this->current_session);
         $this->db->where("students.is_active", "yes");
+        $this->db->where("students.disable_at IS NULL", null, false);
+        $this->db->group_start();
+        $this->db->where("student_session.is_alumni", 0);
+        $this->db->or_where("student_session.is_alumni IS NULL", null, false);
+        $this->db->group_end();
 
         if ($class_id != null) {
             $this->db->where("student_session.class_id", $class_id);
@@ -1898,7 +1903,6 @@ class Studentfeemaster_model extends MY_Model
             $this->db->where("student_session.section_id", $section_id);
         }
 
-        $this->db->group_by("students.id");
         $this->db->order_by("students.id");
 
         $query = $this->db->get();

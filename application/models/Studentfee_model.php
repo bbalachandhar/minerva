@@ -426,7 +426,12 @@ class Studentfee_model extends MY_Model {
         $this->db->join('student_fees_master', 'student_fees_master.student_session_id = student_session.id', 'left');
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('student_fees_master.id IS NULL');
-        $this->db->where('students.is_active', 'yes'); // Add this line
+        $this->db->where('students.is_active', 'yes');
+        $this->db->where('students.disable_at IS NULL', null, false);
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
         $query = $this->db->get();
         return $query->result_array();
     }
