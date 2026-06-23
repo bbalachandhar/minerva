@@ -101,6 +101,15 @@ function openAddModal() {
     $('#crudModal').addClass('show');
     setTimeout(function(){ $('#modalInputName').focus(); }, 200);
 }
+function openEditModal(el) {
+    var $el = $(el);
+    $('#modalTitle').html('<i class="fa fa-pencil" style="color:#5b73e8;margin-right:6px;"></i> <?php echo $this->lang->line('edit'); ?> <?php echo $this->lang->line('expense_head'); ?>');
+    $('#crudForm').attr('action', '<?php echo site_url('admin/expensehead/edit/'); ?>' + $el.data('id'));
+    $('#modalInputName').val($el.data('name'));
+    $('#modalInputDesc').val($el.data('desc'));
+    $('#crudModal').addClass('show');
+    setTimeout(function(){ $('#modalInputName').focus(); }, 200);
+}
 function closeModal() { $('#crudModal').removeClass('show'); }
 $(document).on('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 <?php if (form_error('expensehead')): ?>$(function(){ openAddModal(); });<?php endif; ?>

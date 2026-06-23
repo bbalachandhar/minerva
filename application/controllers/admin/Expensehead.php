@@ -36,7 +36,7 @@ class Expensehead extends Admin_Controller
             foreach ($expense_head->data as $exhead_key => $exhead_value) {
                 $action = "";
                 if ($this->rbac->hasPrivilege('expense_head', 'can_edit')) {
-                    $action .= "<a href='" . site_url('admin/expensehead/edit/' . $exhead_value->id) . "' class='btn btn-default btn-xs'  data-toggle='tooltip' title='" . $this->lang->line('edit') . "'><i class='fa fa-pencil'></i></a>";
+                    $action .= "<a href='javascript:void(0)' class='btn btn-default btn-xs' data-toggle='tooltip' title='" . $this->lang->line('edit') . "' onclick='openEditModal(this)' data-id='" . $exhead_value->id . "' data-name='" . htmlspecialchars($exhead_value->exp_category, ENT_QUOTES) . "' data-desc='" . htmlspecialchars($exhead_value->description, ENT_QUOTES) . "'><i class='fa fa-pencil'></i></a>";
                 }
                 if ($this->rbac->hasPrivilege('expense_head', 'can_delete')) {
                     $action .= "<a href='" . site_url('admin/expensehead/delete/' . $exhead_value->id) . "' class='btn btn-default btn-xs'  data-toggle='tooltip' title='" . $this->lang->line('delete') . "' onclick='return confirm(" . '"' . $this->lang->line('delete_confirm') . '"' . ");'><i class='fa fa-remove'></i></a>";
@@ -122,9 +122,8 @@ class Expensehead extends Admin_Controller
         $data['expensehead']  = $category;
         $this->form_validation->set_rules('expensehead', $this->lang->line('expense_head'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
-            $this->load->view('layout/header', $data);
-            $this->load->view('admin/expensehead/expenseheadEdit', $data);
-            $this->load->view('layout/footer', $data);
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . validation_errors() . '</div>');
+            redirect('admin/expensehead');
         } else {
             $data = array(
                 'id'           => $id,

@@ -87,9 +87,8 @@ class Incomehead extends Admin_Controller
         $data['incomehead']   = $category;
         $this->form_validation->set_rules('incomehead', $this->lang->line('income_head'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
-            $this->load->view('layout/header', $data);
-            $this->load->view('admin/incomehead/incomeheadEdit', $data);
-            $this->load->view('layout/footer', $data);
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . validation_errors() . '</div>');
+            redirect('admin/incomehead');
         } else {
             $data = array(
                 'id'              => $id,
