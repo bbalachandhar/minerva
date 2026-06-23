@@ -42,7 +42,7 @@
                 <?php if (empty($incidental_fee_type_list)): ?>
                 <div class="empty-state"><i class="fa fa-ticket"></i><p><?php echo $this->lang->line('no_record_found'); ?></p></div>
                 <?php else: ?>
-                <table class="crud-table example">
+                <div style="padding:12px;"><table class="crud-table example">
                     <thead>
                         <tr>
                             <th style="width:50px">#</th>
@@ -88,7 +88,7 @@
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
-                </table>
+                </table></div>
                 <?php endif; ?>
             </div>
         </div>
