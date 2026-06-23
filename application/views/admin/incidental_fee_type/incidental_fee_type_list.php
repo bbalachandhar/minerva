@@ -197,4 +197,3 @@ $(document).on('keydown', function(e) { if (e.key === 'Escape') closeModal(); })
 $(function(){ openAddModal(); });
 <?php endif; ?>
 </script>
-<?php $this->load->view('layout/footer'); ?>
