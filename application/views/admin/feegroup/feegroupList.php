@@ -62,7 +62,7 @@
                 <?php if (empty($feegroupList)): ?>
                 <div class="empty-state"><i class="fa fa-folder-open"></i><p><?php echo $this->lang->line('no_record_found'); ?></p></div>
                 <?php else: ?>
-                <table class="crud-table">
+                <table class="crud-table example">
                     <thead>
                         <tr>
                             <th style="width:50px">#</th>

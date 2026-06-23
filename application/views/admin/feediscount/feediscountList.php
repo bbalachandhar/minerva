@@ -49,7 +49,7 @@
                 <?php if (empty($feediscountList)): ?>
                 <div class="empty-state"><i class="fa fa-percent"></i><p><?php echo $this->lang->line('no_record_found'); ?></p></div>
                 <?php else: ?>
-                <table class="crud-table">
+                <table class="crud-table example">
                     <thead>
                         <tr>
                             <th style="width:40px">#</th>
