@@ -100,10 +100,10 @@
 </div>
 
 <style>
-.crud-modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.4); z-index:99999; backdrop-filter:blur(2px); justify-content:center; align-items:center; }
-.crud-modal-overlay.show { display:flex; }
-.crud-modal { background:#fff; border-radius:12px; width:460px; max-width:92vw; box-shadow:0 20px 60px rgba(0,0,0,.15); transform:translateY(20px); opacity:0; transition:transform .25s ease, opacity .25s ease; }
-.crud-modal-overlay.show .crud-modal { transform:translateY(0); opacity:1; }
+.crud-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.4); z-index:99999; }
+.crud-modal-overlay.show { display:block; }
+.crud-modal { background:#fff; border-radius:12px; width:460px; max-width:92vw; box-shadow:0 20px 60px rgba(0,0,0,.15); position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.95); opacity:0; transition:transform .25s ease, opacity .25s ease; z-index:100000; }
+.crud-modal-overlay.show .crud-modal { transform:translate(-50%,-50%) scale(1); opacity:1; }
 .crud-modal-header { padding:20px 24px 0; display:flex; align-items:center; justify-content:space-between; }
 .crud-modal-header h3 { margin:0; font-size:18px; font-weight:700; color:#2c3e50; }
 .crud-modal-close { width:32px; height:32px; border-radius:8px; border:none; background:#f5f5f5; cursor:pointer; font-size:16px; color:#666; display:flex; align-items:center; justify-content:center; transition:all .15s; }
