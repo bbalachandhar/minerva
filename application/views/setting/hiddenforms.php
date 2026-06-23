@@ -50,6 +50,16 @@
                                         </td>
                                     </tr>
                                     <tr>
+                                        <td><i class="fa fa-graduation-cap" style="color:#4f46e5;"></i> Scholarship Exam Registration</td>
+                                        <td>A public form for external candidates to register for scholarship exams. Free registration — no application fee. Candidates get login credentials to access the exam portal.</td>
+                                        <td><a href="<?php echo site_url('scholarship_register'); ?>" target="_blank"><?php echo site_url('scholarship_register'); ?></a></td>
+                                        <td class="text-right">
+                                            <button class="btn btn-default btn-xs copy-to-clipboard" data-clipboard-text="<?php echo site_url('scholarship_register'); ?>" data-toggle="tooltip" title="Copy to Clipboard">
+                                                <i class="fa fa-clipboard"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
                                         <td>Student Health &amp; Emergency Form</td>
                                         <td>A public form for parents to submit their child's health and emergency information. Parent enters admission number; form pre-fills school data and generates a downloadable PDF on submission.</td>
                                         <td><a href="<?php echo site_url('studenthealthform'); ?>" target="_blank"><?php echo site_url('studenthealthform'); ?></a></td>
