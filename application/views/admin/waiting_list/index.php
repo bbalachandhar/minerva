@@ -59,9 +59,6 @@
                             <td><?php echo htmlspecialchars($row['guardian_name'] ?? '—'); ?></td>
                             <td><?php echo !empty($row['created_at']) ? date($this->customlib->getSchoolDateFormat(), strtotime($row['created_at'])) : '—'; ?></td>
                             <td class="text-right" style="white-space:nowrap;">
-                                <a href="<?php echo site_url('admin/onlinestudent/edit/' . $row['id']); ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="View / Edit">
-                                    <i class="fa fa-eye"></i>
-                                </a>
                                 <?php if ($this->rbac->hasPrivilege('online_admission', 'can_edit')): ?>
                                 <button type="button" class="btn btn-success btn-xs" onclick="activateApplication(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>')" data-toggle="tooltip" title="Move to Active">
                                     <i class="fa fa-check"></i> Activate
