@@ -1890,7 +1890,6 @@ class Studentfeemaster_model extends MY_Model
 
         $this->db->where("student_session.session_id", $this->current_session);
         $this->db->where("students.is_active", "yes");
-        $this->db->where("students.disable_at IS NULL", null, false);
         $this->db->group_start();
         $this->db->where("student_session.is_alumni", 0);
         $this->db->or_where("student_session.is_alumni IS NULL", null, false);
