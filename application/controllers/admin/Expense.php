@@ -263,7 +263,7 @@ class Expense extends Admin_Controller
                 $documents = '';
 
                 if ($this->rbac->hasPrivilege('expense', 'can_edit')) {
-                    $editbtn = "<a href='javascript:void(0)' class='btn btn-default btn-xs' data-toggle='tooltip' title='" . $this->lang->line('edit') . "' onclick='openEditModal(this)' data-id='" . $value->id . "' data-name='" . htmlspecialchars($value->name, ENT_QUOTES) . "' data-head='" . $value->expense_head_id . "' data-invoice='" . htmlspecialchars($value->invoice_no, ENT_QUOTES) . "' data-date='" . $this->customlib->dateformat($value->date) . "' data-amount='" . $value->amount . "' data-desc='" . htmlspecialchars($value->note, ENT_QUOTES) . "'><i class='fa fa-pencil'></i></a>";
+                    $editbtn = "<a href='javascript:void(0)' class='btn btn-default btn-xs' data-toggle='tooltip' title='" . $this->lang->line('edit') . "' onclick='openEditModal(this)' data-id='" . $value->id . "' data-name='" . htmlspecialchars($value->name, ENT_QUOTES) . "' data-head='" . $value->exp_head_id . "' data-invoice='" . htmlspecialchars($value->invoice_no, ENT_QUOTES) . "' data-date='" . $this->customlib->dateformat($value->date) . "' data-amount='" . $value->amount . "' data-desc='" . htmlspecialchars($value->note, ENT_QUOTES) . "'><i class='fa fa-pencil'></i></a>";
                 }
                 if ($this->rbac->hasPrivilege('expense', 'can_delete')) {
                     $deletebtn = '';
