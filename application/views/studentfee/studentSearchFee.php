@@ -18,7 +18,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     border: none;
 }
 .fee-search-panel .panel-heading i { margin-right: 8px; }
-.fee-search-panel .panel-body { padding: 20px 20px 10px; }
+.fee-search-panel .panel-body { padding: 20px 20px 10px; overflow: visible; }
+.fee-search-panel { overflow: visible; }
 
 .fee-filter-label {
     font-weight: 600;
@@ -49,7 +50,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 .fee-dropdown-menu {
     display: none;
     position: absolute;
-    z-index: 1050;
+    z-index: 9999;
     background: #fff;
     border: 1px solid #dee2e6;
     border-radius: 8px;
