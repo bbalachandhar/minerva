@@ -147,16 +147,11 @@ select.form-control { appearance: none; background: #fff url("data:image/svg+xml
         </div>
 
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <div class="form-group">
-                    <label>Parent / Guardian Name</label>
-                    <input type="text" name="parent_name" class="form-control" value="<?php echo set_value('parent_name'); ?>" placeholder="Parent or Guardian name">
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label>Parent Mobile</label>
-                    <input type="tel" name="parent_mobile" class="form-control" value="<?php echo set_value('parent_mobile'); ?>" placeholder="Parent mobile number">
+                    <label>Photo</label>
+                    <input type="file" name="photo" id="photo" class="form-control" accept="image/jpeg,image/png" style="padding:8px; border:1.5px dashed #e2e8f0; border-radius:6px; cursor:pointer;">
+                    <span style="font-size:11px; color:#94a3b8; margin-top:4px; display:block;"><i class="fa fa-info-circle"></i> JPG, PNG only. Max 300KB.</span>
                 </div>
             </div>
         </div>
@@ -173,5 +168,21 @@ select.form-control { appearance: none; background: #fff url("data:image/svg+xml
     &copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($sch_setting['name'] ?? ''); ?>. Powered by Minerva ERP.
 </div>
 
+<script>
+document.getElementById('photo').addEventListener('change', function() {
+    var file = this.files[0];
+    if (!file) return;
+    var ext = file.name.split('.').pop().toLowerCase();
+    if (['jpg','jpeg','png'].indexOf(ext) === -1) {
+        alert('Only JPG, PNG files are allowed.');
+        this.value = '';
+        return;
+    }
+    if (file.size > 300 * 1024) {
+        alert('Photo size ' + Math.round(file.size/1024) + 'KB exceeds 300KB limit.');
+        this.value = '';
+    }
+});
+</script>
 </body>
 </html>

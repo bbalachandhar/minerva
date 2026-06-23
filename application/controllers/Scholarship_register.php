@@ -90,6 +90,22 @@ class Scholarship_register extends CI_Controller
         $password_plain = $reference_no . '@ApplicantPortal' . date('Y');
         $password_hash  = md5($password_plain);
 
+        // Handle photo upload
+        $photo_path = '';
+        if (!empty($_FILES['photo']['name'])) {
+            $upload_dir = './uploads/scholarship_photos/';
+            if (!is_dir($upload_dir)) {
+                @mkdir($upload_dir, 0775, true);
+            }
+            $ext = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, ['jpg', 'jpeg', 'png']) && $_FILES['photo']['size'] <= 307200) {
+                $filename = $reference_no . '_' . time() . '.' . $ext;
+                if (move_uploaded_file($_FILES['photo']['tmp_name'], $upload_dir . $filename)) {
+                    $photo_path = 'uploads/scholarship_photos/' . $filename;
+                }
+            }
+        }
+
         // Create online_admissions record with source=scholarship
         $admission_data = [
             'session_id'          => $session_id,
@@ -101,10 +117,8 @@ class Scholarship_register extends CI_Controller
             'mobileno'            => $this->input->post('mobile'),
             'gender'              => $this->input->post('gender'),
             'dob'                 => $this->input->post('dob') ? date('Y-m-d', strtotime($this->input->post('dob'))) : null,
-            'father_name'         => $this->input->post('parent_name') ?: '',
-            'guardian_name'       => $this->input->post('parent_name') ?: '',
-            'guardian_phone'      => $this->input->post('parent_mobile') ?: '',
-            'guardian_is'         => 'father',
+            'image'               => $photo_path ?: null,
+            'guardian_is'         => '',
             'applicant_password'  => $password_hash,
             'form_status'         => 1,
             'paid_status'         => 1,
