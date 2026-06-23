@@ -2880,11 +2880,9 @@ class Student_model extends MY_Model
         $this->db->where('student_session.session_id', $session_id);
         $this->db->where('students.is_active', 'yes');
         $this->db->group_start();
-        $this->db->like('students.firstname', '');
-        $this->db->or_like('students.lastname', '');
-        $this->db->or_like('students.admission_no', '');
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
         $this->db->group_end();
-        $this->db->order_by('students.admission_no', 'asc');
         $query = $this->db->get();
         $result = array('Male' => 0, 'Female' => 0, 'Other/Unspecified' => 0);
         foreach ($query->result_array() as $row) {
