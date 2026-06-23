@@ -27,6 +27,22 @@
 .btn-action-delete:hover { background:#e74c3c; color:#fff; }
 .btn-action-assign { background:#e8fdf0; color:#27ae60; }
 .btn-action-assign:hover { background:#27ae60; color:#fff; }
+.crud-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.4); z-index:99999; }
+.crud-modal-overlay.show { display:block; }
+.crud-modal { background:#fff; border-radius:12px; max-width:92vw; box-shadow:0 20px 60px rgba(0,0,0,.15); position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.95); opacity:0; transition:transform .25s ease, opacity .25s ease; z-index:100000; max-height:90vh; overflow-y:auto; }
+.crud-modal-overlay.show .crud-modal { transform:translate(-50%,-50%) scale(1); opacity:1; }
+.crud-modal-header { padding:20px 24px 0; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:#fff; z-index:1; border-radius:12px 12px 0 0; }
+.crud-modal-header h3 { margin:0; font-size:17px; font-weight:700; color:#2c3e50; }
+.crud-modal-close { width:32px; height:32px; border-radius:8px; border:none; background:#f5f5f5; cursor:pointer; font-size:16px; color:#666; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.crud-modal-close:hover { background:#e74c3c; color:#fff; }
+.crud-modal-body { padding:20px 24px; }
+.crud-modal-body .form-group { margin-bottom:14px; }
+.crud-modal-body .form-group label { font-weight:600; font-size:13px; color:#495057; }
+.crud-modal-body .form-control { background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; font-size:14px; transition:border-color .2s; }
+.crud-modal-body .form-control:focus { border-color:#5b73e8; background:#fff; }
+.crud-modal-footer { padding:0 24px 20px; display:flex; justify-content:flex-end; gap:10px; position:sticky; bottom:0; background:#fff; border-radius:0 0 12px 12px; }
+.btn-modal-cancel { background:#f5f5f5; color:#666; border:none; border-radius:8px; padding:10px 20px; font-size:14px; font-weight:500; cursor:pointer; }
+.btn-modal-cancel:hover { background:#eee; }
 </style>
 
 <?php $currency_symbol = $this->customlib->getSchoolCurrencyFormat(); ?>
@@ -37,14 +53,28 @@
 
     <section class="content">
         <div class="row">
-            <?php if ($this->rbac->hasPrivilege('fees_master', 'can_add')) { ?>
-                <div class="col-md-3">
-                    <div class="fm-panel">
-                        <div class="fm-panel-header">
-                            <h3><i class="fa fa-plus-circle"></i> <?php echo $this->lang->line('add_fees_master') . " : " . $this->setting_model->getCurrentSessionName(); ?></h3>
+            <div class="col-md-12">
+                <div class="fm-panel">
+                    <div class="fm-list-header">
+                        <h4><i class="fa fa-list-alt"></i> <?php echo $this->lang->line('fees_master_list') . " : " . $this->setting_model->getCurrentSessionName(); ?></h4>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <a href="<?php echo base_url(); ?>admin/feemaster/bulk_import" class="btn-fm-upload"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_import'); ?></a>
+                            <?php if ($this->rbac->hasPrivilege('fees_master', 'can_add')) { ?>
+                            <button class="btn-fm-save" onclick="openAddModal()" type="button"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add_fees_master'); ?></button>
+                            <?php } ?>
                         </div>
-						<form id="form1" action="<?php echo base_url() ?>admin/feemaster/save_data"  name="feemasterform" method="post" accept-charset="utf-8">
-                            <div class="fm-panel-body">
+                    </div>
+
+            <?php if ($this->rbac->hasPrivilege('fees_master', 'can_add')) { ?>
+            <!-- Modal for Add Fees Master -->
+            <div class="crud-modal-overlay" id="crudModal">
+                <div class="crud-modal" style="width:520px;">
+                    <div class="crud-modal-header">
+                        <h3><i class="fa fa-plus-circle" style="color:#5b73e8;margin-right:6px;"></i> <?php echo $this->lang->line('add_fees_master') . " : " . $this->setting_model->getCurrentSessionName(); ?></h3>
+                        <button class="crud-modal-close" onclick="closeModal()">&times;</button>
+                    </div>
+                    <form id="form1" action="<?php echo base_url() ?>admin/feemaster/save_data" name="feemasterform" method="post" accept-charset="utf-8">
+                        <div class="crud-modal-body">
                                 <?php if ($this->session->flashdata('msg')) { ?>
                                     <?php 
                                         echo $this->session->flashdata('msg');
@@ -183,26 +213,15 @@
                                     </div>
                                 </div>
                             </div><!-- /.box-body -->
-                            <div style="padding:0 18px 18px; text-align:right;">
+                            <div class="crud-modal-footer">
+                                <button type="button" class="btn-modal-cancel" onclick="closeModal()"><?php echo $this->lang->line('cancel'); ?></button>
                                 <button type="submit" class="btn-fm-save"><i class="fa fa-check"></i> <?php echo $this->lang->line('save'); ?></button>
                             </div>
                         </form>
                     </div>
-                </div><!--/.col (right) -->
-                <!-- left column -->
+                </div>
             <?php } ?>
-            <div class="col-md-<?php
-            if ($this->rbac->hasPrivilege('fees_master', 'can_add')) {
-                echo "9";
-            } else {
-                echo "12";
-            }
-            ?>">
-                <div class="fm-panel">
-                    <div class="fm-list-header">
-                        <h4><i class="fa fa-list-alt"></i> <?php echo $this->lang->line('fees_master_list') . " : " . $this->setting_model->getCurrentSessionName(); ?></h4>
-                        <a href="<?php echo base_url(); ?>admin/feemaster/bulk_import" class="btn-fm-upload"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_import'); ?></a>
-                    </div>
+
                     <div style="padding:12px;">
                         <div class="download_label"><?php echo $this->lang->line('fees_master_list') . " : " . $this->setting_model->getCurrentSessionName(); ?></div>
                         <div class="mailbox-messages">
@@ -320,18 +339,21 @@
                                                                                                             }
                                                                                                             ?>
                                                                                                     </tbody>                                </table><!-- /.table -->
-                            </div>  
-                        </div><!-- /.mail-box-messages -->
-                    </div><!-- /.box-body -->
-                    </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div><!--/.col (right) -->
-            <!-- left column -->
+            </div>
         </div>
-    </section><!-- /.content -->
-</div><!-- /.content-wrapper -->
+    </section>
+</div>
 
 <script type="text/javascript">
+    $(function(){ $('#crudModal').appendTo('body'); });
+    function openAddModal() { $('#crudModal').addClass('show'); }
+    function closeModal() { $('#crudModal').removeClass('show'); }
+    $(document).on('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+
     $(document).ready(function () {
         var account_type = "<?php echo set_value('account_type', 0); ?>";
         load_disable(account_type);
