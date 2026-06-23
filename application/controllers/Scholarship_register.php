@@ -6,12 +6,13 @@ class Scholarship_register extends CI_Controller
     public function __construct()
     {
         parent::__construct();
+        $this->load->database();
+        $this->load->library('form_validation');
+        $this->load->library('session');
+        $this->load->helper(['url', 'form', 'security']);
+        $this->load->model('Setting_model', 'setting_model');
         $this->load->model('Onlinestudent_model', 'onlinestudent_model');
         $this->load->model('Onlineadmissioncourses_model');
-        $this->load->model('setting_model');
-        $this->load->model('Onlineexam_model', 'onlineexam_model');
-        $this->load->library('form_validation');
-        $this->load->helper('url');
         $this->sch_setting = $this->setting_model->getSetting();
     }
 
