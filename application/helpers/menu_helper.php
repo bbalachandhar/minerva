@@ -135,6 +135,7 @@ if (!function_exists('main_menu_array')) {
                 'onlinestudent'          => array('index','edit'),
                 'admission_cancellation' => array('index'),
                 'waiting_list'           => array('index'),
+                'scholarshipexam'        => array('index','candidates'),
                 'scholarshipapplication' => array('index','view','verify','approve','settings','settings_ajax'),
                 'scholarshiptype'        => array('index','edit'),
                 'meritscholarship'       => array('index','save_score','bulk_upload','assign_single','assign_all','sample_csv'),

@@ -328,7 +328,35 @@ function findOption($questionOpt, $find)
                 </div>
 
                 </div>
-                <div class="row">
+
+                <!-- Scholarship Exam Section -->
+                <div class="row" style="margin-top:8px;">
+                    <div class="col-sm-12">
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
+                            <label class="checkbox-inline" style="font-weight:700; color:#4f46e5;">
+                                <input type="checkbox" class="is_scholarship" name="is_scholarship" value="1">
+                                <i class="fa fa-graduation-cap"></i> Scholarship Exam
+                            </label>
+                            <span style="font-size:11px; color:#94a3b8; margin-left:8px;">Enable this to create a public registration link for external candidates</span>
+                            <div id="scholarship_courses_section" style="display:none; margin-top:10px;">
+                                <label style="font-size:12px; font-weight:600; color:#475569;">Applicable Courses <small class="text-muted">(select which courses this exam covers)</small></label>
+                                <select name="scholarship_courses[]" id="scholarship_courses" class="form-control" multiple="multiple" style="width:100%;">
+                                    <?php
+                                    $this->load->model('Onlineadmissioncourses_model');
+                                    $courses = $this->Onlineadmissioncourses_model->getActiveCourses();
+                                    if (!empty($courses)) {
+                                        foreach ($courses as $course) {
+                                            echo '<option value="' . $course['id'] . '">' . htmlspecialchars($course['course_name']) . ' (' . htmlspecialchars($course['course_code']) . ')</option>';
+                                        }
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:10px;">
                     <div class="col-sm-12">
                         <div class="form-group" >
                             <label for="description"><?php echo $this->lang->line('description'); ?><small class="req"> *</small></label>
@@ -592,6 +620,17 @@ $(document).on('submit','#delete_question',function(e) {
             show: false
         })
 
+        // Scholarship exam toggle
+        $('#scholarship_courses').select2({ placeholder: 'Select courses...', width: '100%' });
+        $(document).on('change', '.is_scholarship', function() {
+            if ($(this).is(':checked')) {
+                $('#scholarship_courses_section').slideDown(200);
+            } else {
+                $('#scholarship_courses_section').slideUp(200);
+                $('#scholarship_courses').val(null).trigger('change');
+            }
+        });
+
         var date_format_js = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'MM', 'Y' => 'yyyy']) ?>';
 
         $(function () {
@@ -606,6 +645,9 @@ $(document).on('submit','#delete_question',function(e) {
         $('#myModal').on('hidden.bs.modal', function () {
             $('.is_quiz').attr('checked', false);
             $('input[name=show_result_immediately]').prop('checked', false);
+            $('input[name=is_scholarship]').prop('checked', false);
+            $('#scholarship_courses').val(null).trigger('change');
+            $('#scholarship_courses_section').hide();
 
             $(this).find(":input, select, textarea")
                     .not('input:checkbox,input:radio')
@@ -760,6 +802,19 @@ $(document).on('submit','#delete_question',function(e) {
 
                         var chk_is_random_question=(data.result.is_random_question == 0)?false:true;
                         $('input[name=is_random_question]').prop('checked',chk_is_random_question);
+
+                        // Scholarship fields
+                        var chk_scholarship = (data.result.is_scholarship == 1);
+                        $('input[name=is_scholarship]').prop('checked', chk_scholarship);
+                        if (chk_scholarship && data.result.scholarship_courses) {
+                            var courseIds = data.result.scholarship_courses.split(',');
+                            $('#scholarship_courses').val(courseIds).trigger('change');
+                            $('#scholarship_courses_section').show();
+                        } else {
+                            $('#scholarship_courses').val(null).trigger('change');
+                            $('#scholarship_courses_section').hide();
+                        }
+
                         $('#myModal').modal('show');
                     }
                     $this.button('reset');

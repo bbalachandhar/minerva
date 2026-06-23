@@ -993,6 +993,9 @@ class Onlineexam extends Admin_Controller
                 'is_random_question' => $is_random_question,
                 'passing_percentage' => $this->input->post('passing_percentage'),
             );
+            $insert_data['is_scholarship'] = isset($_POST['is_scholarship']) ? 1 : 0;
+            $insert_data['scholarship_courses'] = !empty($_POST['scholarship_courses']) ? implode(',', $_POST['scholarship_courses']) : null;
+
             if (isset($_POST['is_quiz']) && $_POST['is_quiz'] != "") {
                 $insert_data['publish_result']              = 0;
                 $insert_data['publish_result_no_answers']   = 0;
