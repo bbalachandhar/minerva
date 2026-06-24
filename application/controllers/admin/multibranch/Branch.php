@@ -579,39 +579,48 @@ class Branch extends MY_Addon_MBController
     private function _mcc_fees_summary($db, $session_id)
     {
         // ── 1. Total billed (tuition + other + hostel; no advance) ────────────
+        // Inner query deduplicates per (student_session, fee_groups_feetype) to
+        // avoid double-counting when a student has multiple sfm rows for the
+        // same fee_session_group (e.g. Balance Master carry-forward).
         $billed_row = $db->query(
-            "SELECT SUM(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS total_billed
-             FROM student_fees_master sfm
-             JOIN student_session ss  ON ss.id  = sfm.student_session_id
-             JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
-             JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
-             JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
-             JOIN feetype ft           ON ft.id  = fgf.feetype_id
-                                      AND LOWER(ft.type) NOT IN ('advance payments')
-             LEFT JOIN student_fee_overrides sfo
-                    ON sfo.student_session_id   = sfm.student_session_id
-                   AND sfo.fee_groups_feetype_id = fgf.id
-             WHERE ss.session_id = ? AND sfm.is_active = 'yes'",
+            "SELECT SUM(billed) AS total_billed FROM (
+                SELECT sfm.student_session_id, fgf.id AS fgf_id,
+                       MAX(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
+                FROM student_fees_master sfm
+                JOIN student_session ss  ON ss.id  = sfm.student_session_id
+                JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
+                JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+                JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+                JOIN feetype ft           ON ft.id  = fgf.feetype_id
+                                          AND LOWER(ft.type) NOT IN ('advance payments')
+                LEFT JOIN student_fee_overrides sfo
+                       ON sfo.student_session_id   = sfm.student_session_id
+                      AND sfo.fee_groups_feetype_id = fgf.id
+                WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+                GROUP BY sfm.student_session_id, fgf.id
+             ) sub",
             [$session_id]
         )->row();
         $total_billed = $billed_row ? (float)$billed_row->total_billed : 0;
 
         // ── 1b. Billed per fee type ──────────────────────────────────────────
         $billed_by_type = $db->query(
-            "SELECT ft.type AS fee_type,
-                    SUM(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
-             FROM student_fees_master sfm
-             JOIN student_session ss  ON ss.id  = sfm.student_session_id
-             JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
-             JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
-             JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
-             JOIN feetype ft           ON ft.id  = fgf.feetype_id
-                                      AND LOWER(ft.type) NOT IN ('advance payments')
-             LEFT JOIN student_fee_overrides sfo
-                    ON sfo.student_session_id   = sfm.student_session_id
-                   AND sfo.fee_groups_feetype_id = fgf.id
-             WHERE ss.session_id = ? AND sfm.is_active = 'yes'
-             GROUP BY ft.type",
+            "SELECT fee_type, SUM(billed) AS billed FROM (
+                SELECT ft.type AS fee_type, sfm.student_session_id, fgf.id AS fgf_id,
+                       MAX(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
+                FROM student_fees_master sfm
+                JOIN student_session ss  ON ss.id  = sfm.student_session_id
+                JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
+                JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+                JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+                JOIN feetype ft           ON ft.id  = fgf.feetype_id
+                                          AND LOWER(ft.type) NOT IN ('advance payments')
+                LEFT JOIN student_fee_overrides sfo
+                       ON sfo.student_session_id   = sfm.student_session_id
+                      AND sfo.fee_groups_feetype_id = fgf.id
+                WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+                GROUP BY ft.type, sfm.student_session_id, fgf.id
+             ) sub GROUP BY fee_type",
             [$session_id]
         )->result();
         $fee_type_billed = [];
@@ -708,21 +717,24 @@ class Branch extends MY_Addon_MBController
     private function _mcc_student_counts($db, $session_id)
     {
         // ── Billed per student_session (with class_id) ────────────────────────
+        // Dedup per (student_session, fgf) first, then sum per student.
         $billed_rows = $db->query(
-            "SELECT sfm.student_session_id AS ss_id, ss.class_id,
-                    SUM(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
-             FROM student_fees_master sfm
-             JOIN student_session ss  ON ss.id  = sfm.student_session_id
-             JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
-             JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
-             JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
-             JOIN feetype ft           ON ft.id  = fgf.feetype_id
-                                      AND LOWER(ft.type) NOT IN ('advance payments')
-             LEFT JOIN student_fee_overrides sfo
-                    ON sfo.student_session_id   = sfm.student_session_id
-                   AND sfo.fee_groups_feetype_id = fgf.id
-             WHERE ss.session_id = ? AND sfm.is_active = 'yes'
-             GROUP BY sfm.student_session_id, ss.class_id",
+            "SELECT ss_id, class_id, SUM(billed) AS billed FROM (
+                SELECT sfm.student_session_id AS ss_id, ss.class_id, fgf.id AS fgf_id,
+                       MAX(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
+                FROM student_fees_master sfm
+                JOIN student_session ss  ON ss.id  = sfm.student_session_id
+                JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
+                JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+                JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+                JOIN feetype ft           ON ft.id  = fgf.feetype_id
+                                          AND LOWER(ft.type) NOT IN ('advance payments')
+                LEFT JOIN student_fee_overrides sfo
+                       ON sfo.student_session_id   = sfm.student_session_id
+                      AND sfo.fee_groups_feetype_id = fgf.id
+                WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+                GROUP BY sfm.student_session_id, ss.class_id, fgf.id
+             ) sub GROUP BY ss_id, class_id",
             [$session_id]
         )->result();
 

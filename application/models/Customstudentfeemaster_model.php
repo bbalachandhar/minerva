@@ -652,12 +652,22 @@ class Customstudentfeemaster_model extends MY_Model
 
     public function getPreviousSessionBalance($student_session_id)
     {
-        $this->db->select('student_fees_master.amount, student_fees_master.id as student_fees_master_id')->from('student_fees_master');
-        $this->db->join('fee_session_groups', 'student_fees_master.fee_session_group_id = fee_session_groups.id');
-        $this->db->join('fee_groups', 'fee_session_groups.fee_groups_id = fee_groups.id');
-        $this->db->where('student_fees_master.student_session_id', $student_session_id);
-        $this->db->where('fee_groups.name', 'Balance Master');
-        $query = $this->db->get();
+        $query = $this->db->query(
+            "SELECT COALESCE(sfo.override_amount, sfm.amount) AS amount,
+                    sfm.id AS student_fees_master_id
+             FROM student_fees_master sfm
+             JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+             JOIN fee_groups fg ON fg.id = fsg.fee_groups_id AND fg.name = 'Balance Master'
+             JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+             JOIN feetype ft ON ft.id = fgf.feetype_id AND ft.type = 'Previous Session Balance'
+             LEFT JOIN student_fee_overrides sfo
+                    ON sfo.student_session_id = sfm.student_session_id
+                   AND sfo.fee_groups_feetype_id = fgf.id
+             WHERE sfm.student_session_id = ?
+             ORDER BY COALESCE(sfo.override_amount, sfm.amount) DESC
+             LIMIT 1",
+            [$student_session_id]
+        );
         $result = $query->row();
         return ($result) ? $result : null;
     }
