@@ -12,7 +12,7 @@
     <div class="box box-primary">
         <div class="box-body">
             <div class="table-responsive" style="overflow-x:auto;">
-                <table class="table table-striped table-bordered table-hover example">
+                <table class="table table-striped table-bordered table-hover" id="candidates-table">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -67,6 +67,17 @@
 </section>
 </div>
 <script>
+$(document).ready(function() {
+    if (!$.fn.DataTable.isDataTable('#candidates-table')) {
+        $('#candidates-table').DataTable({
+            pageLength: 20,
+            dom: 'Bfrtip',
+            buttons: ['copy','excel','csv','pdf','print'],
+            order: [],
+            columnDefs: [{ orderable: false, targets: -1 }]
+        });
+    }
+});
 function removeCandidate(assignmentId, name) {
     if (!confirm('Are you sure you want to remove "' + name + '" from this exam?\n\nThis will also delete their exam results and attempts.')) return;
     $.post('<?php echo site_url("admin/scholarshipexam/remove_candidate"); ?>', {
