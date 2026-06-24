@@ -35,6 +35,9 @@
 /* AdminLTE .logo sits inside header but visually appears above the sidebar.
    Ensure it's not hidden by overflow or height constraints. */
 .mn-header.main-header { overflow: visible !important; }
+/* Content area background */
+.skin-blue .content-wrapper { background: #f8f9fb !important; }
+
 .skin-blue .main-sidebar .sidebar-menu > li.header {
     background: transparent;
     color: #9ca3af;

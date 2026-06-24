@@ -100,27 +100,17 @@ $this->load->view('layout/theme');
     background: #ffffff !important;
     border-right: 1px solid #e5e7eb;
     height: 56px !important;
-    line-height: 56px;
-    padding: 0 12px;
-    width: 200px;
-    overflow: hidden;
+    line-height: 56px !important;
+    padding: 0 12px !important;
+    text-align: center;
 }
 .mn-header.main-header .logo:hover {
     background: #f9fafb !important;
 }
-.mn-header.main-header .logo .logo-mini,
-.mn-header.main-header .logo .logo-lg {
-    display: inline-block;
-    line-height: 56px;
-}
-.mn-header.main-header .logo .logo-mini img,
-.mn-header.main-header .logo .logo-lg img {
-    max-height: 40px;
+.mn-header.main-header .logo img {
+    max-height: 42px !important;
     max-width: 175px;
-    width: auto;
-    height: auto;
-    vertical-align: middle;
-    display: inline-block;
+    vertical-align: middle !important;
 }
 .mn-header .navbar {
     background: #ffffff !important;
