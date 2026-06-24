@@ -14,7 +14,7 @@
    The header (with logo) is also fixed at top:0, height 56px.
    We need to push sidebar content below the header. */
 .mn-sidebar.main-sidebar {
-    padding-top: 56px;
+    padding-top: 0;
 }
 .mn-sidebar .sidebar {
     height: calc(100vh - 56px);
@@ -209,8 +209,21 @@
 .skin-blue .main-sidebar .sidebar-menu > li.active > a > i { color: #6366f1 !important; }
 .skin-blue .main-sidebar .sidebar-menu > li:hover > a > i { color: #6366f1 !important; }
 
-/* Logo area override */
-.skin-blue .main-header .logo { background-color: #ffffff !important; color: #1f2937 !important; border-bottom: none !important; }
+/* Logo area override — hide AdminLTE header logo, we render our own in sidebar */
+.skin-blue .main-header .logo { display: none !important; }
+.skin-blue .mn-header.main-header .navbar { margin-left: 0 !important; }
+
+/* Sidebar logo */
+.mn-sidebar-logo {
+    display: flex; align-items: center; justify-content: center;
+    height: 56px; border-bottom: 1px solid #e5e7eb; background: #ffffff;
+    padding: 0 12px; text-decoration: none;
+}
+.mn-sidebar-logo img { max-height: 42px; max-width: 180px; }
+.sidebar-collapse .mn-sidebar-logo img.mn-logo-full { display: none; }
+.sidebar-collapse .mn-sidebar-logo img.mn-logo-mini { display: inline-block; }
+.mn-sidebar-logo img.mn-logo-mini { display: none; }
+.mn-sidebar-logo img.mn-logo-full { display: inline-block; }
 
 /* ── Mobile ── */
 @media (max-width: 767px) {
@@ -221,6 +234,10 @@
 </style>
 
 <aside class="main-sidebar mn-sidebar" id="alert2">
+    <a href="<?php echo base_url(); ?>admin/admin/dashboard" class="mn-sidebar-logo">
+        <img class="mn-logo-full" src="<?php echo base_url(); ?>uploads/school_content/admin_logo/<?php echo $this->setting_model->getAdminlogo(); ?>" alt="<?php echo $this->customlib->getAppName(); ?>">
+        <img class="mn-logo-mini" src="<?php echo base_url(); ?>uploads/school_content/admin_small_logo/<?php echo $this->setting_model->getAdminsmalllogo(); ?>" alt="<?php echo $this->customlib->getAppName(); ?>">
+    </a>
     <?php if ($this->rbac->hasPrivilege('student', 'can_view')) {?>
         <form class="navbar-form navbar-left search-form2" role="search" action="<?php echo site_url('admin/admin/search'); ?>" method="POST">
             <?php echo $this->customlib->getCSRF(); ?>
