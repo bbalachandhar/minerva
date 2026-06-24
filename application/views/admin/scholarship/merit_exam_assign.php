@@ -157,7 +157,7 @@
                         No applicants found for this filter.
                     </p>
                 <?php else: ?>
-                <table class="table table-bordered table-hover table-striped" id="merit-table"
+                <table class="table table-bordered table-hover table-striped example" id="merit-table"
                        style="white-space:nowrap;">
                     <thead>
                         <tr>
