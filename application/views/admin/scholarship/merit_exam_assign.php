@@ -157,7 +157,7 @@
                         No applicants found for this filter.
                     </p>
                 <?php else: ?>
-                <table class="table table-bordered table-hover table-striped example" id="merit-table"
+                <table class="table table-bordered table-hover table-striped" id="merit-table"
                        style="white-space:nowrap;">
                     <thead>
                         <tr>
@@ -399,5 +399,16 @@ $(document).ready(function () {
         });
     });
 
+});
+
+$(document).ready(function() {
+    if (!$.fn.DataTable.isDataTable('#merit-table')) {
+        $('#merit-table').DataTable({
+            pageLength: 20,
+            dom: 'Bfrtip',
+            buttons: ['copy','excel','csv','pdf','print'],
+            order: []
+        });
+    }
 });
 </script>
