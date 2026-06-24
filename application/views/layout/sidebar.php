@@ -1,11 +1,188 @@
-<aside class="main-sidebar" id="alert2">
+<style>
+/* ── Modern Sidebar ── */
+.mn-sidebar.main-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e5e7eb;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.03);
+    padding-top: 0;
+    z-index: 1040;
+}
+.skin-blue .mn-sidebar.main-sidebar { background: #ffffff; }
+
+/* Hide the old search form inside sidebar */
+.mn-sidebar .navbar-form.search-form2 { display: none; }
+
+/* Session bar (top_sidemenu) */
+.mn-sidebar .sessionul.fixedmenu {
+    margin: 0; padding: 0; list-style: none;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+/* Sidebar section */
+.mn-sidebar .sidebar {
+    padding: 8px 0 20px;
+    background: transparent;
+}
+
+/* ── Menu list ── */
+.mn-sidebar .sidebar-menu {
+    list-style: none; margin: 0; padding: 0;
+}
+.mn-sidebar .sidebar-menu > li {
+    margin: 1px 8px; border-radius: 8px; overflow: hidden;
+    transition: background 0.15s;
+}
+.mn-sidebar .sidebar-menu > li > a {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; color: #4b5563;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.01em;
+    text-decoration: none; border-radius: 8px;
+    transition: all 0.15s;
+    line-height: 1.4;
+}
+.mn-sidebar .sidebar-menu > li > a > i:first-child {
+    width: 20px; text-align: center; font-size: 15px; color: #9ca3af;
+    flex-shrink: 0; transition: color 0.15s;
+}
+.mn-sidebar .sidebar-menu > li > a > span {
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mn-sidebar .sidebar-menu > li > a > .pull-right,
+.mn-sidebar .sidebar-menu > li > a > i.fa-angle-left {
+    font-size: 12px; color: #d1d5db; transition: transform 0.2s, color 0.15s;
+    margin-left: auto; flex-shrink: 0;
+}
+
+/* Hover */
+.mn-sidebar .sidebar-menu > li > a:hover {
+    background: #f3f4f6; color: #1f2937;
+}
+.mn-sidebar .sidebar-menu > li > a:hover > i:first-child { color: #6366f1; }
+
+/* Active parent */
+.mn-sidebar .sidebar-menu > li.active > a {
+    background: #eef2ff; color: #4338ca; font-weight: 600;
+}
+.mn-sidebar .sidebar-menu > li.active > a > i:first-child { color: #6366f1; }
+.mn-sidebar .sidebar-menu > li.active > a > .pull-right,
+.mn-sidebar .sidebar-menu > li.active > a > i.fa-angle-left { color: #6366f1; }
+
+/* Open treeview — rotate arrow */
+.mn-sidebar .sidebar-menu > li.treeview.active > a > i.fa-angle-left,
+.mn-sidebar .sidebar-menu > li.treeview.menu-open > a > i.fa-angle-left {
+    transform: rotate(-90deg);
+}
+
+/* ── Submenu ── */
+.mn-sidebar .treeview-menu {
+    list-style: none; margin: 0; padding: 2px 0 6px 0;
+    background: transparent;
+}
+.mn-sidebar .treeview-menu > li { margin: 0; }
+.mn-sidebar .treeview-menu > li > a {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px 7px 46px; color: #6b7280;
+    font-size: 12.5px; font-weight: 400;
+    text-decoration: none; border-radius: 6px;
+    margin: 0 8px; transition: all 0.15s;
+    line-height: 1.4;
+    position: relative;
+}
+/* Subtle dot instead of double-right arrow */
+.mn-sidebar .treeview-menu > li > a > i.fa-angle-double-right {
+    display: none;
+}
+.mn-sidebar .treeview-menu > li > a::before {
+    content: '';
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #d1d5db; flex-shrink: 0;
+    transition: background 0.15s, transform 0.15s;
+}
+
+/* Submenu hover */
+.mn-sidebar .treeview-menu > li > a:hover {
+    background: #f9fafb; color: #1f2937;
+}
+.mn-sidebar .treeview-menu > li > a:hover::before { background: #6366f1; }
+
+/* Submenu active */
+.mn-sidebar .treeview-menu > li.active > a {
+    color: #4338ca; font-weight: 600; background: #eef2ff;
+}
+.mn-sidebar .treeview-menu > li.active > a::before {
+    background: #6366f1; transform: scale(1.3);
+}
+
+/* Badge in submenu */
+.mn-sidebar .treeview-menu > li > a > .label {
+    margin-left: auto; font-size: 10px; padding: 2px 7px;
+    border-radius: 10px; font-weight: 600; line-height: 1.4;
+}
+
+/* ── Scrollbar ── */
+.mn-sidebar .sidebar::-webkit-scrollbar { width: 4px; }
+.mn-sidebar .sidebar::-webkit-scrollbar-track { background: transparent; }
+.mn-sidebar .sidebar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+.mn-sidebar .sidebar::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+
+/* ── Collapsed sidebar (mini) ── */
+.sidebar-collapse .mn-sidebar.main-sidebar {
+    width: 50px;
+}
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a > span,
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a > .pull-right,
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a > i.fa-angle-left {
+    display: none;
+}
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a {
+    justify-content: center; padding: 12px 0;
+}
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a > i:first-child {
+    font-size: 17px; width: auto; margin: 0;
+}
+.sidebar-collapse .mn-sidebar .sidebar-menu > li { margin: 1px 4px; }
+
+/* Hover flyout for collapsed state */
+.sidebar-collapse .mn-sidebar .sidebar-menu > li:hover > .treeview-menu {
+    display: block !important;
+    position: absolute; left: 50px; top: 0;
+    min-width: 220px; background: #fff;
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    box-shadow: 4px 4px 16px rgba(0,0,0,0.08);
+    padding: 6px 0; z-index: 1050;
+}
+.sidebar-collapse .mn-sidebar .treeview-menu > li > a {
+    padding-left: 16px; margin: 0 4px;
+}
+
+/* ── AdminLTE overrides ── */
+.skin-blue .sidebar-menu > li > a { border-left: none; }
+.skin-blue .sidebar-menu > li.active > a { border-left-color: transparent; }
+.skin-blue .sidebar a { color: inherit; }
+.skin-blue .sidebar-menu > li > .treeview-menu { background: transparent; }
+.skin-blue .sidebar-menu > li.header { display: none; }
+
+/* Override AdminLTE's dark sidebar text */
+.skin-blue .main-sidebar .sidebar-menu > li > a,
+.skin-blue .main-sidebar .sidebar-menu > li > a > span,
+.skin-blue .main-sidebar .sidebar-menu > li > a > i { color: inherit; }
+
+/* ── Mobile ── */
+@media (max-width: 767px) {
+    .mn-sidebar.main-sidebar {
+        box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+    }
+}
+</style>
+
+<aside class="main-sidebar mn-sidebar" id="alert2">
     <?php if ($this->rbac->hasPrivilege('student', 'can_view')) {?>
-        <form class="navbar-form navbar-left search-form2" role="search"  action="<?php echo site_url('admin/admin/search'); ?>" method="POST">
+        <form class="navbar-form navbar-left search-form2" role="search" action="<?php echo site_url('admin/admin/search'); ?>" method="POST">
             <?php echo $this->customlib->getCSRF(); ?>
-            <div class="input-group ">
-                <input type="text"  name="search_text" class="form-control search-form" placeholder="<?php echo $this->lang->line('search_by_student_name'); ?>">
+            <div class="input-group">
+                <input type="text" name="search_text" class="form-control search-form" placeholder="<?php echo $this->lang->line('search_by_student_name'); ?>">
                 <span class="input-group-btn">
-                    <button type="submit" name="search" id="search-btn" style="padding: 3px 12px !important;border-radius: 0px 30px 30px 0px; background: #fff;" class="btn btn-flat"><i class="fa fa-search"></i></button>
+                    <button type="submit" name="search" id="search-btn" class="btn btn-flat"><i class="fa fa-search"></i></button>
                 </span>
             </div>
         </form>
@@ -13,8 +190,8 @@
     <section class="sidebar" id="sibe-box">
         <?php $this->load->view('layout/top_sidemenu');?>
 
-        <ul class="sidebar-menu verttop">	
-					
+        <ul class="sidebar-menu verttop">
+
 <!-- //==================sidebar dynamic======================= -->
 
 <?php
@@ -69,11 +246,9 @@ if (!empty($side_list)) {
             }
         }
         if ($module_access) {
-            // CBSE Examination is only for School (K-12); hide entirely for College/Higher Education
             if ($side_list_value->short_code === 'cbseexam' && $this->sch_setting_detail->institution_type === 'college') {
                 continue;
             }
-            // CoE (Controller of Examinations) is only for College/Higher Education
             if ($side_list_value->short_code === 'coe' && $this->sch_setting_detail->institution_type !== 'college') {
                 continue;
             }
