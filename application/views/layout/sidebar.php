@@ -222,9 +222,9 @@
 .mn-sidebar-logo img { max-height: 42px; max-width: 180px; }
 .mn-sidebar-logo img.mn-logo-full { display: inline-block; }
 .mn-sidebar-logo img.mn-logo-mini { display: none; max-height: 32px; max-width: 32px; }
-.sidebar-collapse .mn-sidebar-logo { padding: 0 4px; width: 50px; }
-.sidebar-collapse .mn-sidebar-logo img.mn-logo-full { display: none !important; }
-.sidebar-collapse .mn-sidebar-logo img.mn-logo-mini { display: inline-block !important; }
+.sidebar-mini.sidebar-collapse .mn-sidebar-logo { padding: 0 !important; width: 50px !important; min-width: 50px; }
+.sidebar-mini.sidebar-collapse .mn-sidebar-logo img.mn-logo-full { display: none !important; }
+.sidebar-mini.sidebar-collapse .mn-sidebar-logo img.mn-logo-mini { display: inline-block !important; max-height: 28px !important; max-width: 28px !important; }
 
 /* ── Mobile ── */
 @media (max-width: 767px) {
