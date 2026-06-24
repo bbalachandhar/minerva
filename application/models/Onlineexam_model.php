@@ -541,10 +541,19 @@ class Onlineexam_model extends MY_model
             return array();
         }
 
+        $exam = $this->get($onlineexam_id);
+
         $this->db->select('online_admissions.id,online_admissions.reference_no,online_admissions.firstname,online_admissions.middlename,online_admissions.lastname,online_admissions.mobileno,online_admissions.email,online_admissions.gender,online_admissions.form_status,online_admissions.paid_status, IFNULL(onlineexam_students.id, 0) as onlineexam_student_id, IFNULL(onlineexam_students.online_admission_id, 0) as onlineexam_student_admission_id');
         $this->db->from('online_admissions');
         $this->db->join('onlineexam_students', 'onlineexam_students.online_admission_id = online_admissions.id and onlineexam_students.onlineexam_id=' . $this->db->escape($onlineexam_id) . ' and onlineexam_students.candidate_type="applicant"', 'left');
         $this->db->where('online_admissions.is_enroll', 0);
+
+        if (!empty($exam['is_scholarship']) && !empty($exam['scholarship_courses'])) {
+            $course_ids = array_map('trim', explode(',', $exam['scholarship_courses']));
+            $this->db->where('online_admissions.source', 'scholarship');
+            $this->db->where_in('online_admissions.admission_course_id', $course_ids);
+        }
+
         $this->db->order_by('online_admissions.id', 'desc');
 
         $query = $this->db->get();
