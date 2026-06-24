@@ -501,6 +501,10 @@ body.skin-blue .main-header .logo {
     height: 56px !important; line-height: 56px !important; overflow: hidden !important;
 }
 body.skin-blue .main-header .logo:hover { background: #f9fafb !important; }
+body.skin-blue .main-header .logo .logo-lg { display: block !important; }
+body.skin-blue .main-header .logo .logo-mini { display: none !important; }
+body.sidebar-mini.sidebar-collapse .main-header .logo .logo-lg { display: none !important; }
+body.sidebar-mini.sidebar-collapse .main-header .logo .logo-mini { display: block !important; }
 body.skin-blue .main-header .logo img { max-height: 42px !important; max-width: 170px !important; width: auto !important; height: auto !important; vertical-align: middle !important; }
 body.skin-blue .main-header .navbar,
 body.skin-blue .main-header > .navbar { background: #fff !important; }
