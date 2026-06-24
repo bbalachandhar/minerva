@@ -501,6 +501,7 @@ body.skin-blue .main-header .navbar,
 body.skin-blue .main-header > .navbar { background: #fff !important; margin-left: 200px !important; }
 body.sidebar-collapse.skin-blue .main-header .navbar,
 body.sidebar-collapse.skin-blue .main-header > .navbar { margin-left: 50px !important; }
+body.sidebar-collapse .mn-header .mn-navbar-inner { padding-left: 16px !important; }
 body.skin-blue .main-header .sidebar-toggle { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; }
 
 /* -- Sidebar: white background, correct text colors -- */
