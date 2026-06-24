@@ -27,7 +27,7 @@ class Studenthealthform extends Admin_Controller
         $data['class_id']   = $class_id;
         $data['section_id'] = $section_id;
         $data['students']   = $this->Student_health_model->getStudentsWithHealthStatus(
-            $this->customlib->getSchoolCurrentSession(),
+            $this->setting_model->getCurrentSession(),
             $class_id,
             $section_id
         );
