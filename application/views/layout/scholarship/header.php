@@ -37,12 +37,15 @@
     <header class="main-header">
         <a href="<?php echo base_url('scholarship_dashboard'); ?>" class="logo" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">
             <span class="logo-mini"><i class="fa fa-graduation-cap"></i></span>
-            <span class="logo-lg"><i class="fa fa-graduation-cap"></i> <?php echo isset($sch_name) ? htmlspecialchars($sch_name) : 'Scholarship'; ?></span>
+            <span class="logo-lg" style="font-size:14px;"><i class="fa fa-graduation-cap"></i> Scholarship</span>
         </a>
         <nav class="navbar navbar-static-top" role="navigation">
             <a onclick="collapseSidebar()" href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
                 <span class="sr-only">Toggle navigation</span>
             </a>
+            <span class="navbar-brand" style="color:#fff;font-weight:700;font-size:16px;padding:15px 10px;">
+                <?php echo isset($sch_name) ? htmlspecialchars($sch_name) : ''; ?>
+            </span>
             <div class="navbar-custom-menu">
                 <ul class="nav navbar-nav">
                     <li class="dropdown user user-menu">
