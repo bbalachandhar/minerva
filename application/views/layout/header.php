@@ -99,17 +99,28 @@ $this->load->view('layout/theme');
 .mn-header.main-header .logo {
     background: #ffffff !important;
     border-right: 1px solid #e5e7eb;
-    height: 56px;
+    height: 56px !important;
     line-height: 56px;
     padding: 0 12px;
+    width: 200px;
+    overflow: hidden;
 }
 .mn-header.main-header .logo:hover {
     background: #f9fafb !important;
 }
+.mn-header.main-header .logo .logo-mini,
+.mn-header.main-header .logo .logo-lg {
+    display: inline-block;
+    line-height: 56px;
+}
 .mn-header.main-header .logo .logo-mini img,
 .mn-header.main-header .logo .logo-lg img {
-    max-height: 38px;
+    max-height: 40px;
+    max-width: 175px;
+    width: auto;
+    height: auto;
     vertical-align: middle;
+    display: inline-block;
 }
 .mn-header .navbar {
     background: #ffffff !important;
