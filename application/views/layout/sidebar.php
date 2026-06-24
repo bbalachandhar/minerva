@@ -9,6 +9,13 @@
 }
 .skin-blue .mn-sidebar.main-sidebar { background: #ffffff; }
 
+/* Sidebar scrollable area — fill below header */
+.mn-sidebar .sidebar {
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 /* Hide the old search form inside sidebar */
 .mn-sidebar .navbar-form.search-form2 { display: none; }
 
@@ -16,6 +23,20 @@
 .mn-sidebar .sessionul.fixedmenu {
     margin: 0; padding: 0; list-style: none;
     border-bottom: 1px solid #f3f4f6;
+}
+
+/* ── Logo visibility fix ── */
+/* AdminLTE .logo sits inside header but visually appears above the sidebar.
+   Ensure it's not hidden by overflow or height constraints. */
+.mn-header.main-header { overflow: visible !important; }
+.skin-blue .main-sidebar .sidebar-menu > li.header {
+    background: transparent;
+    color: #9ca3af;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 22px 6px;
 }
 
 /* Sidebar section */
