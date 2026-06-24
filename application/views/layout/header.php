@@ -96,26 +96,21 @@ $this->load->view('layout/theme');
     overflow: visible;
     z-index: 1030;
 }
-.mn-header.main-header .logo {
+/* Logo is now in sidebar — hide header logo and reclaim its space */
+.mn-header.main-header .logo { display: none !important; width: 0 !important; padding: 0 !important; }
+.mn-header .navbar,
+.mn-header .navbar.navbar-static-top,
+.skin-blue .mn-header .navbar {
     background: #ffffff !important;
-    border-right: 1px solid #e5e7eb;
-    height: 56px !important;
-    line-height: 56px !important;
-    padding: 0 12px !important;
-    text-align: center;
+    min-height: 56px !important;
+    margin-left: 0 !important;
+    float: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    border: none !important;
 }
-.mn-header.main-header .logo:hover {
-    background: #f9fafb !important;
-}
-.mn-header.main-header .logo img {
-    max-height: 42px !important;
-    max-width: 175px;
-    vertical-align: middle !important;
-}
-.mn-header .navbar {
-    background: #ffffff !important;
-    min-height: 56px;
-}
+/* Hide AdminLTE's default sidebar toggle visually but keep in DOM for JS */
+.mn-header .sidebar-toggle { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; }
 
 /* --- Sidebar Toggle --- */
 .mn-header .mn-sidebar-toggle {
@@ -635,9 +630,6 @@ $this->load->view('layout/theme');
     .mn-header .mn-search-form {
         display: none !important;
     }
-    .mn-header.main-header .logo {
-        padding: 0 8px;
-    }
 }
 
 /* --- AdminLTE Overrides for .mn-header --- */
@@ -652,14 +644,6 @@ $this->load->view('layout/theme');
 .mn-header .navbar-nav > li > a:focus {
     color: #1f2937;
     background: transparent;
-}
-.skin-blue .mn-header.main-header .logo {
-    background: #ffffff !important;
-    color: #1f2937;
-    border-bottom: none;
-}
-.skin-blue .mn-header.main-header .logo:hover {
-    background: #f9fafb !important;
 }
 .skin-blue .mn-header.main-header .navbar {
     background: #ffffff !important;
