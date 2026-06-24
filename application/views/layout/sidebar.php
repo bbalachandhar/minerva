@@ -211,7 +211,7 @@
 
 /* Logo area override — hide AdminLTE header logo, we render our own in sidebar */
 .skin-blue .main-header .logo { display: none !important; }
-.skin-blue .mn-header.main-header .navbar { margin-left: 0 !important; }
+/* navbar margin-left handled by modern-override.css */
 
 /* Sidebar logo */
 .mn-sidebar-logo {

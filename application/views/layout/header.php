@@ -103,9 +103,6 @@ $this->load->view('layout/theme');
 .skin-blue .mn-header .navbar {
     background: #ffffff !important;
     min-height: 56px !important;
-    margin-left: 0 !important;
-    float: none !important;
-    width: 100% !important;
     padding: 0 !important;
     border: none !important;
 }

@@ -498,7 +498,9 @@ body .swal2-confirm, body .swal2-cancel { border-radius: 6px; }
 body.skin-blue .main-header { background: #fff !important; border-bottom: 1px solid #e5e7eb !important; box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important; }
 body.skin-blue .main-header .logo { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; padding: 0 !important; }
 body.skin-blue .main-header .navbar,
-body.skin-blue .main-header .navbar.navbar-static-top { background: #fff !important; margin-left: 0 !important; }
+body.skin-blue .main-header > .navbar { background: #fff !important; margin-left: 200px !important; }
+body.sidebar-collapse.skin-blue .main-header .navbar,
+body.sidebar-collapse.skin-blue .main-header > .navbar { margin-left: 50px !important; }
 body.skin-blue .main-header .sidebar-toggle { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; }
 
 /* -- Sidebar: white background, correct text colors -- */
