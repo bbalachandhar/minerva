@@ -582,10 +582,13 @@ class Branch extends MY_Addon_MBController
         // Inner query deduplicates per (student_session, fee_groups_feetype) to
         // avoid double-counting when a student has multiple sfm rows for the
         // same fee_session_group (e.g. Balance Master carry-forward).
+        // For carry-forward fees (fgf.amount IS NULL), use sfm.amount directly
+        // since that's the actual previous-session debt per student.
+        // For regular fees, use override if set, else the template fgf.amount.
         $billed_row = $db->query(
             "SELECT SUM(billed) AS total_billed FROM (
                 SELECT sfm.student_session_id, fgf.id AS fgf_id,
-                       MAX(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
+                       MAX(IF(fgf.amount IS NULL, sfm.amount, COALESCE(sfo.override_amount, fgf.amount))) AS billed
                 FROM student_fees_master sfm
                 JOIN student_session ss  ON ss.id  = sfm.student_session_id
                 JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
@@ -607,7 +610,7 @@ class Branch extends MY_Addon_MBController
         $billed_by_type = $db->query(
             "SELECT fee_type, SUM(billed) AS billed FROM (
                 SELECT ft.type AS fee_type, sfm.student_session_id, fgf.id AS fgf_id,
-                       MAX(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
+                       MAX(IF(fgf.amount IS NULL, sfm.amount, COALESCE(sfo.override_amount, fgf.amount))) AS billed
                 FROM student_fees_master sfm
                 JOIN student_session ss  ON ss.id  = sfm.student_session_id
                 JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
@@ -721,7 +724,7 @@ class Branch extends MY_Addon_MBController
         $billed_rows = $db->query(
             "SELECT ss_id, class_id, SUM(billed) AS billed FROM (
                 SELECT sfm.student_session_id AS ss_id, ss.class_id, fgf.id AS fgf_id,
-                       MAX(COALESCE(sfo.override_amount, fgf.amount, sfm.amount)) AS billed
+                       MAX(IF(fgf.amount IS NULL, sfm.amount, COALESCE(sfo.override_amount, fgf.amount))) AS billed
                 FROM student_fees_master sfm
                 JOIN student_session ss  ON ss.id  = sfm.student_session_id
                 JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
