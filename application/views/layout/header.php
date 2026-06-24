@@ -101,7 +101,7 @@ $this->load->view('layout/theme');
     background: #fff !important; height: 56px !important; line-height: 56px !important;
     border-right: 1px solid #e5e7eb; text-align: center;
 }
-.mn-header.main-header .logo img { max-height: 42px !important; vertical-align: middle !important; }
+.mn-header.main-header .logo img { max-height: 42px !important; max-width: 170px !important; width: auto !important; height: auto !important; vertical-align: middle !important; }
 .mn-header .navbar,
 .mn-header .navbar.navbar-static-top,
 .skin-blue .mn-header .navbar {
