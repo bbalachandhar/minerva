@@ -615,7 +615,13 @@ class Site extends Public_Controller
     {
         // Already logged in? Go straight to dashboard.
         if (!empty($this->session->userdata('validlogin'))) {
-            redirect('public_admission/applicant_dashboard');
+            $ref = $this->session->userdata('validlogin');
+            $src = $this->db->select('source')->where('reference_no', $ref)->get('online_admissions')->row();
+            if (!empty($src) && $src->source === 'scholarship') {
+                redirect('scholarship_dashboard');
+            } else {
+                redirect('public_admission/applicant_dashboard');
+            }
         }
 
         // Minimal school info — single SELECT, no joins.
@@ -641,7 +647,12 @@ class Site extends Public_Controller
 
             if (!empty($applicant)) {
                 $this->session->set_userdata('validlogin', $applicant->reference_no);
-                redirect('public_admission/applicant_dashboard');
+                $source = $this->db->select('source')->where('id', $applicant->id)->get('online_admissions')->row();
+                if (!empty($source) && $source->source === 'scholarship') {
+                    redirect('scholarship_dashboard');
+                } else {
+                    redirect('public_admission/applicant_dashboard');
+                }
             } else {
                 $data['error_message'] = $this->lang->line('invalid_username_or_password');
                 $this->load->view('applicantlogin', $data);

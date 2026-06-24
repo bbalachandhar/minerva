@@ -1,0 +1,111 @@
+<section class="content-header">
+    <h1><i class="fa fa-pencil-square-o"></i> Online Exams</h1>
+    <ol class="breadcrumb">
+        <li><a href="<?php echo base_url('scholarship_dashboard'); ?>"><i class="fa fa-home"></i> Dashboard</a></li>
+        <li class="active">Online Exams</li>
+    </ol>
+</section>
+
+<section class="content">
+    <?php if ($this->session->flashdata('msg')) { echo $this->session->flashdata('msg'); } ?>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="box box-primary">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-list"></i> Assigned Exams</h3>
+                    <div class="box-tools pull-right">
+                        <span class="label label-default">
+                            Ref: <?php echo htmlspecialchars($applicant['reference_no']); ?>
+                        </span>
+                        &nbsp;
+                        <strong><?php echo htmlspecialchars($this->customlib->getFullName($applicant['firstname'], $applicant['middlename'], $applicant['lastname'], $sch_setting->middlename, $sch_setting->lastname)); ?></strong>
+                    </div>
+                </div>
+                <div class="box-body">
+                    <?php if (empty($onlineexam)): ?>
+                        <div class="callout callout-info">
+                            <p><i class="fa fa-info-circle"></i> No exam is assigned to your application yet. Please contact the admission office.</p>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($onlineexam as $exam): ?>
+                            <div class="box box-default" style="margin-bottom:12px;">
+                                <div class="box-body">
+                                    <div class="row">
+                                        <div class="col-sm-9">
+                                            <h4 style="margin-top:0;"><?php echo htmlspecialchars($exam->exam); ?></h4>
+                                            <p class="text-muted" style="font-size:13px; margin-bottom:6px;">
+                                                <i class="fa fa-calendar"></i>
+                                                From: <?php echo $this->customlib->dateyyyymmddToDateTimeformat($exam->exam_from, false); ?>
+                                                &nbsp;&nbsp;To: <?php echo $this->customlib->dateyyyymmddToDateTimeformat($exam->exam_to, false); ?>
+                                                &nbsp;&nbsp;<i class="fa fa-clock-o"></i> Duration: <?php echo htmlspecialchars($exam->duration); ?>
+                                                &nbsp;&nbsp;<i class="fa fa-refresh"></i> Attempts: <?php echo (int)$exam->counter; ?>/<?php echo (int)$exam->attempt; ?>
+                                            </p>
+                                            <?php if (!empty($exam->description)): ?>
+                                                <p style="margin-bottom:0;"><?php echo htmlspecialchars($exam->description); ?></p>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="col-sm-3 text-right" style="padding-top:8px;">
+                                            <?php
+                                                $now_ts      = time();
+                                                $from_ts     = strtotime($exam->exam_from);
+                                                $to_ts       = strtotime($exam->exam_to);
+                                                $not_started = ($now_ts < $from_ts);
+                                                $expired     = ($now_ts >= $to_ts);
+                                                $attempts_used = (int)$exam->counter;
+                                                $attempts_max  = (int)$exam->attempt;
+                                                // can_retake: already attempted, window still open, and retakes remaining (0 = unlimited)
+                                                $can_retake = ($exam->is_attempted == 1) && !$expired && ($attempts_max === 0 || $attempts_used < $attempts_max);
+                                            ?>
+                                            <?php if ((int)$exam->is_attempted === 1 && !$can_retake): ?>
+                                                <span class="label label-success" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;"><i class="fa fa-check"></i> Attempted</span><br>
+                                                <?php if (!empty($exam->publish_result) || !empty($exam->publish_result_no_answers) || ($exam->is_quiz && !empty($exam->show_result_immediately))): ?>
+                                                    <a href="<?php echo site_url('scholarship_dashboard/exam_view/' . $exam->id); ?>" class="btn btn-success btn-sm" style="margin-bottom:6px;">
+                                                        <i class="fa fa-bar-chart"></i> View Result
+                                                    </a><br>
+                                                <?php endif; ?>
+                                            <?php elseif ($can_retake): ?>
+                                                <span class="label label-info" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;">
+                                                    <i class="fa fa-refresh"></i> Attempted (<?php echo $attempts_used; ?>/<?php echo $attempts_max ?: '&infin;'; ?>)
+                                                </span><br>
+                                                <a href="#" class="btn btn-warning btn-sm btn-retake-confirm" style="margin-bottom:6px;"
+                                                   data-url="<?php echo site_url('scholarship_dashboard/exam_view/' . $exam->id); ?>">
+                                                    <i class="fa fa-repeat"></i> Retake Exam
+                                                </a><br>
+                                            <?php elseif ($not_started): ?>
+                                                <span class="label label-warning" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;"><i class="fa fa-clock-o"></i> Not Started Yet</span><br>
+                                            <?php elseif ($expired): ?>
+                                                <span class="label label-danger" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;"><i class="fa fa-times"></i> Exam Closed</span><br>
+                                            <?php else: ?>
+                                                <a href="<?php echo site_url('scholarship_dashboard/exam_view/' . $exam->id); ?>" class="btn btn-primary btn-sm" style="margin-bottom:6px;">
+                                                    <i class="fa fa-pencil"></i> Open Exam
+                                                </a><br>
+                                            <?php endif; ?>
+                                            <a href="<?php echo site_url('scholarship_dashboard/hall_ticket/' . $exam->id); ?>" target="_blank" class="btn btn-default btn-sm">
+                                                <i class="fa fa-print"></i> Hall Ticket
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+(function() {
+    document.querySelectorAll('.btn-retake-confirm').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var url = this.getAttribute('data-url');
+            if (confirm('Warning: Your previously submitted answers will be permanently erased if you retake this exam.\n\nYou will need to answer all questions again from the beginning.\n\nAre you sure you want to retake the exam?')) {
+                window.location.href = url;
+            }
+        });
+    });
+})();
+</script>

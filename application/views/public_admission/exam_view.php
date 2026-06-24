@@ -1,9 +1,9 @@
-
+<?php $pp = isset($portal_prefix) ? $portal_prefix : 'public_admission'; ?>
 <section class="content-header">
     <h1><i class="fa fa-pencil-square-o"></i> Online Exam</h1>
     <ol class="breadcrumb">
-        <li><a href="<?php echo base_url('public_admission/applicant_dashboard'); ?>"><i class="fa fa-home"></i> Dashboard</a></li>
-        <li><a href="<?php echo site_url('public_admission/exam_list'); ?>">Online Exams</a></li>
+        <li><a href="<?php echo base_url($pp == 'scholarship_dashboard' ? 'scholarship_dashboard' : 'public_admission/applicant_dashboard'); ?>"><i class="fa fa-home"></i> Dashboard</a></li>
+        <li><a href="<?php echo site_url($pp . '/exam_list'); ?>">Online Exams</a></li>
         <li class="active"><?php echo htmlspecialchars($exam->exam); ?></li>
     </ol>
 </section>
@@ -352,7 +352,7 @@ if ($online_exam_validate->is_attempted) {
                 </div>
 
             <?php else: ?>
-            <form id="exam_form" method="post" action="<?php echo site_url('public_admission/save_applicant_exam'); ?>" enctype="multipart/form-data">
+            <form id="exam_form" method="post" action="<?php echo site_url('<?php echo $pp; ?>/save_exam'); ?>" enctype="multipart/form-data">
                 <?php echo $this->customlib->getCSRF(); ?>
                 <div id="questiondata"></div>
                 <div id="wait" style="display:none;">Please wait while loading questions...</div>
@@ -396,7 +396,7 @@ if ($online_exam_validate->is_attempted) {
     function loadExam() {
         $.ajax({
             type: 'POST',
-            url: '<?php echo site_url('public_admission/getApplicantExamForm'); ?>',
+            url: '<?php echo site_url('<?php echo $pp; ?>/getExamForm'); ?>',
             data: {'recordid': examid},
             dataType: 'json',
             beforeSend: function() {
@@ -536,7 +536,7 @@ if ($online_exam_validate->is_attempted) {
 
     // Warn before leaving page while exam is in progress
     var examSubmitting = false;
-    var dashboardUrl   = '<?php echo site_url("public_admission/applicant_dashboard"); ?>';
+    var dashboardUrl   = '<?php echo site_url($pp == "scholarship_dashboard" ? "scholarship_dashboard" : "public_admission/applicant_dashboard"); ?>';
 
     window.onbeforeunload = function() {
         if (!examSubmitting && !isAttempted) {
@@ -580,7 +580,7 @@ if ($online_exam_validate->is_attempted) {
         clearInterval(timerInterval);
         var formData = new FormData($('#exam_form')[0]);
         $.ajax({
-            url:         '<?php echo site_url("public_admission/save_applicant_exam"); ?>',
+            url:         '<?php echo site_url("<?php echo $pp; ?>/save_exam"); ?>',
             type:        'POST',
             data:        formData,
             processData: false,

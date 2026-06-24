@@ -1671,6 +1671,9 @@ class Public_admission extends Front_Controller
         }
     }
 
+    public function save_exam() { $this->save_applicant_exam(); }
+    public function getExamForm() { $this->getApplicantExamForm(); }
+
     /**
      * Applicant dashboard - main portal page
      */
