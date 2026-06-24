@@ -9,7 +9,13 @@
 }
 .skin-blue .mn-sidebar.main-sidebar { background: #ffffff; }
 
-/* Sidebar scrollable area — fill below header */
+/* Sidebar scrollable area — fill below header.
+   In AdminLTE fixed mode, sidebar is position:fixed and starts at top:0.
+   The header (with logo) is also fixed at top:0, height 56px.
+   We need to push sidebar content below the header. */
+.mn-sidebar.main-sidebar {
+    padding-top: 56px;
+}
 .mn-sidebar .sidebar {
     height: calc(100vh - 56px);
     overflow-y: auto;
@@ -377,7 +383,6 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
         }
     }
 }
-?>
 ?>
         <!-- //==================sidebar dynamic======================= -->
 
