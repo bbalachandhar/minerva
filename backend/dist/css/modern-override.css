@@ -494,14 +494,16 @@ body .swal2-confirm, body .swal2-cancel { border-radius: 6px; }
    These MUST be here (last-loaded CSS) to beat AdminLTE + skin-blue.
    ========================================================================== */
 
-/* -- Header: white, full-width navbar, no AdminLTE logo -- */
+/* -- Header: white, AdminLTE logo restored -- */
 body.skin-blue .main-header { background: #fff !important; border-bottom: 1px solid #e5e7eb !important; box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important; }
-body.skin-blue .main-header .logo { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; padding: 0 !important; }
+body.skin-blue .main-header .logo {
+    background: #fff !important; color: #1f2937 !important; border-bottom: none !important;
+    height: 56px !important; line-height: 56px !important; overflow: hidden !important;
+}
+body.skin-blue .main-header .logo:hover { background: #f9fafb !important; }
+body.skin-blue .main-header .logo img { max-height: 42px !important; vertical-align: middle !important; }
 body.skin-blue .main-header .navbar,
-body.skin-blue .main-header > .navbar { background: #fff !important; margin-left: 200px !important; }
-body.sidebar-collapse.skin-blue .main-header .navbar,
-body.sidebar-collapse.skin-blue .main-header > .navbar { margin-left: 50px !important; }
-body.sidebar-collapse .mn-header .mn-navbar-inner { padding-left: 16px !important; }
+body.skin-blue .main-header > .navbar { background: #fff !important; }
 body.skin-blue .main-header .sidebar-toggle { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; }
 
 /* -- Sidebar: white background, correct text colors -- */
@@ -520,13 +522,8 @@ body.skin-blue .treeview-menu > li > a { color: #6b7280 !important; }
 body.skin-blue .treeview-menu > li > a:hover { color: #1f2937 !important; }
 body.skin-blue .treeview-menu > li.active > a { color: #4338ca !important; }
 
-/* -- Sidebar logo -- */
-.mn-sidebar-logo { display: flex !important; align-items: center !important; justify-content: center !important; height: 56px !important; }
-.mn-sidebar-logo img.mn-logo-full { display: inline-block !important; }
-.mn-sidebar-logo img.mn-logo-mini { display: none !important; }
-body.sidebar-mini.sidebar-collapse .mn-sidebar-logo { width: 50px !important; padding: 0 !important; overflow: visible !important; }
-body.sidebar-mini.sidebar-collapse .mn-sidebar-logo img.mn-logo-full { display: none !important; }
-body.sidebar-mini.sidebar-collapse .mn-sidebar-logo img.mn-logo-mini { display: inline-block !important; max-height: 28px !important; max-width: 28px !important; }
+/* -- Sidebar logo is hidden (using AdminLTE header logo instead) -- */
+.mn-sidebar-logo { display: none !important; }
 
 /* -- Footer: white, full width under content -- */
 body .main-footer { background: #fff !important; border-top: 1px solid #e5e7eb !important; color: #9ca3af !important; font-size: 12px !important; padding: 10px 20px !important; text-align: right !important; }

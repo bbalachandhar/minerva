@@ -96,8 +96,12 @@ $this->load->view('layout/theme');
     overflow: visible;
     z-index: 1030;
 }
-/* Logo is now in sidebar — hide header logo and reclaim its space */
-.mn-header.main-header .logo { display: none !important; width: 0 !important; padding: 0 !important; }
+/* Logo — AdminLTE handles positioning above sidebar */
+.mn-header.main-header .logo {
+    background: #fff !important; height: 56px !important; line-height: 56px !important;
+    border-right: 1px solid #e5e7eb; text-align: center;
+}
+.mn-header.main-header .logo img { max-height: 42px !important; vertical-align: middle !important; }
 .mn-header .navbar,
 .mn-header .navbar.navbar-static-top,
 .skin-blue .mn-header .navbar {
@@ -150,7 +154,7 @@ $this->load->view('layout/theme');
     display: flex;
     align-items: center;
     height: 56px;
-    padding: 0 16px 0 46px;
+    padding: 0 16px;
     gap: 8px;
 }
 

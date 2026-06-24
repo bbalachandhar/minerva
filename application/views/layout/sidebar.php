@@ -14,7 +14,7 @@
    The header (with logo) is also fixed at top:0, height 56px.
    We need to push sidebar content below the header. */
 .mn-sidebar.main-sidebar {
-    padding-top: 0;
+    padding-top: 56px;
 }
 .mn-sidebar .sidebar {
     height: calc(100vh - 56px);
@@ -209,9 +209,9 @@
 .skin-blue .main-sidebar .sidebar-menu > li.active > a > i { color: #6366f1 !important; }
 .skin-blue .main-sidebar .sidebar-menu > li:hover > a > i { color: #6366f1 !important; }
 
-/* Logo area override — hide AdminLTE header logo, we render our own in sidebar */
-.skin-blue .main-header .logo { display: none !important; }
-/* navbar margin-left handled by modern-override.css */
+/* Logo area — use AdminLTE header logo (white bg) */
+.skin-blue .main-header .logo { background: #fff !important; color: #1f2937 !important; border-bottom: none !important; }
+.skin-blue .main-header .logo:hover { background: #f9fafb !important; }
 
 /* Sidebar logo */
 .mn-sidebar-logo {
