@@ -39,7 +39,7 @@
             <?php }
         } ?>
         <?php if ($this->customlib->is_biometricAttendence() && $this->rbac->hasPrivilege('biometric_attendance_log', 'can_view')) { ?>
-        <a href="<?php echo site_url('attendencereports/biometric_attlog'); ?>" class="report-tile <?php echo set_SubSubmenu('Reports/attendence/biometric_attlog'); ?>"><span class="tile-icon"><i class="fa fa-fingerprint"></i></span> <?php echo $this->lang->line('biometric_attendance_log'); ?></a>
+        <a href="<?php echo site_url('attendencereports/biometric_attlog'); ?>" class="report-tile <?php echo set_SubSubmenu('Reports/attendence/biometric_attlog'); ?>"><span class="tile-icon"><i class="fa fa-hand-paper-o"></i></span> <?php echo $this->lang->line('biometric_attendance_log'); ?></a>
         <?php } ?>
     </div>
 </div>

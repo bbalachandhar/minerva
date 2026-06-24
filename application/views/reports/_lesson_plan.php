@@ -23,7 +23,7 @@
         </a>
         <?php } if ($this->rbac->hasPrivilege('teacher_syllabus_status_report', 'can_view')) { ?>
         <a href="<?php echo base_url(); ?>report/teachersyllabusstatus" class="report-tile <?php echo set_SubSubmenu('Reports/lesson_plan/teachersyllabusstatus'); ?>">
-            <span class="tile-icon"><i class="fa fa-chalkboard-teacher"></i></span> <?php echo $this->lang->line('subject_lesson_plan_report'); ?>
+            <span class="tile-icon"><i class="fa fa-file-text"></i></span> <?php echo $this->lang->line('subject_lesson_plan_report'); ?>
         </a>
         <?php } ?>
     </div>
