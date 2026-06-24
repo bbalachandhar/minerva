@@ -259,6 +259,10 @@
                     'cutoff_marks'    => isset($cutoff_marks)    ? $cutoff_marks    : '',
                 );
                 ?>
+                <?php
+                $is_barch_review = (isset($applied_course_name) && stripos($applied_course_name, 'ARCH') !== false);
+                ?>
+                <?php if (!$is_barch_review): ?>
                 <table class="table table-bordered">
                     <thead><tr><th>Subject</th><th>Marks Obtained</th><th>Maximum Marks</th><th>Percentage</th></tr></thead>
                     <tbody>
@@ -267,27 +271,36 @@
                         <tr><td>Chemistry (C)</td><td><?php echo isset($hsc_details['chemistry_marks']) ? $hsc_details['chemistry_marks'] : ''; ?></td><td><?php echo isset($hsc_details['total_chemistry']) ? $hsc_details['total_chemistry'] : ''; ?></td><td><?php echo isset($hsc_details['chemistry_perc']) ? $hsc_details['chemistry_perc'] : ''; ?><?php if(isset($hsc_details['chemistry_perc']) && $hsc_details['chemistry_perc'] != '') echo '%'; ?></td></tr>
                     </tbody>
                 </table>
+                <?php endif; ?>
             </div>
             <div class="section-card">
+                <?php if ($is_barch_review): ?>
+                <h5 class="mb-3">B.ARCH Score Details</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><span class="data-label">NATA Score:</span> <span class="data-value" style="font-size:16px;font-weight:700;color:#4f46e5;"><?php echo isset($nata_details['nata_score']) ? $nata_details['nata_score'] : 'N/A'; ?></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><span class="data-label">HSC Total Score:</span> <span class="data-value" style="font-size:16px;font-weight:700;"><?php echo isset($hsc_marks_obtained) ? $hsc_marks_obtained : ''; ?> / <?php echo isset($hsc_total_marks) ? $hsc_total_marks : ''; ?></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><span class="data-label">Cut Off: NATA + (Obtained/Total)×200:</span> <span class="data-value" style="font-size:16px;font-weight:700;color:#e74c3c;"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
+                    </div>
+                </div>
+                <?php else: ?>
                 <h5 class="mb-3">Calculated Values</h5>
                 <div class="row">
                     <div class="col-md-6">
                         <p><span class="data-label">Average Marks (P+C+M)/3:</span> <span class="data-value"><?php echo isset($hsc_details['average_marks']) ? $hsc_details['average_marks'] : ''; ?></span></p>
                     </div>
-                    <?php
-                    $is_barch_review = (isset($course_name) && stripos($course_name, 'ARCH') !== false);
-                    ?>
                     <div class="col-md-6">
-                        <?php if ($is_barch_review): ?>
-                        <p><span class="data-label">Cut Off: NATA + (Obtained/Total)×200:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
-                        <?php else: ?>
                         <p><span class="data-label">Cut Off Marks (P+C)/2 + M:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
-                        <?php endif; ?>
                     </div>
                 </div>
+                <?php endif; ?>
             </div>
                 <?php
-                $is_barch_course = (isset($course_name) && stripos($course_name, 'ARCH') !== false);
+                $is_barch_course = (isset($applied_course_name) && stripos($applied_course_name, 'ARCH') !== false);
                 $has_nata_data = (
                     isset($nata_details) &&
                     is_array($nata_details) &&
