@@ -8,10 +8,10 @@
 <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/font-awesome.min.css">
 <style>
 body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; }
-.reg-header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; padding: 24px 0; text-align: center; }
-.reg-header h1 { font-size: 22px; font-weight: 800; margin: 0; }
-.reg-header p { font-size: 13px; opacity: 0.85; margin: 4px 0 0; }
-.reg-logo { max-height: 60px; margin-bottom: 10px; }
+.reg-header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; padding: 36px 0 50px; text-align: center; }
+.reg-header h1 { font-size: 26px; font-weight: 800; margin: 0; }
+.reg-header p { font-size: 16px; opacity: 1; margin: 8px 0 0; font-weight: 600; }
+.reg-logo { max-height: 100px; margin-bottom: 14px; }
 .reg-card { max-width: 650px; margin: -30px auto 40px; background: #fff; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); padding: 32px 36px; position: relative; z-index: 1; }
 .reg-card h2 { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 20px; }
 .form-group label { font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; }

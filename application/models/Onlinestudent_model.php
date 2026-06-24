@@ -202,6 +202,7 @@ class Onlinestudent_model extends MY_Model
             $this->datatables->sort('online_admissions.id','desc');
             // Exclude cancelled admissions from this list — they appear on the Revoked Admissions page
             $this->datatables->where("COALESCE(online_admissions.admission_status, 'active') != 'cancelled'", null, false);
+            $this->datatables->where("COALESCE(online_admissions.source, '') != 'scholarship'", null, false);
             if ($admission_status_filter === 'waiting_list') {
                 $this->datatables->where("online_admissions.admission_status = 'waiting_list'", null, false);
             }
