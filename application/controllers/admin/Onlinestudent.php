@@ -91,6 +91,51 @@ class Onlinestudent extends Admin_Controller
         echo json_encode(['status' => 'success', 'new_status' => $new_status]);
     }
 
+    public function get_scholarship_exams()
+    {
+        $exams = $this->db->select('id, exam')
+            ->where('is_scholarship', 1)
+            ->where('is_active', 1)
+            ->order_by('exam_from', 'DESC')
+            ->get('onlineexam')->result();
+        echo json_encode($exams);
+    }
+
+    public function assign_to_exam()
+    {
+        if (!$this->rbac->hasPrivilege('scholarship_exam', 'can_edit')) {
+            echo json_encode(['status' => 'error', 'message' => 'Access denied']);
+            return;
+        }
+
+        $admission_id = (int) $this->input->post('admission_id');
+        $exam_id      = (int) $this->input->post('exam_id');
+
+        if ($admission_id <= 0 || $exam_id <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid input']);
+            return;
+        }
+
+        $exists = $this->db->where('onlineexam_id', $exam_id)
+            ->where('online_admission_id', $admission_id)
+            ->where('candidate_type', 'applicant')
+            ->get('onlineexam_students')->row();
+
+        if ($exists) {
+            echo json_encode(['status' => 'error', 'message' => 'Already assigned to this exam']);
+            return;
+        }
+
+        $this->db->insert('onlineexam_students', [
+            'onlineexam_id'       => $exam_id,
+            'online_admission_id' => $admission_id,
+            'candidate_type'      => 'applicant',
+            'is_attempted'        => 0,
+        ]);
+
+        echo json_encode(['status' => 'success', 'message' => 'Applicant assigned to exam successfully']);
+    }
+
     public function edit($id)
     {
         if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
@@ -599,6 +644,11 @@ class Onlinestudent extends Admin_Controller
                     } else {
                         $action_items[] = "<li><a href='#' onclick='toggleWaitingList(" . $value->id . ")'><i class='fa fa-clock-o fa-fw' style='color:#f39c12'></i> Move to Waiting List</a></li>";
                     }
+                }
+
+                // Assign to Scholarship Exam
+                if (!$value->is_enroll && $this->rbac->hasPrivilege('scholarship_exam', 'can_edit')) {
+                    $action_items[] = "<li><a href='#' onclick='openAssignExamModal(" . $value->id . ", " . json_encode($this->customlib->getFullName($value->firstname, $value->middlename ?? '', $value->lastname, $sch_setting->middlename, $sch_setting->lastname)) . ")'><i class='fa fa-graduation-cap fa-fw' style='color:#4f46e5'></i> Assign to Scholarship Exam</a></li>";
                 }
 
                 if (!empty($value->created_at)) {
