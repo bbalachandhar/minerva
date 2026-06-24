@@ -2200,6 +2200,7 @@ class Report extends Admin_Controller
         $data['categorylist']    = $category;
         $data['communitylist']   = $this->student_model->getCommunityList();
         $this->load->view('layout/header', $data);
+        $this->load->view('reports/communitybasedreport', $data);
         $this->load->view('layout/footer', $data);
     }
 
