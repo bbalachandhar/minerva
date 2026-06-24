@@ -2421,10 +2421,11 @@ class Student_model extends MY_Model
         $staff_id = $userdata['id'];
 
         $i             = 1;
+        $class_section_array = array();
         $custom_fields = $this->customfield_model->get_custom_fields('students', 1);
-        if (($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes") && (empty($class_section_array))) {
+        if (($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes")) {
             $class_section_array = $this->customlib->get_myClassSection();
-        }      
+        }
 
         $field_var_array      = array();
         $field_var_array_name = array();
