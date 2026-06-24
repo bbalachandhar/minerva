@@ -66,14 +66,13 @@ class Scholarshipexam extends Admin_Controller
         }
 
         $candidates = $this->db
-            ->select('oa.id, oa.reference_no, oa.firstname, oa.lastname, oa.mobileno, oa.email, oa.created_at, oa.previous_school, oac.course_name, oac.course_code, es.is_attempted, es.rank')
+            ->select('oa.id, oa.reference_no, oa.firstname, oa.lastname, oa.mobileno, oa.email, oa.source, oa.created_at, oa.previous_school, oac.course_name, oac.course_code, es.id as assignment_id, es.is_attempted, es.rank')
             ->from('onlineexam_students es')
             ->join('online_admissions oa', 'oa.id = es.online_admission_id')
             ->join('online_admission_courses oac', 'oac.id = oa.admission_course_id', 'left')
             ->where('es.onlineexam_id', $exam_id)
             ->where('es.candidate_type', 'applicant')
-            ->where('oa.source', 'scholarship')
-            ->order_by('oa.id', 'DESC')
+            ->order_by('oa.firstname', 'ASC')
             ->get()->result();
 
         $data['title']      = 'Scholarship Candidates — ' . $exam->exam;
@@ -84,5 +83,31 @@ class Scholarshipexam extends Admin_Controller
         $this->load->view('layout/header', $data);
         $this->load->view('admin/scholarshipexam/candidates', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+    public function remove_candidate()
+    {
+        if (!$this->rbac->hasPrivilege('scholarship_exam', 'can_delete')) {
+            echo json_encode(['status' => 'error', 'message' => 'Access denied']);
+            return;
+        }
+
+        $assignment_id = (int) $this->input->post('assignment_id');
+        if ($assignment_id <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid input']);
+            return;
+        }
+
+        $row = $this->db->where('id', $assignment_id)->where('candidate_type', 'applicant')->get('onlineexam_students')->row();
+        if (!$row) {
+            echo json_encode(['status' => 'error', 'message' => 'Assignment not found']);
+            return;
+        }
+
+        $this->db->where('onlineexam_student_id', $assignment_id)->delete('onlineexam_student_results');
+        $this->db->where('onlineexam_student_id', $assignment_id)->delete('onlineexam_attempts');
+        $this->db->where('id', $assignment_id)->delete('onlineexam_students');
+
+        echo json_encode(['status' => 'success', 'message' => 'Candidate removed successfully']);
     }
 }
