@@ -527,8 +527,8 @@ $form_status_class = ($student['form_status'] == 1) ? 'ea-badge--success' : 'ea-
                                 </tr>
                                 <tr id="barch_hsc_row" style="display:none;">
                                     <td class="ea-subject">Total (HSC) <span class="ea-req">*</span><br><small style="font-weight:400;color:var(--ea-text-light);">All subjects combined</small></td>
-                                    <td><input type="number" step="1" min="1" class="form-control" id="hsc_total_marks" name="hsc_total_marks" value="<?php echo set_value('hsc_total_marks', isset($student['hsc_total_marks']) ? $student['hsc_total_marks'] : ''); ?>"></td>
-                                    <td><input type="number" step="1" min="0" class="form-control" id="hsc_marks_obtained" name="hsc_marks_obtained" value="<?php echo set_value('hsc_marks_obtained', isset($student['hsc_marks_obtained']) ? $student['hsc_marks_obtained'] : ''); ?>"></td>
+                                    <td><input type="number" step="1" min="1" class="form-control" id="hsc_total_marks" name="hsc_total_marks" placeholder="Total marks" value="<?php echo set_value('hsc_total_marks', isset($student['hsc_total_marks']) ? $student['hsc_total_marks'] : ''); ?>"></td>
+                                    <td><input type="number" step="1" min="0" class="form-control" id="hsc_marks_obtained" name="hsc_marks_obtained" placeholder="Marks obtained" value="<?php echo set_value('hsc_marks_obtained', isset($student['hsc_marks_obtained']) ? $student['hsc_marks_obtained'] : ''); ?>"></td>
                                     <td></td>
                                 </tr>
                                 <tr class="ea-row-highlight">
