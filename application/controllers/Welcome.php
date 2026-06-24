@@ -825,6 +825,8 @@ class Welcome extends Front_Controller
             $this->data['school_name_xii'] = isset($result['school_name_xii']) ? $result['school_name_xii'] : null;
             $this->data['passing_year_x'] = isset($result['passing_year_x']) ? $result['passing_year_x'] : null;
             $this->data['tenth_marks_percentage'] = isset($result['tenth_marks_percentage']) ? $result['tenth_marks_percentage'] : null;
+            $this->data['hsc_marks_obtained'] = isset($result['hsc_marks_obtained']) ? $result['hsc_marks_obtained'] : null;
+            $this->data['hsc_total_marks'] = isset($result['hsc_total_marks']) ? $result['hsc_total_marks'] : null;
             $this->data['reference_no']    = $result['reference_no'];
             $this->data['transaction_id']  = $this->customlib->gettransactionid($result['id']);
             $this->data['transaction_paid_amount']  = $this->customlib->gettransactionpaidamount($result['id']);

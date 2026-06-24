@@ -240,11 +240,8 @@
                     </div>
                 </div>
             </div>
-            <div class="section-card">
-                <h5 class="mb-3">HSC Examination Details</h5>
                 <?php
-                // Always use the controller-merged mark variables (online_admission_ug_details
-                // table only stores school_name_x/passing_year_x, not HSC marks).
+                $is_barch_review = (isset($applied_course_name) && stripos($applied_course_name, 'ARCH') !== false);
                 $hsc_details = array(
                     'maths_marks'     => isset($maths_marks)     ? $maths_marks     : '',
                     'total_maths'     => isset($total_maths)     ? $total_maths     : '',
@@ -259,65 +256,53 @@
                     'cutoff_marks'    => isset($cutoff_marks)    ? $cutoff_marks    : '',
                 );
                 ?>
-                <?php
-                $is_barch_review = (isset($applied_course_name) && stripos($applied_course_name, 'ARCH') !== false);
-                ?>
-                <?php if (!$is_barch_review): ?>
+                <?php if ($is_barch_review): ?>
+            </div>
+            <div class="section-card">
+                <h5 class="mb-3">B.ARCH Score Details</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <p><span class="data-label">NATA Score:</span><br><span class="data-value" style="font-size:20px;font-weight:700;color:#4f46e5;"><?php echo isset($nata_details['nata_score']) ? $nata_details['nata_score'] : 'N/A'; ?></span></p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><span class="data-label">HSC Total Score:</span><br><span class="data-value" style="font-size:20px;font-weight:700;"><?php echo isset($hsc_marks_obtained) ? number_format((float)$hsc_marks_obtained, 2) : '0'; ?> / <?php echo isset($hsc_total_marks) ? number_format((float)$hsc_total_marks, 2) : '0'; ?></span></p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><span class="data-label">Cut Off: NATA + (Obtained/Total)×200:</span><br><span class="data-value" style="font-size:20px;font-weight:700;color:#e74c3c;"><?php echo !empty($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : 'N/A'; ?></span></p>
+                    </div>
+                </div>
+                <?php if (isset($nata_details) && is_array($nata_details) && !empty($nata_details['application_number'])): ?>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col-md-4">
+                        <p><span class="data-label">NATA Application No:</span> <span class="data-value"><?php echo $nata_details['application_number']; ?></span></p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><span class="data-label">NATA Year:</span> <span class="data-value"><?php echo $nata_details['nata_year']; ?></span></p>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+                <?php else: ?>
                 <table class="table table-bordered">
                     <thead><tr><th>Subject</th><th>Marks Obtained</th><th>Maximum Marks</th><th>Percentage</th></tr></thead>
                     <tbody>
-                        <tr><td>Maths (M)</td><td><?php echo isset($hsc_details['maths_marks']) ? $hsc_details['maths_marks'] : ''; ?></td><td><?php echo isset($hsc_details['total_maths']) ? $hsc_details['total_maths'] : ''; ?></td><td><?php echo isset($hsc_details['maths_perc']) ? $hsc_details['maths_perc'] : ''; ?><?php if(isset($hsc_details['maths_perc']) && $hsc_details['maths_perc'] != '') echo '%'; ?></td></tr>
-                        <tr><td>Physics (P)</td><td><?php echo isset($hsc_details['physics_marks']) ? $hsc_details['physics_marks'] : ''; ?></td><td><?php echo isset($hsc_details['total_physics']) ? $hsc_details['total_physics'] : ''; ?></td><td><?php echo isset($hsc_details['physics_perc']) ? $hsc_details['physics_perc'] : ''; ?><?php if(isset($hsc_details['physics_perc']) && $hsc_details['physics_perc'] != '') echo '%'; ?></td></tr>
-                        <tr><td>Chemistry (C)</td><td><?php echo isset($hsc_details['chemistry_marks']) ? $hsc_details['chemistry_marks'] : ''; ?></td><td><?php echo isset($hsc_details['total_chemistry']) ? $hsc_details['total_chemistry'] : ''; ?></td><td><?php echo isset($hsc_details['chemistry_perc']) ? $hsc_details['chemistry_perc'] : ''; ?><?php if(isset($hsc_details['chemistry_perc']) && $hsc_details['chemistry_perc'] != '') echo '%'; ?></td></tr>
+                        <tr><td>Maths (M)</td><td><?php echo $hsc_details['maths_marks']; ?></td><td><?php echo $hsc_details['total_maths']; ?></td><td><?php echo $hsc_details['maths_perc']; ?><?php if($hsc_details['maths_perc'] != '') echo '%'; ?></td></tr>
+                        <tr><td>Physics (P)</td><td><?php echo $hsc_details['physics_marks']; ?></td><td><?php echo $hsc_details['total_physics']; ?></td><td><?php echo $hsc_details['physics_perc']; ?><?php if($hsc_details['physics_perc'] != '') echo '%'; ?></td></tr>
+                        <tr><td>Chemistry (C)</td><td><?php echo $hsc_details['chemistry_marks']; ?></td><td><?php echo $hsc_details['total_chemistry']; ?></td><td><?php echo $hsc_details['chemistry_perc']; ?><?php if($hsc_details['chemistry_perc'] != '') echo '%'; ?></td></tr>
                     </tbody>
                 </table>
-                <?php endif; ?>
             </div>
             <div class="section-card">
-                <?php if ($is_barch_review): ?>
-                <h5 class="mb-3">B.ARCH Score Details</h5>
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><span class="data-label">NATA Score:</span> <span class="data-value" style="font-size:16px;font-weight:700;color:#4f46e5;"><?php echo isset($nata_details['nata_score']) ? $nata_details['nata_score'] : 'N/A'; ?></span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><span class="data-label">HSC Total Score:</span> <span class="data-value" style="font-size:16px;font-weight:700;"><?php echo isset($hsc_marks_obtained) ? $hsc_marks_obtained : ''; ?> / <?php echo isset($hsc_total_marks) ? $hsc_total_marks : ''; ?></span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><span class="data-label">Cut Off: NATA + (Obtained/Total)×200:</span> <span class="data-value" style="font-size:16px;font-weight:700;color:#e74c3c;"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
-                    </div>
-                </div>
-                <?php else: ?>
                 <h5 class="mb-3">Calculated Values</h5>
                 <div class="row">
                     <div class="col-md-6">
-                        <p><span class="data-label">Average Marks (P+C+M)/3:</span> <span class="data-value"><?php echo isset($hsc_details['average_marks']) ? $hsc_details['average_marks'] : ''; ?></span></p>
+                        <p><span class="data-label">Average Marks (P+C+M)/3:</span> <span class="data-value"><?php echo $hsc_details['average_marks']; ?></span></p>
                     </div>
                     <div class="col-md-6">
-                        <p><span class="data-label">Cut Off Marks (P+C)/2 + M:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
+                        <p><span class="data-label">Cut Off Marks (P+C)/2 + M:</span> <span class="data-value"><?php echo $hsc_details['cutoff_marks']; ?></span></p>
                     </div>
                 </div>
-                <?php endif; ?>
             </div>
-                <?php
-                $is_barch_course = (isset($applied_course_name) && stripos($applied_course_name, 'ARCH') !== false);
-                $has_nata_data = (
-                    isset($nata_details) &&
-                    is_array($nata_details) &&
-                    (
-                        !empty($nata_details['nata_score']) ||
-                        !empty($nata_details['application_number']) ||
-                        !empty($nata_details['nata_year'])
-                    )
-                );
-                ?>
-                <?php if ($is_barch_course && $has_nata_data): ?>
-                <div class="section-card">
-                    <h5 class="mb-2">NATA Score</h5>
-                    <p><span class="data-label">NATA Score %:</span> <span class="data-value"><?php echo $nata_details['nata_score']; ?></span></p>
-                    <p><span class="data-label">Application Number:</span> <span class="data-value"><?php echo $nata_details['application_number']; ?></span></p>
-                    <p><span class="data-label">Year:</span> <span class="data-value"><?php echo $nata_details['nata_year']; ?></span></p>
-                </div>
                 <?php endif; ?>
             <?php endif; ?>
 
