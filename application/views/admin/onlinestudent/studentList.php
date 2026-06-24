@@ -905,3 +905,66 @@
 }(jQuery));
 </script>
 <?php endif; ?>
+
+<!-- Assign to Scholarship Exam Modal -->
+<div class="modal fade" id="assignExamModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border-radius:4px 4px 0 0;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:.8;">&times;</button>
+                <h4 class="modal-title"><i class="fa fa-graduation-cap"></i> Assign to Scholarship Exam</h4>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:12px;"><strong id="assignExamApplicantName"></strong></p>
+                <input type="hidden" id="assignExamAdmissionId">
+                <div class="form-group">
+                    <label>Select Exam <span style="color:red;">*</span></label>
+                    <select id="assignExamSelect" class="form-control">
+                        <option value="">Loading exams...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="assignExamBtn" onclick="submitAssignExam()">
+                    <i class="fa fa-check"></i> Assign
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var scholarshipExamsLoaded = false;
+function openAssignExamModal(admissionId, name) {
+    $('#assignExamAdmissionId').val(admissionId);
+    $('#assignExamApplicantName').text(name);
+    if (!scholarshipExamsLoaded) {
+        $.getJSON('<?php echo base_url("admin/onlinestudent/get_scholarship_exams"); ?>', function(exams) {
+            var opts = '<option value="">-- Select Exam --</option>';
+            $.each(exams, function(i, e) { opts += '<option value="' + e.id + '">' + e.exam + '</option>'; });
+            $('#assignExamSelect').html(opts);
+            scholarshipExamsLoaded = true;
+        });
+    }
+    $('#assignExamModal').modal('show');
+}
+function submitAssignExam() {
+    var examId = $('#assignExamSelect').val();
+    if (!examId) { alert('Please select an exam'); return; }
+    $('#assignExamBtn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Assigning...');
+    $.post('<?php echo base_url("admin/onlinestudent/assign_to_exam"); ?>', {
+        admission_id: $('#assignExamAdmissionId').val(),
+        exam_id: examId,
+        <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
+    }, function(res) {
+        $('#assignExamBtn').prop('disabled', false).html('<i class="fa fa-check"></i> Assign');
+        if (res.status === 'success') {
+            $('#assignExamModal').modal('hide');
+            successMsg(res.message);
+        } else {
+            errorMsg(res.message);
+        }
+    }, 'json');
+}
+</script>
