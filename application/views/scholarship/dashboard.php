@@ -1,7 +1,10 @@
 <style>
-.sch-info-box { background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.06); padding:20px; text-align:center; margin-bottom:16px; border-top:3px solid #4f46e5; }
-.sch-info-box .sch-value { font-size:22px; font-weight:700; color:#2c3e50; }
-.sch-info-box .sch-label { font-size:12px; color:#95a5a6; text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
+.sch-info-box { border-radius:10px; padding:22px; text-align:center; margin-bottom:16px; color:#fff; box-shadow:0 4px 15px rgba(0,0,0,.15); }
+.sch-info-box .sch-value { font-size:24px; font-weight:800; color:#fff; }
+.sch-info-box .sch-label { font-size:11px; color:rgba(255,255,255,.85); text-transform:uppercase; letter-spacing:.8px; margin-top:6px; }
+.sch-info-box.box-purple { background:linear-gradient(135deg,#4f46e5,#7c3aed); }
+.sch-info-box.box-green { background:linear-gradient(135deg,#10b981,#059669); }
+.sch-info-box.box-orange { background:linear-gradient(135deg,#f59e0b,#d97706); }
 .sch-card { background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.06); margin-bottom:20px; overflow:hidden; }
 .sch-card-header { padding:16px 20px; border-bottom:1px solid #eee; font-size:15px; font-weight:700; color:#2c3e50; }
 .sch-card-header i { color:#4f46e5; margin-right:8px; }
@@ -39,19 +42,22 @@
     <!-- Info Boxes -->
     <div class="row">
         <div class="col-md-4">
-            <div class="sch-info-box">
+            <div class="sch-info-box box-purple">
+                <i class="fa fa-id-badge" style="font-size:28px;opacity:.4;margin-bottom:6px;display:block;"></i>
                 <div class="sch-value"><?php echo htmlspecialchars($applicant_info->reference_no); ?></div>
                 <div class="sch-label">Reference Number</div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="sch-info-box" style="border-top-color:#27ae60;">
+            <div class="sch-info-box box-green">
+                <i class="fa fa-pencil-square-o" style="font-size:28px;opacity:.4;margin-bottom:6px;display:block;"></i>
                 <div class="sch-value"><?php echo count($assigned_exams); ?></div>
                 <div class="sch-label">Assigned Exams</div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="sch-info-box" style="border-top-color:#f39c12;">
+            <div class="sch-info-box box-orange">
+                <i class="fa fa-graduation-cap" style="font-size:28px;opacity:.4;margin-bottom:6px;display:block;"></i>
                 <div class="sch-value"><?php echo htmlspecialchars($applicant_info->course_name); ?></div>
                 <div class="sch-label">Preferred Course</div>
             </div>
