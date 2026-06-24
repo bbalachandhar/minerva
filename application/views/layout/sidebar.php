@@ -217,13 +217,14 @@
 .mn-sidebar-logo {
     display: flex; align-items: center; justify-content: center;
     height: 56px; border-bottom: 1px solid #e5e7eb; background: #ffffff;
-    padding: 0 12px; text-decoration: none;
+    padding: 0 12px; text-decoration: none; overflow: hidden;
 }
 .mn-sidebar-logo img { max-height: 42px; max-width: 180px; }
-.sidebar-collapse .mn-sidebar-logo img.mn-logo-full { display: none; }
-.sidebar-collapse .mn-sidebar-logo img.mn-logo-mini { display: inline-block; }
-.mn-sidebar-logo img.mn-logo-mini { display: none; }
 .mn-sidebar-logo img.mn-logo-full { display: inline-block; }
+.mn-sidebar-logo img.mn-logo-mini { display: none; max-height: 32px; max-width: 32px; }
+.sidebar-collapse .mn-sidebar-logo { padding: 0 4px; width: 50px; }
+.sidebar-collapse .mn-sidebar-logo img.mn-logo-full { display: none !important; }
+.sidebar-collapse .mn-sidebar-logo img.mn-logo-mini { display: inline-block !important; }
 
 /* ── Mobile ── */
 @media (max-width: 767px) {

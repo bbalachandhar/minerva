@@ -150,7 +150,7 @@ $this->load->view('layout/theme');
     display: flex;
     align-items: center;
     height: 56px;
-    padding: 0 12px;
+    padding: 0 16px;
     gap: 8px;
 }
 
