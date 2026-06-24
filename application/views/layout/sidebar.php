@@ -176,17 +176,32 @@
     padding-left: 16px; margin: 0 4px;
 }
 
-/* ── AdminLTE overrides ── */
-.skin-blue .sidebar-menu > li > a { border-left: none; }
-.skin-blue .sidebar-menu > li.active > a { border-left-color: transparent; }
-.skin-blue .sidebar a { color: inherit; }
-.skin-blue .sidebar-menu > li > .treeview-menu { background: transparent; }
-.skin-blue .sidebar-menu > li.header { display: none; }
+/* ── AdminLTE skin-blue overrides (must use !important to beat minified skin) ── */
+.skin-blue .wrapper,
+.skin-blue .main-sidebar,
+.skin-blue .mn-sidebar.main-sidebar,
+.skin-blue .left-side { background-color: #ffffff !important; }
 
-/* Override AdminLTE's dark sidebar text */
+.skin-blue .sidebar-menu > li > a { border-left: none !important; }
+.skin-blue .sidebar-menu > li:hover > a,
+.skin-blue .sidebar-menu > li.active > a { background: #eef2ff !important; color: #4338ca !important; border-left-color: transparent !important; }
+.skin-blue .sidebar a { color: #4b5563 !important; }
+.skin-blue .sidebar a:hover { color: #1f2937 !important; text-decoration: none !important; }
+.skin-blue .sidebar-menu > li > .treeview-menu { margin: 0 !important; background: transparent !important; }
+.skin-blue .sidebar-menu > li.header { display: none !important; }
+.skin-blue .treeview-menu > li > a { color: #6b7280 !important; }
+.skin-blue .treeview-menu > li > a:hover { color: #1f2937 !important; }
+.skin-blue .treeview-menu > li.active > a { color: #4338ca !important; }
+
+/* Override dark sidebar text colors */
 .skin-blue .main-sidebar .sidebar-menu > li > a,
-.skin-blue .main-sidebar .sidebar-menu > li > a > span,
-.skin-blue .main-sidebar .sidebar-menu > li > a > i { color: inherit; }
+.skin-blue .main-sidebar .sidebar-menu > li > a > span { color: inherit !important; }
+.skin-blue .main-sidebar .sidebar-menu > li > a > i { color: #9ca3af !important; }
+.skin-blue .main-sidebar .sidebar-menu > li.active > a > i { color: #6366f1 !important; }
+.skin-blue .main-sidebar .sidebar-menu > li:hover > a > i { color: #6366f1 !important; }
+
+/* Logo area override */
+.skin-blue .main-header .logo { background-color: #ffffff !important; color: #1f2937 !important; border-bottom: none !important; }
 
 /* ── Mobile ── */
 @media (max-width: 767px) {
