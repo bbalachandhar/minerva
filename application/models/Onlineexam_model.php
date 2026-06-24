@@ -171,7 +171,6 @@ class Onlineexam_model extends MY_model
             ->searchable('" ",onlineexam.exam," "," ",attempt,exam_from,exam_to,duration,onlineexam.description," "," "," "')
             ->orderable('" ",onlineexam.exam," ",total_ques,attempt,exam_from,exam_to,duration," "," "," ",onlineexam.description ')
             ->sort('" ",onlineexam.exam," ",total_ques,attempt,exam_from,exam_to,duration," "," "," " ','desc')
-            ->where('onlineexam.session_id',$this->current_session)            
             ->where('onlineexam.exam_to  < ',$today_date);            
             
             if(!empty($exam_ides['onlineexam_id'])){
