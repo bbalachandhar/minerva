@@ -600,6 +600,7 @@ class Branch extends MY_Addon_MBController
                        ON sfo.student_session_id   = sfm.student_session_id
                       AND sfo.fee_groups_feetype_id = fgf.id
                 WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+                  AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
                 GROUP BY sfm.student_session_id, fgf.id
              ) sub",
             [$session_id]
@@ -622,6 +623,7 @@ class Branch extends MY_Addon_MBController
                        ON sfo.student_session_id   = sfm.student_session_id
                       AND sfo.fee_groups_feetype_id = fgf.id
                 WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+                  AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
                 GROUP BY ft.type, sfm.student_session_id, fgf.id
              ) sub GROUP BY fee_type",
             [$session_id]
@@ -640,7 +642,8 @@ class Branch extends MY_Addon_MBController
                  JOIN student_session ss ON ss.id = stf.student_session_id
                  JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
                  JOIN route_pickup_point rpp ON rpp.id = stf.route_pickup_point_id
-                 WHERE ss.session_id = ?",
+                 WHERE ss.session_id = ?
+                   AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)",
                 [$session_id]
             )->row();
             $transport_billed = $tb_row ? (float)$tb_row->transport_billed : 0;
@@ -658,6 +661,7 @@ class Branch extends MY_Addon_MBController
              JOIN student_session ss ON ss.id = sfm.student_session_id
              JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
              WHERE ss.session_id = ?
+               AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
                AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
             [$session_id]
         )->result();
@@ -683,6 +687,7 @@ class Branch extends MY_Addon_MBController
              JOIN student_transport_fees stf ON stf.id = sfd.student_transport_fee_id
              JOIN student_session ss ON ss.id = stf.student_session_id
              WHERE ss.session_id = ?
+               AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
                AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
             [$session_id]
         )->result();
@@ -736,6 +741,7 @@ class Branch extends MY_Addon_MBController
                        ON sfo.student_session_id   = sfm.student_session_id
                       AND sfo.fee_groups_feetype_id = fgf.id
                 WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+                  AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
                 GROUP BY sfm.student_session_id, ss.class_id, fgf.id
              ) sub GROUP BY ss_id, class_id",
             [$session_id]
@@ -750,6 +756,7 @@ class Branch extends MY_Addon_MBController
              JOIN student_session ss ON ss.id = sfm.student_session_id
              JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
              WHERE ss.session_id = ?
+               AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
                AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
             [$session_id]
         )->result();
@@ -1031,6 +1038,7 @@ class Branch extends MY_Addon_MBController
              JOIN student_session ss ON ss.id = sfm.student_session_id
              JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
              WHERE ss.session_id = ?
+               AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
                AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
             [$session_id]
         )->result();
