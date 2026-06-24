@@ -429,160 +429,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 </div>
             </div>
 
-            <!-- ━━ Fee Details ━━ -->
-            <div class="ea-card">
-                <div class="ea-card__header">
-                    <div class="ea-card__icon ea-card__icon--green"><i class="fa fa-money"></i></div>
-                    <div>
-                        <h3 class="ea-card__title"><?php echo $this->lang->line('fees_details'); ?></h3>
-                        <p class="ea-card__subtitle">Select fee groups to assign</p>
-                    </div>
-                </div>
-                <div class="ea-card__body ea-fee-panel">
-                    <?php
-                    if (!empty($feesessiongroup_model)) {
-                        $view_total_fees = 0;
-                        foreach ($feesessiongroup_model as $feesessiongroup_key => $feesessiongroup_value) {
-                            $total_fees = 0;
-                            foreach ($feesessiongroup_value->feetypes as $fee_type_key => $fee_type_value) {
-                                $total_fees += $fee_type_value->amount;
-                            }
-                            if (isset($_POST['fee_session_group_id'])) {
-                                if (in_array($feesessiongroup_value->id, $_POST['fee_session_group_id'])) {
-                                    $view_total_fees += $total_fees;
-                                }
-                            }
-                        }
-                    ?>
-                    <input type="hidden" name="total_post_fees" value="<?php echo $view_total_fees; ?>">
-                    <?php
-                        foreach ($feesessiongroup_model as $feesessiongroup_key => $feesessiongroup_value) {
-                            $total_fees = 0;
-                            foreach ($feesessiongroup_value->feetypes as $fee_type_key => $fee_type_value) {
-                                $total_fees += $fee_type_value->amount;
-                            }
-                    ?>
-                    <div class="panel-group1 mb0">
-                        <div class="panel panel-default1">
-                            <div class="panel-heading pt5 pb5">
-                                <h6 class="panel-title panel-title1 overflow-hidden">
-                                    <input class="fee_group_chk vertical-middle" type="checkbox" name="fee_session_group_id[]" value="<?php echo $feesessiongroup_value->id; ?>" <?php echo set_checkbox('fee_session_group_id[]', $feesessiongroup_value->id); ?>>
-                                    <a class="display-inline collapsed box-plus-panel" data-toggle="collapse" href="#collapse_fees_<?php echo $feesessiongroup_value->id ?>"><span class="font14"><?php echo $feesessiongroup_value->group_name; ?></span></a>
-                                    <span class="float-right bmedium pt3 fee_group_total" data-amount="<?php echo $total_fees; ?>"><?php echo amountFormat($total_fees); ?></span>
-                                </h6>
-                            </div>
-                            <div id="collapse_fees_<?php echo $feesessiongroup_value->id ?>" class="panel-collapse collapse">
-                                <ul class="list-group student_fee_list ui-sortable">
-                                    <li class="list-group-item">
-                                        <div class="displayinline stfirstdiv bmedium font14 pl-65"><?php echo $this->lang->line('fees'); ?></div>
-                                        <div class="due_date bmedium font14"><?php echo $this->lang->line('due_date'); ?></div>
-                                        <div class="tools bmedium font14"><?php echo $this->lang->line('amount'); ?> (<?php echo $currency_symbol; ?>)</div>
-                                    </li>
-                                    <?php foreach ($feesessiongroup_value->feetypes as $fee_type_key => $fee_type_value) { ?>
-                                    <li class="list-group-item">
-                                        <div class="displayinline stfirstdiv pl-65"><?php echo $fee_type_value->type . " (" . $fee_type_value->code . ")" ?></div>
-                                        <small class="due_date"><i class="fa fa-calendar"></i> <?php echo $this->customlib->dateformat($fee_type_value->due_date); ?></small>
-                                        <div class="tools"><?php echo amountFormat($fee_type_value->amount); ?></div>
-                                    </li>
-                                    <?php } ?>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <?php
-                        }
-                    }
-                    ?>
-                </div>
-                <?php if (!empty($feesessiongroup_model)) { ?>
-                <div class="ea-fee-total-bar">
-                    <span>Total Fees</span>
-                    <strong class="total_fees_alloted"><?php echo amountFormat($view_total_fees); ?></strong>
-                </div>
-                <?php } ?>
-            </div>
-
-            <!-- ━━ Fee Discount ━━ -->
-            <div class="ea-card">
-                <div class="ea-card__header">
-                    <div class="ea-card__icon ea-card__icon--amber"><i class="fa fa-percent"></i></div>
-                    <div>
-                        <h3 class="ea-card__title"><?php echo $this->lang->line('fees_discount_details'); ?></h3>
-                        <p class="ea-card__subtitle">Select applicable fee discounts</p>
-                    </div>
-                </div>
-                <div class="ea-card__body ea-fee-panel">
-                    <div class="mainstudent discount_div">
-                        <div id="fade"></div>
-                        <div id="modal">
-                            <i class="fa fa-spinner fa-spin fa-1x fa-fw"></i><span class="sr-only">Loading...</span>
-                        </div>
-
-                        <?php if (!empty($merit_scholarship)): ?>
-                        <div class="ea-merit-callout">
-                            <i class="fa fa-star"></i>
-                            <div>
-                                <strong>Merit Scholarship Approved:</strong>
-                                <?php echo htmlspecialchars($merit_scholarship['sch_name']); ?>
-                                &mdash; <strong>&#8377;<?php echo number_format((float)$merit_scholarship['sch_amount']); ?></strong>
-                                has been pre-selected below. Please verify and proceed.
-                            </div>
-                        </div>
-                        <?php endif; ?>
-
-                        <?php if (!empty($feediscountList)) {
-                            foreach ($feediscountList as $key => $feediscount) {
-                                $is_merit_pre_check = !empty($merit_discount_id) && (int)$feediscount['id'] === (int)$merit_discount_id;
-                                $checked_attr = $is_merit_pre_check ? 'checked="checked"' : set_checkbox('discount_id[]', $feediscount['id']);
-                        ?>
-                        <div class="panel-group1 mb0">
-                            <div class="panel panel-default1">
-                                <div class="panel-heading pt5 pb5">
-                                    <h6 class="panel-title panel-title1 overflow-hidden">
-                                        <input class="discount_group_chk vertical-middle" type="checkbox" name="discount_id[]" value="<?php echo $feediscount['id']; ?>" <?php echo $checked_attr; ?>>
-                                        <a class="display-inline collapsed box-plus-panel" data-toggle="collapse" href="#collapse_fees_<?php echo $feediscount['id'] ?>">
-                                            <span class="font14"><?php echo $feediscount['name'] . " - " . $feediscount['code']; ?></span>
-                                        </a>
-                                        <span class="float-right bmedium pt3 discount_group_total" data-discount="<?php echo $feediscount['amount']; ?>"></span>
-                                    </h6>
-                                </div>
-                                <div id="collapse_fees_<?php echo $feediscount['id']; ?>" class="panel-collapse collapse">
-                                    <ul class="list-group student_fee_list ui-sortable">
-                                        <li class="list-group-item">
-                                            <div class="due_date bmedium font14 pl-65"><?php echo $this->lang->line('name'); ?></div>
-                                            <div class="due_date bmedium font14 pl-65"><?php echo $this->lang->line('discount_code'); ?></div>
-                                            <div class="due_date bmedium font14 pl-65"><?php echo $this->lang->line('type'); ?></div>
-                                            <div class="tools bmedium font14"><?php echo $this->lang->line('amount'); ?> (<?php echo $currency_symbol; ?>)</div>
-                                        </li>
-                                        <li class="list-group-item">
-                                            <div class="due_date font14 pl-65"><?php echo $feediscount['name']; ?></div>
-                                            <div class="due_date font14 pl-65"><?php echo $feediscount['code']; ?></div>
-                                            <div class="due_date font14 pl-65"><?php echo $this->lang->line($feediscount['type']); ?></div>
-                                            <div class="tools">
-                                                <?php
-                                                if (isset($feediscount['type']) && $feediscount['type'] == "percentage") {
-                                                    echo $feediscount['percentage'] . "%";
-                                                } else if (isset($feediscount['amount'])) {
-                                                    $amount = $feediscount['amount'];
-                                                    if ($amount > 0.00) {
-                                                        echo amountFormat($amount) . " (" . $currency_symbol . ")";
-                                                    }
-                                                }
-                                                ?>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <?php
-                            }
-                        }
-                        ?>
-                    </div>
-                </div>
-            </div>
-
             <!-- ━━ Transport Details ━━ -->
             <?php if ($this->module_lib->hasActive('transport')) { ?>
             <div class="ea-card">
@@ -947,6 +793,160 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <span class="text-danger"><?php echo form_error('previous_school'); ?></span>
                         </div>
                         <?php } ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ━━ Fee Details ━━ -->
+            <div class="ea-card">
+                <div class="ea-card__header">
+                    <div class="ea-card__icon ea-card__icon--green"><i class="fa fa-money"></i></div>
+                    <div>
+                        <h3 class="ea-card__title"><?php echo $this->lang->line('fees_details'); ?></h3>
+                        <p class="ea-card__subtitle">Select fee groups to assign</p>
+                    </div>
+                </div>
+                <div class="ea-card__body ea-fee-panel">
+                    <?php
+                    if (!empty($feesessiongroup_model)) {
+                        $view_total_fees = 0;
+                        foreach ($feesessiongroup_model as $feesessiongroup_key => $feesessiongroup_value) {
+                            $total_fees = 0;
+                            foreach ($feesessiongroup_value->feetypes as $fee_type_key => $fee_type_value) {
+                                $total_fees += $fee_type_value->amount;
+                            }
+                            if (isset($_POST['fee_session_group_id'])) {
+                                if (in_array($feesessiongroup_value->id, $_POST['fee_session_group_id'])) {
+                                    $view_total_fees += $total_fees;
+                                }
+                            }
+                        }
+                    ?>
+                    <input type="hidden" name="total_post_fees" value="<?php echo $view_total_fees; ?>">
+                    <?php
+                        foreach ($feesessiongroup_model as $feesessiongroup_key => $feesessiongroup_value) {
+                            $total_fees = 0;
+                            foreach ($feesessiongroup_value->feetypes as $fee_type_key => $fee_type_value) {
+                                $total_fees += $fee_type_value->amount;
+                            }
+                    ?>
+                    <div class="panel-group1 mb0">
+                        <div class="panel panel-default1">
+                            <div class="panel-heading pt5 pb5">
+                                <h6 class="panel-title panel-title1 overflow-hidden">
+                                    <input class="fee_group_chk vertical-middle" type="checkbox" name="fee_session_group_id[]" value="<?php echo $feesessiongroup_value->id; ?>" <?php echo set_checkbox('fee_session_group_id[]', $feesessiongroup_value->id); ?>>
+                                    <a class="display-inline collapsed box-plus-panel" data-toggle="collapse" href="#collapse_fees_<?php echo $feesessiongroup_value->id ?>"><span class="font14"><?php echo $feesessiongroup_value->group_name; ?></span></a>
+                                    <span class="float-right bmedium pt3 fee_group_total" data-amount="<?php echo $total_fees; ?>"><?php echo amountFormat($total_fees); ?></span>
+                                </h6>
+                            </div>
+                            <div id="collapse_fees_<?php echo $feesessiongroup_value->id ?>" class="panel-collapse collapse">
+                                <ul class="list-group student_fee_list ui-sortable">
+                                    <li class="list-group-item">
+                                        <div class="displayinline stfirstdiv bmedium font14 pl-65"><?php echo $this->lang->line('fees'); ?></div>
+                                        <div class="due_date bmedium font14"><?php echo $this->lang->line('due_date'); ?></div>
+                                        <div class="tools bmedium font14"><?php echo $this->lang->line('amount'); ?> (<?php echo $currency_symbol; ?>)</div>
+                                    </li>
+                                    <?php foreach ($feesessiongroup_value->feetypes as $fee_type_key => $fee_type_value) { ?>
+                                    <li class="list-group-item">
+                                        <div class="displayinline stfirstdiv pl-65"><?php echo $fee_type_value->type . " (" . $fee_type_value->code . ")" ?></div>
+                                        <small class="due_date"><i class="fa fa-calendar"></i> <?php echo $this->customlib->dateformat($fee_type_value->due_date); ?></small>
+                                        <div class="tools"><?php echo amountFormat($fee_type_value->amount); ?></div>
+                                    </li>
+                                    <?php } ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <?php
+                        }
+                    }
+                    ?>
+                </div>
+                <?php if (!empty($feesessiongroup_model)) { ?>
+                <div class="ea-fee-total-bar">
+                    <span>Total Fees</span>
+                    <strong class="total_fees_alloted"><?php echo amountFormat($view_total_fees); ?></strong>
+                </div>
+                <?php } ?>
+            </div>
+
+            <!-- ━━ Fee Discount ━━ -->
+            <div class="ea-card">
+                <div class="ea-card__header">
+                    <div class="ea-card__icon ea-card__icon--amber"><i class="fa fa-percent"></i></div>
+                    <div>
+                        <h3 class="ea-card__title"><?php echo $this->lang->line('fees_discount_details'); ?></h3>
+                        <p class="ea-card__subtitle">Select applicable fee discounts</p>
+                    </div>
+                </div>
+                <div class="ea-card__body ea-fee-panel">
+                    <div class="mainstudent discount_div">
+                        <div id="fade"></div>
+                        <div id="modal">
+                            <i class="fa fa-spinner fa-spin fa-1x fa-fw"></i><span class="sr-only">Loading...</span>
+                        </div>
+
+                        <?php if (!empty($merit_scholarship)): ?>
+                        <div class="ea-merit-callout">
+                            <i class="fa fa-star"></i>
+                            <div>
+                                <strong>Merit Scholarship Approved:</strong>
+                                <?php echo htmlspecialchars($merit_scholarship['sch_name']); ?>
+                                &mdash; <strong>&#8377;<?php echo number_format((float)$merit_scholarship['sch_amount']); ?></strong>
+                                has been pre-selected below. Please verify and proceed.
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($feediscountList)) {
+                            foreach ($feediscountList as $key => $feediscount) {
+                                $is_merit_pre_check = !empty($merit_discount_id) && (int)$feediscount['id'] === (int)$merit_discount_id;
+                                $checked_attr = $is_merit_pre_check ? 'checked="checked"' : set_checkbox('discount_id[]', $feediscount['id']);
+                        ?>
+                        <div class="panel-group1 mb0">
+                            <div class="panel panel-default1">
+                                <div class="panel-heading pt5 pb5">
+                                    <h6 class="panel-title panel-title1 overflow-hidden">
+                                        <input class="discount_group_chk vertical-middle" type="checkbox" name="discount_id[]" value="<?php echo $feediscount['id']; ?>" <?php echo $checked_attr; ?>>
+                                        <a class="display-inline collapsed box-plus-panel" data-toggle="collapse" href="#collapse_fees_<?php echo $feediscount['id'] ?>">
+                                            <span class="font14"><?php echo $feediscount['name'] . " - " . $feediscount['code']; ?></span>
+                                        </a>
+                                        <span class="float-right bmedium pt3 discount_group_total" data-discount="<?php echo $feediscount['amount']; ?>"></span>
+                                    </h6>
+                                </div>
+                                <div id="collapse_fees_<?php echo $feediscount['id']; ?>" class="panel-collapse collapse">
+                                    <ul class="list-group student_fee_list ui-sortable">
+                                        <li class="list-group-item">
+                                            <div class="due_date bmedium font14 pl-65"><?php echo $this->lang->line('name'); ?></div>
+                                            <div class="due_date bmedium font14 pl-65"><?php echo $this->lang->line('discount_code'); ?></div>
+                                            <div class="due_date bmedium font14 pl-65"><?php echo $this->lang->line('type'); ?></div>
+                                            <div class="tools bmedium font14"><?php echo $this->lang->line('amount'); ?> (<?php echo $currency_symbol; ?>)</div>
+                                        </li>
+                                        <li class="list-group-item">
+                                            <div class="due_date font14 pl-65"><?php echo $feediscount['name']; ?></div>
+                                            <div class="due_date font14 pl-65"><?php echo $feediscount['code']; ?></div>
+                                            <div class="due_date font14 pl-65"><?php echo $this->lang->line($feediscount['type']); ?></div>
+                                            <div class="tools">
+                                                <?php
+                                                if (isset($feediscount['type']) && $feediscount['type'] == "percentage") {
+                                                    echo $feediscount['percentage'] . "%";
+                                                } else if (isset($feediscount['amount'])) {
+                                                    $amount = $feediscount['amount'];
+                                                    if ($amount > 0.00) {
+                                                        echo amountFormat($amount) . " (" . $currency_symbol . ")";
+                                                    }
+                                                }
+                                                ?>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <?php
+                            }
+                        }
+                        ?>
                     </div>
                 </div>
             </div>
