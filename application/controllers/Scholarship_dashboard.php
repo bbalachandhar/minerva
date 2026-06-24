@@ -3,14 +3,13 @@ if (!defined('BASEPATH')) {
     exit('No direct script access allowed');
 }
 
-class Scholarship_dashboard extends CI_Controller
+class Scholarship_dashboard extends Front_Controller
 {
     protected $sch_setting_detail;
 
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('setting_model');
         $this->load->model('onlinestudent_model');
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
