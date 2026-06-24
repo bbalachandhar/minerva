@@ -168,12 +168,10 @@ if ($enkey == $status) {
                                         <table class="table table-hover table-striped table-bordered" id="enquirytable">
                                             <thead>
                                                 <tr>
-                                                    <th>Reference No</th>
                                                     <th><?php echo $this->lang->line('name'); ?></th>
                                                     <th><?php echo $this->lang->line('phone'); ?></th>
                                                     <th>Course Applied</th>
                                                     <th><?php echo $this->lang->line('source'); ?></th>
-                                                    <th>Lead Vendor</th>
                                                     <th>Dup. Source</th>
                                                     <th><?php echo $this->lang->line('enquiry_date'); ?></th>
                                                     <th><?php echo $this->lang->line('last_follow_up_date'); ?></th>
@@ -666,16 +664,14 @@ if ($enkey == $status) {
                     return $.extend({}, d, dtFilters);
                 }
             },
-            pageLength: 50,
-            order: [[7, 'desc']],
+            pageLength: 20,
+            order: [[5, 'desc']],
             dom: "Bfrtip",
             columns: [
-                { data: 0,  orderable: true  },   // ref_no
                 { data: 1,  orderable: true  },   // name
                 { data: 2,  orderable: true  },   // contact
                 { data: 3,  orderable: false },   // course applied
                 { data: 4,  orderable: true  },   // source
-                { data: 5,  orderable: false },   // lead vendor
                 { data: 6,  orderable: false },   // dup source
                 { data: 7,  orderable: true  },   // enquiry date
                 { data: 8,  orderable: true  },   // last follow-up
@@ -686,8 +682,8 @@ if ($enkey == $status) {
                 { data: 13, visible: false, orderable: false, searchable: false }  // status colour
             ],
             createdRow: function (row, data) {
-                if (data[12]) { $('td', row).eq(9).addClass(data[12]); }
-                if (data[13]) { $('td', row).eq(10).addClass(data[13]); }
+                if (data[12]) { $('td', row).eq(7).addClass(data[12]); }
+                if (data[13]) { $('td', row).eq(8).addClass(data[13]); }
             },
             drawCallback: function () {
                 var info = this.api().page.info();

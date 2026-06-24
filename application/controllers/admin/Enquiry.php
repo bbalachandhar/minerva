@@ -418,14 +418,14 @@ class Enquiry extends Admin_Controller
         $start      = (int) $this->input->get('start');
         $length     = (int) $this->input->get('length');
         if ($length <= 0) {
-            $length = 50;
+            $length = 20;
         }
 
         $search_param = $this->input->get('search');
         $search_val   = isset($search_param['value']) ? trim((string) $search_param['value']) : '';
 
         $order_param = $this->input->get('order');
-        $order_col   = isset($order_param[0]['column']) ? (int) $order_param[0]['column'] : 6;
+        $order_col   = isset($order_param[0]['column']) ? (int) $order_param[0]['column'] : 5;
         $order_dir   = isset($order_param[0]['dir'])    ? $order_param[0]['dir']           : 'desc';
 
         // Date inputs arrive in the school display format; convert to Y-m-d for SQL
@@ -598,7 +598,7 @@ class Enquiry extends Admin_Controller
             'next_followup_to'   => !empty($raw_ft) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_ft)) : '',
         ];
 
-        $result   = $this->enquiry_model->dtenquirylist_ssp(0, 0, 99999, '', 7, 'desc', $filter);
+        $result   = $this->enquiry_model->dtenquirylist_ssp(0, 0, 99999, '', 5, 'desc', $filter);
         $date_fmt = $this->customlib->getSchoolDateFormat();
         $fmt      = function ($d) use ($date_fmt) {
             if (empty($d) || $d === '0000-00-00') {

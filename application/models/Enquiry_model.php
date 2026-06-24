@@ -378,17 +378,15 @@ class enquiry_model extends MY_Model
 
         // Map DataTable column index → SQL expression
         $col_map = [
-            0 => 'e.id',
-            1 => 'e.name',
-            2 => 'e.contact',
-            3 => 'oac.course_name',
-            4 => 'e.source',
-            5 => 'lv.vendor_name',
-            6 => 'dsv.vendor_name',
-            7 => 'e.date',
-            8 => 'f.date',
-            9 => 'COALESCE(f.next_date, e.follow_up_date)',
-            10 => 'e.status',
+            0 => 'e.name',
+            1 => 'e.contact',
+            2 => 'oac.course_name',
+            3 => 'e.source',
+            4 => 'dsv.vendor_name',
+            5 => 'e.date',
+            6 => 'f.date',
+            7 => 'COALESCE(f.next_date, e.follow_up_date)',
+            8 => 'e.status',
         ];
         $order_col = isset($col_map[$order_col_idx]) ? $col_map[$order_col_idx] : 'e.id';
         $order_dir = strtoupper($order_dir) === 'ASC' ? 'ASC' : 'DESC';
