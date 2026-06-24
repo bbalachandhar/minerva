@@ -43,7 +43,7 @@
             <a onclick="collapseSidebar()" href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
                 <span class="sr-only">Toggle navigation</span>
             </a>
-            <span class="navbar-brand" style="color:#fff;font-weight:700;font-size:16px;padding:15px 10px;">
+            <span style="color:#fff;font-weight:700;font-size:16px;float:left;line-height:50px;padding:0 15px;">
                 <?php echo isset($sch_name) ? htmlspecialchars($sch_name) : ''; ?>
             </span>
             <div class="navbar-custom-menu">
