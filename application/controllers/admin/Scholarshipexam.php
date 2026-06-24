@@ -12,7 +12,7 @@ class Scholarshipexam extends Admin_Controller
 
     public function index()
     {
-        if (!$this->rbac->hasPrivilege('online_examination', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('scholarship_exam', 'can_view')) {
             access_denied();
         }
 
@@ -51,7 +51,7 @@ class Scholarshipexam extends Admin_Controller
 
     public function candidates($exam_id = null)
     {
-        if (!$this->rbac->hasPrivilege('online_examination', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('scholarship_exam', 'can_view')) {
             access_denied();
         }
 
