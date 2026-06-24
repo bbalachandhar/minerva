@@ -520,10 +520,13 @@ body.skin-blue .treeview-menu > li > a { color: #6b7280 !important; }
 body.skin-blue .treeview-menu > li > a:hover { color: #1f2937 !important; }
 body.skin-blue .treeview-menu > li.active > a { color: #4338ca !important; }
 
-/* -- Sidebar logo (collapsed state) -- */
-body.sidebar-mini.sidebar-collapse .mn-sidebar-logo { width: 50px !important; padding: 0 !important; }
+/* -- Sidebar logo -- */
+.mn-sidebar-logo { display: flex !important; align-items: center !important; justify-content: center !important; height: 56px !important; }
+.mn-sidebar-logo img.mn-logo-full { display: inline-block !important; }
+.mn-sidebar-logo img.mn-logo-mini { display: none !important; }
+body.sidebar-mini.sidebar-collapse .mn-sidebar-logo { width: 50px !important; padding: 0 !important; overflow: visible !important; }
 body.sidebar-mini.sidebar-collapse .mn-sidebar-logo img.mn-logo-full { display: none !important; }
-body.sidebar-mini.sidebar-collapse .mn-sidebar-logo img.mn-logo-mini { display: inline-block !important; }
+body.sidebar-mini.sidebar-collapse .mn-sidebar-logo img.mn-logo-mini { display: inline-block !important; max-height: 28px !important; max-width: 28px !important; }
 
 /* -- Footer: white, full width under content -- */
 body .main-footer { background: #fff !important; border-top: 1px solid #e5e7eb !important; color: #9ca3af !important; font-size: 12px !important; padding: 10px 20px !important; text-align: right !important; }
