@@ -22,7 +22,7 @@
                     <div class="col-xs-4 text-center">
                         <a href="<?php echo base_url(); ?>student/view/<?php echo $student['id'] ?>">
                             <?php if ($sch_setting->student_photo) { ?>
-                            <img class="student-card-img img-responsive img-thumbnail" alt="<?php echo $student["firstname"] . " " . $student["lastname"] ?>" src="<?php echo $this->media_storage->getImageURL($image); ?>">
+                            <img class="student-card-img img-responsive img-thumbnail" alt="<?php echo $student["firstname"] . " " . $student["lastname"] ?>" src="<?php echo base_url() . $image; ?>">
                             <?php } ?>
                         </a>
                     </div>
