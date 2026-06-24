@@ -114,7 +114,6 @@ $this->load->view('layout/theme');
 .mn-header .navbar {
     background: #ffffff !important;
     min-height: 56px;
-    margin-left: 0;
 }
 
 /* --- Sidebar Toggle --- */
