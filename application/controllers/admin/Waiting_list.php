@@ -80,4 +80,24 @@ class Waiting_list extends Admin_Controller
 
         echo json_encode(['status' => 'success', 'message' => 'Application #' . $admission['reference_no'] . ' deleted.']);
     }
+
+    public function update_comment()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+            echo json_encode(['status' => 'error', 'message' => 'Access denied']);
+            return;
+        }
+
+        $id = (int) $this->input->post('id');
+        $comment = $this->input->post('comment');
+
+        $row = $this->db->where('id', $id)->where('admission_status', 'waiting_list')->get('online_admissions')->row();
+        if (!$row) {
+            echo json_encode(['status' => 'error', 'message' => 'Record not found']);
+            return;
+        }
+
+        $this->db->where('id', $id)->update('online_admissions', ['waiting_list_comment' => $comment ?: null]);
+        echo json_encode(['status' => 'success']);
+    }
 }

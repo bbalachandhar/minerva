@@ -60,16 +60,10 @@
                             <td><?php echo htmlspecialchars($row['guardian_name'] ?? '—'); ?></td>
                             <td><?php echo !empty($row['created_at']) ? date($this->customlib->getSchoolDateFormat(), strtotime($row['created_at'])) : '—'; ?></td>
                             <td>
-                                <?php
-                                $comment_text = !empty($row['waiting_list_comment']) ? $row['waiting_list_comment'] : (!empty($row['note']) ? $row['note'] : '');
-                                ?>
-                                <?php if (!empty($comment_text)): ?>
-                                <button type="button" class="btn btn-info btn-xs" onclick="viewComment(this)" data-comment="<?php echo htmlspecialchars($comment_text, ENT_QUOTES); ?>" data-ref="<?php echo htmlspecialchars($row['reference_no']); ?>" data-toggle="tooltip" title="View Comment">
-                                    <i class="fa fa-comment"></i>
+                                <?php $comment_text = !empty($row['waiting_list_comment']) ? $row['waiting_list_comment'] : (!empty($row['note']) ? $row['note'] : ''); ?>
+                                <button type="button" class="btn btn-<?php echo !empty($comment_text) ? 'info' : 'default'; ?> btn-xs" onclick="editComment(<?php echo $row['id']; ?>, this)" data-comment="<?php echo htmlspecialchars($comment_text, ENT_QUOTES); ?>" data-ref="<?php echo htmlspecialchars($row['reference_no']); ?>" data-toggle="tooltip" title="<?php echo !empty($comment_text) ? 'View / Edit Comment' : 'Add Comment'; ?>">
+                                    <i class="fa fa-comment<?php echo empty($comment_text) ? '-o' : ''; ?>"></i>
                                 </button>
-                                <?php else: ?>
-                                <span class="text-muted">—</span>
-                                <?php endif; ?>
                             </td>
                             <td class="text-right" style="white-space:nowrap;">
                                 <?php if ($this->rbac->hasPrivilege('online_admission', 'can_edit')): ?>
@@ -150,14 +144,41 @@ function deleteApplication(id, refNo) {
     });
 }
 
-function viewComment(el) {
-    var comment = $(el).data('comment');
+function editComment(id, el) {
+    var comment = $(el).data('comment') || '';
     var refNo = $(el).data('ref');
     swal({
         title: 'Comment — #' + refNo,
-        text: comment,
-        type: 'info',
-        confirmButtonText: 'Close'
+        text: 'Add or update the comment:',
+        type: 'input',
+        inputValue: comment,
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'Save',
+        cancelButtonText: 'Cancel',
+        closeOnConfirm: false,
+        inputPlaceholder: 'Enter comment...'
+    }, function(inputValue) {
+        if (inputValue === false) return;
+        $.post('<?php echo site_url("admin/waiting_list/update_comment"); ?>', {
+            id: id,
+            comment: inputValue,
+            '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
+        }, function(resp) {
+            if (resp.status === 'success') {
+                $(el).data('comment', inputValue);
+                if (inputValue) {
+                    $(el).removeClass('btn-default').addClass('btn-info');
+                    $(el).find('i').removeClass('fa-comment-o').addClass('fa-comment');
+                } else {
+                    $(el).removeClass('btn-info').addClass('btn-default');
+                    $(el).find('i').removeClass('fa-comment').addClass('fa-comment-o');
+                }
+                swal('Saved!', 'Comment updated.', 'success');
+            } else {
+                swal('Error', resp.message, 'error');
+            }
+        }, 'json');
     });
 }
 </script>
