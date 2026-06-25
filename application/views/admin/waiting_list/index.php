@@ -41,7 +41,6 @@
                             <th>Course</th>
                             <th>Mobile</th>
                             <th>Email</th>
-                            <th>Guardian</th>
                             <th>Applied On</th>
                             <th>Comment</th>
                             <th class="text-right noExport">Action</th>
@@ -57,7 +56,6 @@
                             <td><?php echo htmlspecialchars($row['course_name'] ?: '—'); ?></td>
                             <td><?php echo htmlspecialchars($row['mobileno'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($row['email'] ?? '—'); ?></td>
-                            <td><?php echo htmlspecialchars($row['guardian_name'] ?? '—'); ?></td>
                             <td><?php echo !empty($row['created_at']) ? date($this->customlib->getSchoolDateFormat(), strtotime($row['created_at'])) : '—'; ?></td>
                             <td>
                                 <?php $comment_text = !empty($row['waiting_list_comment']) ? $row['waiting_list_comment'] : (!empty($row['note']) ? $row['note'] : ''); ?>
@@ -75,7 +73,7 @@
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="10" class="text-center text-muted" style="padding:30px;">
+                        <tr><td colspan="9" class="text-center text-muted" style="padding:30px;">
                             <i class="fa fa-check-circle fa-2x" style="color:#10b981;"></i><br>
                             No applications in waiting list.
                         </td></tr>

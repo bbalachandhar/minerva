@@ -20,11 +20,9 @@ class Waiting_list extends Admin_Controller
         $session_id = $this->setting_model->getCurrentSession();
 
         $waiting = $this->db
-            ->select('oa.*, CONCAT(COALESCE(c.class,""), " / ", COALESCE(s.section,"")) AS course_name')
+            ->select('oa.*, IFNULL(oac.course_name, "N/A") AS course_name')
             ->from('online_admissions oa')
-            ->join('class_sections cs', 'cs.id = oa.class_section_id', 'left')
-            ->join('classes c', 'c.id = cs.class_id', 'left')
-            ->join('sections s', 's.id = cs.section_id', 'left')
+            ->join('online_admission_courses oac', 'oac.id = COALESCE(oa.admission_course_id, oa.ug_course_id)', 'left')
             ->where('oa.session_id', $session_id)
             ->where('oa.admission_status', 'waiting_list')
             ->order_by('oa.id', 'DESC')
