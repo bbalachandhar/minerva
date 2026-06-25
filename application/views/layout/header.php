@@ -695,9 +695,9 @@ $this->load->view('layout/theme');
 			 <?php $result = $this->customlib->getLoggedInUserData();
 			  ?>
             <header class="main-header mn-header" id="alert">
-                <a href="<?php echo base_url(); ?>admin/admin/dashboard" class="logo">
-                    <span class="logo-mini"><img src="<?php echo $this->customlib->getBaseUrl(); ?>uploads/school_content/admin_small_logo/<?php echo $this->setting_model->getAdminsmalllogo() . img_time();?>" alt="<?php echo $this->customlib->getAppName() ?>" /></span>
-                    <span class="logo-lg"><img src="<?php echo $this->customlib->getBaseUrl(); ?>uploads/school_content/admin_logo/<?php echo $this->setting_model->getAdminlogo() . img_time();?>" alt="<?php echo $this->customlib->getAppName() ?>" /></span>
+                <a href="<?php echo base_url(); ?>admin/admin/dashboard" class="logo" style="background:#fff !important;height:56px !important;line-height:56px !important;">
+                    <span class="logo-mini" style="display:none;"><img src="<?php echo base_url(); ?>uploads/school_content/admin_small_logo/<?php echo $this->setting_model->getAdminsmalllogo();?>" alt="<?php echo $this->customlib->getAppName() ?>" style="max-height:32px;vertical-align:middle;" /></span>
+                    <span class="logo-lg" style="display:block;"><img src="<?php echo base_url(); ?>uploads/school_content/admin_logo/<?php echo $this->setting_model->getAdminlogo();?>" alt="<?php echo $this->customlib->getAppName() ?>" style="max-height:42px;max-width:170px;vertical-align:middle;" /></span>
                 </a>
                 <nav class="navbar navbar-static-top" role="navigation">
                     <!-- Hidden AdminLTE toggle (kept for AdminLTE JS compatibility) -->
