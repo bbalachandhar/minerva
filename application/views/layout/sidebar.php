@@ -1,11 +1,11 @@
 <style>
 /* ── Modern Sidebar ── */
+/* z-index handled by modern-override.css */
 .mn-sidebar.main-sidebar {
     background: #ffffff;
     border-right: 1px solid #e5e7eb;
     box-shadow: 2px 0 8px rgba(0,0,0,0.03);
     padding-top: 0;
-    z-index: 1040;
 }
 .skin-blue .mn-sidebar.main-sidebar { background: #ffffff; }
 

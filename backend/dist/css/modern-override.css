@@ -492,29 +492,52 @@ body .swal2-confirm, body .swal2-cancel { border-radius: 6px; }
 /* ==========================================================================
    16. HEADER / SIDEBAR / FOOTER — Modern Layout
    These MUST be here (last-loaded CSS) to beat AdminLTE + skin-blue.
+
+   Z-index stack (higher = on top):
+     .main-header       = 1050  (header bar + logo)
+     .main-sidebar      = 1040  (sidebar menu)
+     .content-wrapper    = 820   (AdminLTE default)
    ========================================================================== */
 
-/* -- Header: white, AdminLTE logo restored -- */
-body.skin-blue .main-header { background: #fff !important; border-bottom: 1px solid #e5e7eb !important; box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important; }
+/* -- Header ------------------------------------------------------------ */
+body.skin-blue .main-header {
+    background: #fff !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    z-index: 1050 !important;
+}
+
+/* Logo: white bg, proper height, image constrained to fit */
 body.skin-blue .main-header .logo {
-    background: #fff !important; color: #1f2937 !important; border-bottom: none !important;
-    height: 56px !important; line-height: 56px !important; overflow: hidden !important;
-    position: relative !important; z-index: 1050 !important;
+    background: #fff !important;
+    color: #1f2937 !important;
+    border-bottom: none !important;
+    height: 56px !important;
+    line-height: 56px !important;
 }
 body.skin-blue .main-header .logo:hover { background: #f9fafb !important; }
-body.skin-blue .main-header .logo .logo-lg { display: block !important; }
-body.skin-blue .main-header .logo .logo-mini { display: none !important; }
-body.sidebar-mini.sidebar-collapse .main-header .logo .logo-lg { display: none !important; }
-body.sidebar-mini.sidebar-collapse .main-header .logo .logo-mini { display: block !important; }
-body.skin-blue .main-header .logo img { max-height: 42px !important; max-width: 170px !important; width: auto !important; height: auto !important; vertical-align: middle !important; }
+body.skin-blue .main-header .logo img {
+    max-height: 42px !important;
+    max-width: 170px !important;
+    width: auto !important;
+    height: auto !important;
+    vertical-align: middle !important;
+}
+
+/* Navbar: white bg, hide AdminLTE's default sidebar-toggle */
 body.skin-blue .main-header .navbar,
 body.skin-blue .main-header > .navbar { background: #fff !important; }
-body.skin-blue .main-header .sidebar-toggle { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; }
+body.skin-blue .main-header .sidebar-toggle {
+    position: absolute !important; width: 1px !important; height: 1px !important;
+    overflow: hidden !important; clip: rect(0,0,0,0) !important;
+}
 
-/* -- Sidebar: white background, correct text colors -- */
+/* -- Sidebar ----------------------------------------------------------- */
 body.skin-blue .wrapper,
 body.skin-blue .main-sidebar,
 body.skin-blue .left-side { background-color: #fff !important; }
+body.skin-blue .main-sidebar { z-index: 1040 !important; }
+
 body.skin-blue .sidebar a { color: #4b5563 !important; }
 body.skin-blue .sidebar a:hover { color: #1f2937 !important; }
 body.skin-blue .sidebar-menu > li > a { border-left: none !important; }
@@ -527,8 +550,15 @@ body.skin-blue .treeview-menu > li > a { color: #6b7280 !important; }
 body.skin-blue .treeview-menu > li > a:hover { color: #1f2937 !important; }
 body.skin-blue .treeview-menu > li.active > a { color: #4338ca !important; }
 
-/* -- Sidebar logo is hidden (using AdminLTE header logo instead) -- */
+/* Sidebar logo (custom element) — hidden, using AdminLTE header logo */
 .mn-sidebar-logo { display: none !important; }
 
-/* -- Footer: white, full width under content -- */
-body .main-footer { background: #fff !important; border-top: 1px solid #e5e7eb !important; color: #9ca3af !important; font-size: 12px !important; padding: 10px 20px !important; text-align: right !important; }
+/* -- Footer ------------------------------------------------------------ */
+body .main-footer {
+    background: #fff !important;
+    border-top: 1px solid #e5e7eb !important;
+    color: #9ca3af !important;
+    font-size: 12px !important;
+    padding: 10px 20px !important;
+    text-align: right !important;
+}

@@ -96,12 +96,7 @@ $this->load->view('layout/theme');
     overflow: visible;
     z-index: 1030;
 }
-/* Logo — AdminLTE handles positioning above sidebar */
-.mn-header.main-header .logo {
-    background: #fff !important; height: 56px !important; line-height: 56px !important;
-    border-right: 1px solid #e5e7eb; text-align: center;
-}
-.mn-header.main-header .logo img { max-height: 42px !important; max-width: 170px !important; width: auto !important; height: auto !important; vertical-align: middle !important; }
+/* Logo styles are in modern-override.css */
 .mn-header .navbar,
 .mn-header .navbar.navbar-static-top,
 .skin-blue .mn-header .navbar {
@@ -695,9 +690,9 @@ $this->load->view('layout/theme');
 			 <?php $result = $this->customlib->getLoggedInUserData();
 			  ?>
             <header class="main-header mn-header" id="alert">
-                <a href="<?php echo base_url(); ?>admin/admin/dashboard" class="logo" style="background:#fff !important;height:56px !important;line-height:56px !important;">
-                    <span class="logo-mini" style="display:none;"><img src="<?php echo base_url(); ?>uploads/school_content/admin_small_logo/<?php echo $this->setting_model->getAdminsmalllogo();?>" alt="<?php echo $this->customlib->getAppName() ?>" style="max-height:32px;vertical-align:middle;" /></span>
-                    <span class="logo-lg" style="display:block;"><img src="<?php echo base_url(); ?>uploads/school_content/admin_logo/<?php echo $this->setting_model->getAdminlogo();?>" alt="<?php echo $this->customlib->getAppName() ?>" style="max-height:42px;max-width:170px;vertical-align:middle;" /></span>
+                <a href="<?php echo base_url(); ?>admin/admin/dashboard" class="logo">
+                    <span class="logo-mini"><img src="<?php echo base_url(); ?>uploads/school_content/admin_small_logo/<?php echo $this->setting_model->getAdminsmalllogo();?>" alt="<?php echo $this->customlib->getAppName() ?>" /></span>
+                    <span class="logo-lg"><img src="<?php echo base_url(); ?>uploads/school_content/admin_logo/<?php echo $this->setting_model->getAdminlogo();?>" alt="<?php echo $this->customlib->getAppName() ?>" /></span>
                 </a>
                 <nav class="navbar navbar-static-top" role="navigation">
                     <!-- Hidden AdminLTE toggle (kept for AdminLTE JS compatibility) -->
