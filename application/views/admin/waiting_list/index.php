@@ -60,8 +60,11 @@
                             <td><?php echo htmlspecialchars($row['guardian_name'] ?? '—'); ?></td>
                             <td><?php echo !empty($row['created_at']) ? date($this->customlib->getSchoolDateFormat(), strtotime($row['created_at'])) : '—'; ?></td>
                             <td>
-                                <?php if (!empty($row['waiting_list_comment'])): ?>
-                                <button type="button" class="btn btn-info btn-xs" onclick="viewComment('<?php echo htmlspecialchars(addslashes($row['waiting_list_comment']), ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['reference_no']); ?>')" data-toggle="tooltip" title="View Comment">
+                                <?php
+                                $comment_text = !empty($row['waiting_list_comment']) ? $row['waiting_list_comment'] : (!empty($row['note']) ? $row['note'] : '');
+                                ?>
+                                <?php if (!empty($comment_text)): ?>
+                                <button type="button" class="btn btn-info btn-xs" onclick="viewComment(this)" data-comment="<?php echo htmlspecialchars($comment_text, ENT_QUOTES); ?>" data-ref="<?php echo htmlspecialchars($row['reference_no']); ?>" data-toggle="tooltip" title="View Comment">
                                     <i class="fa fa-comment"></i>
                                 </button>
                                 <?php else: ?>
@@ -147,7 +150,9 @@ function deleteApplication(id, refNo) {
     });
 }
 
-function viewComment(comment, refNo) {
+function viewComment(el) {
+    var comment = $(el).data('comment');
+    var refNo = $(el).data('ref');
     swal({
         title: 'Comment — #' + refNo,
         text: comment,
