@@ -1,13 +1,3 @@
-<style>
-.main-footer {
-    background: #ffffff !important;
-    border-top: 1px solid #e5e7eb !important;
-    color: #9ca3af !important;
-    font-size: 12px !important;
-    padding: 10px 20px !important;
-    text-align: right !important;
-}
-</style>
 <footer class="main-footer">
     &copy; <?php echo date('Y'); ?>
     <?php

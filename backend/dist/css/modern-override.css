@@ -533,25 +533,9 @@ body.skin-blue .main-header .sidebar-toggle {
 }
 
 /* -- Sidebar ----------------------------------------------------------- */
-body.skin-blue .wrapper,
-body.skin-blue .main-sidebar,
-body.skin-blue .left-side { background-color: #fff !important; }
+/* Structural sidebar styles are in section 18.
+   skin-blue overrides that beat AdminLTE's minified skin CSS: */
 body.skin-blue .main-sidebar { z-index: 1040 !important; }
-
-body.skin-blue .sidebar a { color: #4b5563 !important; }
-body.skin-blue .sidebar a:hover { color: #1f2937 !important; }
-body.skin-blue .sidebar-menu > li > a { border-left: none !important; }
-body.skin-blue .sidebar-menu > li:hover > a,
-body.skin-blue .sidebar-menu > li.active > a { background: #eef2ff !important; color: #4338ca !important; border-left-color: transparent !important; }
-body.skin-blue .sidebar-menu > li.active > a > i { color: #6366f1 !important; }
-body.skin-blue .sidebar-menu > li > .treeview-menu { margin: 0 !important; background: transparent !important; }
-body.skin-blue .sidebar-menu > li.header { display: none !important; }
-body.skin-blue .treeview-menu > li > a { color: #6b7280 !important; }
-body.skin-blue .treeview-menu > li > a:hover { color: #1f2937 !important; }
-body.skin-blue .treeview-menu > li.active > a { color: #4338ca !important; }
-
-/* Sidebar logo (custom element) — hidden, using AdminLTE header logo */
-.mn-sidebar-logo { display: none !important; }
 
 /* -- Footer ------------------------------------------------------------ */
 body .main-footer {
@@ -562,3 +546,804 @@ body .main-footer {
     padding: 10px 20px !important;
     text-align: right !important;
 }
+
+/* ==========================================================================
+   17. HEADER — .mn-header structural / layout styles
+   Moved from header.php inline <style>.
+   skin-blue specificity overrides remain in section 16 above.
+   ========================================================================== */
+
+/* --- Main Header Override --- */
+.mn-header.main-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    min-height: 56px;
+    height: 56px;
+    overflow: visible;
+    z-index: 1030;
+}
+.mn-header .navbar,
+.mn-header .navbar.navbar-static-top,
+.skin-blue .mn-header .navbar {
+    background: #ffffff !important;
+    min-height: 56px !important;
+    padding: 0 !important;
+    border: none !important;
+}
+/* Hide AdminLTE's default sidebar toggle visually but keep in DOM for JS */
+.mn-header .sidebar-toggle { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; }
+
+/* --- Sidebar Toggle Button --- */
+.mn-header .mn-sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+.mn-header .mn-sidebar-toggle:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+.mn-header .mn-sidebar-toggle .icon-bar {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background-color: #6b7280;
+    border-radius: 1px;
+    transition: background 0.15s ease;
+}
+.mn-header .mn-sidebar-toggle .icon-bar + .icon-bar {
+    margin-top: 4px;
+}
+.mn-header .mn-sidebar-toggle:hover .icon-bar {
+    background-color: #1f2937;
+}
+
+/* --- Navbar Inner Layout --- */
+.mn-header .mn-navbar-inner {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    padding: 0 16px;
+    gap: 8px;
+}
+
+/* --- Institution Name --- */
+.mn-header .mn-institution-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
+    line-height: 56px;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* --- Spacer --- */
+.mn-header .mn-spacer {
+    flex: 1 1 auto;
+    min-width: 8px;
+}
+
+/* --- Search Bar --- */
+.mn-header .mn-search-form {
+    position: relative;
+    flex-shrink: 0;
+}
+.mn-header .mn-search-form .mn-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.mn-header .mn-search-form .mn-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 2;
+    transition: color 0.15s ease;
+}
+.mn-header .mn-search-form .mn-search-input {
+    width: 260px;
+    height: 36px;
+    padding: 0 14px 0 36px;
+    background: #f3f4f6;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #1f2937;
+    outline: none;
+    transition: all 0.2s ease;
+}
+.mn-header .mn-search-form .mn-search-input::placeholder {
+    color: #9ca3af;
+}
+.mn-header .mn-search-form .mn-search-input:focus {
+    background: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.mn-header .mn-search-form .mn-search-input:focus + .mn-search-icon,
+.mn-header .mn-search-form .mn-search-input:focus ~ .mn-search-icon {
+    color: #3b82f6;
+}
+.mn-header .mn-search-form .mn-search-submit {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #6b7280;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.mn-header .mn-search-form .mn-search-submit:hover {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+/* --- Action Icons Area --- */
+.mn-header .mn-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+/* --- Icon Button Base --- */
+.mn-header .mn-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: transparent;
+    color: #6b7280;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    position: relative;
+    border: none;
+    text-decoration: none !important;
+    padding: 0;
+}
+.mn-header .mn-icon-btn:hover,
+.mn-header .mn-icon-btn:focus {
+    background: #f3f4f6;
+    color: #1f2937;
+    text-decoration: none !important;
+}
+.mn-header a.mn-icon-btn:hover,
+.mn-header a.mn-icon-btn:focus {
+    text-decoration: none !important;
+}
+
+/* --- Badge --- */
+.mn-header .mn-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: center;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+/* --- Currency/Language Switcher Containers --- */
+.mn-header .mn-switcher {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 2px;
+}
+.mn-header .mn-switcher .languageselectpicker,
+.mn-header .mn-switcher select {
+    border: none;
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    color: #374151;
+    height: 32px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.mn-header .mn-switcher .languageselectpicker:hover,
+.mn-header .mn-switcher select:hover {
+    background: #e5e7eb;
+}
+
+/* --- Dropdown Menus --- */
+.mn-header .mn-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.mn-header .mn-dropdown .dropdown-menu {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+    padding: 0;
+    margin-top: 8px;
+    overflow: hidden;
+    min-width: 220px;
+}
+.mn-header .mn-dropdown .dropdown-menu > li > a {
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #374151;
+    transition: background 0.12s ease;
+}
+.mn-header .mn-dropdown .dropdown-menu > li > a:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+/* --- Leave Notification Dropdown --- */
+.mn-header .mn-leave-dropdown .dropdown-menu {
+    min-width: 300px;
+    right: 0;
+    left: auto;
+}
+.mn-header .mn-leave-header {
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+.mn-header .mn-leave-dropdown .todolist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.mn-header .mn-leave-dropdown .todolist li a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.12s ease;
+    text-decoration: none;
+}
+.mn-header .mn-leave-dropdown .todolist li a:hover {
+    background: #f3f4f6;
+}
+.mn-header .mn-leave-dropdown .todolist li a .label {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+/* --- Tasks/Todo Dropdown --- */
+.mn-header .mn-todo-dropdown .dropdown-menu {
+    min-width: 320px;
+    right: 0;
+    left: auto;
+}
+.mn-header .mn-todo-header {
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 13px;
+    color: #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.mn-header .mn-todo-header a {
+    color: #3b82f6;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+}
+.mn-header .mn-todo-header a:hover {
+    text-decoration: underline;
+}
+.mn-header .mn-todo-dropdown .todolist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 280px;
+    overflow-y: auto;
+}
+.mn-header .mn-todo-dropdown .todolist li {
+    padding: 8px 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.mn-header .mn-todo-dropdown .todolist li:last-child {
+    border-bottom: none;
+}
+.mn-header .mn-todo-dropdown .todolist li .checkbox {
+    margin: 0;
+}
+.mn-header .mn-todo-dropdown .todolist li .checkbox label {
+    font-size: 13px;
+    color: #374151;
+    padding-left: 4px;
+}
+
+/* --- Mobile Ellipsis Dropdown --- */
+.mn-header .mn-ellipsis-dropdown .dropdown-menu {
+    min-width: 160px;
+    right: 0;
+    left: auto;
+}
+.mn-header .mn-ellipsis-dropdown .dropdown-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    color: #374151;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.12s ease;
+}
+.mn-header .mn-ellipsis-dropdown .dropdown-menu li a:hover {
+    background: #f3f4f6;
+}
+
+/* --- WhatsApp Icon --- */
+.mn-header .mn-whatsapp-btn {
+    background: #25d366;
+    color: #ffffff !important;
+}
+.mn-header .mn-whatsapp-btn:hover {
+    background: #1da851 !important;
+    color: #ffffff !important;
+}
+.mn-header .mn-whatsapp-btn svg path[style*="fill:#fff"] {
+    fill: #ffffff;
+}
+
+/* --- User Avatar Dropdown --- */
+.mn-header .mn-user-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+}
+.mn-header .mn-user-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    border: none;
+    background: none;
+    border-radius: 50%;
+    transition: box-shadow 0.15s ease;
+}
+.mn-header .mn-user-trigger:hover {
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    border-radius: 50%;
+}
+.mn-header .mn-user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e5e7eb;
+    transition: border-color 0.15s ease;
+}
+.mn-header .mn-user-trigger:hover .mn-user-avatar {
+    border-color: #3b82f6;
+}
+.mn-header .mn-user-icon-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    transition: border-color 0.15s ease;
+}
+.mn-header .mn-user-trigger:hover .mn-user-icon-circle {
+    border-color: #3b82f6;
+}
+.mn-header .mn-user-icon-circle i {
+    font-size: 16px;
+    color: #ffffff;
+}
+.mn-header .mn-user-dropdown .dropdown-menu {
+    right: 0;
+    left: auto;
+    min-width: 280px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.05);
+    padding: 0;
+    margin-top: 8px;
+    overflow: hidden;
+}
+.mn-header .mn-user-card {
+    padding: 20px 16px 16px;
+    text-align: center;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+.mn-header .mn-user-card-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #e5e7eb;
+    margin-bottom: 8px;
+}
+.mn-header .mn-user-card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: #f3f4f6;
+    border-radius: 50%;
+    margin-bottom: 8px;
+}
+.mn-header .mn-user-card-icon i {
+    font-size: 24px;
+    color: #9ca3af;
+}
+.mn-header .mn-user-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 2px;
+    text-transform: capitalize;
+}
+.mn-header .mn-user-card h5 {
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+    margin: 0;
+}
+.mn-header .mn-user-links {
+    padding: 8px 0;
+}
+.mn-header .mn-user-links a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #374151;
+    text-decoration: none;
+    transition: background 0.12s ease;
+}
+.mn-header .mn-user-links a:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+.mn-header .mn-user-links a i {
+    width: 16px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+.mn-header .mn-user-links .mn-logout-link {
+    border-top: 1px solid #e5e7eb;
+    margin-top: 4px;
+    padding-top: 12px;
+    color: #ef4444;
+}
+.mn-header .mn-user-links .mn-logout-link:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+.mn-header .mn-user-links .mn-logout-link i {
+    color: #ef4444;
+}
+
+/* --- Header Responsive --- */
+@media (max-width: 991px) {
+    .mn-header .mn-institution-name {
+        max-width: 180px;
+        font-size: 13px;
+    }
+    .mn-header .mn-search-form {
+        display: none !important;
+    }
+}
+@media (max-width: 767px) {
+    .mn-header .mn-institution-name {
+        display: none !important;
+    }
+    .mn-header .mn-navbar-inner {
+        padding: 0 8px;
+    }
+    .mn-header .mn-search-form {
+        display: none !important;
+    }
+}
+
+/* --- AdminLTE Overrides for .mn-header --- */
+.mn-header.main-header .navbar-static-top {
+    background: transparent !important;
+}
+.mn-header .navbar-nav > li > a {
+    color: #6b7280;
+    padding: 0;
+}
+.mn-header .navbar-nav > li > a:hover,
+.mn-header .navbar-nav > li > a:focus {
+    color: #1f2937;
+    background: transparent;
+}
+.skin-blue .mn-header.main-header .navbar {
+    background: #ffffff !important;
+}
+.skin-blue .mn-header.main-header .navbar .nav > li > a {
+    color: #6b7280;
+}
+.skin-blue .mn-header.main-header .navbar .nav > li > a:hover {
+    color: #1f2937;
+    background: transparent;
+}
+.skin-blue .mn-header.main-header .sidebar-toggle {
+    color: #6b7280;
+}
+.skin-blue .mn-header.main-header .sidebar-toggle:hover {
+    color: #1f2937;
+    background: transparent;
+}
+/* Hide AdminLTE default sidebar toggle since we use custom one */
+.mn-header .navbar > .sidebar-toggle {
+    display: none !important;
+}
+
+/* ==========================================================================
+   18. SIDEBAR — .mn-sidebar structural / layout styles
+   Moved from sidebar.php inline <style>.
+   skin-blue specificity overrides remain in section 16 above.
+   ========================================================================== */
+
+/* --- Sidebar base --- */
+.mn-sidebar.main-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e5e7eb;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.03);
+    padding-top: 56px;
+}
+.skin-blue .mn-sidebar.main-sidebar { background: #ffffff; }
+
+/* --- Sidebar scrollable area --- */
+.mn-sidebar .sidebar {
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 0 20px;
+    background: transparent;
+}
+
+/* --- Hide sidebar search form --- */
+.mn-sidebar .navbar-form.search-form2 { display: none; }
+
+/* --- Session bar (top_sidemenu) --- */
+.mn-sidebar .sessionul.fixedmenu {
+    margin: 0; padding: 0; list-style: none;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+/* --- Logo visibility fix --- */
+.mn-header.main-header { overflow: visible !important; }
+/* Content area background */
+.skin-blue .content-wrapper { background: #f8f9fb !important; }
+
+.skin-blue .main-sidebar .sidebar-menu > li.header {
+    background: transparent;
+    color: #9ca3af;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 22px 6px;
+}
+
+/* --- Menu list --- */
+.mn-sidebar .sidebar-menu {
+    list-style: none; margin: 0; padding: 0;
+}
+.mn-sidebar .sidebar-menu > li {
+    margin: 1px 8px; border-radius: 8px; overflow: hidden;
+    transition: background 0.15s;
+}
+.mn-sidebar .sidebar-menu > li > a {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; color: #4b5563;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.01em;
+    text-decoration: none; border-radius: 8px;
+    transition: all 0.15s;
+    line-height: 1.4;
+}
+.mn-sidebar .sidebar-menu > li > a > i:first-child {
+    width: 20px; text-align: center; font-size: 15px; color: #9ca3af;
+    flex-shrink: 0; transition: color 0.15s;
+}
+.mn-sidebar .sidebar-menu > li > a > span {
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mn-sidebar .sidebar-menu > li > a > .pull-right,
+.mn-sidebar .sidebar-menu > li > a > i.fa-angle-left {
+    font-size: 12px; color: #d1d5db; transition: transform 0.2s, color 0.15s;
+    margin-left: auto; flex-shrink: 0;
+}
+
+/* Hover */
+.mn-sidebar .sidebar-menu > li > a:hover {
+    background: #f3f4f6; color: #1f2937;
+}
+.mn-sidebar .sidebar-menu > li > a:hover > i:first-child { color: #6366f1; }
+
+/* Active parent */
+.mn-sidebar .sidebar-menu > li.active > a {
+    background: #eef2ff; color: #4338ca; font-weight: 600;
+}
+.mn-sidebar .sidebar-menu > li.active > a > i:first-child { color: #6366f1; }
+.mn-sidebar .sidebar-menu > li.active > a > .pull-right,
+.mn-sidebar .sidebar-menu > li.active > a > i.fa-angle-left { color: #6366f1; }
+
+/* Open treeview — rotate arrow */
+.mn-sidebar .sidebar-menu > li.treeview.active > a > i.fa-angle-left,
+.mn-sidebar .sidebar-menu > li.treeview.menu-open > a > i.fa-angle-left {
+    transform: rotate(-90deg);
+}
+
+/* --- Submenu --- */
+.mn-sidebar .treeview-menu {
+    list-style: none; margin: 0; padding: 2px 0 6px 0;
+    background: transparent;
+}
+.mn-sidebar .treeview-menu > li { margin: 0; }
+.mn-sidebar .treeview-menu > li > a {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px 7px 46px; color: #6b7280;
+    font-size: 12.5px; font-weight: 400;
+    text-decoration: none; border-radius: 6px;
+    margin: 0 8px; transition: all 0.15s;
+    line-height: 1.4;
+    position: relative;
+}
+/* Subtle dot instead of double-right arrow */
+.mn-sidebar .treeview-menu > li > a > i.fa-angle-double-right {
+    display: none;
+}
+.mn-sidebar .treeview-menu > li > a::before {
+    content: '';
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #d1d5db; flex-shrink: 0;
+    transition: background 0.15s, transform 0.15s;
+}
+
+/* Submenu hover */
+.mn-sidebar .treeview-menu > li > a:hover {
+    background: #f9fafb; color: #1f2937;
+}
+.mn-sidebar .treeview-menu > li > a:hover::before { background: #6366f1; }
+
+/* Submenu active */
+.mn-sidebar .treeview-menu > li.active > a {
+    color: #4338ca; font-weight: 600; background: #eef2ff;
+}
+.mn-sidebar .treeview-menu > li.active > a::before {
+    background: #6366f1; transform: scale(1.3);
+}
+
+/* Badge in submenu */
+.mn-sidebar .treeview-menu > li > a > .label {
+    margin-left: auto; font-size: 10px; padding: 2px 7px;
+    border-radius: 10px; font-weight: 600; line-height: 1.4;
+}
+
+/* --- Sidebar Scrollbar --- */
+.mn-sidebar .sidebar::-webkit-scrollbar { width: 4px; }
+.mn-sidebar .sidebar::-webkit-scrollbar-track { background: transparent; }
+.mn-sidebar .sidebar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+.mn-sidebar .sidebar::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+
+/* --- Collapsed sidebar (mini) --- */
+.sidebar-collapse .mn-sidebar.main-sidebar {
+    width: 50px;
+}
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a > span,
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a > .pull-right,
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a > i.fa-angle-left {
+    display: none;
+}
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a {
+    justify-content: center; padding: 12px 0;
+}
+.sidebar-collapse .mn-sidebar .sidebar-menu > li > a > i:first-child {
+    font-size: 17px; width: auto; margin: 0;
+}
+.sidebar-collapse .mn-sidebar .sidebar-menu > li { margin: 1px 4px; }
+
+/* Hover flyout for collapsed state */
+.sidebar-collapse .mn-sidebar .sidebar-menu > li:hover > .treeview-menu {
+    display: block !important;
+    position: absolute; left: 50px; top: 0;
+    min-width: 220px; background: #fff;
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    box-shadow: 4px 4px 16px rgba(0,0,0,0.08);
+    padding: 6px 0; z-index: 1050;
+}
+.sidebar-collapse .mn-sidebar .treeview-menu > li > a {
+    padding-left: 16px; margin: 0 4px;
+}
+
+/* --- AdminLTE skin-blue sidebar overrides --- */
+.skin-blue .sidebar-menu > li > a { border-left: none !important; }
+.skin-blue .sidebar-menu > li:hover > a,
+.skin-blue .sidebar-menu > li.active > a { background: #eef2ff !important; color: #4338ca !important; border-left-color: transparent !important; }
+.skin-blue .sidebar a { color: #4b5563 !important; }
+.skin-blue .sidebar a:hover { color: #1f2937 !important; text-decoration: none !important; }
+.skin-blue .sidebar-menu > li > .treeview-menu { margin: 0 !important; background: transparent !important; }
+.skin-blue .sidebar-menu > li.header { display: none !important; }
+.skin-blue .treeview-menu > li > a { color: #6b7280 !important; }
+.skin-blue .treeview-menu > li > a:hover { color: #1f2937 !important; }
+.skin-blue .treeview-menu > li.active > a { color: #4338ca !important; }
+
+/* Override dark sidebar text colors */
+.skin-blue .main-sidebar .sidebar-menu > li > a,
+.skin-blue .main-sidebar .sidebar-menu > li > a > span { color: inherit !important; }
+.skin-blue .main-sidebar .sidebar-menu > li > a > i { color: #9ca3af !important; }
+.skin-blue .main-sidebar .sidebar-menu > li.active > a > i { color: #6366f1 !important; }
+.skin-blue .main-sidebar .sidebar-menu > li:hover > a > i { color: #6366f1 !important; }
+
+/* Logo area — use AdminLTE header logo (white bg) */
+.skin-blue .main-header .logo { background: #fff !important; color: #1f2937 !important; border-bottom: none !important; }
+.skin-blue .main-header .logo:hover { background: #f9fafb !important; }
+
+/* Sidebar logo (hidden — using AdminLTE header logo instead) */
+.mn-sidebar-logo {
+    display: none !important;
+}
+
+/* --- Sidebar Mobile --- */
+@media (max-width: 767px) {
+    .mn-sidebar.main-sidebar {
+        box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+    }
+}
+
+/* ==========================================================================
+   19. FOOTER — structural / layout styles
+   Moved from footer.php inline <style>.
+   ========================================================================== */
