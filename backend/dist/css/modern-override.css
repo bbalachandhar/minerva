@@ -1489,3 +1489,67 @@ body .main-footer {
     padding-bottom: 0 !important;
     margin-bottom: 0 !important;
 }
+
+/* -- Attendance / Overview widget content -------------------------------- */
+.topprograssstart p.text-uppercase {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+    margin: 0 !important;
+    padding: 8px 14px 2px !important;
+    letter-spacing: 0.3px;
+}
+.topprograssstart p.text-uppercase .pull-right {
+    font-weight: 700;
+    color: #6b7280;
+}
+.topprograssstart .progress-group {
+    padding: 0 14px 4px !important;
+    margin: 0 !important;
+}
+.topprograssstart .progress.progress-minibar {
+    height: 4px !important;
+    border-radius: 2px !important;
+    background: #f1f5f9 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+.topprograssstart .progress-minibar .progress-bar {
+    border-radius: 2px !important;
+    background: #4f46e5 !important;
+}
+.topprograssstart .progress-minibar .progress-bar.progress-bar-yellow {
+    background: #f59e0b !important;
+}
+
+/* Attendance widget first paragraph needs top padding */
+.topprograssstart p.text-uppercase.mt10:first-of-type {
+    padding-top: 12px !important;
+}
+
+/* -- Admission overview eye buttons ------------------------------------- */
+.topprograssstart p.text-uppercase .btn-xs {
+    padding: 1px 5px !important;
+    font-size: 10px !important;
+    border-radius: 4px !important;
+    margin-left: 4px !important;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+.topprograssstart p.text-uppercase .btn-xs:hover {
+    opacity: 1;
+}
+
+/* -- Waiting list / Revoked links --------------------------------------- */
+.topprograssstart a.btn-xs[style*="color"] {
+    border-radius: 4px !important;
+}
+
+/* -- Skeleton loading (existing, just ensure clean look) ---------------- */
+.fo-skeleton {
+    background: #e2e8f0 !important;
+    border-radius: 4px;
+    display: inline-block;
+    min-width: 24px;
+    min-height: 14px;
+}
