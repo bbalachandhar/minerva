@@ -71,11 +71,6 @@
                                     <i class="fa fa-check"></i> Activate
                                 </button>
                                 <?php endif; ?>
-                                <?php if ($this->rbac->hasPrivilege('online_admission', 'can_delete')): ?>
-                                <button type="button" class="btn btn-danger btn-xs" onclick="deleteApplication(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>')" data-toggle="tooltip" title="Delete">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -110,31 +105,6 @@ function activateApplication(id, refNo) {
                 function(resp) {
                     if (resp.status === 'success') {
                         swal({title: 'Activated!', text: resp.message, type: 'success'}, function() { location.reload(); });
-                    } else {
-                        swal('Error', resp.message, 'error');
-                    }
-                }, 'json'
-            );
-        }
-    });
-}
-
-function deleteApplication(id, refNo) {
-    swal({
-        title: 'Delete Application?',
-        text: 'Are you sure you want to permanently delete application #' + refNo + '? This cannot be undone.',
-        type: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#e74c3c',
-        confirmButtonText: 'Yes, Delete',
-        cancelButtonText: 'Cancel'
-    }, function(isConfirm) {
-        if (isConfirm) {
-            $.post('<?php echo site_url("admin/waiting_list/delete"); ?>',
-                {id: id, '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'},
-                function(resp) {
-                    if (resp.status === 'success') {
-                        swal({title: 'Deleted!', text: resp.message, type: 'success'}, function() { location.reload(); });
                     } else {
                         swal('Error', resp.message, 'error');
                     }

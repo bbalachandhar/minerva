@@ -129,6 +129,14 @@
                                                     </a>
                                                 </li>
                                                 <?php endif; ?>
+                                                <?php if ($this->rbac->hasPrivilege('admission_cancellation', 'can_delete')): ?>
+                                                <li class="divider"></li>
+                                                <li>
+                                                    <a href="#" onclick="deleteRevokedApplication(<?php echo (int) $row['admission_id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>'); return false;" class="text-danger">
+                                                        <i class="fa fa-trash"></i> Delete Permanently
+                                                    </a>
+                                                </li>
+                                                <?php endif; ?>
                                             </ul>
                                         </div>
                                     </td>
@@ -396,6 +404,31 @@
     };
 
 }(jQuery));
+
+function deleteRevokedApplication(id, refNo) {
+    swal({
+        title: 'Delete Application #' + refNo + '?',
+        text: 'This will permanently delete this revoked application and all associated data. This action cannot be undone.',
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e74c3c',
+        confirmButtonText: 'Yes, Delete Permanently',
+        cancelButtonText: 'Cancel'
+    }, function(isConfirm) {
+        if (isConfirm) {
+            $.post('<?php echo site_url("admin/admission_cancellation/delete"); ?>', {
+                id: id,
+                '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
+            }, function(resp) {
+                if (resp.status === 'success') {
+                    swal({title: 'Deleted!', text: resp.message, type: 'success'}, function() { location.reload(); });
+                } else {
+                    swal('Error', resp.message, 'error');
+                }
+            }, 'json');
+        }
+    });
+}
 </script>
 
 </div><!-- /.content-wrapper -->
