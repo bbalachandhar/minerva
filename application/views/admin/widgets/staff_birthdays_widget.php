@@ -1,59 +1,46 @@
 <?php if (!empty($staff_birthdays)) { ?>
     <div class="birthday-ticker-clipper">
         <div class="birthday-ticker-content" style="animation-duration: 20s;">
-            <div class="mediarow">
-                <div class="row">
-                    <?php foreach (array_merge($staff_birthdays, $staff_birthdays) as $staff) { ?>
-                        <div class="col-lg-12 col-md-12 col-sm-12 img_div_modal">
-                            <div class="staffinfo-box">
-                                <div class="staffleft-box">
-                                    <?php
-                                    $gender_icon = 'fa-user';
-                                    $bg_color = '#f8f9fa';
-                                    $icon_color = '#999';
-                                    if (!empty($staff["gender"])) {
-                                        if (strtolower($staff["gender"]) === 'male') {
-                                            $gender_icon = 'fa-male';
-                                            $bg_color = '#1976d2';
-                                            $icon_color = '#fff';
-                                        } elseif (strtolower($staff["gender"]) === 'female') {
-                                            $gender_icon = 'fa-female';
-                                            $bg_color = '#e91e8c';
-                                            $icon_color = '#fff';
-                                        }
-                                    }
-                                    
-                                    if (!empty($staff["image"])) {
-                                        $image = "uploads/staff_images/" . $staff["image"];
-                                        echo '<img src="' . base_url() . $image . '" alt="User Image">';
-                                    } else {
-                                        echo '<div style="display: inline-block; width: 60px; height: 60px; background: ' . $bg_color . '; border-radius: 50%; text-align: center; line-height: 60px;">';
-                                        echo '<i class="fa ' . $gender_icon . '" style="font-size: 30px; color: ' . $icon_color . ';"></i>';
-                                        echo '</div>';
-                                    }
-                                    ?>
-                                    <div class="birthday-date">
-                                        <?php echo date('d M', strtotime($staff['dob'])); ?>
-                                    </div>
-                                </div>
-                                <div class="staffleft-content">
-                                    <h5><span><?php echo $staff["name"] . " " . $staff["surname"]; ?></span></h5>
-                                    <p><font><?php echo $staff["employee_id"]; ?></font></p>
-                                    <p><font><?php echo $staff["contact_no"]; ?></font></p>
-                                    <p><font><?php echo $staff["department"]; ?></font></p>
-                                    <p class="staffsub"><span data-toggle="tooltip" title="<?php echo $this->lang->line('role'); ?>"><?php echo $staff["role"]; ?></span> <span data-toggle="tooltip" title="<?php echo 'Designation'; ?>"> <?php echo $staff["designation"]; ?></span></p>
-                                </div>
-                            </div>
+            <?php foreach (array_merge($staff_birthdays, $staff_birthdays) as $staff) {
+                $gender_icon = 'fa-user';
+                $avatar_bg = 'linear-gradient(135deg, #94a3b8, #cbd5e1)';
+                if (!empty($staff["gender"])) {
+                    if (strtolower($staff["gender"]) === 'male') {
+                        $gender_icon = 'fa-male';
+                        $avatar_bg = 'linear-gradient(135deg, #3b82f6, #60a5fa)';
+                    } elseif (strtolower($staff["gender"]) === 'female') {
+                        $gender_icon = 'fa-female';
+                        $avatar_bg = 'linear-gradient(135deg, #ec4899, #f472b6)';
+                    }
+                }
+                $bday_display = date('d M', strtotime($staff['dob']));
+            ?>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #f1f5f9;">
+                <div style="flex-shrink:0;position:relative;">
+                    <?php if (!empty($staff["image"])) { ?>
+                        <img src="<?php echo base_url('uploads/staff_images/' . $staff["image"]); ?>" alt="" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;">
+                    <?php } else { ?>
+                        <div style="width:42px;height:42px;border-radius:50%;background:<?php echo $avatar_bg; ?>;display:flex;align-items:center;justify-content:center;">
+                            <i class="fa <?php echo $gender_icon; ?>" style="font-size:18px;color:#fff;"></i>
                         </div>
                     <?php } ?>
+                    <div style="position:absolute;bottom:-2px;right:-4px;background:#4f46e5;color:#fff;font-size:8px;font-weight:700;padding:1px 5px;border-radius:8px;letter-spacing:0.3px;white-space:nowrap;"><?php echo $bday_display; ?></div>
+                </div>
+                <div style="flex:1;min-width:0;overflow:hidden;">
+                    <div style="font-size:13px;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo $staff["name"] . " " . $staff["surname"]; ?></div>
+                    <div style="font-size:11px;color:#64748b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo $staff["department"]; ?></div>
+                    <div style="margin-top:3px;">
+                        <?php if (!empty($staff["role"])) { ?><span style="font-size:9px;font-weight:600;color:#475569;background:#f1f5f9;padding:2px 6px;border-radius:4px;margin-right:3px;"><?php echo $staff["role"]; ?></span><?php } ?>
+                        <?php if (!empty($staff["designation"])) { ?><span style="font-size:9px;font-weight:600;color:#475569;background:#f1f5f9;padding:2px 6px;border-radius:4px;"><?php echo $staff["designation"]; ?></span><?php } ?>
+                    </div>
                 </div>
             </div>
+            <?php } ?>
         </div>
     </div>
 <?php } else { ?>
-    <div class="birthday-ticker-clipper">
-        <div class="birthday-ticker-content" style="animation-duration: 20s;">
-            <p class="text-center"><?php echo $this->lang->line('no_record_found'); ?></p>
-        </div>
+    <div style="padding:30px 20px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:8px;">🎂</div>
+        <div style="font-size:12px;color:#94a3b8;font-weight:500;"><?php echo $this->lang->line('no_record_found'); ?></div>
     </div>
 <?php } ?>

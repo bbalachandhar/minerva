@@ -1,1152 +1,843 @@
-        <?php if (isset($extra_students) && count($extra_students) > 0) { ?>
-            <div class="alert alert-warning" style="margin-top:10px;">
-                <strong>Extra students (not male/female):</strong>
-                <ul style="max-height:120px;overflow:auto;">
-                    <?php foreach ($extra_students as $stu) { ?>
-                        <li><?php echo htmlspecialchars($stu['firstname'].' '.$stu['lastname'].' (ID: '.$stu['id'].', Gender: '.($stu['gender'] ?: 'Not specified').')'); ?></li>
-                    <?php } ?>
-                </ul>
-            </div>
-        <?php } ?>
-<?php $currency_symbol = $this->customlib->getSchoolCurrencyFormat();?>
-<style type="text/css">
-    .borderwhite{border-top-color: #fff !important;}
-    .box-header>.box-tools {display: none;}
-    .sidebar-collapse #barChart{height: 100% !important;}
-    .sidebar-collapse #lineChart{height: 100% !important;}
-    .tooltip-inner {max-width: 135px;}
-    #calendar {
-        height: 80%;
-    }
-    #calendar .fc-view-container {
-        height: 100%;
-    }
-    .fo-skeleton {
-        position: relative;
-        color: transparent;
-        background: #e6e6e6;
-        border-radius: 4px;
-        display: inline-block;
-        min-width: 40px;
-    }
-    .fo-skeleton.fo-line {
-        min-width: 120px;
-        height: 12px;
-        vertical-align: middle;
-    }
-    .fo-skeleton::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-    }
-    
-    /* Class-wise fees widget styling */
-    #fees-classwise-widget .table-responsive {
-        max-height: 300px;
-        overflow-y: auto;
-        position: relative;
-    }
-    
-    .classwise-fees-table {
-        border-collapse: collapse !important;
-    }
-    
-    .classwise-fees-table td,
-    .classwise-fees-table th {
-        border: 1px solid #ddd !important;
-        padding: 8px !important;
-        text-align: center;
-    }
-    
-    .classwise-fees-table thead {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-    
-    .classwise-fees-table thead th {
-        font-weight: bold;
-        position: relative;
-    }
-    
-    /* First row headers (fee type groups) */
-    .classwise-fees-table thead tr:first-child th {
-        background-color: #f5f5f5 !important;
-    }
-    
-    /* Second row headers - Demand columns (blue) */
-    .classwise-fees-table thead tr:nth-child(2) th:nth-child(3n+1) {
-        background-color: #e3f2fd !important;
-    }
-    
-    /* Second row headers - Paid/Pending columns (green) */
-    .classwise-fees-table thead tr:nth-child(2) th:nth-child(3n+2),
-    .classwise-fees-table thead tr:nth-child(2) th:nth-child(3n) {
-        background-color: #f1f8e9 !important;
-    }
-    
-    .classwise-fees-table tfoot td {
-        font-weight: bold;
-        background-color: #fafafa !important;
-    }
-    
-    .classwise-fees-table tbody tr:first-child td {
-        text-align: left !important;
-    }
-    
-    /* Loading skeleton animation */
-    .classwise-fees-loading {
-        padding: 30px !important;
-    }
-    
-    .classwise-fees-loading .loading-spinner {
-        display: inline-block;
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #3498db;
-        border-radius: 50%;
-        animation: classwise-spin 1s linear infinite;
-        margin-bottom: 10px;
-    }
-    
-    @keyframes classwise-spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-        animation: fo-shimmer 1.2s infinite;
-    }
-    @keyframes fo-shimmer {
-        100% { transform: translateX(200%); }
-    }
+<?php if (isset($extra_students) && count($extra_students) > 0) { ?>
+    <div class="alert alert-warning" style="margin-top:10px;">
+        <strong>Extra students (not male/female):</strong>
+        <ul style="max-height:120px;overflow:auto;">
+            <?php foreach ($extra_students as $stu) { ?>
+                <li><?php echo htmlspecialchars($stu['firstname'].' '.$stu['lastname'].' (ID: '.$stu['id'].', Gender: '.($stu['gender'] ?: 'Not specified').')'); ?></li>
+            <?php } ?>
+        </ul>
+    </div>
+<?php } ?>
+<?php $currency_symbol = $this->customlib->getSchoolCurrencyFormat(); ?>
 
-            /* Original birthday ticker styles */
-            .birthday-ticker-container {
-                position: relative;
-                height: 82%; /* Will take 82% of parent's fixed height */
-            }
+<style>
+/* ══════════════════════════════════════════════════════════════
+   MINERVA DASHBOARD — Modern SaaS Design System
+   ══════════════════════════════════════════════════════════════ */
 
-            .birthday-ticker-content {
-                animation: ticker-scroll var(--ticker-duration, 20s) linear infinite; /* Use CSS variable for duration */
-                /* height: 200%; -- Removed for dynamic height calculation */
-            }            .birthday-ticker-clipper {
-                overflow: hidden;
-                overflow-y: hidden;
-                max-height: 100%;
-                height: 100%;
-                position: relative; /* Ensure it's a positioning context */
-            }
-            .birthday-ticker-content ul {
-                padding: 0;
-                margin: 0;
-            }
-            .birthday-ticker-content li {
-                list-style: none;
-                /* white-space: nowrap; uncomment if text should not wrap */
-            }
-            .mediarow {
-                overflow: hidden;
-            }
+/* ── Design Tokens ── */
+.mn-dashboard {
+    --mn-bg: #f1f5f9;
+    --mn-card: #ffffff;
+    --mn-border: #e2e8f0;
+    --mn-radius: 12px;
+    --mn-shadow: 0 1px 3px 0 rgba(0,0,0,0.04), 0 1px 2px -1px rgba(0,0,0,0.03);
+    --mn-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+    --mn-text: #0f172a;
+    --mn-text-sec: #64748b;
+    --mn-text-muted: #94a3b8;
+    --mn-indigo: #4f46e5;
+    --mn-blue: #3b82f6;
+    --mn-green: #10b981;
+    --mn-emerald: #059669;
+    --mn-amber: #f59e0b;
+    --mn-red: #ef4444;
+    --mn-purple: #8b5cf6;
+    --mn-orange: #ea580c;
+    --mn-cyan: #06b6d4;
+    --mn-pink: #ec4899;
+    --mn-gap: 16px;
+}
 
-            @keyframes ticker-scroll {
-                0% {
-                    transform: translateY(0);
-                }
-                100% {
-                    transform: translateY(var(--ticker-translate-y, -50%)); /* Dynamic translation with fallback */
-                }
-            }
-            
-            /* Equal Height Row styles (these were mostly fine but ensuring consistency) */
-            .equal-height-row {
-              display: -webkit-box;
-              display: -ms-flexbox;
-              display: flex;
-              -ms-flex-wrap: nowrap !important;
-                  flex-wrap: wrap;
-            }
-            .equal-height-row > [class*='col-'] {
-              display: -webkit-box;
-              display: -ms-flexbox;
-              display: flex;
-              -webkit-box-orient: vertical;
-              -webkit-box-direction: normal;
-                  -ms-flex-direction: column;
-                      flex-direction: column;
-            }
-            .equal-height-row > [class*='col-'] > .topprograssstart {
-                /* Revert flex-grow property for static height */
-                -webkit-box-flex: 0; 
-                -ms-flex: 0 0 auto !important; 
-                flex: 0 0 auto !important;
-                height: 275px; /* Fixed height based on user request */
-                display: block; /* Override flex display if applied earlier */
-            }
-            
-            /* Staff/Student card specific styles */
-            .staffleft-box {
-                position: relative;
-            }
+/* ── Base ── */
+.mn-dashboard .content { padding: 20px 24px !important; }
 
-            .birthday-date {
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background-color: rgba(255, 255, 255, 0.8);
-                color: #000;
-                text-align: center;
-                padding: 2px;
-                font-size: 12px;
-                font-weight: bold;
-                z-index: 10; /* Bring to front */
-            }
-            
-            /* General flex card styles (reverting these to avoid dynamic height) */
-            .topprograssstart.flex-card {
-                /* Removed display: flex, flex-direction: column, height: 100% to revert to static block behavior */
-                display: block; /* Ensure it behaves as a block element */
-                height: 100%; /* Keep 100% to fill parent, but parent col-* will now have fixed height */
-            }
+/* ── Card Component ── */
+.mn-card {
+    background: var(--mn-card);
+    border: 1px solid var(--mn-border);
+    border-radius: var(--mn-radius);
+    box-shadow: var(--mn-shadow);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+.mn-card:hover { box-shadow: var(--mn-shadow-md); }
 
-            .topprograssstart.flex-card h5.pro-border {
-                /* Removed flex-shrink: 0; */
-                margin: 0;
-            }
+.mn-card-head {
+    padding: 12px 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--mn-text-sec);
+    border-bottom: 1px solid var(--mn-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fafc;
+}
+.mn-card-head .mn-head-badge {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--mn-text);
+    text-transform: none;
+    letter-spacing: -0.3px;
+}
+.mn-card-head-accent {
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: none;
+}
+.mn-card-body { padding: 16px 20px; }
+.mn-card-body-compact { padding: 8px 20px 12px; }
 
-            .topprograssstart.flex-card .birthday-ticker-container {
-                /* Removed flex-grow: 1; */
-                height: 82%; /* Will take 100% of parent's fixed height */
-            }
-        </style>
-<div class="content-wrapper">
+/* ── Section Spacing ── */
+.mn-section { margin-bottom: var(--mn-gap); }
+.mn-section:last-child { margin-bottom: 0; }
+.mn-row { display: flex; flex-wrap: wrap; margin: 0 -8px; }
+.mn-row > [class*="mn-col"] { padding: 0 8px; margin-bottom: var(--mn-gap); }
+.mn-row-eq > [class*="mn-col"] { display: flex; }
+.mn-row-eq > [class*="mn-col"] > .mn-card,
+.mn-row-eq > [class*="mn-col"] > .mn-metric { width: 100%; display: flex; flex-direction: column; }
+.mn-row-eq > [class*="mn-col"] > .mn-card > .mn-card-body,
+.mn-row-eq > [class*="mn-col"] > .mn-card > .mn-card-body-compact,
+.mn-row-eq > [class*="mn-col"] > .mn-card > .mn-chart-wrap { flex: 1; display: flex; flex-direction: column; }
+.mn-row-eq .mn-chart-wrap .mn-donut-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
+.mn-row-eq .mn-chart-wrap .chart-async { flex: 1; }
+.mn-col-20 { width: 20%; }
+.mn-col-25 { width: 25%; }
+.mn-col-33 { width: 33.333%; }
+.mn-col-50 { width: 50%; }
+.mn-col-58 { width: 58.333%; }
+.mn-col-42 { width: 41.666%; }
+.mn-col-75 { width: 75%; }
+.mn-col-100 { width: 100%; }
+@media (max-width: 991px) {
+    .mn-col-20, .mn-col-25, .mn-col-33 { width: 50%; }
+    .mn-col-42, .mn-col-50, .mn-col-58 { width: 100%; }
+    .mn-col-75 { width: 100%; }
+}
+@media (max-width: 767px) {
+    .mn-col-20, .mn-col-25, .mn-col-33, .mn-col-50 { width: 100%; }
+}
+
+/* ── 1. KEY METRICS STRIP ── */
+.mn-metric {
+    background: var(--mn-card);
+    border: 1px solid var(--mn-border);
+    border-radius: var(--mn-radius);
+    box-shadow: var(--mn-shadow);
+    padding: 18px 20px 14px;
+    border-left: 4px solid var(--mn-indigo);
+    transition: box-shadow 0.2s, transform 0.15s;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    height: 100%;
+}
+.mn-metric:hover { box-shadow: var(--mn-shadow-md); transform: translateY(-2px); }
+.mn-metric-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+}
+.mn-metric-body { flex: 1; min-width: 0; }
+.mn-metric-value {
+    font-size: 22px; font-weight: 800; color: var(--mn-text);
+    line-height: 1.1; letter-spacing: -0.5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mn-metric-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--mn-text-sec); margin-top: 4px;
+}
+.mn-metric-bar {
+    height: 3px; background: #f1f5f9; border-radius: 2px;
+    margin-top: 10px; overflow: hidden;
+}
+.mn-metric-bar .progress-bar {
+    height: 100%; border-radius: 2px; transition: width 0.4s ease;
+    background: currentColor;
+}
+.mn-metric.is-amber  { border-left-color: var(--mn-amber); }
+.mn-metric.is-amber .mn-metric-icon  { background: #fffbeb; color: var(--mn-amber); }
+.mn-metric.is-amber .mn-metric-bar .progress-bar { background: var(--mn-amber); }
+.mn-metric.is-blue   { border-left-color: var(--mn-blue); }
+.mn-metric.is-blue .mn-metric-icon   { background: #eff6ff; color: var(--mn-blue); }
+.mn-metric.is-blue .mn-metric-bar .progress-bar { background: var(--mn-blue); }
+.mn-metric.is-green  { border-left-color: var(--mn-green); }
+.mn-metric.is-green .mn-metric-icon  { background: #ecfdf5; color: var(--mn-green); }
+.mn-metric.is-green .mn-metric-bar .progress-bar { background: var(--mn-green); }
+.mn-metric.is-red    { border-left-color: var(--mn-red); }
+.mn-metric.is-red .mn-metric-icon    { background: #fef2f2; color: var(--mn-red); }
+.mn-metric.is-red .mn-metric-bar .progress-bar { background: var(--mn-red); }
+.mn-metric.is-purple { border-left-color: var(--mn-purple); }
+.mn-metric.is-purple .mn-metric-icon { background: #f5f3ff; color: var(--mn-purple); }
+.mn-metric.is-purple .mn-metric-bar .progress-bar { background: var(--mn-purple); }
+
+/* ── 2. ATTENDANCE DATA ROWS ── */
+.mn-att-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 0; border-bottom: 1px solid #f1f5f9;
+    font-size: 12px;
+}
+.mn-att-row:last-child { border-bottom: none; }
+.mn-att-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.mn-att-label { width: 72px; font-weight: 600; color: var(--mn-text); text-transform: uppercase; font-size: 10px; letter-spacing: 0.3px; }
+.mn-att-count { width: 36px; text-align: right; font-weight: 700; color: var(--mn-text); font-size: 13px; }
+.mn-att-pct { width: 40px; text-align: right; color: var(--mn-text-sec); font-size: 11px; font-weight: 600; }
+.mn-att-bar { flex: 1; height: 4px; background: #f1f5f9; border-radius: 2px; overflow: hidden; min-width: 30px; }
+.mn-att-bar .progress-bar { height: 100%; border-radius: 2px; transition: width 0.4s; }
+
+/* ── 3. BIRTHDAY CARDS ── */
+.mn-bday-body { max-height: 210px; overflow: hidden; }
+.birthday-ticker-container { position: relative; height: 100%; }
+.birthday-ticker-content { animation: ticker-scroll var(--ticker-duration, 20s) linear infinite; }
+.birthday-ticker-clipper { overflow: hidden; max-height: 100%; height: 100%; position: relative; }
+.birthday-ticker-content ul { padding: 0; margin: 0; }
+.birthday-ticker-content li { list-style: none; }
+.mediarow { overflow: hidden; }
+@keyframes ticker-scroll {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(var(--ticker-translate-y, -50%)); }
+}
+.staffleft-box { position: relative; }
+.birthday-date {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background-color: rgba(255,255,255,0.8); color: #000;
+    text-align: center; padding: 2px; font-size: 12px; font-weight: bold; z-index: 10;
+}
+
+/* ── 4. ADMISSION OVERVIEW ── */
+.mn-adm-row {
+    display: flex; align-items: center; padding: 8px 0;
+    border-bottom: 1px solid #f8fafc; font-size: 12px;
+}
+.mn-adm-row:last-child { border-bottom: none; }
+.mn-adm-bar-indicator { width: 3px; height: 28px; border-radius: 2px; margin-right: 12px; flex-shrink: 0; }
+.mn-adm-label { flex: 1; font-weight: 600; color: var(--mn-text); text-transform: uppercase; font-size: 11px; letter-spacing: 0.3px; }
+.mn-adm-label .btn-xs { margin-left: 6px; opacity: 0.5; transition: opacity 0.15s; font-size: 10px; padding: 1px 5px; border-radius: 4px; }
+.mn-adm-label .btn-xs:hover { opacity: 1; }
+.mn-adm-count { font-weight: 700; color: var(--mn-text); font-size: 14px; min-width: 30px; text-align: right; }
+.mn-adm-pct { font-size: 11px; color: var(--mn-text-sec); font-weight: 600; min-width: 54px; text-align: right; }
+
+/* ── 5. HEAD COUNT ── */
+.mn-hc-total { font-size: 36px; font-weight: 800; color: var(--mn-text); letter-spacing: -1px; line-height: 1; }
+.mn-hc-grid { display: flex; gap: 24px; margin-top: 16px; }
+.mn-hc-segment { flex: 1; }
+.mn-hc-segment-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--mn-text-sec); margin-bottom: 4px; }
+.mn-hc-segment-val { font-size: 20px; font-weight: 700; color: var(--mn-text); }
+.mn-hc-segment-pct { font-size: 11px; color: var(--mn-text-muted); margin-bottom: 6px; }
+.mn-hc-bar { height: 4px; background: #f1f5f9; border-radius: 2px; overflow: hidden; }
+.mn-hc-bar .progress-bar { height: 100%; border-radius: 2px; transition: width 0.4s; }
+
+/* ── 6. CHART CONTAINERS ── */
+.mn-chart-wrap { padding: 20px; }
+.mn-chart-title {
+    font-size: 13px; font-weight: 600; color: var(--mn-text);
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--mn-border);
+}
+.mn-donut-wrap { max-width: 280px; max-height: 220px; margin: 0 auto; }
+.chart-async { position: relative; min-height: 120px; }
+.chart-async.is-loading canvas { opacity: 0.35; }
+.chart-async-loader {
+    position: absolute; inset: 0; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.7); z-index: 2;
+}
+.chart-async-spinner {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 3px solid rgba(79,70,229,0.15); border-top-color: var(--mn-indigo);
+    animation: mn-spin 0.8s linear infinite;
+}
+@keyframes mn-spin { to { transform: rotate(360deg); } }
+.chart-async.is-loading .chart-async-loader { display: flex; }
+
+/* ── 7. FINANCIAL CARDS ── */
+.mn-fin-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid #f8fafc; font-size: 12px;
+}
+.mn-fin-row:last-child { border-bottom: none; }
+.mn-fin-label { font-weight: 700; color: var(--mn-text); font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; }
+.mn-fin-val { font-weight: 700; color: var(--mn-text); font-size: 13px; }
+.mn-fin-sub { font-size: 11px; color: var(--mn-text-muted); margin-top: 1px; }
+.mn-fin-pct { font-size: 11px; font-weight: 600; color: var(--mn-text-sec); }
+.mn-fin-bar { height: 3px; background: #f1f5f9; border-radius: 2px; overflow: hidden; margin: 4px 0 2px; }
+.mn-fin-bar .progress-bar { height: 100%; border-radius: 2px; transition: width 0.4s; }
+
+/* ── 8. CLASSWISE TABLE ── */
+.mn-dashboard #fees-classwise-widget .table-responsive { max-height: 350px; overflow-y: auto; }
+.mn-dashboard .classwise-fees-table { border-collapse: collapse !important; font-size: 12px; }
+.mn-dashboard .classwise-fees-table td,
+.mn-dashboard .classwise-fees-table th { border: 1px solid #e2e8f0 !important; padding: 8px 10px !important; text-align: center; }
+.mn-dashboard .classwise-fees-table thead { position: sticky; top: 0; z-index: 10; }
+.mn-dashboard .classwise-fees-table thead th { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; }
+.mn-dashboard .classwise-fees-table thead tr:first-child th { background: #f8fafc !important; color: var(--mn-text); }
+.mn-dashboard .classwise-fees-table thead tr:nth-child(2) th { background: #f1f5f9 !important; color: var(--mn-text-sec); font-size: 10px; }
+.mn-dashboard .classwise-fees-table tfoot td { font-weight: 700; background: #f8fafc !important; }
+.mn-dashboard .classwise-fees-table tbody tr:hover { background: #f8fafc; }
+.classwise-fees-loading { padding: 30px !important; }
+.classwise-fees-loading .loading-spinner {
+    display: inline-block; width: 32px; height: 32px;
+    border: 3px solid #e2e8f0; border-top-color: var(--mn-indigo);
+    border-radius: 50%; animation: mn-spin 0.8s linear infinite; margin-bottom: 8px;
+}
+.mn-dashboard .nav-tabs { border-bottom: 2px solid #e2e8f0; padding: 0 20px; }
+.mn-dashboard .nav-tabs > li > a {
+    border: none !important; border-radius: 0 !important; padding: 10px 16px;
+    font-size: 12px; font-weight: 600; color: var(--mn-text-sec);
+    border-bottom: 2px solid transparent !important; margin-bottom: -2px;
+}
+.mn-dashboard .nav-tabs > li.active > a {
+    color: var(--mn-indigo) !important; border-bottom-color: var(--mn-indigo) !important;
+    background: transparent !important;
+}
+
+/* ── 9. QUICK LINKS ── */
+.mn-qlink {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; background: var(--mn-card);
+    border: 1px solid var(--mn-border); border-radius: var(--mn-radius);
+    box-shadow: var(--mn-shadow); transition: box-shadow 0.2s, transform 0.15s;
+    text-decoration: none !important; color: inherit !important; height: 100%;
+}
+.mn-qlink:hover { box-shadow: var(--mn-shadow-md); transform: translateY(-1px); }
+.mn-qlink-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+}
+.mn-qlink-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--mn-text-sec); }
+.mn-qlink-value { font-size: 16px; font-weight: 700; color: var(--mn-text); margin-top: 1px; }
+
+/* ── 10. STAFF ROLES ── */
+.mn-role-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; background: var(--mn-card);
+    border: 1px solid var(--mn-border); border-radius: 10px;
+    margin-bottom: 8px; box-shadow: var(--mn-shadow);
+}
+.mn-role-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: #f1f5f9; display: flex; align-items: center;
+    justify-content: center; color: var(--mn-text-sec); font-size: 14px;
+}
+.mn-role-name { font-size: 12px; font-weight: 600; color: var(--mn-text); }
+.mn-role-count { font-size: 18px; font-weight: 800; color: var(--mn-text); margin-left: auto; }
+
+/* ── 11. CALENDAR ── */
+.mn-dashboard #calendar { height: auto; }
+.mn-dashboard #calendar .fc-view-container { height: auto; }
+.mn-dashboard .fc-toolbar { margin-bottom: 16px !important; }
+.mn-dashboard .fc-toolbar h2 { font-size: 16px !important; font-weight: 700 !important; color: var(--mn-text) !important; letter-spacing: -0.3px; }
+.mn-dashboard .fc-button { background: var(--mn-card) !important; border: 1px solid var(--mn-border) !important; color: var(--mn-text-sec) !important; font-size: 12px !important; font-weight: 600 !important; padding: 6px 12px !important; border-radius: 8px !important; text-transform: capitalize !important; box-shadow: none !important; }
+.mn-dashboard .fc-button:hover { background: #f8fafc !important; color: var(--mn-text) !important; }
+.mn-dashboard .fc-button.fc-state-active, .mn-dashboard .fc-state-active { background: var(--mn-indigo) !important; color: #fff !important; border-color: var(--mn-indigo) !important; }
+.mn-dashboard .fc-prev-button, .mn-dashboard .fc-next-button { padding: 6px 10px !important; }
+.mn-dashboard .fc th { font-size: 11px !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; color: var(--mn-text-sec) !important; padding: 10px 0 !important; border: none !important; background: transparent !important; }
+.mn-dashboard .fc td { border-color: #f1f5f9 !important; }
+.mn-dashboard .fc-day-number { font-size: 12px !important; font-weight: 500 !important; color: var(--mn-text-sec) !important; padding: 6px 8px !important; }
+.mn-dashboard .fc-today { background: #f0f9ff !important; }
+.mn-dashboard .fc-today .fc-day-number { color: var(--mn-indigo) !important; font-weight: 700 !important; }
+.mn-dashboard .fc-event { border-radius: 6px !important; padding: 2px 6px !important; font-size: 11px !important; font-weight: 500 !important; border: none !important; margin: 1px 2px !important; }
+.mn-dashboard .fc-unthemed td.fc-today { background: #eff6ff !important; }
+
+/* ── Skeleton shimmer ── */
+.fo-skeleton { position: relative; color: transparent !important; background: #e2e8f0; border-radius: 4px; display: inline-block; min-width: 28px; }
+.fo-skeleton.fo-line { min-width: 80px; height: 12px; vertical-align: middle; }
+.fo-skeleton::after {
+    content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    animation: mn-shimmer 1.4s infinite;
+}
+@keyframes mn-shimmer { 100% { transform: translateX(200%); } }
+
+/* ── AdminLTE overrides ── */
+.mn-dashboard .borderwhite { border-top-color: #fff !important; }
+.sidebar-collapse #barChart { height: 100% !important; }
+.sidebar-collapse #lineChart { height: 100% !important; }
+
+/* ── Card header accent colors ── */
+.mn-accent-indigo  { background: linear-gradient(135deg, #6366f1, #818cf8) !important; }
+.mn-accent-emerald { background: linear-gradient(135deg, #059669, #34d399) !important; }
+.mn-accent-blue    { background: linear-gradient(135deg, #2563eb, #60a5fa) !important; }
+.mn-accent-orange  { background: linear-gradient(135deg, #ea580c, #fb923c) !important; }
+.mn-accent-purple  { background: linear-gradient(135deg, #7c3aed, #a78bfa) !important; }
+.mn-accent-cyan    { background: linear-gradient(135deg, #0891b2, #22d3ee) !important; }
+.mn-accent-rose    { background: linear-gradient(135deg, #e11d48, #fb7185) !important; }
+.mn-accent-sky     { background: linear-gradient(135deg, #0284c7, #38bdf8) !important; }
+.mn-accent-violet  { background: linear-gradient(135deg, #7c3aed, #a78bfa) !important; }
+.mn-accent-teal    { background: linear-gradient(135deg, #0d9488, #5eead4) !important; }
+</style>
+
+<!-- ══════════════════════════════════════════════════════════════
+     DASHBOARD HTML
+     ══════════════════════════════════════════════════════════════ -->
+<div class="content-wrapper mn-dashboard">
     <section class="content">
-        <div class="">
+
+        <!-- Alerts -->
+        <div>
             <?php if (ENVIRONMENT != 'production') { ?>
                 <div class="alert alert-danger">
-                    Environment set to <?php echo ENVIRONMENT ;?>! <br>
-                    Don't forget to set back to production in the main index.php file after finishing your tests or <?php echo ENVIRONMENT ;?>. <br>
-                    Please be aware that in <?php echo ENVIRONMENT ;?> mode you may see some errors and deprecation warnings, for this reason, it's always recommended to set the environment to "production" if you are not actually developing some features/modules or trying to test some code.
+                    Environment set to <?php echo ENVIRONMENT; ?>! <br>
+                    Don't forget to set back to production in the main index.php file after finishing your tests or <?php echo ENVIRONMENT; ?>. <br>
+                    Please be aware that in <?php echo ENVIRONMENT; ?> mode you may see some errors and deprecation warnings, for this reason, it's always recommended to set the environment to "production" if you are not actually developing some features/modules or trying to test some code.
                 </div>
             <?php } ?>
-                
-            <?php if ($mysqlVersion && $sqlMode && strpos($sqlMode->mode, 'ONLY_FULL_GROUP_BY') !== false) {?>
+            <?php if ($mysqlVersion && $sqlMode && strpos($sqlMode->mode, 'ONLY_FULL_GROUP_BY') !== false) { ?>
                 <div class="alert alert-danger">
                     Minerva may not work properly because ONLY_FULL_GROUP_BY is enabled, consult with your hosting provider to disable ONLY_FULL_GROUP_BY in sql_mode configuration.
                 </div>
-            <?php }?>
-
+            <?php } ?>
             <?php
-$show    = false;
-$role    = $this->customlib->getStaffRole();
-$role_id = json_decode($role)->id;
-foreach ($notifications as $notice_key => $notice_value) {
-
-    if ($role_id == 7) {
-        $show = true;
-    } elseif (date($this->customlib->getSchoolDateFormat()) >= date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($notice_value->publish_date))) {
-        $show = true;
-    }
-    if ($show) {
-        ?>
+            $show    = false;
+            $role    = $this->customlib->getStaffRole();
+            $role_id = json_decode($role)->id;
+            foreach ($notifications as $notice_key => $notice_value) {
+                if ($role_id == 7) {
+                    $show = true;
+                } elseif (date($this->customlib->getSchoolDateFormat()) >= date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($notice_value->publish_date))) {
+                    $show = true;
+                }
+                if ($show) { ?>
                     <div class="dashalert alert alert-success alert-dismissible" role="alert">
                         <button type="button" class="alertclose close close_notice" data-dismiss="alert" aria-label="Close" data-noticeid="<?php echo $notice_value->id; ?>"><span aria-hidden="true">&times;</span></button>
                         <a href="<?php echo site_url('admin/notification') ?>"><?php echo $notice_value->title; ?></a>
                     </div>
-                    <?php
-}
-}
-?>
-        </div>
-        <style type="text/css">
-            @media (min-width: 1200px) { /* Apply only on large screens */
-                .widget-five-col {
-                    display: flex;
-                    flex-wrap: wrap;
-                    justify-content: space-around; /* Distribute space evenly around items */
-                }
-                .widget-five-col > div {
-                    flex: 0 0 19%; /* Make each item take approximately 1/5th width */
-                    max-width: 19%;
-                    padding: 0 5px; /* Add some padding between items */
-                    margin-bottom: 10px; /* Maintain vertical spacing */
-                }
-                .widget-five-col > div.col-lg-4, /* Reset default Bootstrap column padding */
-                .widget-five-col > div.col-md-6,
-                .widget-five-col > div.col-sm-6 {
-                    padding-left: 0 !important;
-                    padding-right: 0 !important;
-                }
-            }
-            .equal-height-row {
-              display: -webkit-box;
-              display: -ms-flexbox;
-              display: flex;
-              -ms-flex-wrap: wrap;
-                  flex-wrap: wrap;
-            }
-            .equal-height-row > [class*='col-'] {
-              display: -webkit-box;
-              display: -ms-flexbox;
-              display: flex;
-              -webkit-box-orient: vertical;
-              -webkit-box-direction: normal;
-                  -ms-flex-direction: column;
-                      flex-direction: column;
-            }
-            .equal-height-row > [class*='col-'] > .topprograssstart {
-                -webkit-box-flex: 1;
-                -ms-flex: 1 0 auto !important;
-                flex: 1 0 auto !important;
-            }
-            .staffleft-box {
-                position: relative;
-            }
-
-            .birthday-date {
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background-color: rgba(255, 255, 255, 0.8);
-                color: #000;
-                text-align: center;
-                padding: 2px;
-                font-size: 12px;
-                font-weight: bold;
-                z-index: 10; /* Bring to front */
-            }
-            .topprograssstart.flex-card {
-                display: flex;
-                flex-direction: column;
-                height: 100%;
-            }
-
-            .topprograssstart.flex-card .birthday-ticker-container {
-                flex-grow: 1;
-                min-height: 150px; /* A sensible minimum height */
-            }
-            .chart-async {
-                position: relative;
-                min-height: 120px;
-            }
-            .chart-async.is-loading canvas {
-                opacity: 0.35;
-            }
-            .chart-async-loader {
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                display: none;
-                align-items: center;
-                justify-content: center;
-                background: rgba(255, 255, 255, 0.7);
-                z-index: 2;
-            }
-            .chart-async-spinner {
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                border: 3px solid rgba(60, 141, 188, 0.2);
-                border-top-color: rgba(60, 141, 188, 0.9);
-                animation: chart-spin 0.9s linear infinite;
-            }
-            @keyframes chart-spin {
-                to { transform: rotate(360deg); }
-            }
-            .chart-async.is-loading .chart-async-loader {
-                display: flex;
-            }
-            .widget-header-color {
-                color: #fff;
-                padding: 8px 10px;
-                border-radius: 4px;
-            }
-            .widget-header-student-bday {
-                background: #5c6bc0;
-            }
-            .widget-header-staff-bday {
-                background: #26a69a;
-            }
-            .widget-header-student-att {
-                background: #42a5f5;
-            }
-            .widget-header-staff-att {
-                background: #ff7043;
-            }
-            .widget-header-enquiry {
-                background: #7e57c2;
-            }
-        </style>
-        <div class="row equal-height-row">
-            <div class="col-md-3 col-sm-6 mb10">
-                <div class="topprograssstart flex-card" id="student-birthday-widget" data-url="<?php echo site_url('admin/admin/student_birthdays_widget'); ?>">
-                    <h5 class="pro-border widget-header-color widget-header-student-bday">Students Today's Birthday - <span class="student-birthday-count">0</span></h5>
-                    <div class="birthday-ticker-container birthday-widget-body">
-                        <div class="fo-skeleton fo-line" style="width:80%;margin:10px auto;"></div>
-                        <div class="fo-skeleton fo-line" style="width:70%;margin:10px auto;"></div>
-                        <div class="fo-skeleton fo-line" style="width:60%;margin:10px auto;"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6 mb10">
-                <div class="topprograssstart flex-card" id="staff-birthday-widget" data-url="<?php echo site_url('admin/admin/staff_birthdays_widget'); ?>">
-                    <h5 class="pro-border widget-header-color widget-header-staff-bday">Current Week Staff Birthdays - <span class="staff-birthday-count">0</span></h5>
-                    <div class="birthday-ticker-container birthday-widget-body">
-                        <div class="fo-skeleton fo-line" style="width:80%;margin:10px auto;"></div>
-                        <div class="fo-skeleton fo-line" style="width:70%;margin:10px auto;"></div>
-                        <div class="fo-skeleton fo-line" style="width:60%;margin:10px auto;"></div>
-                    </div>
-                </div>
-            </div>
-            <?php
-            if ($this->module_lib->hasActive('student_attendance')) {
-                if ($this->rbac->hasPrivilege('today_attendance_widegts', 'can_view')) {
-                    ?>
-                                <div class="col-md-2 col-sm-6 mb10">
-                                    <div class="topprograssstart flex-card" id="student-attendance-widget" data-url="<?php echo site_url('admin/admin/student_today_attendance_widget'); ?>">
-                                        <h5 class="pro-border widget-header-color widget-header-student-att"> <?php echo $this->lang->line('student_today_attendance'); ?></h5>
-                                        <p class="text-uppercase mt10 clearfix"><span class="sta-present-count fo-skeleton">0</span> <?php echo $this->lang->line('present'); ?><span class="pull-right"><span class="sta-present-percent fo-skeleton">0%</span></span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar sta-present-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="sta-late-count fo-skeleton">0</span> <?php echo $this->lang->line('late') ?><span class="pull-right"><span class="sta-late-percent fo-skeleton">0%</span></span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar sta-late-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="sta-absent-count fo-skeleton">0</span> <?php echo $this->lang->line('absent'); ?><span class="pull-right"><span class="sta-absent-percent fo-skeleton">0%</span></span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar sta-absent-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="sta-halfday-count fo-skeleton">0</span> <?php echo $this->lang->line('half_day'); ?><span class="pull-right"><span class="sta-halfday-percent fo-skeleton">0%</span></span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar sta-halfday-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                    </div><!--./topprograssstart-->
-                                </div><!--./col-md-2-->
-                                <?php
-            }
-            }
-            // use correct privilege key matching permission_category (id 229)
-            if ($this->rbac->hasPrivilege('staff_present_today_widegts', 'can_view')) {
-            ?>
-                                <div class="col-md-2 col-sm-6 mb10">
-                                    <div class="topprograssstart flex-card" id="staff-attendance-widget" data-url="<?php echo site_url('admin/admin/staff_today_attendance_widget'); ?>">
-                                        <h5 class="pro-border widget-header-color widget-header-staff-att"> Staff Today Attendance</h5>
-                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-present-count fo-skeleton">0</span> Present<span class="pull-right"><span class="sfa-present-percent fo-skeleton">0</span>%</span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar sfa-present-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-late-count fo-skeleton">0</span> Late<span class="pull-right"><span class="sfa-late-percent fo-skeleton">0</span>%</span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar sfa-late-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-absent-count fo-skeleton">0</span> Absent<span class="pull-right"><span class="sfa-absent-percent fo-skeleton">0</span>%</span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar sfa-absent-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-halfday-count fo-skeleton">0</span> Half Day<span class="pull-right"><span class="sfa-halfday-percent fo-skeleton">0</span>%</span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar sfa-halfday-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-permission-count fo-skeleton">0</span> Permissions<span class="pull-right"><span class="sfa-permission-percent fo-skeleton">0</span>%</span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar sfa-permission-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                    </div><!--./topprograssstart-->
-                                </div><!--./col-md-2-->
-            <?php
-            }
-            if ($this->module_lib->hasActive('front_office')) {
-                if ($this->rbac->hasPrivilege('enquiry_overview_widegts', 'can_view')) {
-                    ?>
-                                <div class="col-md-2 col-sm-6 mb10">
-                                    <div class="topprograssstart flex-card" id="enquiry-overview-widget" data-url="<?php echo site_url('admin/admin/enquiry_overview_widget'); ?>" style="height:auto !important; overflow:visible;">
-                                        <h5 class="pro-border widget-header-color widget-header-enquiry">Admission Overview</h5>
-                                        <p class="text-uppercase mt10 clearfix"><span class="eo-won-count fo-skeleton">0</span> APPLICATION RECEIVED <a href="<?php echo site_url('admin/onlinestudent?preset_filter=application_received'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;margin-left:2px;" title="View Applications Received"><i class="fa fa-eye"></i></a><span class="pull-right"><span class="eo-won-percent fo-skeleton">0</span>%</span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-yellow eo-won-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="eo-active-count fo-skeleton">0</span> Fully Paid <a href="<?php echo site_url('admin/onlinestudent?preset_filter=fully_paid'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;margin-left:2px;" title="View Fully Paid"><i class="fa fa-eye"></i></a><span class="pull-right"><span class="eo-active-percent fo-skeleton">0</span>%</span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-red eo-active-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <!-- lost/dead removed per request -->
-                                        <p class="text-uppercase mt10 clearfix">
-                                            <span class="eo-app-count fo-skeleton">0</span> Partially Paid <a href="<?php echo site_url('admin/onlinestudent?preset_filter=partially_paid'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;margin-left:2px;" title="View Partially Paid"><i class="fa fa-eye"></i></a>
-                                            <span class="pull-right"><span class="eo-app-total-percent fo-skeleton">0</span></span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar eo-app-total-bar" style="width:0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix">
-                                            <span class="eo-applied-count fo-skeleton">0</span> Only Application Fee Paid <a href="<?php echo site_url('admin/onlinestudent?preset_filter=only_app_fee_paid'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;margin-left:2px;" title="View Only Application Fee Paid"><i class="fa fa-eye"></i></a>
-                                            <span class="pull-right"><span class="eo-applied-percent fo-skeleton">0</span></span>
-                                        </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-aqua eo-applied-bar" style="width:0%"></div>
-                                            </div>
-                                        </div>
-                                        <p class="text-uppercase mt10 clearfix">
-                                            <span class="eo-revoked-count fo-skeleton">0</span> Revoked
-                                            <span class="pull-right">
-                                                <a href="<?php echo site_url('admin/admission_cancellation'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;" title="View Revoked Admissions"><i class="fa fa-list"></i></a>
-                                            </span>
-                                        </p>
-                                        <p class="text-uppercase mt10 clearfix">
-                                            <span class="eo-waiting-list-count fo-skeleton">0</span> <span style="color:#f39c12;">Waiting List</span>
-                                            <span class="pull-right">
-                                                <a href="<?php echo site_url('admin/onlinestudent?admission_status_filter=waiting_list'); ?>" class="btn btn-xs btn-warning" style="font-size:10px;padding:1px 5px;" title="View Waiting List"><i class="fa fa-list"></i></a>
-                                            </span>
-                                        </p>
-                                    </div><!--./topprograssstart-->
-                                </div><!--./col-md-2-->
-                    <?php
-            }
-            }
-            ?>
-        </div>
-        <style>
-        @media (min-width: 992px) {
-          #dashboard-widgets-row5 > div[class*="col-"] { width: 20%; }
-        }
-        </style>
-        <div class="row" id="dashboard-widgets-row5">
-            <?php
-            if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('fees_awaiting_payment_widegts', 'can_view')) {
-            ?>
-                <div class="col-md-2 col-sm-6">
-                    <div class="topprograssstart" style="background: linear-gradient(135deg, #ff9800 0%, #ff6d00 100%); color: white; border-radius: 5px;">
-                        <p class="mt5 clearfix font14" style="color: white;"><i class="fa fa-money ftlayer" style="color: white;"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?>
-                            <span class="pull-right">
-                                <span class="fees-awaiting-amount fo-skeleton fo-line" style="color: white;">0</span>
-                            </span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar" style="background-color: rgba(255, 255, 255, 0.3);">
-                                <div class="progress-bar fees-awaiting-progress-bar" style="width: <?php echo round(isset($fees_awaiting_progress) ? $fees_awaiting_progress : 0, 2); ?>%; background-color: #fff;"></div>
-                            </div>
-                        </div>
-                    </div><!--./topprograssstart-->
-                </div><!--./widget-item-->
             <?php }
-            ?>
-                                        
-                                        <?php 
-                                            if ($this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) {
-                                                ?>
-                                                            <div class="col-md-2 col-sm-6">
-                                                                <div class="topprograssstart shadow" id="staff-approved-leave-widget" data-url="<?php echo site_url('admin/admin/staff_approved_leave_widget'); ?>" style="background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%); color: white; border-radius: 5px;">
-                                                                    <p class="mt5 font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i><?php echo $this->lang->line('staff_approved_leave'); ?><span class="pull-right"><span class="sal-approved fo-skeleton" style="color: white;">0</span>/<span class="sal-total fo-skeleton" style="color: white;">0</span></span>
-                                                                    </p>
-                                                                    <div class="progress-group">
-                                                                        <div class="progress progress-minibar" style="background-color: rgba(255, 255, 255, 0.3);">
-                                                                            <div class="progress-bar sal-progress" style="width: 0%; background-color: #fff;"></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div><!--./topprograssstart-->
-                                                            </div><!--./widget-item-->
-                                                            <?php
-                                        }
-                                         ?>
- 
-<?php
-    if ($this->rbac->hasPrivilege('student_approved_leave_widegts', 'can_view')) {
-        ?>
-                    <div class="col-md-2 col-sm-6">
-                        <div class="topprograssstart shadow" id="student-approved-leave-widget" data-url="<?php echo site_url('admin/admin/student_approved_leave_widget'); ?>" style="background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white; border-radius: 5px;">
-                            <p class="mt5 font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i><?php echo $this->lang->line('student_approved_leave'); ?><span class="pull-right"><span class="stl-approved fo-skeleton" style="color: white;">0</span>/<span class="stl-total fo-skeleton" style="color: white;">0</span></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar" style="background-color: rgba(255, 255, 255, 0.3);">
-                                    <div class="progress-bar stl-progress" style="width: 0%; background-color: #fff;"></div>
-                                </div>
-                            </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./widget-item-->
-                    <?php
-}
-  ?>
+            } ?>
+        </div>
 
-<?php if ($this->rbac->hasPrivilege('complaint', 'can_view')): ?>
-                    <div class="col-md-2 col-sm-6">
-                        <div class="topprograssstart shadow" id="complaint-widget" data-url="<?php echo site_url('admin/complaint/widget'); ?>" style="background: linear-gradient(135deg, #ff5722 0%, #bf360c 100%); color: white; border-radius: 5px;">
-                            <p class="mt5 font14" style="color: white;"><i class="fa fa-commenting ftlayer" style="color: white;"></i>&nbsp;<?php echo $this->lang->line('complaint_box'); ?><span class="pull-right"><span class="cw-open fo-skeleton" style="color: white;">0</span>/<span class="cw-total fo-skeleton" style="color: white;">0</span></span></p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar" style="background-color: rgba(255,255,255,0.3);">
-                                    <div class="progress-bar cw-progress" style="width: 0%; background-color: #fff;"></div>
-                                </div>
-                            </div>
+        <!-- ═══ ROW 1 — KEY METRICS ═══ -->
+        <div class="mn-section">
+            <div class="mn-row" id="dashboard-widgets-row5">
+
+                <?php if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('fees_awaiting_payment_widegts', 'can_view')) { ?>
+                <div class="mn-col-20">
+                    <div class="mn-metric is-amber">
+                        <div class="mn-metric-icon"><i class="fa fa-money"></i></div>
+                        <div class="mn-metric-body">
+                            <div class="mn-metric-value fees-awaiting-amount fo-skeleton">0</div>
+                            <div class="mn-metric-label"><?php echo $this->lang->line('fees_awaiting_payment'); ?></div>
+                            <div class="mn-metric-bar"><div class="progress-bar fees-awaiting-progress-bar" style="width: <?php echo round(isset($fees_awaiting_progress) ? $fees_awaiting_progress : 0, 2); ?>%"></div></div>
                         </div>
                     </div>
-<?php endif; ?>
+                </div>
+                <?php } ?>
 
-            <?php
-if ($this->module_lib->hasActive('front_office')) {
-    if ($this->rbac->hasPrivilege('conveted_leads_widegts', 'can_view')) {
-        ?>
-                    <div class="col-md-2 col-sm-6">
-                        <div class="topprograssstart" id="converted-leads-widget" data-url="<?php echo site_url('admin/admin/converted_leads_widget'); ?>" style="background: linear-gradient(135deg, #9c27b0 0%, #6a1b9a 100%); color: white; border-radius: 5px;">
-                            <p class="mt5 clearfix font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i> Converted Enquiry Leads<span class="pull-right"><span class="cl-complete fo-skeleton" style="color: white;">0</span>/<span class="cl-total fo-skeleton" style="color: white;">0</span></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar" style="background-color: rgba(255, 255, 255, 0.3);">
-                                    <div class="progress-bar cl-progress" style="width: 0%; background-color: #fff;"></div>
-                                </div>
-                            </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./widget-item-->
-                    <?php
-}
-} ?>
-        <div class="row">
-            <?php
-$bar_chart = true;
-
-if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->hasActive('expense'))) {
-    if ($this->rbac->hasPrivilege('fees_collection_and_expense_monthly_chart', 'can_view')) {
-
-        $div_rol  = 3;
-        $userdata = $this->customlib->getUserData();
-        ?>
-                    <div class="col-lg-7 col-md-7 col-sm-12 col60">
-                        <div class="box box-primary borderwhite">
-                            <div class="box-header with-border">
-                                <h3 class="box-title"><?php echo $this->lang->line('fees_collection_expenses_for'); ?> <?php echo $this->lang->line(strtolower(date('F'))) . " " . date('Y');
-
-        ?></h3>
-                                
-                            </div>
-                            <div class="box-body">
-                                <div class="chart chart-async" id="fees-collection-expenses-monthly">
-                                    <div class="chart-async-loader"><span class="chart-async-spinner"></span></div>
-                                    <canvas id="barChart" height="98" data-url="<?php echo site_url('admin/admin/fees_collection_expenses_monthly_widget'); ?>"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div><!--./col-lg-7-->
-                <?php }
-}
-?>
-            <?php
-if ($this->module_lib->hasActive('income')) {
-    if ($this->rbac->hasPrivilege('income_donut_graph', 'can_view')) {
-        ?>
-                    <div class="col-lg-5 col-md-5 col-sm-12 col40">
-                        <div class="box box-primary borderwhite">
-                            <div class="box-header with-border"><h3 class="box-title"><?php echo $this->lang->line('income') . " - " . $this->lang->line(strtolower(date('F'))) . " " . date('Y');  ?></h3></div>
-                            <div class="box-body">
-                                <div class="chart-responsive">
-                                    <canvas id="doughnut-chart" class="pb20" height="150"></canvas>
-                                </div>
-                            </div>
-                        </div><!--./col-md-6-->
-                    </div><!--./col-lg-5-->
-    <?php
-}
-}
-?>
-        </div><!--./row-->
-        <div class="row">
-            <?php
-$line_chart = true;
-if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->hasActive('expense'))) {
-    if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_view')) {
-        $div_rol = 3;
-        ?>
-                    <div class="col-lg-7 col-md-7 col-sm-12 col60">
-                        <div class="box box-info borderwhite">
-                            <div class="box-header with-border">
-                                <h3 class="box-title"><?php echo $this->lang->line('fees_collection_expenses_for_session'); ?> <?php echo $this->setting_model->getCurrentSessionName(); ?></h3>
-                                <div class="box-tools pull-right">
-                                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
-                                    <button class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
-                                </div>
-                            </div>
-                            <div class="box-body">
-                                <div class="chart chart-async" id="fees-collection-expenses-session">
-                                    <div class="chart-async-loader"><span class="chart-async-spinner"></span></div>
-                                    <canvas id="lineChart" height="98" data-url="<?php echo site_url('admin/admin/fees_collection_expenses_session_widget'); ?>"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div><!--./col-lg-7-->
-                    <?php
-}
-}
-if ($this->module_lib->hasActive('expense')) {
-    ?>
-    <?php if ($this->rbac->hasPrivilege('expense_donut_graph', 'can_view')) {
-        ?>
-                    <div class="col-lg-5 col-md-5 col-sm-12 col40">
-                        <div class="box box-primary borderwhite">
-                            <div class="box-header with-border"><h3 class="box-title"><?php echo $this->lang->line('expense') . " - " . $this->lang->line(strtolower(date('F'))) . " " . date('Y');  ?></h3>
-                            </div><!--./info-box-->
-                            <div class="box-body">
-                                <div class="chart-responsive">
-                                    <canvas id="doughnut-chart1" class="pb20" height="150"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div><!--./col-lg-5-->
-    <?php }
-}
-?>
-        </div><!--./row-->
-                    <div class="row row-flex3">
-        
-        <?php
-        if ($this->module_lib->hasActive('fees_collection')) {
-            if ($this->rbac->hasPrivilege('fees_overview_widegts', 'can_view')) {
-                ?>
-                <!-- First Widget: Payment Status -->
-                <div class="col-md-3 col-sm-6 mb10">
-                    <div class="topprograssstart flex-card" id="fees-overview-widget-payment" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
-                        <h5 class="pro-border">Payment Status</h5>
-                        <p class="text-uppercase mt10 clearfix">
-                            <strong><?php echo $this->lang->line('unpaid'); ?>:</strong> <span class="fo-total-unpaid fo-skeleton">0</span>
-                            <span class="pull-right"><span class="fo-unpaid-progress fo-skeleton">0</span>%</span><br/>
-                            <span style="font-size:12px;color:#888;">Paid: <span class="fo-unpaid-collected-sum fo-skeleton fo-line">0</span> &nbsp; Bal: <span class="fo-unpaid-sum fo-skeleton fo-line">0</span></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar fo-unpaid-bar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <p class="text-uppercase mt10 clearfix">
-                            <strong><?php echo $this->lang->line('partial'); ?>:</strong> <span class="fo-total-partial fo-skeleton">0</span>
-                            <span class="pull-right"><span class="fo-partial-progress fo-skeleton">0</span>%</span><br/>
-                            <span style="font-size:12px;color:#888;">Paid: <span class="fo-partial-collected-sum fo-skeleton fo-line">0</span> &nbsp; Bal: <span class="fo-partial-sum fo-skeleton fo-line">0</span></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-aqua fo-partial-bar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <p class="text-uppercase mt10 clearfix">
-                            <strong><?php echo $this->lang->line('paid'); ?>:</strong> <span class="fo-total-paid fo-skeleton">0</span>
-                            <span class="pull-right"><span class="fo-paid-progress fo-skeleton">0</span>%</span><br/>
-                            <span style="font-size:12px;color:#888;">Paid: <span class="fo-paid-sum fo-skeleton fo-line">0</span> &nbsp; Bal: <span class="fo-paid-balance-sum fo-skeleton fo-line">0</span></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-aqua fo-paid-bar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div><!--./topprograssstart-->
-                </div><!--./col-md-3-->
-                
-                <!-- Second Widget: Collection Overview -->
-                <div class="col-md-3 col-sm-6 mb10">
-                    <div class="topprograssstart flex-card" id="fees-overview-widget-collection" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
-                        <h5 class="pro-border">Collection Overview</h5>
-                        <p class="text-uppercase mt10 clearfix">
-                            <strong>Total Demand:</strong> <span class="fo-total-demand-count fo-skeleton">0</span>
-                            <span class="pull-right"><span class="fo-demand-progress fo-skeleton">0</span>%</span><br>
-                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-demand-sum fo-skeleton fo-line">0</span></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar fo-demand-bar fo-skeleton progress-bar-blue" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <p class="text-uppercase mt10 clearfix">
-                            <strong>Total Collection:</strong> <span class="fo-total-collection-count fo-skeleton">0</span>
-                            <span class="pull-right"><span class="fo-collection-progress fo-skeleton">0</span>%</span><br>
-                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-collection-sum fo-skeleton fo-line">0</span></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar fo-collection-bar fo-skeleton progress-bar-green" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <p class="text-uppercase mt10 clearfix">
-                            <strong>Total Awaiting:</strong> <span class="fo-total-awaiting-count fo-skeleton">0</span>
-                            <span class="pull-right"><span class="fo-awaiting-progress fo-skeleton">0</span>%</span><br>
-                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-awaiting-sum fo-skeleton fo-line">0</span></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar fo-awaiting-bar fo-skeleton progress-bar-yellow" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div><!--./topprograssstart-->
-                </div><!--./col-md-3-->
-                
-                <!-- Third Widget: Last Year Pending -->
-                <div class="col-md-3 col-sm-6 mb10">
-                    <div class="topprograssstart flex-card" id="fees-overview-widget-pending" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
-                        <h5 class="pro-border">Last Year Pending</h5>
-                        <p class="text-uppercase mt10 clearfix">
-                            <strong>Last Year Pending Demand:</strong> <span class="fo-total-cfdemand-count fo-skeleton">0</span>
-                            <span class="pull-right"><span class="fo-cfdemand-progress fo-skeleton">0</span>%</span><br>
-                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-cfdemand-sum fo-skeleton fo-line">0</span></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar fo-cfdemand-bar fo-skeleton progress-bar-red" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <p class="text-uppercase mt10 clearfix">
-                            <strong>Last Year Pending Collection:</strong> <span class="fo-total-cfcollection-count fo-skeleton">0</span>
-                            <span class="pull-right"><span class="fo-cfcollection-progress fo-skeleton">0</span>%</span><br>
-                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-cfcollection-sum fo-skeleton fo-line">0</span></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar fo-cfcollection-bar fo-skeleton progress-bar-purple" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <p class="text-uppercase mt10 clearfix">
-                            <strong>Last Year Pending:</strong> <span class="fo-total-cfbalance-count fo-skeleton">0</span>
-                            <span class="pull-right"><span class="fo-cfbalance-progress fo-skeleton">0</span>%</span><br>
-                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-cfbalance-sum fo-skeleton fo-line">0</span></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar fo-cfbalance-bar fo-skeleton progress-bar-orange" style="width: 0%"></div>
-                                .progress-bar-blue { background-color: #007bff !important; }
-                                .progress-bar-green { background-color: #28a745 !important; }
-                                .progress-bar-yellow { background-color: #ffc107 !important; }
-                                .progress-bar-red { background-color: #dc3545 !important; }
-                                .progress-bar-purple { background-color: #6f42c1 !important; }
-                                .progress-bar-orange { background-color: #fd7e14 !important; }
-                            </div>
-                        </div>
-                    </div><!--./topprograssstart-->
-                </div><!--./col-md-3-->
-                <?php
-            }
-        }
-        
-        if ($this->module_lib->hasActive('library')) {
-            if ($this->rbac->hasPrivilege('book_overview_widegts', 'can_view')) {
-                ?>
-                            <div class="col-md-3 col-sm-6 mb10">
-                                <div class="topprograssstart flex-card" id="library-overview-widget" data-url="<?php echo site_url('admin/admin/library_overview_widget'); ?>">
-                                    <h5 class="pro-border"><?php echo $this->lang->line('library_overview'); ?></h5>
-                                    <p class="text-uppercase mt10 clearfix"><span class="lib-dueforreturn fo-skeleton">0</span> <?php echo $this->lang->line('due_for_return'); ?><span class="pull-right"></span>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-green lib-dueforreturn-bar" style="width: 0%"></div>
-                                        </div>
-                                    </div>
-                                    <p class="text-uppercase mt10 clearfix"><span class="lib-forreturn fo-skeleton">0</span> <?php echo $this->lang->line('returned') ?><span class="pull-right"></span>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-green lib-forreturn-bar" style="width: 0%"></div>
-                                        </div>
-                                    </div>
-                                    <p class="text-uppercase mt10 clearfix"><span class="lib-total-issued fo-skeleton">0</span> <?php echo $this->lang->line('issued_out_of'); ?> <span class="lib-total fo-skeleton">0</span><span class="pull-right"><span class="lib-issued-progress fo-skeleton">0</span>%</span>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-green lib-issued-bar" style="width: 0%"></div>
-                                        </div>
-                                    </div>
-                                    <p class="text-uppercase mt10 clearfix"><span class="lib-availble fo-skeleton">0</span> <?php echo $this->lang->line('available_out_of') ?> <span class="lib-total fo-skeleton">0</span><span class="pull-right"><span class="lib-availble-progress fo-skeleton">0</span>%</span>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-green lib-availble-bar" style="width: 0%"></div>
-                                        </div>
-                                    </div>
-                                </div><!--./topprograssstart-->
-                            </div><!--./col-md-3-->
-                <?php
-        }
-        }
-        
-        if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {
-        ?>
-            <div class="col-md-12 col-sm-12 mb10">
-                <div class="topprograssstart flex-card" id="student-headcount-widget" data-url="<?php echo site_url('admin/admin/student_head_count_widget'); ?>">
-                    <h5 class="pro-border"><?php echo $this->lang->line('student_head_count'); ?> <span class="pull-right shc-total fo-skeleton" style="font-size: 18px; font-weight: bold;">0</span></h5>
-                    <div class="row" style="margin: 0;">
-                        <div class="col-xs-6" style="padding-left: 0; padding-right: 5px; border-right: 1px solid #e0e0e0;">
-                            <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                                <i class="fa fa-male" style="color: #3c8dbc;"></i> Male: <span class="shc-male-count fo-skeleton">0</span>
-                            </p>
-                            <p class="text-center" style="font-size: 11px; margin: 5px 0;">
-                                <span class="shc-male-percent fo-skeleton">0</span>%
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar shc-male-bar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xs-6" style="padding-left: 5px; padding-right: 0;">
-                            <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                                <i class="fa fa-female" style="color: #dd4b39;"></i> Female: <span class="shc-female-count fo-skeleton">0</span>
-                            </p>
-                            <p class="text-center" style="font-size: 11px; margin: 5px 0;">
-                                <span class="shc-female-percent fo-skeleton">0</span>%
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-red shc-female-bar" style="width: 0%"></div>
-                                </div>
-                            </div>
+                <?php if ($this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) { ?>
+                <div class="mn-col-20">
+                    <div class="mn-metric is-blue" id="staff-approved-leave-widget" data-url="<?php echo site_url('admin/admin/staff_approved_leave_widget'); ?>">
+                        <div class="mn-metric-icon"><i class="fa fa-calendar-check-o"></i></div>
+                        <div class="mn-metric-body">
+                            <div class="mn-metric-value"><span class="sal-approved fo-skeleton">0</span><span style="color:var(--mn-text-muted);font-size:14px;font-weight:400;">/<span class="sal-total fo-skeleton">0</span></span></div>
+                            <div class="mn-metric-label"><?php echo $this->lang->line('staff_approved_leave'); ?></div>
+                            <div class="mn-metric-bar"><div class="progress-bar sal-progress" style="width: 0%"></div></div>
                         </div>
                     </div>
-                    <div class="widget-others-under-female shc-others" style="margin-top: 10px; display: none; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                        <p class="text-uppercase clearfix" style="font-size: 12px;">
-                            <i class="fa fa-genderless" style="color: #f39c12;"></i> Others: <span class="shc-other-count">0</span>
-                            <span class="pull-right"><span class="shc-other-percent">0</span>%</span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-yellow shc-other-bar" style="width: 0%"></div>
-                            </div>
+                </div>
+                <?php } ?>
+
+                <?php if ($this->rbac->hasPrivilege('student_approved_leave_widegts', 'can_view')) { ?>
+                <div class="mn-col-20">
+                    <div class="mn-metric is-green" id="student-approved-leave-widget" data-url="<?php echo site_url('admin/admin/student_approved_leave_widget'); ?>">
+                        <div class="mn-metric-icon"><i class="fa fa-calendar-check-o"></i></div>
+                        <div class="mn-metric-body">
+                            <div class="mn-metric-value"><span class="stl-approved fo-skeleton">0</span><span style="color:var(--mn-text-muted);font-size:14px;font-weight:400;">/<span class="stl-total fo-skeleton">0</span></span></div>
+                            <div class="mn-metric-label"><?php echo $this->lang->line('student_approved_leave'); ?></div>
+                            <div class="mn-metric-bar"><div class="progress-bar stl-progress" style="width: 0%"></div></div>
                         </div>
                     </div>
-                </div><!--./topprograssstart-->
-            </div><!--./col-md-3-->
-        <?php } ?>
+                </div>
+                <?php } ?>
 
-<?php
-        if ($this->rbac->hasPrivilege('fees_classwise_summary_widget', 'can_view')) {
-            $class_label = ($this->sch_setting_detail->institution_type === 'college') ? 'Department' : 'Class';
-        ?>
-            <div class="col-md-12 col-sm-12 mb10">
-                <div class="topprograssstart flex-card" id="fees-classwise-widget" data-url="<?php echo site_url('admin/admin/fees_classwise_summary_widget'); ?>" data-class-label="<?php echo htmlspecialchars($class_label, ENT_QUOTES); ?>" style="position: relative; z-index: 1;">
-                    <h5 class="pro-border">Class Wise Fee Summary</h5>
-                    <ul class="nav nav-tabs" role="tablist">
-                        <li class="active"><a href="#classwise-all" role="tab" data-toggle="tab">All Classes</a></li>
-                        <li><a href="#classwise-exclude-final" role="tab" data-toggle="tab">Without Final Year</a></li>
-                    </ul>
-                    <div class="tab-content" style="margin-top: 10px;">
-                        <div class="tab-pane active" id="classwise-all">
-                            <div class="table-responsive">
-                                <table class="table table-striped table-bordered classwise-fees-table" data-scope="all">
-                                    <thead></thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="4" class="text-center classwise-fees-loading">
-                                                <div class="loading-spinner"></div>
-                                                <div>Loading fee summary...</div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                    <tfoot></tfoot>
-                                </table>
-                            </div>
+                <?php if ($this->rbac->hasPrivilege('complaint', 'can_view')): ?>
+                <div class="mn-col-20">
+                    <div class="mn-metric is-red" id="complaint-widget" data-url="<?php echo site_url('admin/complaint/widget'); ?>">
+                        <div class="mn-metric-icon"><i class="fa fa-commenting-o"></i></div>
+                        <div class="mn-metric-body">
+                            <div class="mn-metric-value"><span class="cw-open fo-skeleton">0</span><span style="color:var(--mn-text-muted);font-size:14px;font-weight:400;">/<span class="cw-total fo-skeleton">0</span></span></div>
+                            <div class="mn-metric-label"><?php echo $this->lang->line('complaint_box'); ?></div>
+                            <div class="mn-metric-bar"><div class="progress-bar cw-progress" style="width: 0%"></div></div>
                         </div>
-                        <div class="tab-pane" id="classwise-exclude-final">
-                            <div class="table-responsive">
-                                <table class="table table-striped table-bordered classwise-fees-table" data-scope="exclude_final">
-                                    <thead></thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="4" class="text-center classwise-fees-loading">
-                                                <div class="loading-spinner"></div>
-                                                <div>Loading fee summary...</div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                    <tfoot></tfoot>
-                                </table>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($this->module_lib->hasActive('front_office') && $this->rbac->hasPrivilege('conveted_leads_widegts', 'can_view')) { ?>
+                <div class="mn-col-20">
+                    <div class="mn-metric is-purple" id="converted-leads-widget" data-url="<?php echo site_url('admin/admin/converted_leads_widget'); ?>">
+                        <div class="mn-metric-icon"><i class="fa fa-exchange"></i></div>
+                        <div class="mn-metric-body">
+                            <div class="mn-metric-value"><span class="cl-complete fo-skeleton">0</span><span style="color:var(--mn-text-muted);font-size:14px;font-weight:400;">/<span class="cl-total fo-skeleton">0</span></span></div>
+                            <div class="mn-metric-label">Converted Leads</div>
+                            <div class="mn-metric-bar"><div class="progress-bar cl-progress" style="width: 0%"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+
+            </div>
+        </div>
+
+        <!-- ═══ ROW 2 — BIRTHDAYS + ATTENDANCE ═══ -->
+        <div class="mn-section">
+            <div class="mn-row mn-row-eq">
+
+                <div class="mn-col-25">
+                    <div class="mn-card" id="student-birthday-widget" data-url="<?php echo site_url('admin/admin/student_birthdays_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-indigo">
+                            <span>Students Birthday</span>
+                            <span class="mn-head-badge student-birthday-count" style="color:#fff;">0</span>
+                        </div>
+                        <div class="mn-card-body mn-bday-body birthday-widget-body">
+                            <div class="fo-skeleton fo-line" style="width:80%;margin:8px auto;"></div>
+                            <div class="fo-skeleton fo-line" style="width:65%;margin:8px auto;"></div>
+                            <div class="fo-skeleton fo-line" style="width:75%;margin:8px auto;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mn-col-25">
+                    <div class="mn-card" id="staff-birthday-widget" data-url="<?php echo site_url('admin/admin/staff_birthdays_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-emerald">
+                            <span>Staff Birthdays</span>
+                            <span class="mn-head-badge staff-birthday-count" style="color:#fff;">0</span>
+                        </div>
+                        <div class="mn-card-body mn-bday-body birthday-widget-body">
+                            <div class="fo-skeleton fo-line" style="width:80%;margin:8px auto;"></div>
+                            <div class="fo-skeleton fo-line" style="width:65%;margin:8px auto;"></div>
+                            <div class="fo-skeleton fo-line" style="width:75%;margin:8px auto;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <?php if ($this->module_lib->hasActive('student_attendance') && $this->rbac->hasPrivilege('today_attendance_widegts', 'can_view')) { ?>
+                <div class="mn-col-25">
+                    <div class="mn-card" id="student-attendance-widget" data-url="<?php echo site_url('admin/admin/student_today_attendance_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-blue"><span><?php echo $this->lang->line('student_today_attendance'); ?></span></div>
+                        <div class="mn-card-body-compact">
+                            <div class="mn-att-row"><span class="mn-att-dot" style="background:#10b981;"></span><span class="mn-att-label"><?php echo $this->lang->line('present'); ?></span><span class="mn-att-count sta-present-count fo-skeleton">0</span><span class="mn-att-pct"><span class="sta-present-percent fo-skeleton">0%</span></span><div class="mn-att-bar"><div class="progress-bar sta-present-bar" style="width:0%;background:#10b981;"></div></div></div>
+                            <div class="mn-att-row"><span class="mn-att-dot" style="background:#f59e0b;"></span><span class="mn-att-label"><?php echo $this->lang->line('late'); ?></span><span class="mn-att-count sta-late-count fo-skeleton">0</span><span class="mn-att-pct"><span class="sta-late-percent fo-skeleton">0%</span></span><div class="mn-att-bar"><div class="progress-bar sta-late-bar" style="width:0%;background:#f59e0b;"></div></div></div>
+                            <div class="mn-att-row"><span class="mn-att-dot" style="background:#ef4444;"></span><span class="mn-att-label"><?php echo $this->lang->line('absent'); ?></span><span class="mn-att-count sta-absent-count fo-skeleton">0</span><span class="mn-att-pct"><span class="sta-absent-percent fo-skeleton">0%</span></span><div class="mn-att-bar"><div class="progress-bar sta-absent-bar" style="width:0%;background:#ef4444;"></div></div></div>
+                            <div class="mn-att-row"><span class="mn-att-dot" style="background:#8b5cf6;"></span><span class="mn-att-label"><?php echo $this->lang->line('half_day'); ?></span><span class="mn-att-count sta-halfday-count fo-skeleton">0</span><span class="mn-att-pct"><span class="sta-halfday-percent fo-skeleton">0%</span></span><div class="mn-att-bar"><div class="progress-bar sta-halfday-bar" style="width:0%;background:#8b5cf6;"></div></div></div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+
+                <?php if ($this->rbac->hasPrivilege('staff_present_today_widegts', 'can_view')) { ?>
+                <div class="mn-col-25">
+                    <div class="mn-card" id="staff-attendance-widget" data-url="<?php echo site_url('admin/admin/staff_today_attendance_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-orange"><span>Staff Today Attendance</span></div>
+                        <div class="mn-card-body-compact">
+                            <div class="mn-att-row"><span class="mn-att-dot" style="background:#10b981;"></span><span class="mn-att-label">Present</span><span class="mn-att-count sfa-present-count fo-skeleton">0</span><span class="mn-att-pct"><span class="sfa-present-percent fo-skeleton">0</span>%</span><div class="mn-att-bar"><div class="progress-bar sfa-present-bar" style="width:0%;background:#10b981;"></div></div></div>
+                            <div class="mn-att-row"><span class="mn-att-dot" style="background:#f59e0b;"></span><span class="mn-att-label">Late</span><span class="mn-att-count sfa-late-count fo-skeleton">0</span><span class="mn-att-pct"><span class="sfa-late-percent fo-skeleton">0</span>%</span><div class="mn-att-bar"><div class="progress-bar sfa-late-bar" style="width:0%;background:#f59e0b;"></div></div></div>
+                            <div class="mn-att-row"><span class="mn-att-dot" style="background:#ef4444;"></span><span class="mn-att-label">Absent</span><span class="mn-att-count sfa-absent-count fo-skeleton">0</span><span class="mn-att-pct"><span class="sfa-absent-percent fo-skeleton">0</span>%</span><div class="mn-att-bar"><div class="progress-bar sfa-absent-bar" style="width:0%;background:#ef4444;"></div></div></div>
+                            <div class="mn-att-row"><span class="mn-att-dot" style="background:#8b5cf6;"></span><span class="mn-att-label">Half Day</span><span class="mn-att-count sfa-halfday-count fo-skeleton">0</span><span class="mn-att-pct"><span class="sfa-halfday-percent fo-skeleton">0</span>%</span><div class="mn-att-bar"><div class="progress-bar sfa-halfday-bar" style="width:0%;background:#8b5cf6;"></div></div></div>
+                            <div class="mn-att-row"><span class="mn-att-dot" style="background:#06b6d4;"></span><span class="mn-att-label">Permission</span><span class="mn-att-count sfa-permission-count fo-skeleton">0</span><span class="mn-att-pct"><span class="sfa-permission-percent fo-skeleton">0</span>%</span><div class="mn-att-bar"><div class="progress-bar sfa-permission-bar" style="width:0%;background:#06b6d4;"></div></div></div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+
+            </div>
+        </div>
+
+        <!-- ═══ ROW 3 — ADMISSION + HEAD COUNT ═══ -->
+        <div class="mn-section">
+            <div class="mn-row">
+
+                <?php if ($this->module_lib->hasActive('front_office') && $this->rbac->hasPrivilege('enquiry_overview_widegts', 'can_view')) { ?>
+                <div class="mn-col-50">
+                    <div class="mn-card" id="enquiry-overview-widget" data-url="<?php echo site_url('admin/admin/enquiry_overview_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-purple">Admission Overview</div>
+                        <div class="mn-card-body">
+                            <div class="mn-adm-row"><div class="mn-adm-bar-indicator" style="background:var(--mn-amber);"></div><div class="mn-adm-label">Application Received <a href="<?php echo site_url('admin/onlinestudent?preset_filter=application_received'); ?>" class="btn btn-xs btn-default" title="View"><i class="fa fa-eye"></i></a></div><div class="mn-adm-count eo-won-count fo-skeleton">0</div><div class="mn-adm-pct"><span class="eo-won-percent fo-skeleton">0</span>%</div></div>
+                            <div class="mn-adm-row"><div class="mn-adm-bar-indicator" style="background:var(--mn-green);"></div><div class="mn-adm-label">Fully Paid <a href="<?php echo site_url('admin/onlinestudent?preset_filter=fully_paid'); ?>" class="btn btn-xs btn-default" title="View"><i class="fa fa-eye"></i></a></div><div class="mn-adm-count eo-active-count fo-skeleton">0</div><div class="mn-adm-pct"><span class="eo-active-percent fo-skeleton">0</span>%</div></div>
+                            <div class="progress" style="height:3px;margin:0 0 2px;background:#f1f5f9;box-shadow:none;border-radius:2px;"><div class="progress-bar eo-active-bar" style="width:0%;background:var(--mn-green);border-radius:2px;"></div></div>
+                            <div class="mn-adm-row"><div class="mn-adm-bar-indicator" style="background:var(--mn-blue);"></div><div class="mn-adm-label">Partially Paid <a href="<?php echo site_url('admin/onlinestudent?preset_filter=partially_paid'); ?>" class="btn btn-xs btn-default" title="View"><i class="fa fa-eye"></i></a></div><div class="mn-adm-count eo-app-count fo-skeleton">0</div><div class="mn-adm-pct"><span class="eo-app-total-percent fo-skeleton">0</span></div></div>
+                            <div class="progress" style="height:3px;margin:0 0 2px;background:#f1f5f9;box-shadow:none;border-radius:2px;"><div class="progress-bar eo-app-total-bar" style="width:0%;background:var(--mn-blue);border-radius:2px;"></div></div>
+                            <div class="mn-adm-row"><div class="mn-adm-bar-indicator" style="background:var(--mn-cyan);"></div><div class="mn-adm-label">Only App Fee Paid <a href="<?php echo site_url('admin/onlinestudent?preset_filter=only_app_fee_paid'); ?>" class="btn btn-xs btn-default" title="View"><i class="fa fa-eye"></i></a></div><div class="mn-adm-count eo-applied-count fo-skeleton">0</div><div class="mn-adm-pct"><span class="eo-applied-percent fo-skeleton">0</span></div></div>
+                            <div class="progress" style="height:3px;margin:0 0 2px;background:#f1f5f9;box-shadow:none;border-radius:2px;"><div class="progress-bar eo-applied-bar" style="width:0%;background:var(--mn-cyan);border-radius:2px;"></div></div>
+                            <div class="mn-adm-row"><div class="mn-adm-bar-indicator" style="background:var(--mn-red);"></div><div class="mn-adm-label">Revoked <a href="<?php echo site_url('admin/admission_cancellation'); ?>" class="btn btn-xs btn-default" title="View"><i class="fa fa-list"></i></a></div><div class="mn-adm-count eo-revoked-count fo-skeleton">0</div><div class="mn-adm-pct"></div></div>
+                            <div class="mn-adm-row"><div class="mn-adm-bar-indicator" style="background:var(--mn-amber);"></div><div class="mn-adm-label"><span style="color:var(--mn-amber);font-weight:700;">Waiting List</span> <a href="<?php echo site_url('admin/onlinestudent?admission_status_filter=waiting_list'); ?>" class="btn btn-xs btn-warning" title="View"><i class="fa fa-list"></i></a></div><div class="mn-adm-count eo-waiting-list-count fo-skeleton">0</div><div class="mn-adm-pct"></div></div>
+                            <div class="progress" style="height:3px;margin:0 0 2px;background:#f1f5f9;box-shadow:none;border-radius:2px;"><div class="progress-bar eo-won-bar" style="width:0%;background:var(--mn-amber);border-radius:2px;"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+
+                <?php if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) { ?>
+                <div class="mn-col-50">
+                    <div class="mn-card" id="student-headcount-widget" data-url="<?php echo site_url('admin/admin/student_head_count_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-cyan"><?php echo $this->lang->line('student_head_count'); ?></div>
+                        <div class="mn-card-body" style="padding:24px;">
+                            <div class="mn-hc-total shc-total fo-skeleton">0</div>
+                            <div style="font-size:11px;color:var(--mn-text-sec);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;margin-top:4px;">Total Students</div>
+                            <div class="mn-hc-grid">
+                                <div class="mn-hc-segment">
+                                    <div class="mn-hc-segment-label"><i class="fa fa-male" style="color:var(--mn-blue);"></i> Male</div>
+                                    <div class="mn-hc-segment-val shc-male-count fo-skeleton">0</div>
+                                    <div class="mn-hc-segment-pct"><span class="shc-male-percent fo-skeleton">0</span>%</div>
+                                    <div class="mn-hc-bar"><div class="progress-bar shc-male-bar" style="width:0%;background:var(--mn-blue);"></div></div>
+                                </div>
+                                <div class="mn-hc-segment">
+                                    <div class="mn-hc-segment-label"><i class="fa fa-female" style="color:var(--mn-pink);"></i> Female</div>
+                                    <div class="mn-hc-segment-val shc-female-count fo-skeleton">0</div>
+                                    <div class="mn-hc-segment-pct"><span class="shc-female-percent fo-skeleton">0</span>%</div>
+                                    <div class="mn-hc-bar"><div class="progress-bar shc-female-bar" style="width:0%;background:var(--mn-pink);"></div></div>
+                                </div>
+                            </div>
+                            <div class="shc-others" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--mn-border);">
+                                <div class="mn-hc-segment">
+                                    <div class="mn-hc-segment-label"><i class="fa fa-genderless" style="color:var(--mn-amber);"></i> Others</div>
+                                    <div class="mn-hc-segment-val shc-other-count">0</div>
+                                    <div class="mn-hc-segment-pct"><span class="shc-other-percent">0</span>%</div>
+                                    <div class="mn-hc-bar"><div class="progress-bar shc-other-bar" style="width:0%;background:var(--mn-amber);"></div></div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <?php } ?>
+
             </div>
+        </div>
+
+        <!-- ═══ ROW 4 — MONTHLY CHARTS ═══ -->
+        <?php $bar_chart = true; $line_chart = true; ?>
+        <div class="mn-section">
+            <div class="mn-row mn-row-eq">
+                <?php if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->hasActive('expense'))) {
+                    if ($this->rbac->hasPrivilege('fees_collection_and_expense_monthly_chart', 'can_view')) {
+                        $userdata = $this->customlib->getUserData(); ?>
+                <div class="mn-col-58">
+                    <div class="mn-card">
+                        <div class="mn-chart-wrap">
+                            <div class="mn-chart-title"><?php echo $this->lang->line('fees_collection_expenses_for'); ?> <?php echo $this->lang->line(strtolower(date('F'))) . " " . date('Y'); ?></div>
+                            <div class="chart-async" id="fees-collection-expenses-monthly">
+                                <div class="chart-async-loader"><span class="chart-async-spinner"></span></div>
+                                <div id="barChart" data-url="<?php echo site_url('admin/admin/fees_collection_expenses_monthly_widget'); ?>"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php } } ?>
+
+                <?php if ($this->module_lib->hasActive('income') && $this->rbac->hasPrivilege('income_donut_graph', 'can_view')) { ?>
+                <div class="mn-col-42">
+                    <div class="mn-card">
+                        <div class="mn-chart-wrap">
+                            <div class="mn-chart-title"><?php echo $this->lang->line('income') . " - " . $this->lang->line(strtolower(date('F'))) . " " . date('Y'); ?></div>
+                            <div class="mn-donut-wrap"><div id="doughnut-chart"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+            </div>
+        </div>
+
+        <!-- ═══ ROW 5 — SESSION CHARTS ═══ -->
+        <div class="mn-section">
+            <div class="mn-row mn-row-eq">
+                <?php if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->hasActive('expense'))) {
+                    if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_view')) { ?>
+                <div class="mn-col-58">
+                    <div class="mn-card">
+                        <div class="mn-chart-wrap">
+                            <div class="mn-chart-title"><?php echo $this->lang->line('fees_collection_expenses_for_session'); ?> <?php echo $this->setting_model->getCurrentSessionName(); ?></div>
+                            <div class="chart-async" id="fees-collection-expenses-session">
+                                <div class="chart-async-loader"><span class="chart-async-spinner"></span></div>
+                                <div id="lineChart" data-url="<?php echo site_url('admin/admin/fees_collection_expenses_session_widget'); ?>"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php } } ?>
+
+                <?php if ($this->module_lib->hasActive('expense') && $this->rbac->hasPrivilege('expense_donut_graph', 'can_view')) { ?>
+                <div class="mn-col-42">
+                    <div class="mn-card">
+                        <div class="mn-chart-wrap">
+                            <div class="mn-chart-title"><?php echo $this->lang->line('expense') . " - " . $this->lang->line(strtolower(date('F'))) . " " . date('Y'); ?></div>
+                            <div class="mn-donut-wrap"><div id="doughnut-chart1"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+            </div>
+        </div>
+
+        <!-- ═══ ROW 6 — FINANCIAL WIDGETS ═══ -->
+        <div class="mn-section">
+            <div class="mn-row">
+                <?php if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('fees_overview_widegts', 'can_view')) { ?>
+
+                <div class="mn-col-25">
+                    <div class="mn-card" id="fees-overview-widget-payment" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-blue">Payment Status</div>
+                        <div class="mn-card-body-compact">
+                            <div class="mn-fin-row"><div><div class="mn-fin-label"><?php echo $this->lang->line('unpaid'); ?></div><div class="mn-fin-sub">Paid: <span class="fo-unpaid-collected-sum fo-skeleton">0</span> | Bal: <span class="fo-unpaid-sum fo-skeleton">0</span></div></div><div style="text-align:right;"><div class="mn-fin-val fo-total-unpaid fo-skeleton">0</div><div class="mn-fin-pct"><span class="fo-unpaid-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar fo-unpaid-bar" style="width:0%;background:var(--mn-red);"></div></div>
+                            <div class="mn-fin-row"><div><div class="mn-fin-label"><?php echo $this->lang->line('partial'); ?></div><div class="mn-fin-sub">Paid: <span class="fo-partial-collected-sum fo-skeleton">0</span> | Bal: <span class="fo-partial-sum fo-skeleton">0</span></div></div><div style="text-align:right;"><div class="mn-fin-val fo-total-partial fo-skeleton">0</div><div class="mn-fin-pct"><span class="fo-partial-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar fo-partial-bar" style="width:0%;background:var(--mn-amber);"></div></div>
+                            <div class="mn-fin-row"><div><div class="mn-fin-label"><?php echo $this->lang->line('paid'); ?></div><div class="mn-fin-sub">Paid: <span class="fo-paid-sum fo-skeleton">0</span> | Bal: <span class="fo-paid-balance-sum fo-skeleton">0</span></div></div><div style="text-align:right;"><div class="mn-fin-val fo-total-paid fo-skeleton">0</div><div class="mn-fin-pct"><span class="fo-paid-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar fo-paid-bar" style="width:0%;background:var(--mn-green);"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mn-col-25">
+                    <div class="mn-card" id="fees-overview-widget-collection" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-teal">Collection Overview</div>
+                        <div class="mn-card-body-compact">
+                            <div class="mn-fin-row"><div><div class="mn-fin-label">Total Demand</div><div class="mn-fin-sub">Sum: <span class="fo-demand-sum fo-skeleton">0</span></div></div><div style="text-align:right;"><div class="mn-fin-val fo-total-demand-count fo-skeleton">0</div><div class="mn-fin-pct"><span class="fo-demand-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar fo-demand-bar" style="width:0%;background:var(--mn-blue);"></div></div>
+                            <div class="mn-fin-row"><div><div class="mn-fin-label">Total Collection</div><div class="mn-fin-sub">Sum: <span class="fo-collection-sum fo-skeleton">0</span></div></div><div style="text-align:right;"><div class="mn-fin-val fo-total-collection-count fo-skeleton">0</div><div class="mn-fin-pct"><span class="fo-collection-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar fo-collection-bar" style="width:0%;background:var(--mn-green);"></div></div>
+                            <div class="mn-fin-row"><div><div class="mn-fin-label">Total Awaiting</div><div class="mn-fin-sub">Sum: <span class="fo-awaiting-sum fo-skeleton">0</span></div></div><div style="text-align:right;"><div class="mn-fin-val fo-total-awaiting-count fo-skeleton">0</div><div class="mn-fin-pct"><span class="fo-awaiting-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar fo-awaiting-bar" style="width:0%;background:var(--mn-amber);"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mn-col-25">
+                    <div class="mn-card" id="fees-overview-widget-pending" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-rose">Last Year Pending</div>
+                        <div class="mn-card-body-compact">
+                            <div class="mn-fin-row"><div><div class="mn-fin-label">Pending Demand</div><div class="mn-fin-sub">Sum: <span class="fo-cfdemand-sum fo-skeleton">0</span></div></div><div style="text-align:right;"><div class="mn-fin-val fo-total-cfdemand-count fo-skeleton">0</div><div class="mn-fin-pct"><span class="fo-cfdemand-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar fo-cfdemand-bar" style="width:0%;background:var(--mn-red);"></div></div>
+                            <div class="mn-fin-row"><div><div class="mn-fin-label">Pending Collection</div><div class="mn-fin-sub">Sum: <span class="fo-cfcollection-sum fo-skeleton">0</span></div></div><div style="text-align:right;"><div class="mn-fin-val fo-total-cfcollection-count fo-skeleton">0</div><div class="mn-fin-pct"><span class="fo-cfcollection-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar fo-cfcollection-bar" style="width:0%;background:var(--mn-purple);"></div></div>
+                            <div class="mn-fin-row"><div><div class="mn-fin-label">Pending Balance</div><div class="mn-fin-sub">Sum: <span class="fo-cfbalance-sum fo-skeleton">0</span></div></div><div style="text-align:right;"><div class="mn-fin-val fo-total-cfbalance-count fo-skeleton">0</div><div class="mn-fin-pct"><span class="fo-cfbalance-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar fo-cfbalance-bar" style="width:0%;background:var(--mn-orange);"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+
+                <?php if ($this->module_lib->hasActive('library') && $this->rbac->hasPrivilege('book_overview_widegts', 'can_view')) { ?>
+                <div class="mn-col-25">
+                    <div class="mn-card" id="library-overview-widget" data-url="<?php echo site_url('admin/admin/library_overview_widget'); ?>">
+                        <div class="mn-card-head-accent mn-accent-violet"><?php echo $this->lang->line('library_overview'); ?></div>
+                        <div class="mn-card-body-compact">
+                            <div class="mn-fin-row"><div class="mn-fin-label"><?php echo $this->lang->line('due_for_return'); ?></div><div class="mn-fin-val lib-dueforreturn fo-skeleton">0</div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar lib-dueforreturn-bar" style="width:0%;background:var(--mn-amber);"></div></div>
+                            <div class="mn-fin-row"><div class="mn-fin-label"><?php echo $this->lang->line('returned'); ?></div><div class="mn-fin-val lib-forreturn fo-skeleton">0</div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar lib-forreturn-bar" style="width:0%;background:var(--mn-green);"></div></div>
+                            <div class="mn-fin-row"><div class="mn-fin-label"><?php echo $this->lang->line('issued_out_of'); ?> <span class="lib-total fo-skeleton">0</span></div><div style="text-align:right;"><div class="mn-fin-val lib-total-issued fo-skeleton">0</div><div class="mn-fin-pct"><span class="lib-issued-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar lib-issued-bar" style="width:0%;background:var(--mn-blue);"></div></div>
+                            <div class="mn-fin-row"><div class="mn-fin-label"><?php echo $this->lang->line('available_out_of'); ?> <span class="lib-total fo-skeleton">0</span></div><div style="text-align:right;"><div class="mn-fin-val lib-availble fo-skeleton">0</div><div class="mn-fin-pct"><span class="lib-availble-progress fo-skeleton">0</span>%</div></div></div>
+                            <div class="mn-fin-bar"><div class="progress-bar lib-availble-bar" style="width:0%;background:var(--mn-indigo);"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+            </div>
+        </div>
+
+        <!-- ═══ ROW 7 — CLASS WISE FEE SUMMARY ═══ -->
+        <?php if ($this->rbac->hasPrivilege('fees_classwise_summary_widget', 'can_view')) {
+            $class_label = ($this->sch_setting_detail->institution_type === 'college') ? 'Department' : 'Class'; ?>
+        <div class="mn-section">
+            <div class="mn-card" id="fees-classwise-widget" data-url="<?php echo site_url('admin/admin/fees_classwise_summary_widget'); ?>" data-class-label="<?php echo htmlspecialchars($class_label, ENT_QUOTES); ?>" style="position:relative;z-index:1;">
+                <div class="mn-card-head">Class Wise Fee Summary</div>
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="active"><a href="#classwise-all" role="tab" data-toggle="tab">All Classes</a></li>
+                    <li><a href="#classwise-exclude-final" role="tab" data-toggle="tab">Without Final Year</a></li>
+                </ul>
+                <div class="tab-content" style="padding:0 20px 16px;">
+                    <div class="tab-pane active" id="classwise-all">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered classwise-fees-table" data-scope="all"><thead></thead><tbody><tr><td colspan="4" class="text-center classwise-fees-loading"><div class="loading-spinner"></div><div>Loading fee summary...</div></td></tr></tbody><tfoot></tfoot></table>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="classwise-exclude-final">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered classwise-fees-table" data-scope="exclude_final"><thead></thead><tbody><tr><td colspan="4" class="text-center classwise-fees-loading"><div class="loading-spinner"></div><div>Loading fee summary...</div></td></tr></tbody><tfoot></tfoot></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <?php } ?>
 
-<?php
+        <!-- ═══ ROW 8 — QUICK LINKS + CALENDAR + STAFF ═══ -->
+        <?php
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
-        
-        $div_col    = 12;
-        $div_rol    = 12;
-        $bar_chart  = true;
-        $line_chart = true;if ($this->rbac->hasPrivilege('staff_role_count_widget', 'can_view')) {
-    $div_col = 9;
-    $div_rol = 12;
-}
-
-$widget_col = array();
-if ($this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) {
-    $widget_col[0] = 1;
-    $div_rol       = 3;
-}
-
-if ($this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) {
-    $widget_col[1] = 2;
-    $div_rol       = 3;
-}
-
-if ($this->rbac->hasPrivilege('student_count_widget', 'can_view')) {
-    $widget_col[2] = 3;
-    $div_rol       = 3;
-}
-$div = sizeof($widget_col);
-if (!empty($widget_col)) {
-    $widget = 12 / $div;
-} else {
-
-    $widget = 12;
-}
-?>
-
-            <div class="row">
-                <div class="col-lg-9 col-md-9 col-sm-12 col80">
-                    <div class="row">
-<?php
-if ($this->module_lib->hasActive('fees_collection')) {
-    if ($this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) {
+        $div_col = 12; $div_rol = 12; $bar_chart = true; $line_chart = true;
+        if ($this->rbac->hasPrivilege('staff_role_count_widget', 'can_view')) { $div_col = 9; }
+        $widget_col = array();
+        if ($this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) { $widget_col[0] = 1; $div_rol = 3; }
+        if ($this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) { $widget_col[1] = 2; $div_rol = 3; }
+        if ($this->rbac->hasPrivilege('student_count_widget', 'can_view')) { $widget_col[2] = 3; $div_rol = 3; }
+        $div = sizeof($widget_col);
+        $widget = !empty($widget_col) ? 12 / $div : 12;
         ?>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="info-box" id="monthly-fees-collection-widget" data-url="<?php echo site_url('admin/admin/monthly_fees_collection_widget'); ?>">
-                                        <a href="<?php echo site_url('studentfee') ?>">
-                                            <span class="info-box-icon"><i class="fa fa-money"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text"><?php echo $this->lang->line('monthly_fees_collection'); ?></span>
-                                                <span class="info-box-number mfc-amount fo-skeleton">0</span>
-                                            </div>
-                                        </a>
-                                    </div>
-                                </div>
-    <?php }
-}
-?>
-<?php
-if ($this->module_lib->hasActive('income')) {
-    if ($this->rbac->hasPrivilege('monthly_income_widget', 'can_view')) {
-        ?>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="info-box" id="monthly-income-widget" data-url="<?php echo site_url('admin/admin/monthly_income_widget'); ?>">
-                                        <a href="<?php echo site_url('admin/income') ?>">
-                                            <span class="info-box-icon"><i class="fa fa-bank"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text"><?php echo 'Monthly ' . $this->lang->line('income'); ?></span>
-                                                <span class="info-box-number mi-amount fo-skeleton">0</span>
-                                            </div>
-                                        </a>
-                                    </div>
-                                </div>
-    <?php }
-}
-?>
-<?php
-if ($this->module_lib->hasActive('expense')) {
-    if ($this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) {
-        ?>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="info-box" id="monthly-expense-widget" data-url="<?php echo site_url('admin/admin/monthly_expense_widget'); ?>">
-                                        <a href="<?php echo site_url('admin/expense') ?>">
-                                            <span class="info-box-icon"><i class="fa fa-credit-card"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text"><?php echo $this->lang->line('monthly_expenses'); ?></span>
-                                                <span class="info-box-number me-amount fo-skeleton">0</span>
-                                            </div>
-                                        </a>
-                                    </div>
-                                </div>
-    <?php
-}
-}
-?>
-<?php
-if ($this->module_lib->hasActive('whatsapp_messaging')) {
-    ?>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="info-box" id="whatsapp-msg-widget" data-url="<?php echo site_url('admin/admin/whatsapp_sent_widget'); ?>">
-                                        <a href="<?php echo site_url('whatsappconfig'); ?>">
-                                            <span class="info-box-icon" style="background:#25D366;color:#fff;"><i class="fa fa-whatsapp"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">WhatsApp Sent (This Month)</span>
-                                                <span class="info-box-number wa-count fo-skeleton">0</span>
-                                            </div>
-                                        </a>
-                                    </div>
-                                </div>
-    <?php
-}
-?>
-
+        <div class="mn-section">
+            <div class="mn-row">
+                <div class="mn-col-75">
+                    <div class="mn-row" style="margin-bottom:8px;">
+                        <?php if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) { ?>
+                        <div class="mn-col-25">
+                            <a href="<?php echo site_url('studentfee'); ?>" class="mn-qlink" id="monthly-fees-collection-widget" data-url="<?php echo site_url('admin/admin/monthly_fees_collection_widget'); ?>">
+                                <div class="mn-qlink-icon" style="background:#ecfdf5;color:var(--mn-green);"><i class="fa fa-money"></i></div>
+                                <div><div class="mn-qlink-label"><?php echo $this->lang->line('monthly_fees_collection'); ?></div><div class="mn-qlink-value mfc-amount fo-skeleton">0</div></div>
+                            </a>
+                        </div>
+                        <?php } ?>
+                        <?php if ($this->module_lib->hasActive('income') && $this->rbac->hasPrivilege('monthly_income_widget', 'can_view')) { ?>
+                        <div class="mn-col-25">
+                            <a href="<?php echo site_url('admin/income'); ?>" class="mn-qlink" id="monthly-income-widget" data-url="<?php echo site_url('admin/admin/monthly_income_widget'); ?>">
+                                <div class="mn-qlink-icon" style="background:#eff6ff;color:var(--mn-blue);"><i class="fa fa-bank"></i></div>
+                                <div><div class="mn-qlink-label">Monthly <?php echo $this->lang->line('income'); ?></div><div class="mn-qlink-value mi-amount fo-skeleton">0</div></div>
+                            </a>
+                        </div>
+                        <?php } ?>
+                        <?php if ($this->module_lib->hasActive('expense') && $this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) { ?>
+                        <div class="mn-col-25">
+                            <a href="<?php echo site_url('admin/expense'); ?>" class="mn-qlink" id="monthly-expense-widget" data-url="<?php echo site_url('admin/admin/monthly_expense_widget'); ?>">
+                                <div class="mn-qlink-icon" style="background:#fef2f2;color:var(--mn-red);"><i class="fa fa-credit-card"></i></div>
+                                <div><div class="mn-qlink-label"><?php echo $this->lang->line('monthly_expenses'); ?></div><div class="mn-qlink-value me-amount fo-skeleton">0</div></div>
+                            </a>
+                        </div>
+                        <?php } ?>
+                        <?php if ($this->module_lib->hasActive('whatsapp_messaging')) { ?>
+                        <div class="mn-col-25">
+                            <a href="<?php echo site_url('whatsappconfig'); ?>" class="mn-qlink" id="whatsapp-msg-widget" data-url="<?php echo site_url('admin/admin/whatsapp_sent_widget'); ?>">
+                                <div class="mn-qlink-icon" style="background:#dcfce7;color:#25D366;"><i class="fa fa-whatsapp"></i></div>
+                                <div><div class="mn-qlink-label">WhatsApp Sent</div><div class="mn-qlink-value wa-count fo-skeleton">0</div></div>
+                            </a>
+                        </div>
+                        <?php } ?>
                     </div>
 
-<?php
-if ($this->module_lib->hasActive('calendar_to_do_list')) {
-    if ($this->rbac->hasPrivilege('calendar_to_do_list', 'can_view')) {
-        $div_rol = 3;
-        ?>
-                        <div class="box box-primary borderwhite">
-                            <div class="box-body">
-                                <!-- THE CALENDAR -->
-                                <div id="calendar"></div>
+                    <?php if ($this->module_lib->hasActive('calendar_to_do_list') && $this->rbac->hasPrivilege('calendar_to_do_list', 'can_view')) { ?>
+                    <div class="mn-card">
+                        <div class="mn-card-body" style="padding:20px;"><div id="calendar"></div></div>
+                    </div>
+                    <?php } ?>
+                </div>
+
+                <?php if ($this->rbac->hasPrivilege('staff_role_count_widget', 'can_view')) { ?>
+                <div class="mn-col-25">
+                    <div class="mn-card">
+                        <div class="mn-card-head">Staff Roles</div>
+                        <div class="mn-card-body" style="padding:12px 16px;">
+                            <?php foreach ($roles as $key => $value) { ?>
+                            <div class="mn-role-card">
+                                <div class="mn-role-icon"><i class="fa fa-users"></i></div>
+                                <div class="mn-role-name"><?php echo $key; ?></div>
+                                <div class="mn-role-count"><?php echo $value; ?></div>
                             </div>
-                            <!-- /.box-body -->
+                            <?php } ?>
                         </div>
-                        <!-- /. box -->
-                    <?php }}?>
-                </div><!--./col-lg-9-->
-<?php
-if ($this->rbac->hasPrivilege('staff_role_count_widget', 'can_view')) {
-    ?>
-                    <div class="col-lg-3 col-md-3 col-sm-12 col20">
-    <?php foreach ($roles as $key => $value) {
-        ?>
-                            <div class="info-box">
-                                <a href="#">
-                                    <span class="info-box-icon"><i class="fa fa-user-secret"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text"><?php echo $key; ?></span>
-                                        <span class="info-box-number"><?php echo $value; ?></span>
-                                    </div>
-                                </a>
-                            </div>
-    <?php }?>
-                    </div><!--./col-lg-3-->
-<?php }?>
-            </div><!--./row-->
-        </div><!--./row-->
-</div>
+                    </div>
+                </div>
+                <?php } ?>
+            </div>
+        </div>
+
 <div id="newEventModal" class="modal fade " role="dialog">
     <div class="modal-dialog modal-dialog2 modal-lg">
         <div class="modal-content">
@@ -1352,265 +1043,109 @@ $(document).ready(function () {
         user-select: none;
     }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
 <script type="text/javascript">
- <?php if ($this->rbac->hasPrivilege('income_donut_graph', 'can_view') && ($this->module_lib->hasActive('income'))) {
-    ?>
-    new Chart(document.getElementById("doughnut-chart"), {
-    type: 'doughnut',
-            data: {
-            labels: [<?php foreach ($incomegraph as $value) {?>"<?php echo $value['income_category']; ?>", <?php }?> ],
-                    datasets: [
-                    {
-                    label: "Income",
-                            backgroundColor: [<?php $s = 1;
-    foreach ($incomegraph as $value) {
-        ?>"<?php echo incomegraphColors($s++); ?>", <?php
-if ($s == 8) {
-            $s = 1;
+$(document).ready(function() {
+    var apexDefaults = {
+        chart: { fontFamily: "'Inter', -apple-system, sans-serif", toolbar: { show: false }, animations: { enabled: true, easing: 'easeinout', speed: 600 } },
+        grid: { borderColor: '#f1f5f9', strokeDashArray: 0, xaxis: { lines: { show: false } }, yaxis: { lines: { show: true } } },
+        xaxis: { labels: { style: { fontSize: '10px', colors: '#94a3b8', fontWeight: 500 } }, axisBorder: { show: false }, axisTicks: { show: false } },
+        yaxis: { labels: { style: { fontSize: '10px', colors: '#94a3b8', fontWeight: 500 } } },
+        legend: { position: 'bottom', fontSize: '11px', fontWeight: 500, labels: { colors: '#64748b' }, markers: { width: 8, height: 8, radius: 8, offsetX: -4 }, itemMargin: { horizontal: 12, vertical: 4 } },
+        tooltip: { theme: 'dark', style: { fontSize: '11px' }, y: { formatter: function(v) { return v ? v.toLocaleString('en-IN') : '0'; } } },
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth' }
+    };
+
+    <?php if ($this->rbac->hasPrivilege('income_donut_graph', 'can_view') && $this->module_lib->hasActive('income')) { ?>
+    new ApexCharts(document.getElementById('doughnut-chart'), {
+        chart: { type: 'donut', height: 220, fontFamily: apexDefaults.chart.fontFamily },
+        series: [<?php foreach ($incomegraph as $value) { ?><?php echo $value['total']; ?>, <?php } ?>],
+        labels: [<?php foreach ($incomegraph as $value) { ?>"<?php echo $value['income_category']; ?>", <?php } ?>],
+        colors: [<?php $s = 1; foreach ($incomegraph as $value) { ?>"<?php echo incomegraphColors($s++); ?>", <?php if ($s == 8) { $s = 1; } } ?>],
+        plotOptions: { pie: { donut: { size: '60%' }, startAngle: -90, endAngle: 90, offsetY: 10 } },
+        legend: { position: 'bottom', fontSize: '11px', labels: { colors: '#64748b' }, markers: { width: 8, height: 8, radius: 8 } },
+        dataLabels: { enabled: false },
+        tooltip: { theme: 'dark', y: { formatter: function(v) { return '₹' + v.toLocaleString('en-IN'); } } }
+    }).render();
+    <?php } ?>
+
+    <?php if ($this->rbac->hasPrivilege('expense_donut_graph', 'can_view') && $this->module_lib->hasActive('expense')) { ?>
+    new ApexCharts(document.getElementById('doughnut-chart1'), {
+        chart: { type: 'donut', height: 220, fontFamily: apexDefaults.chart.fontFamily },
+        series: [<?php foreach ($expensegraph as $value) { ?><?php echo $value['total']; ?>, <?php } ?>],
+        labels: [<?php foreach ($expensegraph as $value) { ?>"<?php echo $value['exp_category']; ?>", <?php } ?>],
+        colors: [<?php $ss = 1; foreach ($expensegraph as $value) { ?>"<?php echo expensegraphColors($ss++); ?>", <?php if ($ss == 8) { $ss = 1; } } ?>],
+        plotOptions: { pie: { donut: { size: '60%' }, startAngle: -90, endAngle: 90, offsetY: 10 } },
+        legend: { position: 'bottom', fontSize: '11px', labels: { colors: '#64748b' }, markers: { width: 8, height: 8, radius: 8 } },
+        dataLabels: { enabled: false },
+        tooltip: { theme: 'dark', y: { formatter: function(v) { return '₹' + v.toLocaleString('en-IN'); } } }
+    }).render();
+    <?php } ?>
+
+    <?php if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->hasActive('expense')) || ($this->module_lib->hasActive('income'))) { ?>
+    var bar_chart = "<?php echo $bar_chart ?>";
+    var line_chart = "<?php echo $line_chart ?>";
+    var hasIncome = <?php echo ($this->module_lib->hasActive('income')) ? 'true' : 'false'; ?>;
+    var hasExpense = <?php echo ($this->module_lib->hasActive('expense')) ? 'true' : 'false'; ?>;
+
+    if (bar_chart) {
+        var $barEl = $('#barChart');
+        var barUrl = $barEl.data('url');
+        if ($barEl.length && barUrl) {
+            var $barWrap = $barEl.closest('.chart-async');
+            $barWrap.addClass('is-loading');
+            $.ajax({ url: barUrl, method: 'GET', dataType: 'json' }).done(function(resp) {
+                if (!resp || resp.status !== 'success' || !resp.data) { $barWrap.removeClass('is-loading'); return; }
+                var series = [];
+                if (hasIncome) {
+                    series.push({ name: 'Fees Collection', data: (resp.data.collection || []).map(Number) });
+                    series.push({ name: 'Incidental Fees', data: (resp.data.incidental || []).map(Number) });
+                }
+                if (hasExpense) {
+                    series.push({ name: 'Expenses', data: (resp.data.expense || []).map(Number) });
+                }
+                new ApexCharts($barEl[0], $.extend(true, {}, apexDefaults, {
+                    chart: { type: 'bar', height: 280 },
+                    series: series,
+                    xaxis: { categories: resp.data.labels || [] },
+                    colors: ['#10b981', '#3b82f6', '#ef4444'],
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } }
+                })).render();
+                $barWrap.removeClass('is-loading');
+            }).fail(function() { $barWrap.removeClass('is-loading'); });
         }
     }
-    ?> ],
-                            data: [<?php $s = 1;
-    foreach ($incomegraph as $value) {
-        ?><?php echo $value['total']; ?>, <?php }?>]
-                    }
-                    ]
-            },
-            options: {
-            responsive: true,
-                    circumference: Math.PI,
-                    rotation: - Math.PI,
-                    legend: {
-                    position: 'top',
-                    },
-                    title: {
-                    display: true,
-                    },
-                    animation: {
-                    animateScale: true,
-                            animateRotate: true
-                    }
-            }
-    });
-   <?php
-}if (($this->rbac->hasPrivilege('expense_donut_graph', 'can_view')) && ($this->module_lib->hasActive('expense'))) {
-    ?>
-    new Chart(document.getElementById("doughnut-chart1"), {
-    type: 'doughnut',
-            data: {
-            labels: [<?php foreach ($expensegraph as $value) {?>"<?php echo $value['exp_category']; ?>", <?php }?>],
-                    datasets: [
-                    {
-                    label: "Population (millions)",
-                            backgroundColor: [<?php $ss = 1;
-    foreach ($expensegraph as $value) {
-        ?>"<?php echo expensegraphColors($ss++); ?>", <?php
-if ($ss == 8) {
-            $ss = 1;
+
+    if (line_chart) {
+        var $lineEl = $('#lineChart');
+        var lineUrl = $lineEl.data('url');
+        if ($lineEl.length && lineUrl) {
+            var $lineWrap = $lineEl.closest('.chart-async');
+            $lineWrap.addClass('is-loading');
+            $.ajax({ url: lineUrl, method: 'GET', dataType: 'json' }).done(function(resp) {
+                if (!resp || resp.status !== 'success' || !resp.data) { $lineWrap.removeClass('is-loading'); return; }
+                var series = [];
+                if (hasExpense) {
+                    series.push({ name: 'Expense', data: (resp.data.expense || []).map(Number) });
+                }
+                if (hasIncome) {
+                    series.push({ name: 'Collection', data: (resp.data.collection || []).map(Number) });
+                }
+                new ApexCharts($lineEl[0], $.extend(true, {}, apexDefaults, {
+                    chart: { type: 'area', height: 280 },
+                    series: series,
+                    xaxis: { categories: resp.data.labels || [] },
+                    colors: ['#ef4444', '#10b981'],
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 90, 100] } },
+                    stroke: { width: 2.5 }
+                })).render();
+                $lineWrap.removeClass('is-loading');
+            }).fail(function() { $lineWrap.removeClass('is-loading'); });
         }
     }
-    ?>],
-                            data: [<?php foreach ($expensegraph as $value) {?><?php echo $value['total']; ?>, <?php }?>]
-                    }
-                    ]
-            },
-            options: {
-            responsive: true,
-                    circumference: Math.PI,
-                    rotation: - Math.PI,
-                    legend: {
-                    position: 'top',
-                    },
-                    title: {
-                    display: true,
-                    },
-                    animation: {
-                    animateScale: true,
-                            animateRotate: true
-                    }
-            }
-    });
-<?php
-}
-if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->hasActive('expense')) || ($this->module_lib->hasActive('income'))) {
-    ?>
-        $(function () {
-        var areaChartOptions = {
-        showScale: true,
-                scaleShowGridLines: false,
-                scaleGridLineColor: "rgba(0,0,0,.05)",
-                scaleGridLineWidth: 1,
-                scaleShowHorizontalLines: true,
-                scaleShowVerticalLines: true,
-                bezierCurve: true,
-                bezierCurveTension: 0.3,
-                pointDot: false,
-                pointDotRadius: 4,
-                pointDotStrokeWidth: 1,
-                pointHitDetectionRadius: 20,
-                datasetStroke: true,
-                datasetStrokeWidth: 2,
-                datasetFill: true,
-                maintainAspectRatio: true,
-                responsive: true
-        };
-        var bar_chart = "<?php echo $bar_chart ?>";
-        var line_chart = "<?php echo $line_chart ?>";
-        var hasIncome = <?php echo ($this->module_lib->hasActive('income')) ? 'true' : 'false'; ?>;
-        var hasExpense = <?php echo ($this->module_lib->hasActive('expense')) ? 'true' : 'false'; ?>;
-
-        if (line_chart) {
-            var $lineCanvas = $("#lineChart");
-            var lineUrl = $lineCanvas.data('url');
-            if ($lineCanvas.length && lineUrl) {
-                var $lineWrapper = $lineCanvas.closest('.chart-async');
-                $lineWrapper.addClass('is-loading');
-                $.ajax({
-                    url: lineUrl,
-                    method: 'GET',
-                    dataType: 'json'
-                }).done(function(resp) {
-                    if (!resp || resp.status !== 'success' || !resp.data) {
-                        return;
-                    }
-
-                    var labels = resp.data.labels || [];
-                    var collection = resp.data.collection || [];
-                    var expense = resp.data.expense || [];
-
-                    var datasets = [];
-                    if (hasExpense) {
-                        datasets.push({
-                            label: "Expense",
-                            fillColor: "rgba(215, 44, 44, 0.7)",
-                            strokeColor: "rgba(215, 44, 44, 0.7)",
-                            pointColor: "rgba(233, 30, 99, 0.9)",
-                            pointStrokeColor: "#c1c7d1",
-                            pointHighlightFill: "#fff",
-                            pointHighlightStroke: "rgba(220,220,220,1)",
-                            data: expense
-                        });
-                    }
-                    if (hasIncome) {
-                        datasets.push({
-                            label: "Collection",
-                            fillColor: "rgba(102, 170, 24, 0.6)",
-                            strokeColor: "rgba(102, 170, 24, 0.6)",
-                            pointColor: "rgba(102, 170, 24, 0.9)",
-                            pointStrokeColor: "rgba(102, 170, 24, 0.6)",
-                            pointHighlightFill: "#fff",
-                            pointHighlightStroke: "rgba(60,141,188,1)",
-                            data: collection
-                        });
-                    }
-
-                    var areaChartData_expense_Income = {
-                        labels: labels,
-                        datasets: datasets
-                    };
-
-                    var lineChartCanvas = $lineCanvas.get(0).getContext("2d");
-                    var lineChart = new Chart(lineChartCanvas);
-                    var lineChartOptions = areaChartOptions;
-                    lineChartOptions.datasetFill = false;
-                    lineChart.Line(areaChartData_expense_Income, lineChartOptions);
-                    $lineWrapper.removeClass('is-loading');
-                }).fail(function() {
-                    $lineWrapper.removeClass('is-loading');
-                });
-            }
-        }
-
-        if (bar_chart) {
-            var $barCanvas = $("#barChart");
-            var barUrl = $barCanvas.data('url');
-            if ($barCanvas.length && barUrl) {
-                var $barWrapper = $barCanvas.closest('.chart-async');
-                $barWrapper.addClass('is-loading');
-                $.ajax({
-                    url: barUrl,
-                    method: 'GET',
-                    dataType: 'json'
-                }).done(function(resp) {
-                    if (!resp || resp.status !== 'success' || !resp.data) {
-                        return;
-                    }
-
-                    var labels = resp.data.labels || [];
-                    var collection = resp.data.collection || [];
-                    var incidental = resp.data.incidental || [];
-                    var expense = resp.data.expense || [];
-
-                    var datasets = [];
-                    if (hasIncome) {
-                        datasets.push({
-                            label: "Fees Collection",
-                            fillColor: "rgba(102, 170, 24, 0.6)",
-                            strokeColor: "rgba(102, 170, 24, 0.6)",
-                            pointColor: "rgba(102, 170, 24, 0.6)",
-                            pointStrokeColor: "#c1c7d1",
-                            pointHighlightFill: "#fff",
-                            pointHighlightStroke: "rgba(220,220,220,1)",
-                            data: collection
-                        });
-                        datasets.push({
-                            label: "Incidental Fees",
-                            fillColor: "rgba(0, 166, 251, 0.7)",
-                            strokeColor: "rgba(0, 166, 251, 0.7)",
-                            pointColor: "rgba(0, 166, 251, 0.7)",
-                            pointStrokeColor: "#c1c7d1",
-                            pointHighlightFill: "#fff",
-                            pointHighlightStroke: "rgba(0, 166, 251, 1)",
-                            data: incidental
-                        });
-                    }
-                    if (hasExpense) {
-                        datasets.push({
-                            label: "Expenses",
-                            fillColor: "rgba(233, 30, 99, 0.9)",
-                            strokeColor: "rgba(233, 30, 99, 0.9)",
-                            pointColor: "rgba(233, 30, 99, 0.9)",
-                            pointStrokeColor: "rgba(233, 30, 99, 0.9)",
-                            pointHighlightFill: "rgba(233, 30, 99, 0.9)",
-                            pointHighlightStroke: "rgba(60,141,188,1)",
-                            data: expense
-                        });
-                    }
-
-                    var barChartData = {
-                        labels: labels,
-                        datasets: datasets
-                    };
-
-                    var barChartCanvas = $barCanvas.get(0).getContext("2d");
-                    var barChart = new Chart(barChartCanvas);
-                    var barChartOptions = {
-                        scaleBeginAtZero: true,
-                        scaleShowGridLines: true,
-                        scaleGridLineColor: "rgba(0,0,0,.05)",
-                        scaleGridLineWidth: 1,
-                        scaleShowHorizontalLines: false,
-                        scaleShowVerticalLines: false,
-                        barShowStroke: true,
-                        barStrokeWidth: 2,
-                        barValueSpacing: 5,
-                        barDatasetSpacing: 1,
-                        responsive: true,
-                        maintainAspectRatio: true
-                    };
-                    barChartOptions.datasetFill = false;
-                    barChart.Bar(barChartData, barChartOptions);
-                    $barWrapper.removeClass('is-loading');
-                }).fail(function() {
-                    $barWrapper.removeClass('is-loading');
-                });
-            }
-        }
-        });
-    <?php
-}
-?>
+    <?php } ?>
+});
 
     $(document).ready(function () {
         $(document).on('click', '.close_notice', function () {

@@ -362,7 +362,6 @@ if (!function_exists('main_menu_array')) {
                 'onlineadmission'       => array('admissionsetting'),                  
                 'updater'               => array('index'),                  
                 'sidemenu'              => array('index'),                  
-                'addons'              	=> array('index'),                  
                 'thermalprint'         => array('index'),                  
             ),
 
@@ -500,15 +499,18 @@ if (!function_exists('activate_main_menu')) {
     {
         $CI     = get_instance();
         $class  = $CI->router->fetch_class();
-        // $method = $CI->router->fetch_method(); // Not needed for main menu activation
+        $method = $CI->router->fetch_method();
 
         $return_array = main_menu_array($menu);
         if ($return_array) {
             if (array_key_exists($class, $return_array)) {
-                return $class_active;
+                $methods = $return_array[$class];
+                if (in_array('*', (array) $methods, true) || in_array($method, (array) $methods, true)) {
+                    return $class_active;
+                }
             }
         }
-        return ""; // Ensure something is returned if not active
+        return "";
     }
 }
 

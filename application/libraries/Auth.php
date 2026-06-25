@@ -306,37 +306,6 @@ class Auth
             ->set_output(json_encode($array));
     }
 
-    public function addon_update_check()
-    {
-        $array = array('status' => 1, 'message' => 'Product is already registered.');
-        return $this->CI->output
-            ->set_content_type('application/json')
-            ->set_status_header(200)
-            ->set_output(json_encode($array));
-    }
-    public function andapp_update()
-    {
-        $array = array('status' => 1, 'message' => 'Product is already registered.');
-        return $this->CI->output
-            ->set_content_type('application/json')
-            ->set_status_header(200)
-            ->set_output(json_encode($array));
-    }
-
-    public function andapp_validate()
-    {
-        return true;
-    }
-
-    public function addon_update()
-    {
-        $array = array('status' => 1, 'message' => 'Product is already registered.');
-        return $this->CI->output
-            ->set_content_type('application/json')
-            ->set_status_header(200)
-            ->set_output(json_encode($array));
-    }
-
     public function autoupdate()
     {
         if (!$this->CI->session->has_userdata('version')) {

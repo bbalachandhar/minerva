@@ -469,8 +469,10 @@ class Leaverequest extends Admin_Controller
             foreach ($all_leave_request as $request) {
                 $recommender_done = in_array((string) ($request['recommender_status'] ?? ''), ['recommended', 'approved'], true);
                 $is_finalized = in_array((string) ($request['status'] ?? ''), ['approved', 'disapproved'], true);
+                $recommender_rejected = (string) ($request['recommender_status'] ?? '') === 'rejected';
 
-                if ($recommender_done || $is_finalized) {
+                // Exclude recommender-level rejections — approver has no action on these
+                if ($recommender_done || ($is_finalized && !$recommender_rejected)) {
                     $filtered_leave_request[] = $request;
                 }
             }
@@ -2530,16 +2532,22 @@ class Leaverequest extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'HR/staff/leaverequest');
 
         $current_user_id = $this->customlib->getStaffID();
-        if ($this->currentUserIsAdminOrSuperAdmin()) {
-            $leave_requests_for_recommender = $this->leaverequest_model->get_all_recommender_pending_leave_requests();
+        $is_admin_or_super_admin = $this->currentUserIsAdminOrSuperAdmin();
+        $all_leave_request = $this->leaverequest_model->staff_leave_request();
+        $filtered = [];
+        if ($is_admin_or_super_admin) {
+            $filtered = $all_leave_request;
         } else {
-            $leave_requests_for_recommender = $this->leaverequest_model->get_recommender_pending_leave_requests($current_user_id);
+            foreach ($all_leave_request as $request) {
+                if ($request['recommender_id'] == $current_user_id) {
+                    $filtered[] = $request;
+                }
+            }
         }
-        
-        $data["leave_request"] = $leave_requests_for_recommender;
+        $data["leave_request"] = $filtered;
         $data["status"] = $this->status; // Status array from payroll config
         $data['sch_setting_detail'] = $this->sch_setting_detail; // Pass sch_setting_detail to the view
-        $data['is_admin_or_super_admin'] = $this->currentUserIsAdminOrSuperAdmin();
+        $data['is_admin_or_super_admin'] = $is_admin_or_super_admin;
 
         $LeaveTypes            = $this->staff_model->getLeaveType();
         $data["leavetype"]     = $LeaveTypes;

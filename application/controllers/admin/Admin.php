@@ -333,28 +333,6 @@ class Admin extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
-    public function updateAddonVerify()
-    {
-        $this->form_validation->set_rules('addon', 'Addon', 'required|trim|xss_clean');
-        $this->form_validation->set_rules('addon_check_update_envato_market_purchase_code', 'Purchase Code', 'required|trim|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-            $data = array(
-                'addon'                       => form_error('addon'),
-                'addon_check_update_envato_market_purchase_code' => form_error('addon_check_update_envato_market_purchase_code'),
-            );
-            $array = array('status' => '0', 'error' => $data);
-
-            return $this->output
-                ->set_content_type('application/json')
-                ->set_status_header(200)
-                ->set_output(json_encode($array));
-        } else {
-            //==================
-            $response = $this->auth->addon_update_check(); 
-        }
-    }
-
     public function dashboard()
     {
         $data['fees_awaiting_total_net_balance'] = 0;
@@ -2311,30 +2289,6 @@ class Admin extends Admin_Controller
             // @phpstan-ignore-next-line
             $this->form_validation->set_message('validate_mime', 'The %s field must be like audio/mp4, video/mp4');
             return false;
-        }
-    }
-
-    public function updateaddon()
-    {
-        $this->form_validation->set_rules('app-email', $this->lang->line('email'), 'required|valid_email|trim|xss_clean');
-        $this->form_validation->set_rules('app-envato_market_purchase_code', $this->lang->line('purchase_code'), 'required|trim|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-
-            $data = array(
-                'app-email'                       => form_error('app-email'),
-                'app-envato_market_purchase_code' => form_error('app-envato_market_purchase_code'),
-            );
-
-            $array = array('status' => '2', 'error' => $data);
-
-            return $this->output
-                ->set_content_type('application/json')
-                ->set_status_header(200)
-                ->set_output(json_encode($array));
-        } else {
-            //==================
-            $response = $this->auth->addon_update();
         }
     }
 

@@ -125,6 +125,26 @@ $(window).on('load', function () {
     if (typeof $.AdminLTE !== 'undefined' && typeof $.fn.slimScroll !== 'undefined') {
         $.AdminLTE.layout.fixSidebar();
     }
+
+    setTimeout(function() {
+        var $activeSubmenu = $('.sidebar-menu > li.active.menu-open');
+        if (!$activeSubmenu.length) return;
+
+        var $sidebar = $('section.sidebar');
+        if (!$sidebar.length) return;
+
+        var menuTop = $activeSubmenu.position().top;
+        var sidebarHeight = $sidebar.parent('.slimScrollDiv').length
+            ? $sidebar.parent('.slimScrollDiv').height()
+            : $sidebar.height();
+        var scrollTo = Math.max(0, menuTop - (sidebarHeight / 3));
+
+        if ($sidebar.parent('.slimScrollDiv').length) {
+            $sidebar.slimScroll({ scrollTo: scrollTo + 'px' });
+        } else {
+            $sidebar.scrollTop(scrollTo);
+        }
+    }, 300);
 });
 </script>
 <!--nprogress-->

@@ -1051,9 +1051,9 @@ $i++;
                     if (toDate   && cellMs > toDate.setHours(0, 0, 0, 0))   return false;
                 }
             }
-            // Status filter — data[7] is the Status column (index 7)
+            // Status filter — data[8] is the Status column (index 8)
             if (filterStat !== '') {
-                var cellStatus = (data[7] || '').trim().toLowerCase();
+                var cellStatus = (data[8] || '').trim().toLowerCase();
                 // normalize: disapprove / disapproved / rejected all map to 'disapprove'
                 if (filterStat === 'disapprove') {
                     if (cellStatus.indexOf('disapprov') === -1 && cellStatus.indexOf('reject') === -1) return false;
