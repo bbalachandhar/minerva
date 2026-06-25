@@ -1348,7 +1348,144 @@ body .main-footer {
    style-main.css sets sidebar to 240px (not AdminLTE default 200px).
    Footer margin-left must match.
    ========================================================================== */
-body .main-footer { margin-left: 240px !important; transition: margin-left 0.3s ease-in-out; }
-body.sidebar-mini.sidebar-collapse .main-footer { margin-left: 50px !important; }
-@media (max-width: 767px) { body .main-footer { margin-left: 0 !important; } }
-@media print { body .main-footer { margin-left: 0 !important; } }
+/* margin-left handled by style-main.css (240px) + AdminLTE sidebar-collapse rules */
+
+/* ==========================================================================
+   20. DASHBOARD WIDGETS
+   ========================================================================== */
+
+/* -- Widget card base ---------------------------------------------------- */
+.topprograssstart {
+    background: #fff !important;
+    border-radius: 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+    padding: 0 !important;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+.topprograssstart:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+}
+
+/* -- Widget header (birthday, attendance, enquiry) ----------------------- */
+.widget-header-color {
+    color: #fff !important;
+    padding: 14px 16px !important;
+    border-radius: 12px 12px 0 0 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.2px;
+    margin: 0 !important;
+    border-bottom: none !important;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.widget-header-student-bday { background: linear-gradient(135deg, #6366f1, #818cf8) !important; }
+.widget-header-staff-bday   { background: linear-gradient(135deg, #059669, #34d399) !important; }
+.widget-header-student-att  { background: linear-gradient(135deg, #2563eb, #60a5fa) !important; }
+.widget-header-staff-att    { background: linear-gradient(135deg, #ea580c, #fb923c) !important; }
+.widget-header-enquiry      { background: linear-gradient(135deg, #7c3aed, #a78bfa) !important; }
+
+/* -- Birthday ticker container ------------------------------------------- */
+.birthday-ticker-container {
+    padding: 0 !important;
+}
+.birthday-ticker-clipper {
+    padding: 4px 0;
+}
+
+/* -- Staff/Student info card (inside ticker) ----------------------------- */
+.staffinfo-box {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px !important;
+    margin: 0 !important;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s;
+}
+.staffinfo-box:hover {
+    background: #f8fafc;
+}
+.staffleft-box {
+    flex-shrink: 0 !important;
+    float: none !important;
+    padding-right: 0 !important;
+}
+.staffleft-box img {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    object-fit: cover;
+    border: 2px solid #e5e7eb !important;
+}
+.staffleft-content {
+    overflow: hidden !important;
+    min-width: 0;
+}
+.staffinfo-box h5 {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #1f2937 !important;
+    margin: 0 0 2px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.staffinfo-box p {
+    font-size: 11px !important;
+    color: #6b7280 !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+}
+.staffinfo-box p font {
+    color: inherit;
+}
+.staffsub span {
+    display: inline !important;
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    background: #f1f5f9;
+    border-radius: 4px;
+    color: #475569 !important;
+    margin-right: 4px;
+}
+
+/* -- Birthday date badge ------------------------------------------------- */
+.birthday-date {
+    position: absolute !important;
+    bottom: 2px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.6) !important;
+    color: #fff !important;
+    padding: 1px 8px !important;
+    border-radius: 10px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px;
+}
+
+/* -- Equal height row ---------------------------------------------------- */
+.equal-height-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0;
+}
+.equal-height-row > [class*='col-'] {
+    display: flex !important;
+    flex-direction: column !important;
+}
+.equal-height-row > [class*='col-'] > .topprograssstart {
+    flex: 1 0 auto !important;
+}
+
+/* -- Pro-border (used as header separator) ------------------------------- */
+.topprograssstart .pro-border {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
