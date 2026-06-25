@@ -149,17 +149,15 @@ function editComment(id, el) {
     var refNo = $(el).data('ref');
     swal({
         title: 'Comment — #' + refNo,
-        text: 'Add or update the comment:',
-        type: 'input',
-        inputValue: comment,
+        html: '<textarea id="swal-comment" class="form-control" rows="4" style="margin-top:10px;font-size:14px;border-radius:6px;" placeholder="Enter comment...">' + $('<div/>').text(comment).html() + '</textarea>',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         confirmButtonText: 'Save',
         cancelButtonText: 'Cancel',
-        closeOnConfirm: false,
-        inputPlaceholder: 'Enter comment...'
-    }, function(inputValue) {
-        if (inputValue === false) return;
+        closeOnConfirm: false
+    }, function(isConfirm) {
+        if (!isConfirm) return;
+        var inputValue = $('#swal-comment').val();
         $.post('<?php echo site_url("admin/waiting_list/update_comment"); ?>', {
             id: id,
             comment: inputValue,
