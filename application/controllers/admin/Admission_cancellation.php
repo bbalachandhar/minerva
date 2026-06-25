@@ -257,4 +257,26 @@ class Admission_cancellation extends Admin_Controller
             'message' => $result['message'],
         ]);
     }
+
+    public function delete()
+    {
+        if (!$this->rbac->hasPrivilege('admission_cancellation', 'can_delete')) {
+            echo json_encode(['status' => 'error', 'message' => 'Access denied']);
+            return;
+        }
+
+        $id = (int) $this->input->post('id');
+        $admission = $this->db->where('id', $id)->get('online_admissions')->row();
+
+        if (!$admission) {
+            echo json_encode(['status' => 'error', 'message' => 'Record not found']);
+            return;
+        }
+
+        $this->db->where('online_admission_id', $id)->delete('admission_cancellation_refunds');
+        $this->db->where('online_admission_id', $id)->where('candidate_type', 'applicant')->delete('onlineexam_students');
+        $this->db->where('id', $id)->delete('online_admissions');
+
+        echo json_encode(['status' => 'success', 'message' => 'Application #' . $admission->reference_no . ' deleted permanently.']);
+    }
 }
