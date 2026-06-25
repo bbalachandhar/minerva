@@ -1331,9 +1331,11 @@ echo '</div>';
         </div>
     </div>
 </div>
+    </section><!-- /.content -->
+</div><!-- /.content-wrapper -->
 
 <script>
-$(document).ready(function () { 
+$(document).ready(function () {
     $('#viewEventModal,#newEventModal').modal({
         backdrop: 'static',
         keyboard: false,
