@@ -499,6 +499,7 @@ body.skin-blue .main-header { background: #fff !important; border-bottom: 1px so
 body.skin-blue .main-header .logo {
     background: #fff !important; color: #1f2937 !important; border-bottom: none !important;
     height: 56px !important; line-height: 56px !important; overflow: hidden !important;
+    position: relative !important; z-index: 1050 !important;
 }
 body.skin-blue .main-header .logo:hover { background: #f9fafb !important; }
 body.skin-blue .main-header .logo .logo-lg { display: block !important; }
