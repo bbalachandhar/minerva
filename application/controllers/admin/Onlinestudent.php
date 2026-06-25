@@ -87,7 +87,13 @@ class Onlinestudent extends Admin_Controller
             return;
         }
         $new_status = (($row->admission_status ?? 'active') === 'waiting_list') ? 'active' : 'waiting_list';
-        $this->db->where('id', $id)->update('online_admissions', ['admission_status' => $new_status]);
+        $update_data = ['admission_status' => $new_status];
+        if ($new_status === 'waiting_list') {
+            $update_data['waiting_list_comment'] = $this->input->post('comment') ?: null;
+        } else {
+            $update_data['waiting_list_comment'] = null;
+        }
+        $this->db->where('id', $id)->update('online_admissions', $update_data);
         echo json_encode(['status' => 'success', 'new_status' => $new_status]);
     }
 

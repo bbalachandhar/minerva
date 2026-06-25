@@ -59,4 +59,25 @@ class Waiting_list extends Admin_Controller
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Application #' . $admission['reference_no'] . ' moved to active admissions.</div>');
         echo json_encode(['status' => 'success', 'message' => 'Application activated successfully.']);
     }
+
+    public function delete()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_delete')) {
+            echo json_encode(['status' => 'error', 'message' => 'Access denied']);
+            return;
+        }
+
+        $id = (int) $this->input->post('id');
+        $admission = $this->db->where('id', $id)->get('online_admissions')->row_array();
+
+        if (empty($admission) || $admission['admission_status'] !== 'waiting_list') {
+            echo json_encode(['status' => 'error', 'message' => 'Record not found or not in waiting list.']);
+            return;
+        }
+
+        $this->db->where('online_admission_id', $id)->where('candidate_type', 'applicant')->delete('onlineexam_students');
+        $this->db->where('id', $id)->delete('online_admissions');
+
+        echo json_encode(['status' => 'success', 'message' => 'Application #' . $admission['reference_no'] . ' deleted.']);
+    }
 }

@@ -508,21 +508,37 @@
 
 <script>
     function toggleWaitingList(id) {
-        $.post('<?php echo site_url("admin/onlinestudent/ajax_toggle_waiting_list"); ?>', {
-            id: id,
-            <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
-        }, function (res) {
-            if (res && res.status === 'success') {
-                if (typeof studentTable !== 'undefined') {
-                    studentTable.ajax.reload(null, false);
+        swal({
+            title: 'Move to Waiting List?',
+            text: 'Enter a reason/comment (optional):',
+            type: 'input',
+            showCancelButton: true,
+            confirmButtonColor: '#f39c12',
+            confirmButtonText: 'Move to Waiting List',
+            cancelButtonText: 'Cancel',
+            inputPlaceholder: 'Reason for waiting list...',
+            closeOnConfirm: false
+        }, function(inputValue) {
+            if (inputValue === false) return;
+            $.post('<?php echo site_url("admin/onlinestudent/ajax_toggle_waiting_list"); ?>', {
+                id: id,
+                comment: inputValue || '',
+                <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
+            }, function (res) {
+                if (res && res.status === 'success') {
+                    swal({title: 'Done!', text: 'Application moved to waiting list.', type: 'success'}, function() {
+                        if (typeof studentTable !== 'undefined') {
+                            studentTable.ajax.reload(null, false);
+                        } else {
+                            location.reload();
+                        }
+                    });
                 } else {
-                    location.reload();
+                    swal('Error', res && res.message ? res.message : 'Could not update status.', 'error');
                 }
-            } else {
-                alert(res && res.message ? res.message : 'Could not update status. Please try again.');
-            }
-        }, 'json').fail(function () {
-            alert('Request failed. Please try again.');
+            }, 'json').fail(function () {
+                swal('Error', 'Request failed. Please try again.', 'error');
+            });
         });
     }
 

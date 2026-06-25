@@ -36,20 +36,21 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th><?php echo $this->lang->line('reference_no') ?: 'Ref No'; ?></th>
-                            <th><?php echo $this->lang->line('student_name') ?: 'Student Name'; ?></th>
-                            <th><?php echo $this->lang->line('class') ?: 'Course'; ?></th>
-                            <th><?php echo $this->lang->line('mobile') ?: 'Mobile'; ?></th>
+                            <th>Ref No</th>
+                            <th>Student Name</th>
+                            <th>Course</th>
+                            <th>Mobile</th>
                             <th>Email</th>
                             <th>Guardian</th>
-                            <th><?php echo $this->lang->line('date') ?: 'Applied On'; ?></th>
-                            <th class="text-right noExport"><?php echo $this->lang->line('action') ?: 'Action'; ?></th>
+                            <th>Applied On</th>
+                            <th>Comment</th>
+                            <th class="text-right noExport">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php if (!empty($waiting_list)): ?>
                         <?php $i = 1; foreach ($waiting_list as $row): ?>
-                        <tr>
+                        <tr id="wl-row-<?php echo $row['id']; ?>">
                             <td><?php echo $i++; ?></td>
                             <td><strong><?php echo htmlspecialchars($row['reference_no']); ?></strong></td>
                             <td><?php echo htmlspecialchars(trim(($row['firstname'] ?? '') . ' ' . ($row['middlename'] ?? '') . ' ' . ($row['lastname'] ?? ''))); ?></td>
@@ -58,17 +59,31 @@
                             <td><?php echo htmlspecialchars($row['email'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($row['guardian_name'] ?? '—'); ?></td>
                             <td><?php echo !empty($row['created_at']) ? date($this->customlib->getSchoolDateFormat(), strtotime($row['created_at'])) : '—'; ?></td>
+                            <td>
+                                <?php if (!empty($row['waiting_list_comment'])): ?>
+                                <button type="button" class="btn btn-info btn-xs" onclick="viewComment('<?php echo htmlspecialchars(addslashes($row['waiting_list_comment']), ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['reference_no']); ?>')" data-toggle="tooltip" title="View Comment">
+                                    <i class="fa fa-comment"></i>
+                                </button>
+                                <?php else: ?>
+                                <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-right" style="white-space:nowrap;">
                                 <?php if ($this->rbac->hasPrivilege('online_admission', 'can_edit')): ?>
                                 <button type="button" class="btn btn-success btn-xs" onclick="activateApplication(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>')" data-toggle="tooltip" title="Move to Active">
                                     <i class="fa fa-check"></i> Activate
                                 </button>
                                 <?php endif; ?>
+                                <?php if ($this->rbac->hasPrivilege('online_admission', 'can_delete')): ?>
+                                <button type="button" class="btn btn-danger btn-xs" onclick="deleteApplication(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['reference_no']); ?>')" data-toggle="tooltip" title="Delete">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="9" class="text-center text-muted" style="padding:30px;">
+                        <tr><td colspan="10" class="text-center text-muted" style="padding:30px;">
                             <i class="fa fa-check-circle fa-2x" style="color:#10b981;"></i><br>
                             No applications in waiting list.
                         </td></tr>
@@ -104,6 +119,40 @@ function activateApplication(id, refNo) {
                 }, 'json'
             );
         }
+    });
+}
+
+function deleteApplication(id, refNo) {
+    swal({
+        title: 'Delete Application?',
+        text: 'Are you sure you want to permanently delete application #' + refNo + '? This cannot be undone.',
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e74c3c',
+        confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Cancel'
+    }, function(isConfirm) {
+        if (isConfirm) {
+            $.post('<?php echo site_url("admin/waiting_list/delete"); ?>',
+                {id: id, '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'},
+                function(resp) {
+                    if (resp.status === 'success') {
+                        swal({title: 'Deleted!', text: resp.message, type: 'success'}, function() { location.reload(); });
+                    } else {
+                        swal('Error', resp.message, 'error');
+                    }
+                }, 'json'
+            );
+        }
+    });
+}
+
+function viewComment(comment, refNo) {
+    swal({
+        title: 'Comment — #' + refNo,
+        text: comment,
+        type: 'info',
+        confirmButtonText: 'Close'
     });
 }
 </script>
