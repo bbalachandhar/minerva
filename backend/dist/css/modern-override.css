@@ -1345,5 +1345,10 @@ body .main-footer {
 
 /* ==========================================================================
    19. FOOTER — structural / layout styles
-   Moved from footer.php inline <style>.
+   style-main.css sets sidebar to 240px (not AdminLTE default 200px).
+   Footer margin-left must match.
    ========================================================================== */
+body .main-footer { margin-left: 240px !important; transition: margin-left 0.3s ease-in-out; }
+body.sidebar-mini.sidebar-collapse .main-footer { margin-left: 50px !important; }
+@media (max-width: 767px) { body .main-footer { margin-left: 0 !important; } }
+@media print { body .main-footer { margin-left: 0 !important; } }
