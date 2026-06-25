@@ -6,11 +6,7 @@
     font-size: 12px !important;
     padding: 10px 20px !important;
     text-align: right !important;
-    margin-left: 200px !important;
-    transition: margin-left 0.3s ease-in-out;
 }
-.sidebar-collapse .main-footer { margin-left: 50px !important; }
-@media (max-width: 767px) { .main-footer { margin-left: 0 !important; } }
 </style>
 <footer class="main-footer">
     &copy; <?php echo date('Y'); ?>
