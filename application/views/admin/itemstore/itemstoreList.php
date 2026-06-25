@@ -16,53 +16,7 @@
     <!-- Main content -->
     <section class="content">
         <div class="row">
-            <?php if ($this->rbac->hasPrivilege('store', 'can_add')) {
-    ?>
-                <div class="col-md-4">
-                    <!-- Horizontal Form -->
-                    <div class="box box-primary">
-                        <div class="box-header with-border">
-                            <h3 class="box-title"><?php echo $this->lang->line('add_item_store'); ?></h3>
-                        </div><!-- /.box-header -->
-                        <!-- form start -->
-                        <form  action="<?php echo site_url('admin/itemstore/create') ?>"  id="employeeform" name="employeeform" method="post" accept-charset="utf-8">
-                            <div class="box-body">
-                                <?php if ($this->session->flashdata('msg')) {?>
-                                    <?php echo $this->session->flashdata('msg');
-        $this->session->unset_userdata('msg'); ?>
-                                <?php }?>
-                                <?php echo $this->customlib->getCSRF(); ?>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('item_store_name'); ?></label><small class="req"> *</small>
-                                    <input autofocus="" id="name" name="name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('name'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('name'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('item_store_code'); ?></label>
-                                    <input id="code" name="code" placeholder="" type="text" class="form-control"  value="<?php echo set_value('code'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('code'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('description'); ?></label>
-                                    <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..."><?php echo set_value('description'); ?></textarea>
-                                    <span class="text-danger"><?php echo form_error('description'); ?></span>
-                                </div>
-                            </div><!-- /.box-body -->
-                            <div class="box-footer">
-                                <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
-                            </div>
-                        </form>
-                    </div>
-                </div><!--/.col (right) -->
-                <!-- left column -->
-            <?php }?>
-            <div class="col-md-<?php
-if ($this->rbac->hasPrivilege('store', 'can_add')) {
-    echo "8";
-} else {
-    echo "12";
-}
-?>">
+            <div class="col-md-12">
                 <!-- general form elements -->
                 <div class="box box-primary" id="exphead">
                     <div class="box-header ptbnull">
@@ -75,54 +29,52 @@ if ($this->rbac->hasPrivilege('store', 'can_add')) {
                                 <a href="<?php echo site_url('admin/inventoryimport/downloadsample/itemstore'); ?>" class="btn btn-default btn-sm">
                                     <i class="fa fa-download"></i> Sample CSV
                                 </a>
+                                <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addModal">
+                                    <i class="fa fa-plus"></i> <?php echo $this->lang->line('add'); ?>
+                                </button>
                             <?php } ?>
                         </div>
                     </div><!-- /.box-header -->
-                    <div class="box-body  ">
+                    <div class="box-body">
+                        <?php if ($this->session->flashdata('msg')) { ?>
+                            <?php echo $this->session->flashdata('msg'); $this->session->unset_userdata('msg'); ?>
+                        <?php } ?>
                         <div class="mailbox-messages">
                             <div class="download_label"><?php echo $this->lang->line('item_store_list'); ?></div>
                             <div class="table-responsive">
                                 <table class="table table-striped table-bordered table-hover example">
                                     <thead>
                                         <tr>
-                                            <th><?php echo $this->lang->line('item_store_name'); ?></th>                
+                                            <th><?php echo $this->lang->line('item_store_name'); ?></th>
                                             <th><?php echo $this->lang->line('item_store_code'); ?></th>
                                             <th width="40%"><?php echo $this->lang->line('description'); ?></th>
                                             <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php if (empty($itemstorelist)) {
-    ?>
-
-                                            <?php
-} else {
-    $count = 1;
-    foreach ($itemstorelist as $store) {
-        ?>
+                                        <?php if (empty($itemstorelist)) { ?>
+                                        <?php } else {
+                                            $count = 1;
+                                            foreach ($itemstorelist as $store) { ?>
                                                 <tr>
                                                     <td class="mailbox-name"><?php echo $store['item_store'] ?></td>
-                                                    <td class="mailbox-name">
-                                                        <?php echo $store['code'] ?>
-                                                    </td>
+                                                    <td class="mailbox-name"><?php echo $store['code'] ?></td>
                                                     <td class="mailbox-name"><?php echo $store['description']; ?></td>
                                                     <td class="mailbox-date pull-right no-print white-space-nowrap">
-                                                        <?php if ($this->rbac->hasPrivilege('store', 'can_edit')) {?>
-                                                            <a href="<?php echo base_url(); ?>admin/itemstore/edit/<?php echo $store['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">
+                                                        <?php if ($this->rbac->hasPrivilege('store', 'can_edit')) { ?>
+                                                            <a href="<?php echo base_url(); ?>admin/itemstore/edit/<?php echo $store['id'] ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">
                                                                 <i class="fa fa-pencil"></i>
                                                             </a>
-                                                        <?php }if ($this->rbac->hasPrivilege('store', 'can_delete')) {?>
-                                                            <a href="<?php echo base_url(); ?>admin/itemstore/delete/<?php echo $store['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');">
+                                                        <?php } if ($this->rbac->hasPrivilege('store', 'can_delete')) { ?>
+                                                            <a href="<?php echo base_url(); ?>admin/itemstore/delete/<?php echo $store['id'] ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');">
                                                                 <i class="fa fa-remove"></i>
                                                             </a>
-                                                        <?php }?>
+                                                        <?php } ?>
                                                     </td>
                                                 </tr>
-                                                <?php
-}
-    $count++;
-}
-?>
+                                        <?php }
+                                            $count++;
+                                        } ?>
                                     </tbody>
                                 </table><!-- /.table -->
                             </div>
@@ -130,9 +82,47 @@ if ($this->rbac->hasPrivilege('store', 'can_add')) {
                     </div><!-- /.box-body -->
                 </div>
             </div>
-        </div>   <!-- /.row -->
+        </div><!-- /.row -->
     </section><!-- /.content -->
 </div>
+
+<!-- Add Item Store Modal -->
+<?php if ($this->rbac->hasPrivilege('store', 'can_add')) { ?>
+<div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="addModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="addModalLabel"><?php echo $this->lang->line('add_item_store'); ?></h4>
+            </div>
+            <form action="<?php echo site_url('admin/itemstore/create') ?>" id="employeeform" name="employeeform" method="post" accept-charset="utf-8">
+                <div class="modal-body">
+                    <?php echo $this->customlib->getCSRF(); ?>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('item_store_name'); ?></label><small class="req"> *</small>
+                        <input autofocus="" id="name" name="name" placeholder="" type="text" class="form-control" value="<?php echo set_value('name'); ?>" />
+                        <span class="text-danger"><?php echo form_error('name'); ?></span>
+                    </div>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('item_store_code'); ?></label>
+                        <input id="code" name="code" placeholder="" type="text" class="form-control" value="<?php echo set_value('code'); ?>" />
+                        <span class="text-danger"><?php echo form_error('code'); ?></span>
+                    </div>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('description'); ?></label>
+                        <textarea class="form-control" id="description" name="description" placeholder="" rows="3"><?php echo set_value('description'); ?></textarea>
+                        <span class="text-danger"><?php echo form_error('description'); ?></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
+                    <button type="submit" class="btn btn-info"><?php echo $this->lang->line('save'); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php } ?>
 
 <script type="text/javascript">
     $(document).ready(function () {
@@ -197,5 +187,12 @@ if ($this->rbac->hasPrivilege('store', 'can_add')) {
     $("#print_div").click(function () {
         Popup($('#exphead').html());
     });
-
 </script>
+
+<?php if (validation_errors()) { ?>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#addModal').modal('show');
+    });
+</script>
+<?php } ?>

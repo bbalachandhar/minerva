@@ -10,68 +10,25 @@
 </section>
 <section class="content">
 <div class="row">
-  <div class="col-md-4">
-    <div class="box box-primary">
-      <div class="box-header with-border"><h3 class="box-title"><i class="fa fa-plus"></i> Add Period / Break</h3></div>
-      <div class="box-body">
-        <form id="period-form">
-          <input type="hidden" id="period_id" name="id" value="0">
-          <div class="form-group">
-            <label>Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="period_name" name="name" placeholder="e.g. Period 1, Break, Lunch" required>
-          </div>
-          <div class="form-group">
-            <label>Start Time <span class="text-danger">*</span></label>
-            <div class="input-group" id="period_start_pick">
-              <input type="text" class="form-control" id="period_start" name="start_time" placeholder="HH:MM:SS" autocomplete="off" required>
-              <span class="input-group-addon"><i class="fa fa-clock-o"></i></span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>End Time <span class="text-danger">*</span></label>
-            <div class="input-group" id="period_end_pick">
-              <input type="text" class="form-control" id="period_end" name="end_time" placeholder="HH:MM:SS" autocomplete="off" required>
-              <span class="input-group-addon"><i class="fa fa-clock-o"></i></span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label><input type="checkbox" id="is_break" name="is_break" value="1"> This is a Break / Interval</label>
-          </div>
-          <div id="break_label_row" class="form-group" style="display:none;">
-            <label>Break Label</label>
-            <input type="text" class="form-control" id="break_label" name="break_label" placeholder="e.g. Short Break, Lunch Break">
-          </div>
-          <div class="form-group">
-            <label>Sort Order</label>
-            <input type="number" class="form-control" id="sort_order" name="sort_order" value="0" min="0">
-          </div>
-          <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-save"></i> Save Period</button>
-          <button type="button" class="btn btn-default btn-block" id="btn-reset">Reset</button>
-        </form>
-      </div>
-    </div>
-    <div class="box box-info">
-      <div class="box-header"><h3 class="box-title"><i class="fa fa-info-circle"></i> Tips</h3></div>
-      <div class="box-body" style="font-size:12px;">
-        <ul class="pl-3">
-          <li>Add all teaching periods first, then add breaks.</li>
-          <li>Breaks are skipped during auto-generation.</li>
-          <li>Drag rows in the table to reorder.</li>
-          <li>Sort order determines the grid column order.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-8">
+  <div class="col-md-12">
     <div class="box box-default">
       <div class="box-header with-border">
         <h3 class="box-title"><i class="fa fa-list"></i> Period Slots <small class="text-muted ml-2">Drag to reorder</small></h3>
         <div class="box-tools">
           <span class="badge bg-green" id="period-count"><?php echo count($periods); ?> slots</span>
+          <button class="btn btn-sm btn-primary" id="btn-add-period" style="margin-left:5px;"><i class="fa fa-plus"></i> Add Period / Break</button>
         </div>
       </div>
-      <div class="box-body table-responsive p-0">
+      <div class="box-body">
+        <div class="callout callout-info" style="font-size:12px;">
+          <ul class="pl-3" style="margin-bottom:0;">
+            <li>Add all teaching periods first, then add breaks.</li>
+            <li>Breaks are skipped during auto-generation.</li>
+            <li>Drag rows in the table to reorder.</li>
+            <li>Sort order determines the grid column order.</li>
+          </ul>
+        </div>
+        <div class="table-responsive">
         <table class="table table-hover table-bordered" id="periods-table">
           <thead>
             <tr style="background:#3c8dbc;color:#fff;">
@@ -126,19 +83,77 @@
         <?php if (empty($periods)): ?>
         <div class="text-center text-muted p-4"><i class="fa fa-clock-o fa-2x"></i><br>No periods added yet. Add your first period.</div>
         <?php endif; ?>
+        </div>
       </div>
     </div>
   </div>
 </div>
 </section>
 
+<!-- Period Modal -->
+<div class="modal fade" id="periodModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <h4 class="modal-title"><i class="fa fa-clock-o"></i> <span id="periodModalLabel">Add Period / Break</span></h4>
+      </div>
+      <form id="period-form">
+        <div class="modal-body">
+          <input type="hidden" id="period_id" name="id" value="0">
+          <div class="form-group">
+            <label>Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="period_name" name="name" placeholder="e.g. Period 1, Break, Lunch" required>
+          </div>
+          <div class="form-group">
+            <label>Start Time <span class="text-danger">*</span></label>
+            <div class="input-group" id="period_start_pick">
+              <input type="text" class="form-control" id="period_start" name="start_time" placeholder="HH:MM:SS" autocomplete="off" required>
+              <span class="input-group-addon"><i class="fa fa-clock-o"></i></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>End Time <span class="text-danger">*</span></label>
+            <div class="input-group" id="period_end_pick">
+              <input type="text" class="form-control" id="period_end" name="end_time" placeholder="HH:MM:SS" autocomplete="off" required>
+              <span class="input-group-addon"><i class="fa fa-clock-o"></i></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="is_break" name="is_break" value="1"> This is a Break / Interval</label>
+          </div>
+          <div id="break_label_row" class="form-group" style="display:none;">
+            <label>Break Label</label>
+            <input type="text" class="form-control" id="break_label" name="break_label" placeholder="e.g. Short Break, Lunch Break">
+          </div>
+          <div class="form-group">
+            <label>Sort Order</label>
+            <input type="number" class="form-control" id="sort_order" name="sort_order" value="0" min="0">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default pull-left" id="btn-reset" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save Period</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
 $(function(){
   var csrf_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
   var csrf_val  = '<?php echo $this->security->get_csrf_hash(); ?>';
 
-  $('#period_start').datetimepicker({ format: 'HH:mm:ss' });
-  $('#period_end').datetimepicker({ format: 'HH:mm:ss' });
+  // Init timepickers on modal shown (inputs are hidden until modal opens)
+  var tpInitialized = false;
+  $('#periodModal').on('shown.bs.modal', function(){
+    if (!tpInitialized) {
+      $('#period_start').datetimepicker({ format: 'HH:mm:ss' });
+      $('#period_end').datetimepicker({ format: 'HH:mm:ss' });
+      tpInitialized = true;
+    }
+  });
 
   // Toggle break label field
   $('#is_break').on('change', function(){
@@ -160,13 +175,24 @@ $(function(){
     });
   }
 
+  // Add button
+  $('#btn-add-period').on('click', function(){
+    $('#period-form')[0].reset();
+    $('#period_id').val(0);
+    $('#break_label_row').hide();
+    $('#periodModalLabel').text('Add Period / Break');
+    if (tpInitialized) {
+      $('#period_start').data('DateTimePicker').clear();
+      $('#period_end').data('DateTimePicker').clear();
+    }
+    $('#periodModal').modal('show');
+  });
+
   // Edit
   $(document).on('click', '.btn-edit-period', function(){
     var d = $(this).data();
     $('#period_id').val(d.id);
     $('#period_name').val(d.name);
-    $('#period_start').data('DateTimePicker').date(moment(d.start, 'HH:mm:ss'));
-    $('#period_end').data('DateTimePicker').date(moment(d.end, 'HH:mm:ss'));
     $('#sort_order').val(d.sortorder);
     if (d.isbreak == 1) {
       $('#is_break').prop('checked', true);
@@ -176,7 +202,13 @@ $(function(){
       $('#is_break').prop('checked', false);
       $('#break_label_row').hide();
     }
-    $('html, body').animate({scrollTop: 0}, 400);
+    $('#periodModalLabel').text('Edit Period / Break');
+    $('#periodModal').modal('show');
+    // Set timepicker values after modal is shown so DateTimePicker is initialized
+    $('#periodModal').one('shown.bs.modal', function(){
+      $('#period_start').data('DateTimePicker').date(moment(d.start, 'HH:mm:ss'));
+      $('#period_end').data('DateTimePicker').date(moment(d.end, 'HH:mm:ss'));
+    });
   });
 
   // Reset
@@ -184,8 +216,10 @@ $(function(){
     $('#period-form')[0].reset();
     $('#period_id').val(0);
     $('#break_label_row').hide();
-    $('#period_start').data('DateTimePicker').clear();
-    $('#period_end').data('DateTimePicker').clear();
+    if (tpInitialized) {
+      $('#period_start').data('DateTimePicker').clear();
+      $('#period_end').data('DateTimePicker').clear();
+    }
   });
 
   // Save
@@ -195,10 +229,11 @@ $(function(){
     $.post('<?php echo site_url('admin/tt/save_period'); ?>', $(this).serialize() + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo $this->security->get_csrf_hash(); ?>', function(res){
       if (res.status === '1') {
         toastr.success('Period saved successfully');
+        $('#periodModal').modal('hide');
         location.reload();
       } else {
         swal({title:'Alert',text:'Error saving period. Please try again.',type:'warning'});
-        $btn.prop('disabled', false).text('Save Period');
+        $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Period');
       }
     }, 'json');
   });

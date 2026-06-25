@@ -653,7 +653,7 @@ class Studentfee extends Admin_Controller
                         $data['title']       = 'student fees';
                         $class               = $this->class_model->get();
                         $data['classlist']   = $class;
-                        $data['department_list'] = $this->department_model->getDepartmentType();
+                        $data['department_list'] = $this->department_model->getAcademicDepartments();
                         $this->load->view('layout/header', $data);                $this->load->view('studentfee/studentfeeSearch', $data);
                 $this->load->view('layout/footer', $data);
             }

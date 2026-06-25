@@ -48,10 +48,13 @@ class Department extends Admin_Controller {
                 }
             }
 
+            $is_academic = $this->input->post("is_academic");
+
             $data_array = array(
                 'department_name' => $type,
                 'is_active' => 'yes',
-                'dept_head_id' => $dept_head_id
+                'dept_head_id' => $dept_head_id,
+                'is_academic' => ($is_academic !== null) ? (int) $is_academic : 1
             );
 
             if (!empty($departmenttypeid)) {

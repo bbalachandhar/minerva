@@ -9,168 +9,7 @@
     <!-- Main content -->
     <section class="content">
         <div class="row">
-            <?php if ($this->rbac->hasPrivilege('item_stock', 'can_add')) {
-    ?>
-                <div class="col-md-4">
-                    <!-- Horizontal Form -->
-                    <div class="box box-primary">
-                        <div class="box-header with-border">
-                            <h3 class="box-title"><?php echo $this->lang->line('add_item_stock'); ?></h3>
-                        </div><!-- /.box-header -->
-                        <form id="form1" action="<?php echo base_url() ?>admin/itemstock"  id="itemstockform" name="itemstockform" method="post" accept-charset="utf-8" enctype="multipart/form-data">
-                            <div class="box-body">
-                                <?php if ($this->session->flashdata('msg')) {?>
-                                    <?php echo $this->session->flashdata('msg');
-        $this->session->unset_userdata('msg'); ?>
-                                <?php }?>
-                                <?php
-if (isset($error_message)) {
-        echo "<div class='alert alert-danger'>" . $error_message . "</div>";
-    }
-    ?>
-                                <?php echo $this->customlib->getCSRF(); ?>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('item_category'); ?></label><small class="req"> *</small>
-                                    <select autofocus="" id="item_category_id" name="item_category_id" class="form-control" >
-                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                        <?php
-foreach ($itemcatlist as $item_category) {
-        ?>
-                                            <option value="<?php echo $item_category['id'] ?>"<?php
-if (set_value('item_category_id') == $item_category['id']) {
-            echo "selected = selected";
-        }
-        ?>><?php echo $item_category['item_category'] ?></option>
-                                            <?php
-}
-    ?>
-                                    </select>
-                                    <span class="text-danger"><?php echo form_error('item_category_id'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('item'); ?></label><small class="req"> *</small>
-                                    <select  id="item_id" name="item_id" class="form-control" >
-                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                    </select>
-                                    <span class="text-danger"><?php echo form_error('item_id'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('supplier'); ?></label>
-                                    <select  id="supplier_id" name="supplier_id" class="form-control" >
-                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                        <?php
-foreach ($itemsupplier as $itemsup) {
-        ?>
-                                            <option value="<?php echo $itemsup['id'] ?>"<?php
-if (set_value('supplier_id') == $itemsup['id']) {
-            echo "selected = selected";
-        }
-        ?>><?php echo $itemsup['item_supplier'] ?></option>
-
-                                            <?php
-}
-    ?>
-                                    </select>
-                                    <span class="text-danger"><?php echo form_error('supplier_id'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('store'); ?></label>
-                                    <select  id="store_id" name="store_id" class="form-control" >
-                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                        <?php
-foreach ($itemstore as $itemstore) {
-        ?>
-                                            <option value="<?php echo $itemstore['id'] ?>"<?php
-if (set_value('store_id') == $itemstore['id']) {
-            echo "selected = selected";
-        }
-        ?>><?php echo $itemstore['item_store'] ?> <?php if($itemstore['code']){ echo ' ('.$itemstore['code'].')'; } ?></option>
-
-                                            <?php
-}
-    ?>
-                                    </select>
-                                    <span class="text-danger"><?php echo form_error('store_id'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('quantity'); ?></label><small class="req"> *</small> <span id="item_unit"></span>
-                                    <div class="">
-                                        <span class="miplus">
-                                            <select class="form-control" name="symbol">
-                                                <option value="+">+</option>
-                                                <option value="-">-</option>
-                                            </select>
-                                        </span>
-                                        <input id="quantity" name="quantity" placeholder="" type="text" class="form-control miplusinput"  value="<?php echo set_value('quantity'); ?>" />
-                                    </div>
-                                    <small class="text-muted">Enter quantity as a positive number. Use the +/- selector to choose inward or outward adjustment.</small>
-                                    <span class="text-danger"><?php echo form_error('quantity'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('purchase_price'); ?> (<?php echo $currency_symbol; ?>)</label><small class="req"> *</small>
-                                    <input id="date" name="purchase_price" placeholder="" type="text" class="form-control purchase_price"  value="<?php echo set_value('purchase_price'); ?>"  />
-                                    <span class="text-danger"><?php echo form_error('purchase_price'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('date'); ?></label><small class="req"> *</small>
-                                    <input id="date" name="date" placeholder="" type="text" class="form-control date"  value="<?php echo set_value('date'); ?>" readonly="readonly" />
-                                    <span class="text-danger"><?php echo form_error('date'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="batch_no">Batch No</label>
-                                    <input id="batch_no" name="batch_no" placeholder="e.g. BATCH-2026-001" type="text" class="form-control" value="<?php echo set_value('batch_no'); ?>" />
-                                </div>
-                                <div class="form-group">
-                                    <label for="manufacturing_date">Manufacturing Date</label>
-                                    <input id="manufacturing_date" name="manufacturing_date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('manufacturing_date'); ?>" readonly="readonly" />
-                                </div>
-                                <div class="form-group">
-                                    <label for="expiry_date">Expiry Date</label>
-                                    <input id="expiry_date" name="expiry_date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('expiry_date'); ?>" readonly="readonly" />
-                                </div>
-                                <div class="form-group">
-                                    <label for="warranty_upto">Warranty Upto</label>
-                                    <input id="warranty_upto" name="warranty_upto" placeholder="" type="text" class="form-control date" value="<?php echo set_value('warranty_upto'); ?>" readonly="readonly" />
-                                </div>
-                                <div class="form-group">
-                                    <label for="license_key">License Number/Key</label>
-                                    <input id="license_key" name="license_key" placeholder="e.g. LIC-XYZ-2048" type="text" class="form-control" value="<?php echo set_value('license_key'); ?>" />
-                                </div>
-                                <div class="form-group">
-                                    <label for="license_valid_from">License Valid From</label>
-                                    <input id="license_valid_from" name="license_valid_from" placeholder="" type="text" class="form-control date" value="<?php echo set_value('license_valid_from'); ?>" readonly="readonly" />
-                                </div>
-                                <div class="form-group">
-                                    <label for="license_valid_till">License Valid Till</label>
-                                    <input id="license_valid_till" name="license_valid_till" placeholder="" type="text" class="form-control date" value="<?php echo set_value('license_valid_till'); ?>" readonly="readonly" />
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('attach_document'); ?></label>
-                                    <input id="item_photo" name="item_photo" placeholder="" type="file" class="filestyle form-control" data-height="40"  value="<?php echo set_value('item_photo'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('item_photo'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('description'); ?></label>
-                                    <textarea class="form-control" id="description" name="description" placeholder="" rows="3"><?php echo set_value('description'); ?></textarea>
-                                    <span class="text-danger"></span>
-                                </div>
-                            </div><!-- /.box-body -->
-                            <div class="box-footer">
-                                <button type="submit" id="submitbtn" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
-                            </div>
-                        </form>
-                    </div>
-                </div><!--/.col (right) -->
-                <!-- left column -->
-            <?php }?>
-
-            <div class="col-md-<?php
-if ($this->rbac->hasPrivilege('item_stock', 'can_add')) {
-    echo "8";
-} else {
-    echo "12";
-}
-?> ">
+            <div class="col-md-12">
                 <!-- general form elements -->
                 <div class="box box-primary">
                     <div class="box-header ptbnull">
@@ -183,10 +22,17 @@ if ($this->rbac->hasPrivilege('item_stock', 'can_add')) {
                                 <a href="<?php echo site_url('admin/inventoryimport/downloadsample/itemstock'); ?>" class="btn btn-default btn-sm">
                                     <i class="fa fa-download"></i> Sample CSV
                                 </a>
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addItemStockModal">
+                                    <i class="fa fa-plus"></i> <?php echo $this->lang->line('add_item_stock'); ?>
+                                </button>
                             <?php } ?>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
                     <div class="box-body">
+                        <?php if ($this->session->flashdata('msg')) {?>
+                            <?php echo $this->session->flashdata('msg');
+                            $this->session->unset_userdata('msg'); ?>
+                        <?php }?>
                         <div class="mailbox-messages table-responsive">
                             <div class="download_label"><?php echo $this->lang->line('item_stock_list'); ?></div>
                             <table class="table table-hover table-striped table-bordered example">
@@ -329,17 +175,169 @@ if ($items['description'] == "") {
                         </div><!-- /.mail-box-messages -->
                     </div><!-- /.box-body -->
                 </div>
-            </div><!--/.col (left) -->
-            <!-- right column -->
+            </div><!--/.col -->
         </div>
-        <div class="row">
-            <!-- left column -->
-            <!-- right column -->
-            <div class="col-md-12">
-            </div><!--/.col (right) -->
-        </div>   <!-- /.row -->
     </section><!-- /.content -->
 </div><!-- /.content-wrapper -->
+
+<?php if ($this->rbac->hasPrivilege('item_stock', 'can_add')) { ?>
+<!-- Add Item Stock Modal -->
+<div class="modal fade" id="addItemStockModal" tabindex="-1" role="dialog" aria-labelledby="addItemStockModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="addItemStockModalLabel"><?php echo $this->lang->line('add_item_stock'); ?></h4>
+            </div>
+            <form id="form1" action="<?php echo base_url() ?>admin/itemstock" name="itemstockform" method="post" accept-charset="utf-8" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <?php
+if (isset($error_message)) {
+    echo "<div class='alert alert-danger'>" . $error_message . "</div>";
+}
+?>
+                    <?php echo $this->customlib->getCSRF(); ?>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="exampleInputEmail1"><?php echo $this->lang->line('item_category'); ?></label><small class="req"> *</small>
+                                <select autofocus="" id="item_category_id" name="item_category_id" class="form-control" >
+                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                    <?php
+foreach ($itemcatlist as $item_category) {
+    ?>
+                                        <option value="<?php echo $item_category['id'] ?>"<?php
+if (set_value('item_category_id') == $item_category['id']) {
+        echo "selected = selected";
+    }
+    ?>><?php echo $item_category['item_category'] ?></option>
+                                        <?php
+}
+?>
+                                </select>
+                                <span class="text-danger"><?php echo form_error('item_category_id'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleInputEmail1"><?php echo $this->lang->line('item'); ?></label><small class="req"> *</small>
+                                <select  id="item_id" name="item_id" class="form-control" >
+                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                </select>
+                                <span class="text-danger"><?php echo form_error('item_id'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleInputEmail1"><?php echo $this->lang->line('supplier'); ?></label>
+                                <select  id="supplier_id" name="supplier_id" class="form-control" >
+                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                    <?php
+foreach ($itemsupplier as $itemsup) {
+    ?>
+                                        <option value="<?php echo $itemsup['id'] ?>"<?php
+if (set_value('supplier_id') == $itemsup['id']) {
+        echo "selected = selected";
+    }
+    ?>><?php echo $itemsup['item_supplier'] ?></option>
+
+                                        <?php
+}
+?>
+                                </select>
+                                <span class="text-danger"><?php echo form_error('supplier_id'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleInputEmail1"><?php echo $this->lang->line('store'); ?></label>
+                                <select  id="store_id" name="store_id" class="form-control" >
+                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                    <?php
+foreach ($itemstore as $itemstore) {
+    ?>
+                                        <option value="<?php echo $itemstore['id'] ?>"<?php
+if (set_value('store_id') == $itemstore['id']) {
+        echo "selected = selected";
+    }
+    ?>><?php echo $itemstore['item_store'] ?> <?php if($itemstore['code']){ echo ' ('.$itemstore['code'].')'; } ?></option>
+
+                                        <?php
+}
+?>
+                                </select>
+                                <span class="text-danger"><?php echo form_error('store_id'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleInputEmail1"><?php echo $this->lang->line('quantity'); ?></label><small class="req"> *</small> <span id="item_unit"></span>
+                                <div class="">
+                                    <span class="miplus">
+                                        <select class="form-control" name="symbol">
+                                            <option value="+">+</option>
+                                            <option value="-">-</option>
+                                        </select>
+                                    </span>
+                                    <input id="quantity" name="quantity" placeholder="" type="text" class="form-control miplusinput"  value="<?php echo set_value('quantity'); ?>" />
+                                </div>
+                                <small class="text-muted">Enter quantity as a positive number. Use the +/- selector to choose inward or outward adjustment.</small>
+                                <span class="text-danger"><?php echo form_error('quantity'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleInputEmail1"><?php echo $this->lang->line('purchase_price'); ?> (<?php echo $currency_symbol; ?>)</label><small class="req"> *</small>
+                                <input id="date" name="purchase_price" placeholder="" type="text" class="form-control purchase_price"  value="<?php echo set_value('purchase_price'); ?>"  />
+                                <span class="text-danger"><?php echo form_error('purchase_price'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleInputEmail1"><?php echo $this->lang->line('date'); ?></label><small class="req"> *</small>
+                                <input id="date" name="date" placeholder="" type="text" class="form-control date"  value="<?php echo set_value('date'); ?>" readonly="readonly" />
+                                <span class="text-danger"><?php echo form_error('date'); ?></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="batch_no">Batch No</label>
+                                <input id="batch_no" name="batch_no" placeholder="e.g. BATCH-2026-001" type="text" class="form-control" value="<?php echo set_value('batch_no'); ?>" />
+                            </div>
+                            <div class="form-group">
+                                <label for="manufacturing_date">Manufacturing Date</label>
+                                <input id="manufacturing_date" name="manufacturing_date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('manufacturing_date'); ?>" readonly="readonly" />
+                            </div>
+                            <div class="form-group">
+                                <label for="expiry_date">Expiry Date</label>
+                                <input id="expiry_date" name="expiry_date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('expiry_date'); ?>" readonly="readonly" />
+                            </div>
+                            <div class="form-group">
+                                <label for="warranty_upto">Warranty Upto</label>
+                                <input id="warranty_upto" name="warranty_upto" placeholder="" type="text" class="form-control date" value="<?php echo set_value('warranty_upto'); ?>" readonly="readonly" />
+                            </div>
+                            <div class="form-group">
+                                <label for="license_key">License Number/Key</label>
+                                <input id="license_key" name="license_key" placeholder="e.g. LIC-XYZ-2048" type="text" class="form-control" value="<?php echo set_value('license_key'); ?>" />
+                            </div>
+                            <div class="form-group">
+                                <label for="license_valid_from">License Valid From</label>
+                                <input id="license_valid_from" name="license_valid_from" placeholder="" type="text" class="form-control date" value="<?php echo set_value('license_valid_from'); ?>" readonly="readonly" />
+                            </div>
+                            <div class="form-group">
+                                <label for="license_valid_till">License Valid Till</label>
+                                <input id="license_valid_till" name="license_valid_till" placeholder="" type="text" class="form-control date" value="<?php echo set_value('license_valid_till'); ?>" readonly="readonly" />
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleInputEmail1"><?php echo $this->lang->line('attach_document'); ?></label>
+                                <input id="item_photo" name="item_photo" placeholder="" type="file" class="filestyle form-control" data-height="40"  value="<?php echo set_value('item_photo'); ?>" />
+                                <span class="text-danger"><?php echo form_error('item_photo'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="exampleInputEmail1"><?php echo $this->lang->line('description'); ?></label>
+                                <textarea class="form-control" id="description" name="description" placeholder="" rows="3"><?php echo set_value('description'); ?></textarea>
+                                <span class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
+                    <button type="submit" id="submitbtn" class="btn btn-info"><?php echo $this->lang->line('save'); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php } ?>
 
 <script type="text/javascript">
     $(document).ready(function () {
@@ -408,6 +406,11 @@ if ($items['description'] == "") {
                 }
             });
         });
+
+        // Auto-open modal if validation errors exist
+        <?php if (form_error('item_category_id') || form_error('item_id') || form_error('quantity') || form_error('purchase_price') || form_error('date')) { ?>
+            $('#addItemStockModal').modal('show');
+        <?php } ?>
 
     });
 </script>

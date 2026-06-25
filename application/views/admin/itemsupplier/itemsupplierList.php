@@ -6,78 +6,7 @@
     <!-- Main content -->
     <section class="content">
         <div class="row">
-            <?php if ($this->rbac->hasPrivilege('supplier', 'can_add')) {
-    ?>
-                <div class="col-md-4">
-                    <!-- Horizontal Form -->
-                    <div class="box box-primary">
-                        <div class="box-header with-border">
-                            <h3 class="box-title"><?php echo $this->lang->line('add_item_supplier'); ?></h3>
-                        </div><!-- /.box-header -->
-                        <!-- form start -->
-                        <form  action="<?php echo site_url('admin/itemsupplier/create') ?>"  id="employeeform" name="employeeform" method="post" accept-charset="utf-8">
-                            <div class="box-body">
-                                <?php if ($this->session->flashdata('msg')) {?>
-                                    <?php echo $this->session->flashdata('msg');
-        $this->session->unset_userdata('msg'); ?>
-                                <?php }?>
-                                <?php echo $this->customlib->getCSRF(); ?>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"> <?php echo $this->lang->line('name'); ?></label><small class="req"> *</small>
-                                    <input autofocus="" id="name" name="name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('name'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('name'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"> <?php echo $this->lang->line('phone'); ?></label>
-                                    <input id="phone" name="phone" placeholder="" type="text" class="form-control"  value="<?php echo set_value('phone'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('phone'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"> <?php echo $this->lang->line('email'); ?></label>
-                                    <input id="text" name="email" placeholder="" type="text" class="form-control"  value="<?php echo set_value('email'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('email'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('address'); ?></label>
-                                    <textarea class="form-control" id="address" name="address" placeholder="" rows="3" placeholder="Enter ..."><?php echo set_value('address'); ?></textarea>
-                                    <span class="text-danger"><?php echo form_error('address'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"> <?php echo $this->lang->line('contact_person_name'); ?></label>
-                                    <input id="contact_person_name" name="contact_person_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('contact_person_name'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('contact_person_name'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('contact_person_phone'); ?></label>
-                                    <input id="contact_person_phone" name="contact_person_phone" placeholder="" type="text" class="form-control"  value="<?php echo set_value('contact_person_phone'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('contact_person_phone'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"> <?php echo $this->lang->line('contact_person_email'); ?></label>
-                                    <input id="contact_person_email" name="contact_person_email" placeholder="" type="email" class="form-control"  value="<?php echo set_value('contact_person_email'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('contact_person_email'); ?></span>
-                                </div>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('description'); ?></label>
-                                    <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..."><?php echo set_value('description'); ?></textarea>
-                                    <span class="text-danger"><?php echo form_error('description'); ?></span>
-                                </div>
-                            </div><!-- /.box-body -->
-                            <div class="box-footer">
-                                <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
-                            </div>
-                        </form>
-                    </div>
-                </div><!--/.col (right) -->
-                <!-- left column -->
-            <?php }?>
-            <div class="col-md-<?php
-if ($this->rbac->hasPrivilege('supplier', 'can_add')) {
-    echo "8";
-} else {
-    echo "12";
-}
-?>">
+            <div class="col-md-12">
                 <!-- general form elements -->
                 <div class="box box-primary" id="exphead">
                     <div class="box-header ptbnull">
@@ -90,10 +19,16 @@ if ($this->rbac->hasPrivilege('supplier', 'can_add')) {
                                 <a href="<?php echo site_url('admin/inventoryimport/downloadsample/itemsupplier'); ?>" class="btn btn-default btn-sm">
                                     <i class="fa fa-download"></i> Sample CSV
                                 </a>
+                                <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addModal">
+                                    <i class="fa fa-plus"></i> <?php echo $this->lang->line('add'); ?>
+                                </button>
                             <?php } ?>
                         </div>
                     </div><!-- /.box-header -->
-                    <div class="box-body  ">
+                    <div class="box-body">
+                        <?php if ($this->session->flashdata('msg')) { ?>
+                            <?php echo $this->session->flashdata('msg'); $this->session->unset_userdata('msg'); ?>
+                        <?php } ?>
                         <div class="mailbox-messages table-responsive">
                             <div class="download_label"><?php echo $this->lang->line('item_supplier_list'); ?></div>
                             <table class="table table-striped table-bordered table-hover example">
@@ -106,102 +41,64 @@ if ($this->rbac->hasPrivilege('supplier', 'can_add')) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php if (empty($itemsupplierlist)) {
-    ?>
-
-                                        <?php
-} else {
-    $count = 1;
-    foreach ($itemsupplierlist as $supplier) {
-        ?>
+                                    <?php if (empty($itemsupplierlist)) { ?>
+                                    <?php } else {
+                                        $count = 1;
+                                        foreach ($itemsupplierlist as $supplier) { ?>
                                             <tr>
                                                 <td class="mailbox-name">
-                                                    <a href="#" data-toggle="popover" class="detail_popover" >
+                                                    <a href="#" data-toggle="popover" class="detail_popover">
                                                         <?php echo $supplier['item_supplier'] ?>
                                                         <br>
                                                     </a>
-                                                    <?php
-if ($supplier['phone'] != "") {
-            ?>
+                                                    <?php if ($supplier['phone'] != "") { ?>
                                                         <i class="fa fa-phone-square"></i> <?php echo $supplier['phone'] ?>
                                                         <br>
-                                                        <?php
-}
-        ?>
-                                                    <?php
-if ($supplier['email'] != "") {
-            ?>
+                                                    <?php } ?>
+                                                    <?php if ($supplier['email'] != "") { ?>
                                                         <i class="fa fa-envelope"></i> <?php echo $supplier['email'] ?>
-
-                                                        <?php
-}
-        ?>
-
+                                                    <?php } ?>
                                                     <div class="fee_detail_popover" style="display: none">
-                                                        <?php
-if ($supplier['description'] == "") {
-            ?>
+                                                        <?php if ($supplier['description'] == "") { ?>
                                                             <p class="text text-danger"><?php echo $this->lang->line('no_description'); ?></p>
-                                                            <?php
-} else {
-            ?>
+                                                        <?php } else { ?>
                                                             <p class="text text-info"><?php echo $supplier['description']; ?></p>
-                                                            <?php
-}
-        ?>
+                                                        <?php } ?>
                                                     </div>
                                                 </td>
                                                 <td class="mailbox-name">
-                                                    <?php
-if ($supplier['contact_person_name'] != "") {
-            ?>
+                                                    <?php if ($supplier['contact_person_name'] != "") { ?>
                                                         <i class="fa fa-user"></i> <?php echo $supplier['contact_person_name'] ?>
                                                         <br>
-                                                        <?php
-}
-        ?>
-                                                    <?php
-if ($supplier['contact_person_phone'] != "") {
-            ?>
+                                                    <?php } ?>
+                                                    <?php if ($supplier['contact_person_phone'] != "") { ?>
                                                         <i class="fa fa-phone-square"></i> <?php echo $supplier['contact_person_phone'] ?>
                                                         <br>
-                                                        <?php
-}
-        ?>
-                                                    <?php
-if ($supplier['contact_person_email'] != "") {
-            ?>
+                                                    <?php } ?>
+                                                    <?php if ($supplier['contact_person_email'] != "") { ?>
                                                         <i class="fa fa-envelope"></i> <?php echo $supplier['contact_person_email'] ?>
-                                                        <?php
-}
-        ?>
+                                                    <?php } ?>
                                                 </td>
                                                 <td class="mailbox-name">
-                                                    <?php
-if ($supplier['address'] != "") {
-            ?>
+                                                    <?php if ($supplier['address'] != "") { ?>
                                                         <i class="fa fa-building"></i> <?php echo $supplier['address'] ?>
-                                                        <?php
-}
-        ?>
+                                                    <?php } ?>
                                                 </td>
                                                 <td class="mailbox-date pull-right no-print white-space-nowrap">
-                                                    <?php if ($this->rbac->hasPrivilege('supplier', 'can_edit')) {?>
-                                                        <a href="<?php echo base_url(); ?>admin/itemsupplier/edit/<?php echo $supplier['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">
+                                                    <?php if ($this->rbac->hasPrivilege('supplier', 'can_edit')) { ?>
+                                                        <a href="<?php echo base_url(); ?>admin/itemsupplier/edit/<?php echo $supplier['id'] ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">
                                                             <i class="fa fa-pencil"></i>
                                                         </a>
-                                                    <?php }if ($this->rbac->hasPrivilege('supplier', 'can_delete')) {?>
-                                                        <a href="<?php echo base_url(); ?>admin/itemsupplier/delete/<?php echo $supplier['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');">
+                                                    <?php } if ($this->rbac->hasPrivilege('supplier', 'can_delete')) { ?>
+                                                        <a href="<?php echo base_url(); ?>admin/itemsupplier/delete/<?php echo $supplier['id'] ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');">
                                                             <i class="fa fa-remove"></i>
                                                         </a>
-                                                    <?php }?>
+                                                    <?php } ?>
                                                 </td>
                                             </tr>
-                                            <?php
-}
-    $count++;
-}
-?>
+                                    <?php }
+                                        $count++;
+                                    } ?>
                                 </tbody>
                             </table><!-- /.table -->
                         </div><!-- /.mail-box-messages -->
@@ -209,9 +106,78 @@ if ($supplier['address'] != "") {
                 </div>
             </div>
             <!-- right column -->
-        </div>   <!-- /.row -->
+        </div><!-- /.row -->
     </section><!-- /.content -->
 </div>
+
+<!-- Add Item Supplier Modal -->
+<?php if ($this->rbac->hasPrivilege('supplier', 'can_add')) { ?>
+<div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="addModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="addModalLabel"><?php echo $this->lang->line('add_item_supplier'); ?></h4>
+            </div>
+            <form action="<?php echo site_url('admin/itemsupplier/create') ?>" id="employeeform" name="employeeform" method="post" accept-charset="utf-8">
+                <div class="modal-body">
+                    <?php echo $this->customlib->getCSRF(); ?>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('name'); ?></label><small class="req"> *</small>
+                                <input autofocus="" id="name" name="name" placeholder="" type="text" class="form-control" value="<?php echo set_value('name'); ?>" />
+                                <span class="text-danger"><?php echo form_error('name'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('phone'); ?></label>
+                                <input id="phone" name="phone" placeholder="" type="text" class="form-control" value="<?php echo set_value('phone'); ?>" />
+                                <span class="text-danger"><?php echo form_error('phone'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('email'); ?></label>
+                                <input id="email" name="email" placeholder="" type="text" class="form-control" value="<?php echo set_value('email'); ?>" />
+                                <span class="text-danger"><?php echo form_error('email'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('address'); ?></label>
+                                <textarea class="form-control" id="address" name="address" placeholder="" rows="3"><?php echo set_value('address'); ?></textarea>
+                                <span class="text-danger"><?php echo form_error('address'); ?></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('contact_person_name'); ?></label>
+                                <input id="contact_person_name" name="contact_person_name" placeholder="" type="text" class="form-control" value="<?php echo set_value('contact_person_name'); ?>" />
+                                <span class="text-danger"><?php echo form_error('contact_person_name'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('contact_person_phone'); ?></label>
+                                <input id="contact_person_phone" name="contact_person_phone" placeholder="" type="text" class="form-control" value="<?php echo set_value('contact_person_phone'); ?>" />
+                                <span class="text-danger"><?php echo form_error('contact_person_phone'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('contact_person_email'); ?></label>
+                                <input id="contact_person_email" name="contact_person_email" placeholder="" type="email" class="form-control" value="<?php echo set_value('contact_person_email'); ?>" />
+                                <span class="text-danger"><?php echo form_error('contact_person_email'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('description'); ?></label>
+                                <textarea class="form-control" id="description" name="description" placeholder="" rows="3"><?php echo set_value('description'); ?></textarea>
+                                <span class="text-danger"><?php echo form_error('description'); ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
+                    <button type="submit" class="btn btn-info"><?php echo $this->lang->line('save'); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php } ?>
 
 <script type="text/javascript">
     $(document).ready(function () {
@@ -238,3 +204,11 @@ if ($supplier['address'] != "") {
 <script type="text/javascript">
     var base_url = '<?php echo base_url() ?>';
 </script>
+
+<?php if (validation_errors()) { ?>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#addModal').modal('show');
+    });
+</script>
+<?php } ?>

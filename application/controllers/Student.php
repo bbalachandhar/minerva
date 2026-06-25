@@ -483,7 +483,7 @@ class Student extends Admin_Controller
         $vehroute_result         = $this->vehroute_model->getRouteVehiclesList();
         $data['vehroutelist']    = $vehroute_result;
 
-        $department_result     = $this->Department_model->getDepartmentType();
+        $department_result     = $this->Department_model->getAcademicDepartments();
         $data['department_list'] = $department_result;
 
         //fees discount

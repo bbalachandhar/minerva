@@ -7,60 +7,17 @@
         </ol>
     </section>
     <section class="content">
-        <?php echo $this->session->flashdata('msg'); ?>
         <div class="row">
-            <?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_add')): ?>
-            <div class="col-md-4">
-                <div class="box box-primary">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Add Scholarship Type</h3>
-                    </div>
-                    <form action="<?php echo site_url('admin/scholarshiptype'); ?>" method="post">
-                        <div class="box-body">
-                            <div class="form-group">
-                                <label>Scholarship Name <small class="req">*</small></label>
-                                <input type="text" name="name" class="form-control" value="<?php echo set_value('name'); ?>" maxlength="300" placeholder="Enter scholarship name"/>
-                                <span class="text-danger"><?php echo form_error('name'); ?></span>
-                            </div>
-                            <div class="form-group">
-                                <label>Description</label>
-                                <textarea name="description" class="form-control" rows="2" placeholder="Optional description"><?php echo set_value('description'); ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>Amount (&#8377;)</label>
-                                <input type="number" name="amount" class="form-control" step="0.01" min="0" value="<?php echo set_value('amount'); ?>" placeholder="Leave blank if not fixed"/>
-                            </div>
-                            <div class="form-group">
-                                <label>Sort Order</label>
-                                <input type="number" name="sort_order" class="form-control" value="<?php echo set_value('sort_order', 0); ?>" min="0"/>
-                            </div>
-                            <div class="form-group">
-                                <label>Verifier <small class="text-muted">(who verifies applications of this type)</small></label>
-                                <select name="verifier_id" class="form-control select2">
-                                    <option value="">-- None assigned --</option>
-                                    <?php foreach ($staff_list as $s): ?>
-                                    <option value="<?php echo $s['id']; ?>"
-                                        <?php echo set_value('verifier_id') == $s['id'] ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($s['name'] . ' ' . $s['surname']); ?>
-                                        <?php if (!empty($s['designation'])): ?>(<?php echo htmlspecialchars($s['designation']); ?>)<?php endif; ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="box-footer">
-                            <button type="submit" class="btn btn-primary pull-right"><i class="fa fa-save"></i> Save</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <div class="col-md-<?php echo $this->rbac->hasPrivilege('scholarship_type', 'can_add') ? '8' : '12'; ?>">
+            <div class="col-md-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title">Scholarship Type List</h3>
                         <div class="box-tools pull-right">
+                            <?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_add')): ?>
+                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addScholarshipModal">
+                                <i class="fa fa-plus"></i> Add Scholarship Type
+                            </button>
+                            <?php endif; ?>
                             <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#settingsModal">
                                 <i class="fa fa-cog"></i> Approver Settings
                             </button>
@@ -68,6 +25,9 @@
                                 <i class="fa fa-list"></i> View Applications
                             </a>
                         </div>
+                    </div>
+                    <div class="box-body">
+                        <?php echo $this->session->flashdata('msg'); ?>
                     </div>
                     <div class="callout callout-info" style="margin:10px 15px 0">
                         <p><i class="fa fa-info-circle"></i>
@@ -155,7 +115,59 @@
     </section>
 </div>
 
-<!-- ── Approver Settings Modal ──────────────────────────────────────────── -->
+<!-- Add Scholarship Type Modal -->
+<?php if ($this->rbac->hasPrivilege('scholarship_type', 'can_add')): ?>
+<div class="modal fade" id="addScholarshipModal" tabindex="-1" role="dialog" aria-labelledby="addScholarshipModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title" id="addScholarshipModalLabel"><i class="fa fa-graduation-cap"></i> Add Scholarship Type</h4>
+            </div>
+            <form action="<?php echo site_url('admin/scholarshiptype'); ?>" method="post">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Scholarship Name <small class="req">*</small></label>
+                        <input type="text" name="name" class="form-control" value="<?php echo set_value('name'); ?>" maxlength="300" placeholder="Enter scholarship name"/>
+                        <span class="text-danger"><?php echo form_error('name'); ?></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Optional description"><?php echo set_value('description'); ?></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (&#8377;)</label>
+                        <input type="number" name="amount" class="form-control" step="0.01" min="0" value="<?php echo set_value('amount'); ?>" placeholder="Leave blank if not fixed"/>
+                    </div>
+                    <div class="form-group">
+                        <label>Sort Order</label>
+                        <input type="number" name="sort_order" class="form-control" value="<?php echo set_value('sort_order', 0); ?>" min="0"/>
+                    </div>
+                    <div class="form-group">
+                        <label>Verifier <small class="text-muted">(who verifies applications of this type)</small></label>
+                        <select name="verifier_id" class="form-control select2-modal">
+                            <option value="">-- None assigned --</option>
+                            <?php foreach ($staff_list as $s): ?>
+                            <option value="<?php echo $s['id']; ?>"
+                                <?php echo set_value('verifier_id') == $s['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($s['name'] . ' ' . $s['surname']); ?>
+                                <?php if (!empty($s['designation'])): ?>(<?php echo htmlspecialchars($s['designation']); ?>)<?php endif; ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- Approver Settings Modal -->
 <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog" aria-labelledby="settingsModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -196,6 +208,7 @@
 
 <script>
 $(function () {
+    // --- Approver Settings Modal JS ---
     $('#settingsSaveBtn').on('click', function () {
         var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
         var data = { approver_id: $('#settingsApprover').val() };
@@ -219,5 +232,15 @@ $(function () {
     });
 
     $('#settingsApprover').select2({ dropdownParent: $('#settingsModal'), width: '100%' });
+
+    // --- Add Scholarship Modal JS ---
+    $('#addScholarshipModal').on('shown.bs.modal', function () {
+        $(this).find('.select2-modal').select2({ dropdownParent: $('#addScholarshipModal'), width: '100%' });
+    });
+
+    // Auto-open modal if there are validation errors
+    <?php if (validation_errors()): ?>
+    $('#addScholarshipModal').modal('show');
+    <?php endif; ?>
 });
 </script>

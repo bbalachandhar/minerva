@@ -24,7 +24,7 @@
                             <table class="table table-hover table-striped table-bordered example">
                                 <thead><tr><th style="width:40px;">#</th><th><?php echo $this->lang->line('purpose'); ?></th><th><?php echo $this->lang->line('description'); ?></th><th class="text-right noExport" style="width:100px;"><?php echo $this->lang->line('action'); ?></th></tr></thead>
                                 <tbody>
-                                    <?php if (!empty($purpose_list)) { $i=1; foreach ($purpose_list as $value) { ?>
+                                    <?php if (!empty($visitors_purpose_list)) { $i=1; foreach ($visitors_purpose_list as $value) { ?>
                                     <tr>
                                         <td style="color:#94a3b8; font-weight:600;"><?php echo $i++; ?></td>
                                         <td><strong><?php echo $value['visitors_purpose']; ?></strong></td>

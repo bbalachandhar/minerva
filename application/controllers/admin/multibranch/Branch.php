@@ -520,16 +520,17 @@ class Branch extends MY_Addon_MBController
             }
 
             try {
-                list($total_fees, $total_paid, $fee_type_breakdown) = $this->_mcc_fees_summary($db, $session_id);
+                list($total_fees, $total_paid, $fee_type_breakdown, $positive_balance) = $this->_mcc_fees_summary($db, $session_id);
                 $counts = $this->_mcc_student_counts($db, $session_id);
             } catch (Throwable $e) {
                 log_message('error', '[MCC] fees_overview_async ' . $db_name . ': ' . $e->getMessage());
                 $total_fees = 0;
                 $total_paid = 0;
                 $fee_type_breakdown = [];
+                $positive_balance = 0;
                 $counts     = ['fully_paid' => 0, 'fully_paid_amt' => 0.0, 'partial' => 0, 'partial_amt' => 0.0, 'not_paid' => 0, 'not_paid_billed' => 0.0, 'by_class' => []];
             }
-            $total_balance = $total_fees - $total_paid;
+            $total_balance = $positive_balance;
 
             $rows[] = [
                 'db_name'                 => $db_name,
@@ -578,16 +579,11 @@ class Branch extends MY_Addon_MBController
      */
     private function _mcc_fees_summary($db, $session_id)
     {
-        // ── 1. Total billed (tuition + other + hostel; no advance) ────────────
-        // Inner query deduplicates per (student_session, fee_groups_feetype) to
-        // avoid double-counting when a student has multiple sfm rows for the
-        // same fee_session_group (e.g. Balance Master carry-forward).
-        // For carry-forward fees (fgf.amount IS NULL), use sfm.amount directly
-        // since that's the actual previous-session debt per student.
-        // For regular fees, use override if set, else the template fgf.amount.
-        $billed_row = $db->query(
-            "SELECT SUM(billed) AS total_billed FROM (
-                SELECT sfm.student_session_id, fgf.id AS fgf_id,
+        // ── 1. Billed per student per feetype (also yields aggregates) ────────
+        $billed_rows = $db->query(
+            "SELECT ss_id, feetype_id, fee_type, SUM(billed) AS billed FROM (
+                SELECT sfm.student_session_id AS ss_id, fgf.feetype_id,
+                       ft.type AS fee_type, fgf.id AS fgf_id,
                        MAX(IF(fgf.amount IS NULL, sfm.amount, COALESCE(sfo.override_amount, fgf.amount))) AS billed
                 FROM student_fees_master sfm
                 JOIN student_session ss  ON ss.id  = sfm.student_session_id
@@ -601,58 +597,55 @@ class Branch extends MY_Addon_MBController
                       AND sfo.fee_groups_feetype_id = fgf.id
                 WHERE ss.session_id = ? AND sfm.is_active = 'yes'
                   AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
-                GROUP BY sfm.student_session_id, fgf.id
-             ) sub",
-            [$session_id]
-        )->row();
-        $total_billed = $billed_row ? (float)$billed_row->total_billed : 0;
-
-        // ── 1b. Billed per fee type ──────────────────────────────────────────
-        $billed_by_type = $db->query(
-            "SELECT fee_type, SUM(billed) AS billed FROM (
-                SELECT ft.type AS fee_type, sfm.student_session_id, fgf.id AS fgf_id,
-                       MAX(IF(fgf.amount IS NULL, sfm.amount, COALESCE(sfo.override_amount, fgf.amount))) AS billed
-                FROM student_fees_master sfm
-                JOIN student_session ss  ON ss.id  = sfm.student_session_id
-                JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
-                JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
-                JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
-                JOIN feetype ft           ON ft.id  = fgf.feetype_id
-                                          AND LOWER(ft.type) NOT IN ('advance payments')
-                LEFT JOIN student_fee_overrides sfo
-                       ON sfo.student_session_id   = sfm.student_session_id
-                      AND sfo.fee_groups_feetype_id = fgf.id
-                WHERE ss.session_id = ? AND sfm.is_active = 'yes'
-                  AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
-                GROUP BY ft.type, sfm.student_session_id, fgf.id
-             ) sub GROUP BY fee_type",
+                GROUP BY sfm.student_session_id, fgf.feetype_id, ft.type, fgf.id
+             ) sub GROUP BY ss_id, feetype_id, fee_type",
             [$session_id]
         )->result();
+
+        $total_billed = 0;
         $fee_type_billed = [];
-        foreach ($billed_by_type as $row) {
-            $fee_type_billed[$row->fee_type] = (float)$row->billed;
+        $stu_ft_billed = [];
+        foreach ($billed_rows as $row) {
+            $ssid = (int)$row->ss_id;
+            $ftid = (int)$row->feetype_id;
+            $ft_name = $row->fee_type;
+            $billed = (float)$row->billed;
+
+            $total_billed += $billed;
+            if (!isset($fee_type_billed[$ft_name])) $fee_type_billed[$ft_name] = 0;
+            $fee_type_billed[$ft_name] += $billed;
+            if (!isset($stu_ft_billed[$ssid])) $stu_ft_billed[$ssid] = [];
+            $stu_ft_billed[$ssid][$ftid] = $billed;
         }
 
-        // ── 2. Transport billed ────────────────────────────────────────────────
+        // ── 2. Transport billed per student ──────────────────────────────────
         $transport_billed = 0;
+        $stu_transport_billed = [];
         if ($db->table_exists('student_transport_fees') && $db->table_exists('route_pickup_point')) {
-            $tb_row = $db->query(
-                "SELECT SUM(COALESCE(stf.fee_override, rpp.fees)) AS transport_billed
+            $tb_rows = $db->query(
+                "SELECT stf.student_session_id AS ss_id,
+                        SUM(COALESCE(stf.fee_override, rpp.fees)) AS billed
                  FROM student_transport_fees stf
                  JOIN student_session ss ON ss.id = stf.student_session_id
                  JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
                  JOIN route_pickup_point rpp ON rpp.id = stf.route_pickup_point_id
                  WHERE ss.session_id = ?
-                   AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)",
+                   AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
+                 GROUP BY stf.student_session_id",
                 [$session_id]
-            )->row();
-            $transport_billed = $tb_row ? (float)$tb_row->transport_billed : 0;
+            )->result();
+            foreach ($tb_rows as $row) {
+                $billed = (float)$row->billed;
+                $transport_billed += $billed;
+                $stu_transport_billed[(int)$row->ss_id] = $billed;
+            }
         }
         $total_billed += $transport_billed;
 
-        // ── 3. Total collected (parse JSON amount_detail in PHP) ──────────────
+        // ── 3. Collected per student per feetype (parse JSON in PHP) ─────────
         $deposits = $db->query(
-            "SELECT sfd.amount_detail, ft.type AS fee_type
+            "SELECT sfm.student_session_id AS ss_id, sfd.amount_detail,
+                    ft.type AS fee_type, fgf.feetype_id
              FROM student_fees_deposite sfd
              JOIN student_fees_master sfm ON sfm.id = sfd.student_fees_master_id
                                          AND sfm.is_active = 'yes'
@@ -668,21 +661,28 @@ class Branch extends MY_Addon_MBController
 
         $total_collected = 0;
         $fee_type_collected = [];
+        $stu_ft_collected = [];
         foreach ($deposits as $dep) {
             $detail = json_decode($dep->amount_detail);
             if (!is_object($detail)) continue;
             $ft = $dep->fee_type;
+            $ssid = (int)$dep->ss_id;
+            $ftid = (int)$dep->feetype_id;
             if (!isset($fee_type_collected[$ft])) $fee_type_collected[$ft] = 0;
+            if (!isset($stu_ft_collected[$ssid])) $stu_ft_collected[$ssid] = [];
+            if (!isset($stu_ft_collected[$ssid][$ftid])) $stu_ft_collected[$ssid][$ftid] = 0;
             foreach ($detail as $payment) {
                 $amt = (float)$payment->amount + (float)(isset($payment->amount_discount) ? $payment->amount_discount : 0);
                 $total_collected += $amt;
                 $fee_type_collected[$ft] += $amt;
+                $stu_ft_collected[$ssid][$ftid] += $amt;
             }
         }
 
-        // Transport collected (stored with student_transport_fee_id)
+        // Transport collected per student
+        $stu_transport_collected = [];
         $transport_deposits = $db->query(
-            "SELECT sfd.amount_detail
+            "SELECT stf.student_session_id AS ss_id, sfd.amount_detail
              FROM student_fees_deposite sfd
              JOIN student_transport_fees stf ON stf.id = sfd.student_transport_fee_id
              JOIN student_session ss ON ss.id = stf.student_session_id
@@ -695,10 +695,34 @@ class Branch extends MY_Addon_MBController
         foreach ($transport_deposits as $dep) {
             $detail = json_decode($dep->amount_detail);
             if (!is_object($detail)) continue;
+            $ssid = (int)$dep->ss_id;
+            if (!isset($stu_transport_collected[$ssid])) $stu_transport_collected[$ssid] = 0;
             foreach ($detail as $payment) {
-                $total_collected += (float)$payment->amount;
-                if (isset($payment->amount_discount)) {
-                    $total_collected += (float)$payment->amount_discount;
+                $amt = (float)$payment->amount;
+                if (isset($payment->amount_discount)) $amt += (float)$payment->amount_discount;
+                $total_collected += $amt;
+                $stu_transport_collected[$ssid] += $amt;
+            }
+        }
+
+        // ── 4. Positive-only balance per student per feetype ─────────────────
+        $total_positive_balance = 0;
+        $all_students = array_unique(array_merge(array_keys($stu_ft_billed), array_keys($stu_transport_billed)));
+        foreach ($all_students as $ssid) {
+            if (isset($stu_ft_billed[$ssid])) {
+                foreach ($stu_ft_billed[$ssid] as $ftid => $billed) {
+                    $collected = isset($stu_ft_collected[$ssid][$ftid]) ? $stu_ft_collected[$ssid][$ftid] : 0;
+                    $bal = $billed - $collected;
+                    if ($bal > 0) {
+                        $total_positive_balance += $bal;
+                    }
+                }
+            }
+            if (isset($stu_transport_billed[$ssid])) {
+                $collected = isset($stu_transport_collected[$ssid]) ? $stu_transport_collected[$ssid] : 0;
+                $bal = $stu_transport_billed[$ssid] - $collected;
+                if ($bal > 0) {
+                    $total_positive_balance += $bal;
                 }
             }
         }
@@ -712,7 +736,7 @@ class Branch extends MY_Addon_MBController
             $fee_type_breakdown[$ft] = ['billed' => $b, 'collected' => $c, 'balance' => $b - $c];
         }
 
-        return [$total_billed, $total_collected, $fee_type_breakdown];
+        return [$total_billed, $total_collected, $fee_type_breakdown, $total_positive_balance];
     }
 
     /**

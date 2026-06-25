@@ -10,63 +10,13 @@
 </section>
 <section class="content">
 <div class="row">
-  <div class="col-md-4">
-    <div class="box box-primary">
-      <div class="box-header with-border"><h3 class="box-title"><i class="fa fa-plus"></i> Add Room</h3></div>
-      <div class="box-body">
-        <form id="room-form">
-          <input type="hidden" id="room_id" name="id" value="0">
-          <div class="form-group">
-            <label>Room Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" name="name" id="room_name" placeholder="e.g. CSE Lab 1, Room 301" required>
-          </div>
-          <div class="form-group">
-            <label>Room Number</label>
-            <input type="text" class="form-control" name="room_number" id="room_number" placeholder="e.g. 301, B-Lab-2">
-          </div>
-          <div class="form-group">
-            <label>Type <span class="text-danger">*</span></label>
-            <select class="form-control" name="room_type" id="room_type">
-              <option value="classroom">Classroom</option>
-              <option value="lab">Lab / Practical Room</option>
-              <option value="seminar">Seminar Hall</option>
-              <option value="hall">Auditorium / Hall</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Capacity</label>
-            <input type="number" class="form-control" name="capacity" id="room_capacity" value="60" min="1">
-          </div>
-          <div class="form-group">
-            <label>Department (optional)</label>
-            <select class="form-control" name="department_id" id="room_dept">
-              <option value="">-- All Departments --</option>
-              <?php foreach ($departments as $dept): ?>
-              <option value="<?php echo $dept['id']; ?>"><?php echo htmlspecialchars($dept['department_name']); ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>
-              <input type="checkbox" name="is_shared" id="room_shared" value="1">
-              Shared Room
-            </label>
-            <small class="text-muted block">Shared rooms can be used by multiple classes simultaneously (e.g. Playground, Auditorium)</small>
-          </div>
-          <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-save"></i> Save Room</button>
-          <button type="button" class="btn btn-default btn-block" id="btn-reset-room">Reset</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-8">
+  <div class="col-md-12">
     <div class="box box-default">
       <div class="box-header with-border">
         <h3 class="box-title"><i class="fa fa-building"></i> Rooms List</h3>
         <div class="box-tools">
           <span class="badge bg-green"><?php echo count($rooms); ?> rooms</span>
+          <button class="btn btn-sm btn-primary" id="btn-add-room" style="margin-left:5px;"><i class="fa fa-plus"></i> Add Room</button>
         </div>
       </div>
       <div class="box-body table-responsive p-0">
@@ -123,10 +73,90 @@
 </div>
 </section>
 
+<!-- Room Modal -->
+<div class="modal fade" id="roomModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <h4 class="modal-title"><i class="fa fa-building"></i> <span id="roomModalLabel">Add Room</span></h4>
+      </div>
+      <form id="room-form">
+        <div class="modal-body">
+          <input type="hidden" id="room_id" name="id" value="0">
+          <div class="form-group">
+            <label>Room Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="name" id="room_name" placeholder="e.g. CSE Lab 1, Room 301" required>
+          </div>
+          <div class="form-group">
+            <label>Room Number</label>
+            <input type="text" class="form-control" name="room_number" id="room_number" placeholder="e.g. 301, B-Lab-2">
+          </div>
+          <div class="form-group">
+            <label>Type <span class="text-danger">*</span></label>
+            <select class="form-control" name="room_type" id="room_type">
+              <option value="classroom">Classroom</option>
+              <option value="lab">Lab / Practical Room</option>
+              <option value="seminar">Seminar Hall</option>
+              <option value="hall">Auditorium / Hall</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Capacity</label>
+            <input type="number" class="form-control" name="capacity" id="room_capacity" value="60" min="1">
+          </div>
+          <div class="form-group">
+            <label>Department (optional)</label>
+            <select class="form-control" name="department_id" id="room_dept">
+              <option value="">-- All Departments --</option>
+              <?php foreach ($departments as $dept): ?>
+              <option value="<?php echo $dept['id']; ?>"><?php echo htmlspecialchars($dept['department_name']); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" name="is_shared" id="room_shared" value="1">
+              Shared Room
+            </label>
+            <small class="text-muted block">Shared rooms can be used by multiple classes simultaneously (e.g. Playground, Auditorium)</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default pull-left" id="btn-reset-room" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save Room</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
 $(function(){
-  $('#room_dept').select2({ placeholder: '-- All Departments --', allowClear: true, width: '100%', minimumResultsForSearch: 1 });
+  var select2Initialized = false;
 
+  // Init select2 on modal shown to fix z-index issues
+  $('#roomModal').on('shown.bs.modal', function(){
+    if (!select2Initialized) {
+      $('#room_dept').select2({ placeholder: '-- All Departments --', allowClear: true, width: '100%', minimumResultsForSearch: 1, dropdownParent: $('#roomModal') });
+      select2Initialized = true;
+    }
+  });
+
+  // Add button
+  $('#btn-add-room').on('click', function(){
+    $('#room-form')[0].reset();
+    $('#room_id').val(0);
+    $('#room_capacity').val(60);
+    if (select2Initialized) {
+      $('#room_dept').val('').trigger('change.select2');
+    }
+    $('#roomModalLabel').text('Add Room');
+    $('#roomModal').modal('show');
+  });
+
+  // Edit
   $(document).on('click', '.btn-edit-room', function(){
     var d = $(this).data();
     $('#room_id').val(d.id);
@@ -134,26 +164,41 @@ $(function(){
     $('#room_number').val(d.number);
     $('#room_type').val(d.type);
     $('#room_capacity').val(d.capacity);
-    $('#room_dept').val(d.dept || '').trigger('change.select2');
     $('#room_shared').prop('checked', d.shared == 1);
-    $('html,body').animate({scrollTop:0}, 400);
+    $('#roomModalLabel').text('Edit Room');
+    $('#roomModal').modal('show');
+    // Set select2 value after modal is shown so select2 is initialized
+    $('#roomModal').one('shown.bs.modal', function(){
+      $('#room_dept').val(d.dept || '').trigger('change.select2');
+    });
   });
 
+  // Reset
   $('#btn-reset-room').on('click', function(){
     $('#room-form')[0].reset();
     $('#room_id').val(0);
+    if (select2Initialized) {
+      $('#room_dept').val('').trigger('change.select2');
+    }
   });
 
+  // Save
   $('#room-form').on('submit', function(e){
     e.preventDefault();
     var $btn = $(this).find('[type=submit]').prop('disabled', true).text('Saving...');
     $.post('<?php echo site_url('admin/tt/save_room'); ?>', $(this).serialize() + '&<?php echo $this->security->get_csrf_token_name(); ?>=<?php echo $this->security->get_csrf_hash(); ?>', function(res){
-      if (res.status === '1') { location.reload(); }
-      toastr.success('Room saved successfully');
-      else { swal({title:'Alert',text:'Error saving. Please try again.',type:'warning'}); $btn.prop('disabled',false).text('Save Room'); }
+      if (res.status === '1') {
+        toastr.success('Room saved successfully');
+        $('#roomModal').modal('hide');
+        location.reload();
+      } else {
+        swal({title:'Alert',text:'Error saving. Please try again.',type:'warning'});
+        $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Room');
+      }
     },'json');
   });
 
+  // Delete confirm
   $(document).on('click','.btn-delete', function(e){
     e.preventDefault(); var _href=$(this).attr('href'); var _msg=$(this).data('confirm')||'Are you sure?'; swal({title:'Confirm',text:_msg,type:'warning',showCancelButton:true,confirmButtonColor:'#dd4b39',confirmButtonText:'Yes'},function(ok){if(ok)window.location.href=_href;});
   });

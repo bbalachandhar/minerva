@@ -436,40 +436,84 @@ if (!empty($image)) {
 <?php } } ?>
 
                             <!-- User Avatar Dropdown -->
+                            <?php
+                            $ud = $this->customlib->getUserData();
+                            $user_email = !empty($ud['email']) ? $ud['email'] : '';
+                            $user_empid = !empty($ud['employee_id']) ? $ud['employee_id'] : '';
+                            $user_desg  = !empty($ud['designation']) ? $ud['designation'] : '';
+                            $user_dept  = !empty($ud['department_name']) ? $ud['department_name'] : '';
+                            $user_initials = strtoupper(substr($this->customlib->getAdminSessionUserName(), 0, 1));
+                            ?>
                             <div class="mn-user-dropdown dropdown">
                                 <a class="mn-user-trigger dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="false" title="<?php echo $this->customlib->getAdminSessionUserName(); ?>">
                                     <?php if ($file) { ?>
-                                        <img src="<?php echo base_url($file); ?>" class="mn-user-avatar" alt="User Image">
+                                        <img src="<?php echo base_url($file); ?>" class="mn-user-avatar" alt="">
                                     <?php } else { ?>
-                                        <span class="mn-user-icon-circle">
-                                            <i class="fa <?php echo $gender_icon; ?>"></i>
-                                        </span>
+                                        <span class="mn-user-icon-circle"><?php echo $user_initials; ?></span>
                                     <?php } ?>
+                                    <span class="mn-user-status-dot"></span>
                                 </a>
-                                <ul class="dropdown-menu">
+                                <ul class="dropdown-menu mn-profile-panel">
                                     <li>
-                                        <div class="mn-user-card">
-                                            <a href="<?php echo base_url() . "admin/staff/profile/" . $id ?>">
-                                                <?php if ($file) { ?>
-                                                    <img src="<?php echo base_url($file); ?>" class="mn-user-card-avatar" alt="User Image">
-                                                <?php } else { ?>
-                                                    <div class="mn-user-card-icon">
-                                                        <i class="fa <?php echo $gender_icon; ?>"></i>
-                                                    </div>
+                                        <div class="mn-profile-header">
+                                            <div class="mn-profile-header-bg"></div>
+                                            <div class="mn-profile-header-content">
+                                                <a href="<?php echo base_url() . "admin/staff/profile/" . $id; ?>" class="mn-profile-avatar-wrap">
+                                                    <?php if ($file) { ?>
+                                                        <img src="<?php echo base_url($file); ?>" class="mn-profile-avatar" alt="">
+                                                    <?php } else { ?>
+                                                        <div class="mn-profile-avatar-initials"><?php echo $user_initials; ?></div>
+                                                    <?php } ?>
+                                                    <span class="mn-profile-avatar-badge"><i class="fa fa-check"></i></span>
+                                                </a>
+                                                <div class="mn-profile-name"><?php echo $this->customlib->getAdminSessionUserName(); ?></div>
+                                                <div class="mn-profile-role"><?php echo $role; ?></div>
+                                                <?php if ($user_empid) { ?>
+                                                <div class="mn-profile-empid"><?php echo $user_empid; ?></div>
                                                 <?php } ?>
-                                            </a>
-                                            <h4><?php echo $this->customlib->getAdminSessionUserName(); ?></h4>
-                                            <h5><?php echo $role; ?></h5>
+                                            </div>
                                         </div>
-                                        <div class="mn-user-links">
-                                            <a href="<?php echo base_url() . "admin/staff/profile/" . $id ?>" data-toggle="tooltip" title="<?php echo $this->lang->line('my_profile'); ?>">
-                                                <i class="fa fa-user"></i> <?php echo $this->lang->line('profile'); ?>
+
+                                        <?php if ($user_email || $user_desg) { ?>
+                                        <div class="mn-profile-meta">
+                                            <?php if ($user_email) { ?>
+                                            <div class="mn-profile-meta-item">
+                                                <i class="fa fa-envelope-o"></i>
+                                                <span><?php echo $user_email; ?></span>
+                                            </div>
+                                            <?php } ?>
+                                            <?php if ($user_desg) { ?>
+                                            <div class="mn-profile-meta-item">
+                                                <i class="fa fa-briefcase"></i>
+                                                <span><?php echo $user_desg; ?></span>
+                                            </div>
+                                            <?php } ?>
+                                        </div>
+                                        <?php } ?>
+
+                                        <div class="mn-profile-section-label">Account</div>
+                                        <div class="mn-profile-menu">
+                                            <a href="<?php echo base_url() . "admin/staff/profile/" . $id; ?>">
+                                                <div class="mn-profile-menu-icon"><i class="fa fa-user-circle-o"></i></div>
+                                                <div class="mn-profile-menu-text">
+                                                    <span><?php echo $this->lang->line('my_profile'); ?></span>
+                                                    <small>View & edit your profile</small>
+                                                </div>
+                                                <i class="fa fa-angle-right mn-profile-menu-arrow"></i>
                                             </a>
-                                            <a href="<?php echo base_url(); ?>admin/admin/changepass" data-toggle="tooltip" title="<?php echo $this->lang->line('change_password'); ?>">
-                                                <i class="fa fa-key"></i> <?php echo $this->lang->line('password'); ?>
+                                            <a href="<?php echo base_url(); ?>admin/admin/changepass">
+                                                <div class="mn-profile-menu-icon" style="background:#fef3c7;"><i class="fa fa-shield" style="color:#d97706;"></i></div>
+                                                <div class="mn-profile-menu-text">
+                                                    <span><?php echo $this->lang->line('change_password'); ?></span>
+                                                    <small>Update your password</small>
+                                                </div>
+                                                <i class="fa fa-angle-right mn-profile-menu-arrow"></i>
                                             </a>
-                                            <a class="mn-logout-link" href="<?php echo base_url(); ?>site/logout">
-                                                <i class="fa fa-sign-out"></i> <?php echo $this->lang->line('logout'); ?>
+                                        </div>
+
+                                        <div class="mn-profile-footer">
+                                            <a class="mn-profile-logout" href="<?php echo base_url(); ?>site/logout">
+                                                <i class="fa fa-power-off"></i> <?php echo $this->lang->line('logout'); ?>
                                             </a>
                                         </div>
                                     </li>

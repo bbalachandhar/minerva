@@ -30,7 +30,15 @@ class Receive extends Admin_Controller
             $this->load->view('admin/frontoffice/receiveview', $data);
             $this->load->view('layout/footer');
         } else {
-            $img_name = $this->media_storage->fileupload("file", "./uploads/front_office/dispatch_receive/");
+            $img_name = '';
+            if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/front_office/dispatch_receive/");
+                if (is_array($upload_result) && $upload_result['status'] === false) {
+                    $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $upload_result['message'] . '</div>');
+                    redirect('admin/receive');
+                }
+                $img_name = is_array($upload_result) ? $upload_result['message'] : $upload_result;
+            }
 
             $dispatch = array(
                 'reference_no' => $this->input->post('ref_no'),

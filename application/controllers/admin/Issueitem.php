@@ -22,6 +22,9 @@ class Issueitem extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'issueitem/index');
         $data['title']      = 'Add Issue item';
         $data['title_list'] = 'Recent Issue items';
+        $data['roles']       = $this->role_model->get();
+        $data['itemcatlist'] = $this->itemcategory_model->get();
+        $data['staff']       = $this->staff_model->inventry_staff();
         $this->load->view('layout/header', $data);
         $this->load->view('admin/issueitem/issueitemList', $data);
         $this->load->view('layout/footer', $data);

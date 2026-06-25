@@ -141,15 +141,12 @@ class Leaverequest_model extends MY_model
         //======================Code End==============================
 
         $this->db->trans_complete(); # Completing transaction
-        /* Optional */
 
         if ($this->db->trans_status() === false) {
-            # Something went wrong.
             $this->db->trans_rollback();
             return false;
-        } else {
-            //return $return_value;
         }
+        return true;
     }
 
     public function getLeaveSummary()

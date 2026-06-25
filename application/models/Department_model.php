@@ -147,4 +147,16 @@ class Department_model extends MY_model
         return $query->row_array();
     }
 
+    public function getAcademicDepartments()
+    {
+        $this->db->select('department.*, CONCAT(staff.name, " ", staff.surname) as dept_head_name');
+        $this->db->from('department');
+        $this->db->join('staff', 'staff.id = department.dept_head_id', 'left');
+        if ($this->db->field_exists('is_academic', 'department')) {
+            $this->db->where('department.is_academic', 1);
+        }
+        $this->db->order_by('department.department_name');
+        return $this->db->get()->result_array();
+    }
+
 }

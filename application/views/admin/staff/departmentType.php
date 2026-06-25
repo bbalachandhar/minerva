@@ -58,6 +58,18 @@ if (isset($result)) {
                                     </select>
                                     <span class="text-danger"><?php echo form_error('dept_head_id'); ?></span>
                                 </div>
+                                <div class="form-group">
+                                    <label>Academic Department</label>
+                                    <div>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="is_academic" value="1" <?php echo (!isset($result) || !isset($result['is_academic']) || $result['is_academic'] == 1) ? 'checked' : ''; ?>> Yes
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="is_academic" value="0" <?php echo (isset($result) && isset($result['is_academic']) && $result['is_academic'] == 0) ? 'checked' : ''; ?>> No
+                                        </label>
+                                    </div>
+                                    <span class="text-muted" style="font-size:12px;">Non-academic departments (Admin, Transport, etc.) won't appear in academic screens</span>
+                                </div>
 
                             </div>
                             <div class="box-footer">
@@ -88,6 +100,7 @@ if (($this->rbac->hasPrivilege('department', 'can_add')) || ($this->rbac->hasPri
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
                                         <th><?php echo $this->lang->line('department_head'); ?></th>
+                                        <th>Type</th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>
@@ -105,8 +118,15 @@ foreach ($departmenttype as $value) {
     ?>
                                         <tr>
                                             <td class="mailbox-name"> <?php echo $value['department_name'] ?></td>
-                                            <td class="mailbox-name"> 
+                                            <td class="mailbox-name">
                                                 <?php echo $value['dept_head_name']; ?>
+                                            </td>
+                                            <td>
+                                                <?php if (isset($value['is_academic']) && $value['is_academic'] == 0): ?>
+                                                    <span class="label label-warning">Non-Academic</span>
+                                                <?php else: ?>
+                                                    <span class="label label-success">Academic</span>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="mailbox-date pull-right no-print">
                                                 <?php if ($this->rbac->hasPrivilege('department', 'can_edit')) {

@@ -661,44 +661,55 @@ class Admin extends Admin_Controller
             $total_last_yr_cf = 0.0; $total_cf_paid = 0.0; $total_cf_balance = 0.0;
 
             // Iterate directly over fee_summary (no getStudentsBySession() needed).
+            // Balance = positive per-fee-type balances + CF balance (matches custom report BALANCE column).
             foreach ($fee_summary as $ssid => $fs) {
 
                 $ft_demand = 0.0;
                 $ft_paid   = 0.0;
+                $positive_balance_sum = 0.0;
                 foreach ($fs['fee_types'] as $ft) {
-                    $ft_demand += (float)$ft['demand'];
-                    $ft_paid   += (float)$ft['paid'];
+                    $d = (float)$ft['demand'];
+                    $p = (float)$ft['paid'];
+                    $ft_demand += $d;
+                    $ft_paid   += $p;
+                    $ft_bal = $d - $p;
+                    if ($ft_bal > 0) {
+                        $positive_balance_sum += $ft_bal;
+                    }
                 }
                 $totalfee       = $ft_demand + $fs['transport_demand'];
                 $total_paid_sum = $ft_paid   + $fs['transport_paid'];
+                $transport_bal = $fs['transport_demand'] - $fs['transport_paid'];
+                if ($transport_bal > 0) {
+                    $positive_balance_sum += $transport_bal;
+                }
                 $cf_demand  = $fs['cf_demand'];
                 $cf_paid    = $fs['cf_paid'];
                 $cf_balance = $cf_demand - $cf_paid;
+
+                $student_balance = $positive_balance_sum + $cf_balance;
+                $demand_with_cf  = $totalfee + $cf_demand;
+                $paid_with_cf    = $total_paid_sum + $cf_paid;
 
                 if ($totalfee == 0 && $cf_demand == 0) {
                     continue;
                 }
 
-                $awaiting_value = $totalfee - $total_paid_sum;
-
-                if ($awaiting_value > 0 && $total_paid_sum == 0) {
+                if ($student_balance > 0 && $paid_with_cf == 0) {
                     $unpaid_count++;
-                    $unpaid_sum += $awaiting_value;
-                } elseif ($awaiting_value > 0 && $total_paid_sum > 0) {
+                    $unpaid_sum += $student_balance;
+                } elseif ($student_balance > 0 && $paid_with_cf > 0) {
                     $partial_count++;
-                    $partial_sum += $awaiting_value;
-                    $partial_collected += $total_paid_sum;
-                } elseif ($awaiting_value <= 0 && $total_paid_sum > 0) {
+                    $partial_sum += $student_balance;
+                    $partial_collected += $paid_with_cf;
+                } elseif ($student_balance <= 0 && $paid_with_cf > 0) {
                     $paid_count++;
-                    // Use $totalfee (demand fulfilled), not $total_paid_sum (actual collected),
-                    // so that: unpaid_bal + partial_paid + partial_bal + paid_demand = total_demand.
-                    // Over-payments / advance amounts are excluded from this equation intentionally.
-                    $paid_sum += $totalfee;
+                    $paid_sum += $demand_with_cf;
                 }
 
-                $total_demand     += $totalfee;
-                $total_collection += $total_paid_sum;
-                $total_awaiting   += $awaiting_value;
+                $total_demand     += $demand_with_cf;
+                $total_collection += $paid_with_cf;
+                $total_awaiting   += $student_balance;
                 $total_last_yr_cf += $cf_demand;
                 $total_cf_paid    += $cf_paid;
                 $total_cf_balance += $cf_balance;
