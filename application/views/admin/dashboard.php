@@ -543,7 +543,7 @@
 
         <!-- ═══ ROW 3 — ADMISSION + HEAD COUNT ═══ -->
         <div class="mn-section">
-            <div class="mn-row">
+            <div class="mn-row mn-row-eq">
 
                 <?php if ($this->module_lib->hasActive('front_office') && $this->rbac->hasPrivilege('enquiry_overview_widegts', 'can_view')) { ?>
                 <div class="mn-col-50">
@@ -566,31 +566,28 @@
                 <?php } ?>
 
                 <?php if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) { ?>
-                <div class="mn-col-50">
-                    <div class="mn-card" id="student-headcount-widget" data-url="<?php echo site_url('admin/admin/student_head_count_widget'); ?>">
+                <div class="mn-col-50" id="student-headcount-widget" data-url="<?php echo site_url('admin/admin/student_head_count_widget'); ?>">
+                    <div class="mn-card">
                         <div class="mn-card-head-accent mn-accent-cyan"><?php echo $this->lang->line('student_head_count'); ?></div>
-                        <div class="mn-card-body" style="padding:24px;">
-                            <div class="mn-hc-total shc-total fo-skeleton">0</div>
-                            <div style="font-size:11px;color:var(--mn-text-sec);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;margin-top:4px;">Total Students</div>
-                            <div class="mn-hc-grid">
-                                <div class="mn-hc-segment">
-                                    <div class="mn-hc-segment-label"><i class="fa fa-male" style="color:var(--mn-blue);"></i> Male</div>
-                                    <div class="mn-hc-segment-val shc-male-count fo-skeleton">0</div>
-                                    <div class="mn-hc-segment-pct"><span class="shc-male-percent fo-skeleton">0</span>%</div>
+                        <div class="mn-card-body" style="padding:20px 24px;">
+                            <div style="display:flex;align-items:baseline;gap:12px;">
+                                <div class="mn-hc-total shc-total fo-skeleton" style="font-size:42px;">0</div>
+                                <div style="font-size:11px;color:var(--mn-text-sec);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Total Students</div>
+                            </div>
+                            <div style="display:flex;gap:24px;margin-top:16px;">
+                                <div style="flex:1;">
+                                    <div style="font-size:11px;font-weight:600;color:var(--mn-text-sec);text-transform:uppercase;letter-spacing:0.3px;"><i class="fa fa-male" style="color:var(--mn-blue);"></i> Male</div>
+                                    <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px;"><span class="shc-male-count fo-skeleton" style="font-size:22px;font-weight:800;">0</span><span class="shc-male-percent fo-skeleton" style="font-size:12px;color:var(--mn-text-sec);">0</span><span style="font-size:12px;color:var(--mn-text-sec);">%</span></div>
                                     <div class="mn-hc-bar"><div class="progress-bar shc-male-bar" style="width:0%;background:var(--mn-blue);"></div></div>
                                 </div>
-                                <div class="mn-hc-segment">
-                                    <div class="mn-hc-segment-label"><i class="fa fa-female" style="color:var(--mn-pink);"></i> Female</div>
-                                    <div class="mn-hc-segment-val shc-female-count fo-skeleton">0</div>
-                                    <div class="mn-hc-segment-pct"><span class="shc-female-percent fo-skeleton">0</span>%</div>
+                                <div style="flex:1;">
+                                    <div style="font-size:11px;font-weight:600;color:var(--mn-text-sec);text-transform:uppercase;letter-spacing:0.3px;"><i class="fa fa-female" style="color:var(--mn-pink);"></i> Female</div>
+                                    <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px;"><span class="shc-female-count fo-skeleton" style="font-size:22px;font-weight:800;">0</span><span class="shc-female-percent fo-skeleton" style="font-size:12px;color:var(--mn-text-sec);">0</span><span style="font-size:12px;color:var(--mn-text-sec);">%</span></div>
                                     <div class="mn-hc-bar"><div class="progress-bar shc-female-bar" style="width:0%;background:var(--mn-pink);"></div></div>
                                 </div>
-                            </div>
-                            <div class="shc-others" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--mn-border);">
-                                <div class="mn-hc-segment">
-                                    <div class="mn-hc-segment-label"><i class="fa fa-genderless" style="color:var(--mn-amber);"></i> Others</div>
-                                    <div class="mn-hc-segment-val shc-other-count">0</div>
-                                    <div class="mn-hc-segment-pct"><span class="shc-other-percent">0</span>%</div>
+                                <div style="flex:1;" class="shc-others" style="display:none;">
+                                    <div style="font-size:11px;font-weight:600;color:var(--mn-text-sec);text-transform:uppercase;letter-spacing:0.3px;"><i class="fa fa-genderless" style="color:var(--mn-amber);"></i> Others</div>
+                                    <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px;"><span class="shc-other-count" style="font-size:22px;font-weight:800;">0</span><span class="shc-other-percent" style="font-size:12px;color:var(--mn-text-sec);">0</span><span style="font-size:12px;color:var(--mn-text-sec);">%</span></div>
                                     <div class="mn-hc-bar"><div class="progress-bar shc-other-bar" style="width:0%;background:var(--mn-amber);"></div></div>
                                 </div>
                             </div>
