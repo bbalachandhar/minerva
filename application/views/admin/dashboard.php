@@ -1720,6 +1720,7 @@ $(document).ready(function() {
                         return;
                     }
                     $monthlyFees.find('.mfc-amount').text(resp.data.amount_formatted || '');
+                    $monthlyFees.attr('title', 'Monthly Fees Collection: ' + (resp.data.amount_formatted || '0'));
                     $monthlyFees.find('.fo-skeleton').removeClass('fo-skeleton');
                 }).fail(function() {
                     $monthlyFees.find('.fo-skeleton').removeClass('fo-skeleton');
@@ -1740,6 +1741,7 @@ $(document).ready(function() {
                         return;
                     }
                     $monthlyIncome.find('.mi-amount').text(resp.data.amount_formatted || '');
+                    $monthlyIncome.attr('title', 'Monthly Income: ' + (resp.data.amount_formatted || '0'));
                     $monthlyIncome.find('.fo-skeleton').removeClass('fo-skeleton');
                 }).fail(function() {
                     $monthlyIncome.find('.fo-skeleton').removeClass('fo-skeleton');
@@ -1760,6 +1762,7 @@ $(document).ready(function() {
                         return;
                     }
                     $monthlyExpense.find('.me-amount').text(resp.data.amount_formatted || '');
+                    $monthlyExpense.attr('title', 'Monthly Expenses: ' + (resp.data.amount_formatted || '0'));
                     $monthlyExpense.find('.fo-skeleton').removeClass('fo-skeleton');
                 }).fail(function() {
                     $monthlyExpense.find('.fo-skeleton').removeClass('fo-skeleton');
@@ -1780,6 +1783,7 @@ $(document).ready(function() {
                         return;
                     }
                     $waWidget.find('.wa-count').text(resp.data.count || 0);
+                    $waWidget.attr('title', 'WhatsApp Sent: ' + (resp.data.count || 0));
                     $waWidget.find('.fo-skeleton').removeClass('fo-skeleton');
                 }).fail(function() {
                     $waWidget.find('.fo-skeleton').removeClass('fo-skeleton');
