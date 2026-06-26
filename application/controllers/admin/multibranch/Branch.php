@@ -579,7 +579,7 @@ class Branch extends MY_Addon_MBController
      */
     private function _mcc_fees_summary($db, $session_id)
     {
-        // ── 1. Billed per student per feetype (also yields aggregates) ────────
+        // ── 1. Billed per student per feetype (excludes Advance & PSB) ───────
         $billed_rows = $db->query(
             "SELECT ss_id, feetype_id, fee_type, SUM(billed) AS billed FROM (
                 SELECT sfm.student_session_id AS ss_id, fgf.feetype_id,
@@ -589,14 +589,16 @@ class Branch extends MY_Addon_MBController
                 JOIN student_session ss  ON ss.id  = sfm.student_session_id
                 JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
                 JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+                JOIN fee_groups fg        ON fg.id  = fsg.fee_groups_id
                 JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
                 JOIN feetype ft           ON ft.id  = fgf.feetype_id
-                                          AND LOWER(ft.type) NOT IN ('advance payments')
+                                          AND LOWER(ft.type) NOT IN ('advance payments', 'previous session balance')
                 LEFT JOIN student_fee_overrides sfo
                        ON sfo.student_session_id   = sfm.student_session_id
                       AND sfo.fee_groups_feetype_id = fgf.id
                 WHERE ss.session_id = ? AND sfm.is_active = 'yes'
                   AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
+                  AND fg.name != 'Balance Master'
                 GROUP BY sfm.student_session_id, fgf.feetype_id, ft.type, fgf.id
              ) sub GROUP BY ss_id, feetype_id, fee_type",
             [$session_id]
@@ -642,19 +644,84 @@ class Branch extends MY_Addon_MBController
         }
         $total_billed += $transport_billed;
 
-        // ── 3. Collected per student per feetype (parse JSON in PHP) ─────────
+        // ── 3. CF (Balance Master) demand & paid per student ─────────────────
+        $cf_demand_total = 0;
+        $cf_paid_total = 0;
+        $stu_cf_balance = [];
+
+        $cf_demand_rows = $db->query(
+            "SELECT sfm.student_session_id AS ss_id, SUM(sfm.amount) AS cf_demand
+             FROM student_fees_master sfm
+             JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+             JOIN fee_groups fg          ON fg.id  = fsg.fee_groups_id
+             JOIN student_session ss     ON ss.id  = sfm.student_session_id
+             JOIN students s             ON s.id   = ss.student_id AND s.is_active = 'yes'
+             WHERE ss.session_id = ? AND sfm.is_active = 'yes'
+               AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
+               AND fg.name = 'Balance Master'
+             GROUP BY sfm.student_session_id",
+            [$session_id]
+        )->result();
+        foreach ($cf_demand_rows as $row) {
+            $ssid = (int)$row->ss_id;
+            $demand = (float)$row->cf_demand;
+            $cf_demand_total += $demand;
+            $stu_cf_balance[$ssid] = $demand;
+        }
+        $total_billed += $cf_demand_total;
+
+        $psb_ft_row = $db->query("SELECT id FROM feetype WHERE LOWER(type) = 'previous session balance' LIMIT 1")->row();
+        $psb_ftid = $psb_ft_row ? (int)$psb_ft_row->id : 0;
+
+        if ($psb_ftid > 0 && !empty($stu_cf_balance)) {
+            $cf_paid_rows = $db->query(
+                "SELECT sfm.student_session_id AS ss_id, sfd.amount_detail
+                 FROM student_fees_deposite sfd
+                 JOIN student_fees_master sfm   ON sfm.id = sfd.student_fees_master_id AND sfm.is_active = 'yes'
+                 JOIN fee_session_groups fsg     ON fsg.id = sfm.fee_session_group_id
+                 JOIN fee_groups fg              ON fg.id  = fsg.fee_groups_id
+                 JOIN fee_groups_feetype fgf     ON fgf.id = sfd.fee_groups_feetype_id
+                 JOIN student_session ss         ON ss.id  = sfm.student_session_id
+                 WHERE ss.session_id = ?
+                   AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
+                   AND fg.name = 'Balance Master'
+                   AND fgf.feetype_id = ?
+                   AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
+                [$session_id, $psb_ftid]
+            )->result();
+            foreach ($cf_paid_rows as $dep) {
+                $detail = json_decode($dep->amount_detail);
+                if (!is_object($detail)) continue;
+                $ssid = (int)$dep->ss_id;
+                foreach ($detail as $payment) {
+                    $amt = (float)$payment->amount;
+                    if (isset($payment->amount_discount)) $amt += (float)$payment->amount_discount;
+                    $cf_paid_total += $amt;
+                    if (isset($stu_cf_balance[$ssid])) {
+                        $stu_cf_balance[$ssid] -= $amt;
+                    }
+                }
+            }
+        }
+        $total_collected += $cf_paid_total;
+
+        // ── 4. Collected per student per feetype (excludes Advance & PSB) ────
         $deposits = $db->query(
             "SELECT sfm.student_session_id AS ss_id, sfd.amount_detail,
                     ft.type AS fee_type, fgf.feetype_id
              FROM student_fees_deposite sfd
              JOIN student_fees_master sfm ON sfm.id = sfd.student_fees_master_id
                                          AND sfm.is_active = 'yes'
+             JOIN fee_session_groups fsg  ON fsg.id = sfm.fee_session_group_id
+             JOIN fee_groups fg           ON fg.id  = fsg.fee_groups_id
              JOIN fee_groups_feetype fgf  ON fgf.id = sfd.fee_groups_feetype_id
              JOIN feetype ft             ON ft.id  = fgf.feetype_id
+                                         AND LOWER(ft.type) NOT IN ('advance payments', 'previous session balance')
              JOIN student_session ss ON ss.id = sfm.student_session_id
              JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
              WHERE ss.session_id = ?
                AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
+               AND fg.name != 'Balance Master'
                AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
             [$session_id]
         )->result();
@@ -678,6 +745,7 @@ class Branch extends MY_Addon_MBController
                 $stu_ft_collected[$ssid][$ftid] += $amt;
             }
         }
+        $total_collected += $cf_paid_total;
 
         // Transport collected per student
         $stu_transport_collected = [];
@@ -705,9 +773,13 @@ class Branch extends MY_Addon_MBController
             }
         }
 
-        // ── 4. Positive-only balance per student per feetype ─────────────────
+        // ── 5. Positive-only balance (regular + transport) + CF balance ──────
         $total_positive_balance = 0;
-        $all_students = array_unique(array_merge(array_keys($stu_ft_billed), array_keys($stu_transport_billed)));
+        $all_students = array_unique(array_merge(
+            array_keys($stu_ft_billed),
+            array_keys($stu_transport_billed),
+            array_keys($stu_cf_balance)
+        ));
         foreach ($all_students as $ssid) {
             if (isset($stu_ft_billed[$ssid])) {
                 foreach ($stu_ft_billed[$ssid] as $ftid => $billed) {
@@ -724,6 +796,9 @@ class Branch extends MY_Addon_MBController
                 if ($bal > 0) {
                     $total_positive_balance += $bal;
                 }
+            }
+            if (isset($stu_cf_balance[$ssid])) {
+                $total_positive_balance += $stu_cf_balance[$ssid];
             }
         }
 

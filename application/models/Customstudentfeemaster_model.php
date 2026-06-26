@@ -400,8 +400,9 @@ class Customstudentfeemaster_model extends MY_Model
                             $type_lower = strtolower(trim($fee_detail->type));
                             if ($type_lower === 'advance payments') {
                                 $return_object->advance_paid += $deposit_data->amount_paid;
+                            } elseif ($type_lower === 'previous session balance') {
+                                // Handled separately via CF columns (getPreviousSessionBalance/getPreviousSessionPaid)
                             } else {
-                                // Dynamic keying by feetype_id — no hardcoded name matching
                                 $tid = (int)$fee_detail->feetype_id;
                                 if (!isset($return_object->fee_types[$tid])) {
                                     $return_object->fee_types[$tid] = [
