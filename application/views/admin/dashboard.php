@@ -1066,11 +1066,11 @@ $(document).ready(function() {
 
     <?php if ($this->rbac->hasPrivilege('income_donut_graph', 'can_view') && $this->module_lib->hasActive('income')) { ?>
     new ApexCharts(document.getElementById('doughnut-chart'), {
-        chart: { type: 'donut', height: 440, fontFamily: apexDefaults.chart.fontFamily },
+        chart: { type: 'donut', height: 320, fontFamily: apexDefaults.chart.fontFamily },
         series: [<?php foreach ($incomegraph as $value) { ?><?php echo $value['total']; ?>, <?php } ?>],
         labels: [<?php foreach ($incomegraph as $value) { ?>"<?php echo $value['income_category']; ?>", <?php } ?>],
         colors: [<?php $s = 1; foreach ($incomegraph as $value) { ?>"<?php echo incomegraphColors($s++); ?>", <?php if ($s == 8) { $s = 1; } } ?>],
-        plotOptions: { pie: { donut: { size: '70%' }, startAngle: -90, endAngle: 90, offsetY: 40 } },
+        plotOptions: { pie: { donut: { size: '85%' }, startAngle: -90, endAngle: 90, offsetY: 10 } },
         legend: { position: 'bottom', fontSize: '11px', labels: { colors: '#64748b' }, markers: { width: 8, height: 8, radius: 8 } },
         dataLabels: { enabled: false },
         tooltip: { theme: 'dark', y: { formatter: function(v) { return '₹' + v.toLocaleString('en-IN'); } } }
@@ -1079,11 +1079,11 @@ $(document).ready(function() {
 
     <?php if ($this->rbac->hasPrivilege('expense_donut_graph', 'can_view') && $this->module_lib->hasActive('expense')) { ?>
     new ApexCharts(document.getElementById('doughnut-chart1'), {
-        chart: { type: 'donut', height: 440, fontFamily: apexDefaults.chart.fontFamily },
+        chart: { type: 'donut', height: 320, fontFamily: apexDefaults.chart.fontFamily },
         series: [<?php foreach ($expensegraph as $value) { ?><?php echo $value['total']; ?>, <?php } ?>],
         labels: [<?php foreach ($expensegraph as $value) { ?>"<?php echo $value['exp_category']; ?>", <?php } ?>],
         colors: [<?php $ss = 1; foreach ($expensegraph as $value) { ?>"<?php echo expensegraphColors($ss++); ?>", <?php if ($ss == 8) { $ss = 1; } } ?>],
-        plotOptions: { pie: { donut: { size: '70%' }, startAngle: -90, endAngle: 90, offsetY: 40 } },
+        plotOptions: { pie: { donut: { size: '85%' }, startAngle: -90, endAngle: 90, offsetY: 10 } },
         legend: { position: 'bottom', fontSize: '11px', labels: { colors: '#64748b' }, markers: { width: 8, height: 8, radius: 8 } },
         dataLabels: { enabled: false },
         tooltip: { theme: 'dark', y: { formatter: function(v) { return '₹' + v.toLocaleString('en-IN'); } } }
