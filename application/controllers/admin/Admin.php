@@ -172,6 +172,7 @@ class Admin extends Admin_Controller
                                                 AND sfo.fee_groups_feetype_id = fgf.id
             WHERE ss.session_id = $sess
               AND ss.id IN ($in_ids)
+              AND sfm.is_active = 'yes'
               AND fg.name != 'Balance Master'
               AND LOWER(ft.type) NOT IN ('advance payments', 'previous session balance')
             GROUP BY sfm.student_session_id, ft.id, ft.type
@@ -199,6 +200,7 @@ class Admin extends Admin_Controller
             INNER JOIN student_session     ss  ON ss.id   = sfm.student_session_id
             WHERE ss.session_id = $sess
               AND ss.id IN ($in_ids)
+              AND sfm.is_active = 'yes'
               AND fg.name != 'Balance Master'
               AND LOWER(ft.type) NOT IN ('advance payments', 'previous session balance')
         ");
