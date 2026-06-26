@@ -43,8 +43,8 @@ if ($theme == "white") { ?>
 <?php } elseif ($theme == "blue") { ?>
 
     <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/style-main.css">
-    <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/themes/blue/skins/skin-darkblue.css">
-    <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/themes/blue/ss-main-darkblue.css">
+    <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/themes/blue/skins/skin-darkblue.css?v=20260626">
+    <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/themes/blue/ss-main-darkblue.css?v=20260626">
 	
 <?php } elseif ($theme == "gray") { ?>
 
