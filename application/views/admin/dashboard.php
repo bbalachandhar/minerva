@@ -591,6 +591,32 @@
                                     <div class="mn-hc-bar"><div class="progress-bar shc-other-bar" style="width:0%;background:var(--mn-amber);"></div></div>
                                 </div>
                             </div>
+                            <div style="display:flex;gap:12px;margin-top:20px;padding-top:18px;border-top:1px solid var(--mn-border);">
+                                <?php if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) { ?>
+                                <a href="<?php echo site_url('studentfee'); ?>" class="mn-qlink" id="monthly-fees-collection-widget" data-url="<?php echo site_url('admin/admin/monthly_fees_collection_widget'); ?>" style="flex:1;">
+                                    <div class="mn-qlink-icon" style="background:#ecfdf5;color:var(--mn-green);"><i class="fa fa-money"></i></div>
+                                    <div><div class="mn-qlink-label"><?php echo $this->lang->line('monthly_fees_collection'); ?></div><div class="mn-qlink-value mfc-amount fo-skeleton">0</div></div>
+                                </a>
+                                <?php } ?>
+                                <?php if ($this->module_lib->hasActive('income') && $this->rbac->hasPrivilege('monthly_income_widget', 'can_view')) { ?>
+                                <a href="<?php echo site_url('admin/income'); ?>" class="mn-qlink" id="monthly-income-widget" data-url="<?php echo site_url('admin/admin/monthly_income_widget'); ?>" style="flex:1;">
+                                    <div class="mn-qlink-icon" style="background:#eff6ff;color:var(--mn-blue);"><i class="fa fa-bank"></i></div>
+                                    <div><div class="mn-qlink-label">Monthly <?php echo $this->lang->line('income'); ?></div><div class="mn-qlink-value mi-amount fo-skeleton">0</div></div>
+                                </a>
+                                <?php } ?>
+                                <?php if ($this->module_lib->hasActive('expense') && $this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) { ?>
+                                <a href="<?php echo site_url('admin/expense'); ?>" class="mn-qlink" id="monthly-expense-widget" data-url="<?php echo site_url('admin/admin/monthly_expense_widget'); ?>" style="flex:1;">
+                                    <div class="mn-qlink-icon" style="background:#fef2f2;color:var(--mn-red);"><i class="fa fa-credit-card"></i></div>
+                                    <div><div class="mn-qlink-label"><?php echo $this->lang->line('monthly_expenses'); ?></div><div class="mn-qlink-value me-amount fo-skeleton">0</div></div>
+                                </a>
+                                <?php } ?>
+                                <?php if ($this->module_lib->hasActive('whatsapp_messaging')) { ?>
+                                <a href="<?php echo site_url('whatsappconfig'); ?>" class="mn-qlink" id="whatsapp-msg-widget" data-url="<?php echo site_url('admin/admin/whatsapp_sent_widget'); ?>" style="flex:1;">
+                                    <div class="mn-qlink-icon" style="background:#dcfce7;color:#25D366;"><i class="fa fa-whatsapp"></i></div>
+                                    <div><div class="mn-qlink-label">WhatsApp Sent</div><div class="mn-qlink-value wa-count fo-skeleton">0</div></div>
+                                </a>
+                                <?php } ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -772,41 +798,6 @@
         <div class="mn-section">
             <div class="mn-row">
                 <div class="mn-col-75">
-                    <div class="mn-row" style="margin-bottom:8px;">
-                        <?php if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) { ?>
-                        <div class="mn-col-25">
-                            <a href="<?php echo site_url('studentfee'); ?>" class="mn-qlink" id="monthly-fees-collection-widget" data-url="<?php echo site_url('admin/admin/monthly_fees_collection_widget'); ?>">
-                                <div class="mn-qlink-icon" style="background:#ecfdf5;color:var(--mn-green);"><i class="fa fa-money"></i></div>
-                                <div><div class="mn-qlink-label"><?php echo $this->lang->line('monthly_fees_collection'); ?></div><div class="mn-qlink-value mfc-amount fo-skeleton">0</div></div>
-                            </a>
-                        </div>
-                        <?php } ?>
-                        <?php if ($this->module_lib->hasActive('income') && $this->rbac->hasPrivilege('monthly_income_widget', 'can_view')) { ?>
-                        <div class="mn-col-25">
-                            <a href="<?php echo site_url('admin/income'); ?>" class="mn-qlink" id="monthly-income-widget" data-url="<?php echo site_url('admin/admin/monthly_income_widget'); ?>">
-                                <div class="mn-qlink-icon" style="background:#eff6ff;color:var(--mn-blue);"><i class="fa fa-bank"></i></div>
-                                <div><div class="mn-qlink-label">Monthly <?php echo $this->lang->line('income'); ?></div><div class="mn-qlink-value mi-amount fo-skeleton">0</div></div>
-                            </a>
-                        </div>
-                        <?php } ?>
-                        <?php if ($this->module_lib->hasActive('expense') && $this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) { ?>
-                        <div class="mn-col-25">
-                            <a href="<?php echo site_url('admin/expense'); ?>" class="mn-qlink" id="monthly-expense-widget" data-url="<?php echo site_url('admin/admin/monthly_expense_widget'); ?>">
-                                <div class="mn-qlink-icon" style="background:#fef2f2;color:var(--mn-red);"><i class="fa fa-credit-card"></i></div>
-                                <div><div class="mn-qlink-label"><?php echo $this->lang->line('monthly_expenses'); ?></div><div class="mn-qlink-value me-amount fo-skeleton">0</div></div>
-                            </a>
-                        </div>
-                        <?php } ?>
-                        <?php if ($this->module_lib->hasActive('whatsapp_messaging')) { ?>
-                        <div class="mn-col-25">
-                            <a href="<?php echo site_url('whatsappconfig'); ?>" class="mn-qlink" id="whatsapp-msg-widget" data-url="<?php echo site_url('admin/admin/whatsapp_sent_widget'); ?>">
-                                <div class="mn-qlink-icon" style="background:#dcfce7;color:#25D366;"><i class="fa fa-whatsapp"></i></div>
-                                <div><div class="mn-qlink-label">WhatsApp Sent</div><div class="mn-qlink-value wa-count fo-skeleton">0</div></div>
-                            </a>
-                        </div>
-                        <?php } ?>
-                    </div>
-
                     <?php if ($this->module_lib->hasActive('calendar_to_do_list') && $this->rbac->hasPrivilege('calendar_to_do_list', 'can_view')) { ?>
                     <div class="mn-card">
                         <div class="mn-card-body" style="padding:20px;"><div id="calendar"></div></div>
