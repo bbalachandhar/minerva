@@ -1109,9 +1109,8 @@ $(document).ready(function() {
                     chart: { type: 'area', height: 280 },
                     series: series,
                     xaxis: { categories: resp.data.labels || [] },
-                    colors: ['#10b981', '#3b82f6', '#ef4444'],
-                    stroke: { curve: 'smooth', width: 2 },
-                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [0, 100] } },
+                    colors: ['#008FFB', '#00E396', '#FF4560'],
+                    stroke: { curve: 'smooth', width: 2.5 },
                     dataLabels: { enabled: false }
                 })).render();
                 $barWrap.removeClass('is-loading');
