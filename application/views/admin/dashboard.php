@@ -668,7 +668,7 @@
 
         <!-- ═══ ROW 6 — FINANCIAL WIDGETS ═══ -->
         <div class="mn-section">
-            <div class="mn-row">
+            <div class="mn-row mn-row-eq">
                 <?php if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('fees_overview_widegts', 'can_view')) { ?>
 
                 <div class="mn-col-25">
