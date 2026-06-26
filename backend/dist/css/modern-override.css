@@ -11,7 +11,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-.content-wrapper, .right-side { background-color: #f8fafc; }
+.content-wrapper, .right-side { background-color: #eef0f4; }
 .content { padding: 12px 15px; }
 .content-header { display: none; }
 
@@ -228,7 +228,7 @@ body .table > tbody > tr > td {
   color: #0f172a;
   font-size: 13px;
 }
-body .table > tbody > tr:hover > td { background-color: #f8fafc; }
+body .table > tbody > tr:hover > td { background-color: #eef2ff; }
 body .table-bordered { border: 1px solid #e2e8f0; }
 body .table-bordered > thead > tr > th,
 body .table-bordered > tbody > tr > td { border: 1px solid #f1f5f9; }
@@ -501,21 +501,21 @@ body .swal2-confirm, body .swal2-cancel { border-radius: 6px; }
 
 /* -- Header ------------------------------------------------------------ */
 body.skin-blue .main-header {
-    background: #fff !important;
-    border-bottom: 1px solid #e5e7eb !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    background: #f8f9fb !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
     z-index: 1050 !important;
 }
 
 /* Logo: white bg, proper height, image constrained to fit */
 body.skin-blue .main-header .logo {
-    background: #fff !important;
+    background: #f8f9fb !important;
     color: #1f2937 !important;
     border-bottom: none !important;
     height: 56px !important;
     line-height: 56px !important;
 }
-body.skin-blue .main-header .logo:hover { background: #f9fafb !important; }
+body.skin-blue .main-header .logo:hover { background: #f1f3f6 !important; }
 body.skin-blue .main-header .logo img {
     max-height: 42px !important;
     max-width: 170px !important;
@@ -526,7 +526,7 @@ body.skin-blue .main-header .logo img {
 
 /* Navbar: white bg, hide AdminLTE's default sidebar-toggle */
 body.skin-blue .main-header .navbar,
-body.skin-blue .main-header > .navbar { background: #fff !important; }
+body.skin-blue .main-header > .navbar { background: #f8f9fb !important; }
 body.skin-blue .main-header .sidebar-toggle {
     position: absolute !important; width: 1px !important; height: 1px !important;
     overflow: hidden !important; clip: rect(0,0,0,0) !important;
@@ -539,8 +539,8 @@ body.skin-blue .main-sidebar { z-index: 1040 !important; }
 
 /* -- Footer ------------------------------------------------------------ */
 body .main-footer {
-    background: #fff !important;
-    border-top: 1px solid #e5e7eb !important;
+    background: #f8f9fb !important;
+    border-top: 1px solid #e2e8f0 !important;
     color: #9ca3af !important;
     font-size: 12px !important;
     padding: 10px 20px !important;
@@ -555,9 +555,9 @@ body .main-footer {
 
 /* --- Main Header Override --- */
 .mn-header.main-header {
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    background: #f8f9fb;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     min-height: 56px;
     height: 56px;
     overflow: visible;
@@ -1264,7 +1264,7 @@ body .main-footer {
     background: transparent;
 }
 .skin-blue .mn-header.main-header .navbar {
-    background: #ffffff !important;
+    background: #f8f9fb !important;
 }
 .skin-blue .mn-header.main-header .navbar .nav > li > a {
     color: #6b7280;
@@ -1321,7 +1321,7 @@ body .main-footer {
 /* --- Logo visibility fix --- */
 .mn-header.main-header { overflow: visible !important; }
 /* Content area background */
-.skin-blue .content-wrapper { background: #f8f9fb !important; }
+.skin-blue .content-wrapper { background: #eef0f4 !important; }
 
 .skin-blue .main-sidebar .sidebar-menu > li.header {
     background: transparent;
