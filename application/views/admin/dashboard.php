@@ -309,19 +309,17 @@
 .mn-qlink-value { font-size: 16px; font-weight: 700; color: var(--mn-text); margin-top: 1px; }
 
 /* ── 10. STAFF ROLES ── */
-.mn-role-card {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 16px; background: var(--mn-card);
-    border: 1px solid var(--mn-border); border-radius: 10px;
-    margin-bottom: 8px; box-shadow: var(--mn-shadow);
+.mn-roles-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
 }
-.mn-role-icon {
-    width: 36px; height: 36px; border-radius: 8px;
-    background: #f1f5f9; display: flex; align-items: center;
-    justify-content: center; color: var(--mn-text-sec); font-size: 14px;
+.mn-role-tile {
+    padding: 14px; border-radius: 12px; text-align: center;
+    border: 1px solid var(--mn-border); background: var(--mn-card);
+    transition: box-shadow 0.15s;
 }
-.mn-role-name { font-size: 12px; font-weight: 600; color: var(--mn-text); }
-.mn-role-count { font-size: 18px; font-weight: 800; color: var(--mn-text); margin-left: auto; }
+.mn-role-tile:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.mn-role-tile .mn-rt-count { font-size: 26px; font-weight: 800; line-height: 1; }
+.mn-role-tile .mn-rt-name { font-size: 11px; font-weight: 600; color: var(--mn-text-sec); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
 
 /* ── 11. CALENDAR ── */
 .mn-dashboard #calendar { height: auto; }
@@ -824,13 +822,22 @@
                     <div class="mn-card">
                         <div class="mn-card-head">Staff Roles</div>
                         <div class="mn-card-body" style="padding:12px 16px;">
-                            <?php foreach ($roles as $key => $value) { ?>
-                            <div class="mn-role-card">
-                                <div class="mn-role-icon"><i class="fa fa-users"></i></div>
-                                <div class="mn-role-name"><?php echo $key; ?></div>
-                                <div class="mn-role-count"><?php echo $value; ?></div>
+                            <div class="mn-roles-grid">
+                                <?php
+                                $role_colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316','#14b8a6','#6366f1','#84cc16','#e11d48','#0ea5e9','#a855f7','#d946ef','#22c55e','#eab308','#64748b','#059669','#7c3aed'];
+                                $ri = 0;
+                                foreach ($roles as $key => $value) {
+                                    if ($value == 0) continue;
+                                    $color = $role_colors[$ri % count($role_colors)];
+                                    $bg = $color . '12';
+                                    $ri++;
+                                ?>
+                                <div class="mn-role-tile" style="background:<?php echo $color; ?>0d;">
+                                    <div class="mn-rt-count" style="color:<?php echo $color; ?>;"><?php echo $value; ?></div>
+                                    <div class="mn-rt-name"><?php echo $key; ?></div>
+                                </div>
+                                <?php } ?>
                             </div>
-                            <?php } ?>
                         </div>
                     </div>
                 </div>
