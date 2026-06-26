@@ -1474,26 +1474,33 @@ body .main-footer {
 }
 .sidebar-collapse .mn-sidebar .treeview-menu > li > a {
     padding-left: 16px; margin: 0 4px;
+    color: #374151 !important;
+}
+.sidebar-collapse .mn-sidebar .treeview-menu > li > a:hover {
+    color: #1f2937 !important; background: #f3f4f6 !important;
+}
+.sidebar-collapse .mn-sidebar .treeview-menu > li.active > a {
+    color: #4338ca !important; background: #eef2ff !important;
 }
 
 /* --- AdminLTE skin-blue sidebar overrides --- */
 .skin-blue .sidebar-menu > li > a { border-left: none !important; }
-.skin-blue .sidebar-menu > li:hover > a,
-.skin-blue .sidebar-menu > li.active > a { background: #eef2ff !important; color: #4338ca !important; border-left-color: transparent !important; }
-.skin-blue .sidebar a { color: #4b5563 !important; }
-.skin-blue .sidebar a:hover { color: #1f2937 !important; text-decoration: none !important; }
+.skin-blue .sidebar-menu > li:hover > a { background: #334155 !important; color: #ffffff !important; border-left-color: transparent !important; }
+.skin-blue .sidebar-menu > li.active > a { background: #3730a3 !important; color: #ffffff !important; border-left-color: transparent !important; }
+.skin-blue .sidebar a { color: #ffffff !important; }
+.skin-blue .sidebar a:hover { color: #ffffff !important; text-decoration: none !important; }
 .skin-blue .sidebar-menu > li > .treeview-menu { margin: 0 !important; background: transparent !important; }
 .skin-blue .sidebar-menu > li.header { display: none !important; }
-.skin-blue .treeview-menu > li > a { color: #6b7280 !important; }
-.skin-blue .treeview-menu > li > a:hover { color: #1f2937 !important; }
-.skin-blue .treeview-menu > li.active > a { color: #4338ca !important; }
+.skin-blue .treeview-menu > li > a { color: #cbd5e1 !important; }
+.skin-blue .treeview-menu > li > a:hover { color: #ffffff !important; background: #334155 !important; }
+.skin-blue .treeview-menu > li.active > a { color: #ffffff !important; background: #3730a3 !important; }
 
 /* Override dark sidebar text colors */
 .skin-blue .main-sidebar .sidebar-menu > li > a,
-.skin-blue .main-sidebar .sidebar-menu > li > a > span { color: inherit !important; }
-.skin-blue .main-sidebar .sidebar-menu > li > a > i { color: #9ca3af !important; }
-.skin-blue .main-sidebar .sidebar-menu > li.active > a > i { color: #6366f1 !important; }
-.skin-blue .main-sidebar .sidebar-menu > li:hover > a > i { color: #6366f1 !important; }
+.skin-blue .main-sidebar .sidebar-menu > li > a > span { color: #ffffff !important; }
+.skin-blue .main-sidebar .sidebar-menu > li > a > i { color: #94a3b8 !important; }
+.skin-blue .main-sidebar .sidebar-menu > li.active > a > i { color: #a5b4fc !important; }
+.skin-blue .main-sidebar .sidebar-menu > li:hover > a > i { color: #a5b4fc !important; }
 
 /* Logo area — use AdminLTE header logo (white bg) */
 .skin-blue .main-header .logo { background: #fff !important; color: #1f2937 !important; border-bottom: none !important; }
