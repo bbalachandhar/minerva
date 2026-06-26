@@ -1325,8 +1325,8 @@ body .main-footer {
 .skin-blue .content-wrapper { background: #eef0f4 !important; }
 
 .skin-blue .main-sidebar .sidebar-menu > li.header {
-    background: transparent;
-    color: #64748b;
+    background: transparent !important;
+    color: #64748b !important;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -1342,16 +1342,19 @@ body .main-footer {
     margin: 1px 8px; border-radius: 8px; overflow: hidden;
     transition: background 0.15s;
 }
-.mn-sidebar .sidebar-menu > li > a {
+.mn-sidebar .sidebar-menu > li > a,
+.skin-blue .sidebar-menu > li > a,
+.skin-blue .sidebar a {
     display: flex; align-items: center; gap: 12px;
-    padding: 10px 14px; color: #e2e8f0;
+    padding: 10px 14px; color: #e2e8f0 !important;
     font-size: 13px; font-weight: 500; letter-spacing: 0.01em;
     text-decoration: none; border-radius: 8px;
     transition: all 0.15s;
     line-height: 1.4;
+    border-left: none !important;
 }
 .mn-sidebar .sidebar-menu > li > a > i:first-child {
-    width: 20px; text-align: center; font-size: 15px; color: #94a3b8;
+    width: 20px; text-align: center; font-size: 15px; color: #94a3b8 !important;
     flex-shrink: 0; transition: color 0.15s;
 }
 .mn-sidebar .sidebar-menu > li > a > span {
@@ -1359,23 +1362,27 @@ body .main-footer {
 }
 .mn-sidebar .sidebar-menu > li > a > .pull-right,
 .mn-sidebar .sidebar-menu > li > a > i.fa-angle-left {
-    font-size: 12px; color: #64748b; transition: transform 0.2s, color 0.15s;
+    font-size: 12px; color: #64748b !important; transition: transform 0.2s, color 0.15s;
     margin-left: auto; flex-shrink: 0;
 }
 
 /* Hover */
-.mn-sidebar .sidebar-menu > li > a:hover {
-    background: #334155; color: #ffffff;
+.mn-sidebar .sidebar-menu > li > a:hover,
+.skin-blue .sidebar-menu > li:hover > a,
+.skin-blue .sidebar a:hover {
+    background: #334155 !important; color: #ffffff !important;
 }
-.mn-sidebar .sidebar-menu > li > a:hover > i:first-child { color: #a5b4fc; }
+.mn-sidebar .sidebar-menu > li > a:hover > i:first-child { color: #a5b4fc !important; }
 
 /* Active parent */
-.mn-sidebar .sidebar-menu > li.active > a {
-    background: #3730a3; color: #ffffff; font-weight: 600;
+.mn-sidebar .sidebar-menu > li.active > a,
+.skin-blue .sidebar-menu > li.active > a {
+    background: #3730a3 !important; color: #ffffff !important; font-weight: 600;
+    border-left-color: transparent !important;
 }
-.mn-sidebar .sidebar-menu > li.active > a > i:first-child { color: #a5b4fc; }
+.mn-sidebar .sidebar-menu > li.active > a > i:first-child { color: #a5b4fc !important; }
 .mn-sidebar .sidebar-menu > li.active > a > .pull-right,
-.mn-sidebar .sidebar-menu > li.active > a > i.fa-angle-left { color: #a5b4fc; }
+.mn-sidebar .sidebar-menu > li.active > a > i.fa-angle-left { color: #a5b4fc !important; }
 
 /* Open treeview — rotate arrow */
 .mn-sidebar .sidebar-menu > li.treeview.active > a > i.fa-angle-left,
@@ -1384,14 +1391,16 @@ body .main-footer {
 }
 
 /* --- Submenu --- */
-.mn-sidebar .treeview-menu {
-    list-style: none; margin: 0; padding: 2px 0 6px 0;
-    background: transparent;
+.mn-sidebar .treeview-menu,
+.skin-blue .sidebar-menu > li > .treeview-menu {
+    list-style: none; margin: 0 !important; padding: 2px 0 6px 0;
+    background: transparent !important;
 }
 .mn-sidebar .treeview-menu > li { margin: 0; }
-.mn-sidebar .treeview-menu > li > a {
+.mn-sidebar .treeview-menu > li > a,
+.skin-blue .treeview-menu > li > a {
     display: flex; align-items: center; gap: 8px;
-    padding: 7px 14px 7px 46px; color: #cbd5e1;
+    padding: 7px 14px 7px 46px; color: #cbd5e1 !important;
     font-size: 12.5px; font-weight: 400;
     text-decoration: none; border-radius: 6px;
     margin: 0 8px; transition: all 0.15s;
@@ -1410,14 +1419,16 @@ body .main-footer {
 }
 
 /* Submenu hover */
-.mn-sidebar .treeview-menu > li > a:hover {
-    background: #334155; color: #ffffff;
+.mn-sidebar .treeview-menu > li > a:hover,
+.skin-blue .treeview-menu > li > a:hover {
+    background: #334155 !important; color: #ffffff !important;
 }
 .mn-sidebar .treeview-menu > li > a:hover::before { background: #a5b4fc; }
 
 /* Submenu active */
-.mn-sidebar .treeview-menu > li.active > a {
-    color: #ffffff; font-weight: 600; background: #3730a3;
+.mn-sidebar .treeview-menu > li.active > a,
+.skin-blue .treeview-menu > li.active > a {
+    color: #ffffff !important; font-weight: 600; background: #3730a3 !important;
 }
 .mn-sidebar .treeview-menu > li.active > a::before {
     background: #a5b4fc; transform: scale(1.3);
