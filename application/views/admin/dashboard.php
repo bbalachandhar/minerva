@@ -234,7 +234,7 @@
     margin-bottom: 16px; padding-bottom: 12px;
     border-bottom: 1px solid var(--mn-border);
 }
-.mn-donut-wrap { max-width: 280px; max-height: 220px; margin: 0 auto; }
+.mn-donut-wrap { max-width: 100%; max-height: none; margin: 0 auto; }
 .chart-async { position: relative; min-height: 120px; }
 .chart-async.is-loading canvas { opacity: 0.35; }
 .chart-async-loader {
@@ -1059,11 +1059,11 @@ $(document).ready(function() {
 
     <?php if ($this->rbac->hasPrivilege('income_donut_graph', 'can_view') && $this->module_lib->hasActive('income')) { ?>
     new ApexCharts(document.getElementById('doughnut-chart'), {
-        chart: { type: 'donut', height: 220, fontFamily: apexDefaults.chart.fontFamily },
+        chart: { type: 'donut', height: 320, fontFamily: apexDefaults.chart.fontFamily },
         series: [<?php foreach ($incomegraph as $value) { ?><?php echo $value['total']; ?>, <?php } ?>],
         labels: [<?php foreach ($incomegraph as $value) { ?>"<?php echo $value['income_category']; ?>", <?php } ?>],
         colors: [<?php $s = 1; foreach ($incomegraph as $value) { ?>"<?php echo incomegraphColors($s++); ?>", <?php if ($s == 8) { $s = 1; } } ?>],
-        plotOptions: { pie: { donut: { size: '60%' }, startAngle: -90, endAngle: 90, offsetY: 10 } },
+        plotOptions: { pie: { donut: { size: '65%' }, startAngle: -90, endAngle: 90, offsetY: 10 } },
         legend: { position: 'bottom', fontSize: '11px', labels: { colors: '#64748b' }, markers: { width: 8, height: 8, radius: 8 } },
         dataLabels: { enabled: false },
         tooltip: { theme: 'dark', y: { formatter: function(v) { return '₹' + v.toLocaleString('en-IN'); } } }
@@ -1072,11 +1072,11 @@ $(document).ready(function() {
 
     <?php if ($this->rbac->hasPrivilege('expense_donut_graph', 'can_view') && $this->module_lib->hasActive('expense')) { ?>
     new ApexCharts(document.getElementById('doughnut-chart1'), {
-        chart: { type: 'donut', height: 220, fontFamily: apexDefaults.chart.fontFamily },
+        chart: { type: 'donut', height: 320, fontFamily: apexDefaults.chart.fontFamily },
         series: [<?php foreach ($expensegraph as $value) { ?><?php echo $value['total']; ?>, <?php } ?>],
         labels: [<?php foreach ($expensegraph as $value) { ?>"<?php echo $value['exp_category']; ?>", <?php } ?>],
         colors: [<?php $ss = 1; foreach ($expensegraph as $value) { ?>"<?php echo expensegraphColors($ss++); ?>", <?php if ($ss == 8) { $ss = 1; } } ?>],
-        plotOptions: { pie: { donut: { size: '60%' }, startAngle: -90, endAngle: 90, offsetY: 10 } },
+        plotOptions: { pie: { donut: { size: '65%' }, startAngle: -90, endAngle: 90, offsetY: 10 } },
         legend: { position: 'bottom', fontSize: '11px', labels: { colors: '#64748b' }, markers: { width: 8, height: 8, radius: 8 } },
         dataLabels: { enabled: false },
         tooltip: { theme: 'dark', y: { formatter: function(v) { return '₹' + v.toLocaleString('en-IN'); } } }
@@ -1106,11 +1106,13 @@ $(document).ready(function() {
                     series.push({ name: 'Expenses', data: (resp.data.expense || []).map(Number) });
                 }
                 new ApexCharts($barEl[0], $.extend(true, {}, apexDefaults, {
-                    chart: { type: 'bar', height: 280 },
+                    chart: { type: 'area', height: 280 },
                     series: series,
                     xaxis: { categories: resp.data.labels || [] },
                     colors: ['#10b981', '#3b82f6', '#ef4444'],
-                    plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } }
+                    stroke: { curve: 'smooth', width: 2 },
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [0, 100] } },
+                    dataLabels: { enabled: false }
                 })).render();
                 $barWrap.removeClass('is-loading');
             }).fail(function() { $barWrap.removeClass('is-loading'); });
