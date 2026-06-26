@@ -3,274 +3,829 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application Form - Meenakshi College</title>
+    <title>Application Form - <?php echo $sch_setting->name; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-
-            position: relative;
-            height: 100vh;
+        :root {
+            --primary: #1e3a5f;
+            --primary-light: #1e40af;
+            --accent: #2563eb;
+            --accent-light: #3b82f6;
+            --text-dark: #111827;
+            --text-muted: #6b7280;
+            --text-label: #374151;
+            --border: #d1d5db;
+            --border-light: #e5e7eb;
+            --bg-page: #f3f4f6;
+            --bg-card: #ffffff;
+            --bg-input: #ffffff;
+            --success: #059669;
+            --danger: #dc2626;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-input-focus: 0 0 0 3px rgba(37,99,235,0.15);
         }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
-            height: 100%;
-            position: relative;
+            min-height: 100vh;
         }
-        #particles-js {
-            position: fixed; 
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1; 
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-page);
+            color: var(--text-dark);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
-        body::before {
-            content: "";
-            position: absolute;
-            top: -50px;
-            left: 0;
+
+        /* ─── Header Banner ─── */
+        .admission-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: #fff;
+            padding: 28px 0 24px;
             width: 100%;
-            height: 100vh;
-            z-index: 1;
         }
-        .form-container {
-            position: relative;
-            z-index: 2;
-            margin: 40px auto;
-            background: rgba(255, 255, 255, 0.9); 
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-            animation: fadeIn 1s ease-in-out;
+
+        .header-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
-        @keyframes gradientBG {
-            0% {
-                background-position: 0% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
-            100% {
-                background-position: 0% 50%;
-            }
+
+        .header-logo {
+            flex: 0 0 auto;
         }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+
+        .header-logo img {
+            height: 72px;
+            width: auto;
+            border-radius: 8px;
+            background: #fff;
+            padding: 6px;
+            display: block;
         }
-        .header {
-            background: #253976;
-            color: white;
-            padding: 25px;
+
+        .header-text {
+            flex: 1;
             text-align: center;
-            border-radius: 12px 12px 0 0;
+            min-width: 0;
+        }
+
+        .header-text h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 4px;
+            letter-spacing: 0.3px;
+        }
+
+        .header-text .header-address {
+            font-size: 13px;
+            opacity: 0.88;
+            margin: 0 0 2px;
+            line-height: 1.4;
+        }
+
+        .header-text .header-contact {
+            font-size: 12px;
+            opacity: 0.75;
+            margin: 0;
+        }
+
+        /* ─── Main Container ─── */
+        .form-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 24px 48px;
+        }
+
+        .form-title-bar {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .form-title-bar h2 {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin: 0;
+            padding: 16px 0;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        /* ─── Section Cards ─── */
+        .section-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card);
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent);
             position: relative;
         }
-        .header img {
-            top: 15px;
+
+        .section-card .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.8px;
+            color: var(--text-muted);
+            margin: 0 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-light);
         }
-        .logo-left {
-            width: 60%;
-            padding: 10px;
-            border-radius: 10px;
-            background: #fff;
-            display: block;
-            margin: 0 auto;
+
+        /* ─── Form Fields ─── */
+        .field-grid {
+            display: grid;
+            gap: 16px;
         }
-        .logo-right {
-            width: 80%;
-            padding: 10px;
-            border-radius: 10px;
-            background: #fff;
-            display: block;
-            margin: 0 auto;
+
+        .field-grid.cols-3 {
+            grid-template-columns: repeat(3, 1fr);
         }
-        .section-card {
-            background: #f9f9f9;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 15px;
-            border-left: 5px solid #253976;
+
+        .field-grid.cols-2 {
+            grid-template-columns: repeat(2, 1fr);
         }
+
+        .field-grid.cols-4 {
+            grid-template-columns: 1fr 2fr 1fr 1fr;
+        }
+
+        .field-grid.cols-2-1 {
+            grid-template-columns: 2fr 1fr;
+        }
+
+        .field-grid .span-2 {
+            grid-column: span 2;
+        }
+
+        .field-grid .span-3 {
+            grid-column: span 3;
+        }
+
+        .field-grid .span-full {
+            grid-column: 1 / -1;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field-group label,
+        .field-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--text-label);
+            margin-bottom: 6px;
+        }
+
+        .field-group label .req,
+        .req {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .form-control,
+        .form-select {
+            height: 44px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            color: var(--text-dark);
+            background: var(--bg-input);
+            padding: 8px 12px;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-input-focus);
+            outline: none;
+        }
+
+        .form-control::placeholder {
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        textarea.form-control {
+            height: auto;
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-control[readonly] {
+            background: #f9fafb;
+            color: var(--text-muted);
+        }
+
+        .text-danger {
+            color: var(--danger) !important;
+            font-size: 12px;
+        }
+
+        .text-muted {
+            color: var(--text-muted) !important;
+            font-size: 12px;
+        }
+
+        /* ─── Admission Type Radios ─── */
         .admission-type-options {
             display: flex;
-            width: 100%;
-            gap: 12px;
-            flex-wrap: nowrap;
+            gap: 8px;
+            flex-wrap: wrap;
         }
-        .admission-type-options .form-check {
+
+        .admission-type-options .type-option {
             flex: 1 1 0;
-            margin-right: 0;
+            min-width: 0;
         }
+
+        .admission-type-options .type-option input[type="radio"] {
+            display: none;
+        }
+
+        .admission-type-options .type-option label {
+            display: block;
+            text-align: center;
+            padding: 10px 8px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-label);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-transform: none;
+            letter-spacing: 0;
+            margin: 0;
+        }
+
+        .admission-type-options .type-option input[type="radio"]:checked + label {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.06);
+            color: var(--accent);
+        }
+
+        /* ─── Photo Upload ─── */
+        .photo-upload-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         .passport-upload-frame {
-            width: 35mm;
-            height: 45mm;
+            width: 120px;
+            height: 150px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
             cursor: pointer;
             position: relative;
             overflow: hidden;
-            margin: 0 auto;
-            background: #f8f9fa;
-        }.form-control {
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            transition: 0.3s;
-        }
-        .form-control:focus {
-            border-color: #253976;
-            box-shadow: 0 0 5px rgba(37, 57, 118, 0.5);
-        }
-        .btn-submit {
-            background: #253976;
-            color: white;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 8px;
-            width: 100%;
-            transition: 0.3s;
-            border: 2px solid #5d78ff; /* Added blue border */
-        }
-        .btn-submit:hover {
-            background: #d0d2d8;
-            color:#253976;
-        }
-        .table {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .table th {
-            background: #253976;
-            color: white;
-            text-align: center;
-        }
-        .nav-pills .nav-link {
-            background: #f1f1f1;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: 0.3s;
-        }
-        .nav-pills .nav-link.active {
-            background: #253976;
-            color: white;
-        }
-        .course-card {
-            background: white;
-            border-radius: 8px;
-            padding: 12px;
+            background: #f9fafb;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            transition: 0.3s ease-in-out;
+            justify-content: center;
+            transition: border-color 0.2s ease;
+        }
+
+        .passport-upload-frame:hover {
+            border-color: var(--accent);
+        }
+
+        .passport-upload-frame input[type="file"] {
+            opacity: 0;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             cursor: pointer;
-            border: 1px solid #ddd;
+        }
+
+        .passport-upload-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .passport-upload-frame .upload-icon {
+            font-size: 24px;
+            color: var(--accent-light);
+        }
+
+        .photo-upload-note {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        /* ─── References Row ─── */
+        .ref-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        /* ─── HSC Table ─── */
+        .marks-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+        }
+
+        .marks-table thead th {
+            background: var(--primary);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 16px;
+            text-align: center;
+            border: none;
+        }
+
+        .marks-table tbody td {
+            padding: 10px 12px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 14px;
+            vertical-align: middle;
+        }
+
+        .marks-table tbody tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .marks-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .marks-table tbody tr.highlight-row {
+            background: rgba(37, 99, 235, 0.04);
+            font-weight: 600;
+        }
+
+        .marks-table .form-control {
+            height: 38px;
+            text-align: center;
+            max-width: 120px;
+            margin: 0 auto;
+        }
+
+        .marks-table td:first-child {
+            text-align: left;
             font-weight: 500;
-            margin-bottom: 10px;
+            white-space: nowrap;
         }
-        .course-card:hover {
-            background: #f5f5f5;
-            border-color: #253976;
+
+        /* ─── Lateral Entry Panels ─── */
+        .semester-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
-        .course-card input {
-            margin-right: 10px;
+
+        .semester-panel {
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            background: #fafbfc;
         }
-        .cus_form{
+
+        .semester-panel h6 {
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .sem-subject-row {
+            display: grid;
+            grid-template-columns: auto 1fr 80px auto 80px;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .sem-subject-row .sem-num {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 12px;
+            width: 20px;
+        }
+
+        .sem-subject-row .form-control {
+            height: 36px;
+            font-size: 13px;
+        }
+
+        .sem-subject-row .sep-text {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .sem-total-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-light);
+            font-weight: 600;
+            font-size: 13px;
         }
-        .Upload_pic{
-            width:190px;
+
+        .sem-total-row .form-control {
+            height: 36px;
+            width: 80px;
+            font-size: 13px;
             text-align: center;
+        }
+
+        /* ─── Additional Info ─── */
+        .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .radio-group label {
+            font-size: 14px;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--text-dark);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+        }
+
+        .radio-group input[type="radio"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+        }
+
+        .info-item {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .info-item .info-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-label);
+            margin-bottom: 8px;
+        }
+
+        /* ─── Submit Button ─── */
+        .submit-area {
+            margin-top: 24px;
+        }
+
+        .btn-submit {
+            display: block;
+            width: 100%;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: box-shadow 0.2s ease, transform 0.15s ease;
+        }
+
+        .btn-submit:hover {
+            box-shadow: 0 6px 20px rgba(30, 58, 95, 0.35);
+            transform: translateY(-1px);
+            color: #fff;
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ─── Alert Overrides ─── */
+        .alert-warning {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            padding: 10px 14px;
+        }
+
+        /* ─── Modals ─── */
+        .modal-content {
+            border-radius: var(--radius-md);
+            border: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border-light);
+            padding: 16px 20px;
+        }
+
+        .modal-body {
+            padding: 24px 20px;
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border-light);
+            padding: 12px 20px;
+        }
+
+        #paymentOptionModal .modal-body .btn {
+            min-width: 180px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+        }
+
+        #errorModal .modal-header {
+            background: var(--danger);
+            color: #fff;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+        }
+
+        /* ─── Input Group ─── */
+        .input-group .input-group-text {
+            background: #f3f4f6;
+            border: 1px solid var(--border);
+            border-left: none;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .input-group .form-control {
+            border-right: none;
+        }
+
+        .input-group .form-control:focus {
+            border-right: none;
+        }
+
+        .input-group .form-control:focus + .input-group-text {
+            border-color: var(--accent);
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 768px) {
+            .header-inner {
+                flex-direction: column;
+                text-align: center;
+                gap: 12px;
+            }
+
+            .header-logo img {
+                height: 56px;
+            }
+
+            .header-text h1 {
+                font-size: 18px;
+            }
+
+            .form-wrapper {
+                padding: 16px 12px 40px;
+            }
+
+            .section-card {
+                padding: 16px;
+            }
+
+            .field-grid.cols-3,
+            .field-grid.cols-4,
+            .field-grid.cols-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .field-grid .span-2,
+            .field-grid .span-3 {
+                grid-column: span 1;
+            }
+
+            .admission-type-options {
+                flex-direction: column;
+            }
+
+            .ref-row {
+                grid-template-columns: 1fr;
+            }
+
+            .semester-panels {
+                grid-template-columns: 1fr;
+            }
+
+            .marks-table {
+                font-size: 13px;
+            }
+
+            .marks-table thead th {
+                font-size: 11px;
+                padding: 8px 6px;
+            }
+
+            .marks-table tbody td {
+                padding: 8px 6px;
+            }
+
+            .top-row-layout {
+                flex-direction: column;
+            }
+
+            .top-row-layout .photo-upload-container {
+                order: -1;
+            }
+        }
+
+        /* ─── Top Row Layout (Academic + Type + Photo) ─── */
+        .top-row-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .top-row-fields {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* ─── Course restriction alert ─── */
+        #course_restriction_alert {
+            margin-top: 8px;
+        }
+
+        /* ─── Checkbox style ─── */
+        .form-check-input {
+            accent-color: var(--accent);
+        }
+
+        .form-check-label {
+            font-size: 13px;
+        }
+
+        /* ─── Same-as-checkbox area ─── */
+        .addr-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .addr-header label {
+            margin-bottom: 0;
+        }
+
+        .addr-header .form-check {
+            margin: 0;
+        }
+
+        .addr-header .form-check-label {
+            font-size: 12px;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--text-muted);
+        }
+
+        /* ─── NATA Section ─── */
+        #nata_sec .section-card {
+            border-left-color: #f59e0b;
+        }
+
+        /* ─── PG Section ─── */
+        #pgDetails .section-card {
+            border-left-color: var(--success);
+        }
+
+        /* ─── Sports level container ─── */
+        #level {
+            margin-top: 8px;
+        }
+
+        #level .form-control {
+            max-width: 300px;
         }
     </style>
 </head>
 <body>
-    <div id="particles-js"></div>
-    <div class="container">
-        <div class="form-container">
-            <div class="header row align-items-center">
-                <div class="col-md-2 text-center">
-                    <img src="<?php echo base_url('uploads/logos/' . $sch_setting->admission_logo_left); ?>" alt="College Logo" class="logo-left">
-                </div>
-                <div class="col-md-7 text-center">
-                    <h2 class="mb-1"><?php echo $sch_setting->name; ?></h2>
-                    <p class="mb-0"><?php echo $sch_setting->address; ?></p>
-                    <p>Ph: <?php echo $sch_setting->phone; ?> | Email: <?php echo $sch_setting->email; ?> | Website: <?php echo isset($sch_setting->website) ? $sch_setting->website : ''; ?></p>
-                </div>
-                <div class="col-md-3 text-center">
-                    <img src="<?php echo base_url('uploads/logos/' . $sch_setting->admission_logo_right); ?>" alt="College Logo" class="logo-right">
-                </div>
+
+    <!-- ─── Header Banner ─── -->
+    <header class="admission-header">
+        <div class="header-inner">
+            <div class="header-logo">
+                <img src="<?php echo base_url('uploads/logos/' . $sch_setting->admission_logo_left); ?>" alt="College Logo">
             </div>
-            <form action="<?php echo site_url('publicadmissionform/add_college_admission'); ?>" method="POST" enctype="multipart/form-data" id="admission_form">
-                <?php if (!empty($enquiry_id)) { ?>
-                    <input type="hidden" name="enquiry_id" value="<?php echo htmlspecialchars($enquiry_id); ?>">
-                <?php } ?>
-                <?php if (!empty($employee_id)) { ?>
-                    <input type="hidden" name="employee_id" value="<?php echo (int)$employee_id; ?>">
-                <?php } ?>
-                <div class="section-card">
-                    <h5 class="text-center mb-4">APPLICATION FORM FOR ADMISSION</h5>
-                    <div class="mb-4">
-                    <!-- Academic Year and Course Level Row -->
-                    <div class="row align-items-center">
-                        <div class="col-md-2">
-                            <div class="mb-3">
-                                <label class="form-label">Academic Year:</label>
+            <div class="header-text">
+                <h1><?php echo $sch_setting->name; ?></h1>
+                <p class="header-address"><?php echo $sch_setting->address; ?></p>
+                <p class="header-contact">Ph: <?php echo $sch_setting->phone; ?> | Email: <?php echo $sch_setting->email; ?><?php echo isset($sch_setting->website) && $sch_setting->website ? ' | ' . $sch_setting->website : ''; ?></p>
+            </div>
+            <div class="header-logo">
+                <img src="<?php echo base_url('uploads/logos/' . $sch_setting->admission_logo_right); ?>" alt="Accreditation Logo">
+            </div>
+        </div>
+    </header>
+
+    <!-- ─── Form ─── -->
+    <div class="form-wrapper">
+        <div class="form-title-bar">
+            <h2>Application Form for Admission</h2>
+        </div>
+
+        <form action="<?php echo site_url('publicadmissionform/add_college_admission'); ?>" method="POST" enctype="multipart/form-data" id="admission_form">
+            <?php if (!empty($enquiry_id)) { ?>
+                <input type="hidden" name="enquiry_id" value="<?php echo htmlspecialchars($enquiry_id); ?>">
+            <?php } ?>
+            <?php if (!empty($employee_id)) { ?>
+                <input type="hidden" name="employee_id" value="<?php echo (int)$employee_id; ?>">
+            <?php } ?>
+
+            <!-- ═══ Section 1: Application Info ═══ -->
+            <div class="section-card">
+                <div class="section-title">Application Information</div>
+                <div class="top-row-layout">
+                    <div class="top-row-fields">
+                        <div class="field-grid cols-3" style="margin-bottom: 16px;">
+                            <div class="field-group">
+                                <label>Academic Year</label>
                                 <input type="text" class="form-control" name="academic_year" id="academic_year" value="2026-2027" readonly tabindex="-1">
                             </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="mb-3">
-                                <label class="form-label">Admission Type*</label>
+                            <div class="field-group span-2">
+                                <label>Admission Type <span class="req">*</span></label>
                                 <div class="admission-type-options">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="courseLevel" id="ugRadio" value="ug" checked tabindex="7">
-                                        <label class="form-check-label" for="ugRadio">Undergraduate (UG)</label>
+                                    <div class="type-option">
+                                        <input type="radio" name="courseLevel" id="ugRadio" value="ug" checked tabindex="7">
+                                        <label for="ugRadio">Undergraduate (UG)</label>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="courseLevel" id="lateralRadio" value="lateral" tabindex="8">
-                                        <label class="form-check-label" for="lateralRadio">Lateral Entry</label>
+                                    <div class="type-option">
+                                        <input type="radio" name="courseLevel" id="lateralRadio" value="lateral" tabindex="8">
+                                        <label for="lateralRadio">Lateral Entry</label>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="courseLevel" id="pgRadio" value="pg" tabindex="9">
-                                        <label class="form-check-label" for="pgRadio">Postgraduate (PG)</label>
+                                    <div class="type-option">
+                                        <input type="radio" name="courseLevel" id="pgRadio" value="pg" tabindex="9">
+                                        <label for="pgRadio">Postgraduate (PG)</label>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-5">
-                            <div class="mb-3">
-                                <div id="image-upload-area" class="passport-upload-frame border rounded d-flex flex-column align-items-center justify-content-center">
-                                    <input type="file" id="imageUpload" name="user_image" accept="image/*" required tabindex="4" style="opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer;">
-                                    <img id="previewImage" src="" alt="Preview" class="d-none" style="width: 100%; height: 100%; object-fit: cover; border-radius: 5px;">
-                                    <i id="uploadIcon" class="bi bi-cloud-upload-fill text-primary" style="font-size: 20px;"></i>
-                                </div>
-                                <small id="uploadNote" class="text-muted text-center d-block mt-1">Max size: 300KB *</small>
-                                <span id="image_upload_error" class="text-danger"></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Course Selection Row -->
-                    <div class="row" id="courseSelectionRow">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Course apply*</label>
+                        <div class="field-grid cols-3" id="courseSelectionRow">
+                            <div class="field-group">
+                                <label>Course Apply <span class="req">*</span></label>
                                 <select class="form-control" name="ug_course" id="ug_course" tabindex="5" required>
                                     <option value="">Select a Course</option>
                                     <?php if (!empty($ug_first_year_courses)) { ?>
@@ -299,502 +854,444 @@
                                     <i class="bi bi-exclamation-triangle-fill me-2"></i>This course is filled and no vacancies currently, kindly choose other available course.
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label class="form-label">Quota Type*</label>
+                            <div class="field-group">
+                                <label>Quota Type <span class="req">*</span></label>
                                 <select class="form-control" id="quota_type" name="quota_type" required tabindex="6">
                                     <option value="">Select Quota</option>
                                     <option value="government">Government</option>
                                     <option value="management" selected>Management</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label class="form-label">Course Fee (Auto)</label>
+                            <div class="field-group">
+                                <label>Course Fee (Auto)</label>
                                 <input type="text" class="form-control" id="course_fee_display" readonly tabindex="-1" placeholder="Select course + quota">
                                 <input type="hidden" id="course_fee_total" name="course_fee_total" value="">
                             </div>
                         </div>
                     </div>
-                </div>
-                </div>
-                <div class="section-card">
-                    <h5 class="mb-2">PERSONAL DETAILS</h5>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Name (In block letters with initial at the end)*</label>
-                                <input type="text" class="form-control" name="user_name" id="user_name" onkeydown="return allowAlphabets(event)" placeholder="Enter your full name" required tabindex="5" value="<?php echo isset($name) ? htmlspecialchars($name) : ''; ?>">
-                            </div>
+                    <div class="photo-upload-container">
+                        <div id="image-upload-area" class="passport-upload-frame">
+                            <input type="file" id="imageUpload" name="user_image" accept="image/*" required tabindex="4">
+                            <img id="previewImage" src="" alt="Preview" class="d-none">
+                            <i id="uploadIcon" class="bi bi-cloud-upload-fill upload-icon"></i>
                         </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Father's Name*</label>
-                            <input type="text" class="form-control" placeholder="Enter your Father's Name" name="father_name" onkeydown="return allowAlphabets(event)" id="father_name" required tabindex="6">
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Father's/Guardian's Mobile Number*</label>
-                            <input type="text" class="form-control" minlength="10" maxlength="10" placeholder="Enter your Father's Mobile Number"  onchange="validateMobile(this)" name="father_mobile" id="father_mobile"  onKeyPress="return checkIt(event);" required tabindex="7">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Father's Occupation*</label>
-                            <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Father's Occupation"   name="father_occupation" id="father_occupation" required tabindex="8">
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Mother's Name*</label>
-                            <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Mother's Name" name="mother_name" id="mother_name" required tabindex="9">
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Mother's/Guardian's Mobile Number*</label>
-                            <input type="text" class="form-control" placeholder="Enter your Mother's Mobile Number" name="mother_mobile" id="mother_mobile"  onchange="validateMobile(this)" required minlength="10" maxlength="10" onKeyPress="return checkIt(event);" tabindex="10">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Mother's Occupation*</label>
-                            <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Mother's Occupation" name="mother_occupation" id="mother_occupation" required tabindex="11">
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label" for="gender">Gender*</label>
-                                <select class="form-select" id="gender" name="gender" required tabindex="12">
-                                    <option value="">Select Gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Community*</label>
-                            <select class="form-control" id="community" name="community" required tabindex="12a">
-                                <option value="">Select Community</option>
-                                <option value="OC">OC (General)</option>
-                                <option value="BC">BC</option>
-                                <option value="MBC">MBC</option>
-                                <option value="BCM">BCM</option>
-                                <option value="SC">SC</option>
-                                <option value="SCA">SCA</option>
-                                <option value="ST">ST</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Student's Email ID*</label>
-                            <input type="email" class="form-control" placeholder="Enter your Email"  id="student_email" name="student_email" required tabindex="13" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>">
-                            <span id="email_error" class="text-danger"></span>
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Student's Mobile Number*</label>
-                            <input type="text" step="any" class="form-control" placeholder="Enter Student's Mobile Number" id="student_mobile" onchange="validateMobile(this)" onKeyPress="return checkIt(event);" name="student_mobile" required minlength="10" maxlength="10" tabindex="14" value="<?php echo isset($mobileno) ? htmlspecialchars($mobileno) : ''; ?>">
-                            <span id="mobile_error" class="text-danger"></span>
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Student's D.O.B*</label>
-                            <input type="text" class="form-control" placeholder="Select Date of Birth (DD/MM/YYYY)"  id="dob" name="dob" required tabindex="15">
-                            <span id="dob_error" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Aadhaar Number*</label>
-                            <input type="text" step="any" class="form-control" placeholder="Enter your Aadhar Number" id="aadhaar" name="aadhaar" required minlength="12" maxlength="12" onKeyPress="return checkIt(event);" tabindex="16">
-                            <span id="aadhaar_error" class="text-danger"></span>
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">State*</label>
-                            <select class="form-control" id="state" name="state" required tabindex="17">
-                                <option value="">Select State</option>
-                            </select>
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">City*</label>
-                            <select class="form-control" id="city" name="city" required tabindex="18">
-                                <option value="">Select City</option>
-                            </select>
-                            <input type="text" class="form-control mt-2" id="city_other_text" name="city_custom" placeholder="Enter your city" style="display:none;">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Address for Communication*</label>
-                                <textarea class="form-control" placeholder="Enter your Communication Address"  name="comm_addr" id="comm_addr" required tabindex="19"></textarea>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="form-label mb-0">Permanent Address*</label>
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="same_as_comm" name="same_as_comm">
-                                        <label class="form-check-label" for="same_as_comm">
-                                            Same as Communication Address
-                                        </label>
-                                    </div>
-                                </div>
-                                <textarea class="form-control" placeholder="Enter your Permanent Address" name="perm_addr" id="perm_addr" required tabindex="20"></textarea>
-                            </div>
-                        </div>
+                        <small id="uploadNote" class="photo-upload-note">Max size: 300KB <span class="req">*</span></small>
+                        <span id="image_upload_error" class="text-danger"></span>
                     </div>
                 </div>
-                <div class="section-card">
-                    <h5 class="mb-2">REFERENCES DETAILS (OPTIONAL)</h5>
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Referrer Name</th>
-                                    <th>Relationship</th>
-                                    <th>Phone No.</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><input type="text" class="form-control" name="referral_name" id="referral_name" onkeydown="return allowAlphabets(event)" tabindex="19"></td>
-                                    <td><input type="text" class="form-control" name="relationship" id="relationship" onkeydown="return allowAlphabets(event)" tabindex="20"></td>
-                                    <td><input type="text" class="form-control" name="phone_no" id="phone_no" minlength="10" maxlength="10"  onKeyPress="return checkIt(event);" tabindex="21"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="section-card" id="hscDetails">
-                    <h5 class="mb-3">HSC Examination Details</h5>
-                    <div class="table-responsive">
-                        <table class="table table-bordered text-center align-middle">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Subject</th>
-                                    <th>Maximum Marks</th>
-                                    <th>Marks Obtained</th>
-                                    <th>Percentage</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Maths (M)</td>
-                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="25"></td>
-                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="26"></td>
-                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_perc" id="maths_perc" readonly tabindex="-1"></td>
-                                </tr>
-                                <tr>
-                                    <td>Physics (P)</td>
-                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="27"></td>
-                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="28"></td>
-                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_perc" id="physics_perc" readonly tabindex="-1"></td>
-                                </tr>
-                                <tr>
-                                    <td>Chemistry (C)</td>
-                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_chemistry" id="total_chemistry" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="29"></td>
-                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="chemistry_marks" id="chemistry_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="30"></td>
-                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="chemistry_perc" id="chemistry_perc" readonly tabindex="-1"></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Average: (P+C+M)/3</strong></td>
-                                    <td colspan="3"><input type="number" step="0.01" min="0" max="100" value="0" class="form-control text-center" name="average_marks" id="average_marks" readonly tabindex="-1"></td>
-                                </tr>
-                                <tr id="barch_hsc_total_row" style="display:none;">
-                                    <td><strong>Total Marks (HSC) *</strong><br><small>All subjects combined</small></td>
-                                    <td><input type="number" step="1" min="1" value="" class="form-control text-center" name="hsc_total_marks" id="hsc_total_marks" tabindex="31"></td>
-                                    <td><input type="number" step="1" min="0" value="" class="form-control text-center" name="hsc_marks_obtained" id="hsc_marks_obtained" tabindex="32"></td>
-                                    <td></td>
-                                </tr>
-                                <tr id="cutoff_row">
-                                    <td id="cutoff_label"><strong>Cut Off: (P+C)/2 + M</strong></td>
-                                    <td colspan="3"><input type="number" step="0.01" min="0" max="400" value="0" class="form-control text-center" name="cutoff_marks" id="cutoff_marks" readonly tabindex="-1"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="">
+            </div>
 
-                    <div id="ugDetails">
-                        <div class="section-card">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Name of the school of X std*</label>
-                                        <input type="text" class="form-control" placeholder="Enter school name"  name="school_name" id="school_name" onkeydown="return allowAlphabets(event)" tabindex="22">
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Year of passing of X std*</label>
-                                        <select class="form-control" name="tenth_passing" id="tenth_passing" tabindex="23">
-                                            <option value="">Select Year</option>
-                                            <?php for ($y = date('Y'); $y >= date('Y') - 10; $y--): ?>
-                                            <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
-                                            <?php endfor; ?>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">X marks (in %)*</label>
-                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="Enter marks %" name="tenth_marks_percentage" id="tenth_marks_percentage" tabindex="24">
-                                    </div>
-                                </div>
+            <!-- ═══ Section 2: Personal Details ═══ -->
+            <div class="section-card">
+                <div class="section-title">Personal Details</div>
+                <div class="field-grid cols-3">
+                    <div class="field-group">
+                        <label>Name (block letters, initial at end) <span class="req">*</span></label>
+                        <input type="text" class="form-control" name="user_name" id="user_name" onkeydown="return allowAlphabets(event)" placeholder="Enter your full name" required tabindex="5" value="<?php echo isset($name) ? htmlspecialchars($name) : ''; ?>">
+                    </div>
+                    <div class="field-group">
+                        <label>Father's Name <span class="req">*</span></label>
+                        <input type="text" class="form-control" placeholder="Enter Father's Name" name="father_name" onkeydown="return allowAlphabets(event)" id="father_name" required tabindex="6">
+                    </div>
+                    <div class="field-group">
+                        <label>Father's / Guardian's Mobile <span class="req">*</span></label>
+                        <input type="text" class="form-control" minlength="10" maxlength="10" placeholder="10-digit mobile number" onchange="validateMobile(this)" name="father_mobile" id="father_mobile" onKeyPress="return checkIt(event);" required tabindex="7">
+                    </div>
+                    <div class="field-group">
+                        <label>Father's Occupation <span class="req">*</span></label>
+                        <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter Father's Occupation" name="father_occupation" id="father_occupation" required tabindex="8">
+                    </div>
+                    <div class="field-group">
+                        <label>Mother's Name <span class="req">*</span></label>
+                        <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter Mother's Name" name="mother_name" id="mother_name" required tabindex="9">
+                    </div>
+                    <div class="field-group">
+                        <label>Mother's / Guardian's Mobile <span class="req">*</span></label>
+                        <input type="text" class="form-control" placeholder="10-digit mobile number" name="mother_mobile" id="mother_mobile" onchange="validateMobile(this)" required minlength="10" maxlength="10" onKeyPress="return checkIt(event);" tabindex="10">
+                    </div>
+                    <div class="field-group">
+                        <label>Mother's Occupation <span class="req">*</span></label>
+                        <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter Mother's Occupation" name="mother_occupation" id="mother_occupation" required tabindex="11">
+                    </div>
+                    <div class="field-group">
+                        <label>Gender <span class="req">*</span></label>
+                        <select class="form-select" id="gender" name="gender" required tabindex="12">
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Community <span class="req">*</span></label>
+                        <select class="form-control" id="community" name="community" required tabindex="12a">
+                            <option value="">Select Community</option>
+                            <option value="OC">OC (General)</option>
+                            <option value="BC">BC</option>
+                            <option value="MBC">MBC</option>
+                            <option value="BCM">BCM</option>
+                            <option value="SC">SC</option>
+                            <option value="SCA">SCA</option>
+                            <option value="ST">ST</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Student's Email ID <span class="req">*</span></label>
+                        <input type="email" class="form-control" placeholder="Enter your Email" id="student_email" name="student_email" required tabindex="13" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>">
+                        <span id="email_error" class="text-danger"></span>
+                    </div>
+                    <div class="field-group">
+                        <label>Student's Mobile Number <span class="req">*</span></label>
+                        <input type="text" step="any" class="form-control" placeholder="10-digit mobile number" id="student_mobile" onchange="validateMobile(this)" onKeyPress="return checkIt(event);" name="student_mobile" required minlength="10" maxlength="10" tabindex="14" value="<?php echo isset($mobileno) ? htmlspecialchars($mobileno) : ''; ?>">
+                        <span id="mobile_error" class="text-danger"></span>
+                    </div>
+                    <div class="field-group">
+                        <label>Student's D.O.B <span class="req">*</span></label>
+                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="dob" name="dob" required tabindex="15">
+                        <span id="dob_error" class="text-danger"></span>
+                    </div>
+                    <div class="field-group">
+                        <label>Aadhaar Number <span class="req">*</span></label>
+                        <input type="text" step="any" class="form-control" placeholder="12-digit Aadhaar Number" id="aadhaar" name="aadhaar" required minlength="12" maxlength="12" onKeyPress="return checkIt(event);" tabindex="16">
+                        <span id="aadhaar_error" class="text-danger"></span>
+                    </div>
+                    <div class="field-group">
+                        <label>State <span class="req">*</span></label>
+                        <select class="form-control" id="state" name="state" required tabindex="17">
+                            <option value="">Select State</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>City <span class="req">*</span></label>
+                        <select class="form-control" id="city" name="city" required tabindex="18">
+                            <option value="">Select City</option>
+                        </select>
+                        <input type="text" class="form-control mt-2" id="city_other_text" name="city_custom" placeholder="Enter your city" style="display:none;">
+                    </div>
+                </div>
+                <div class="field-grid cols-2" style="margin-top: 16px;">
+                    <div class="field-group">
+                        <label>Address for Communication <span class="req">*</span></label>
+                        <textarea class="form-control" placeholder="Enter your Communication Address" name="comm_addr" id="comm_addr" required tabindex="19"></textarea>
+                    </div>
+                    <div class="field-group">
+                        <div class="addr-header">
+                            <label>Permanent Address <span class="req">*</span></label>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="same_as_comm" name="same_as_comm">
+                                <label class="form-check-label" for="same_as_comm">Same as Communication</label>
                             </div>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Name of the school of XII std*</label>
-                                        <input type="text" class="form-control" placeholder="Enter 12th school name" name="school_name_xii" id="school_name_xii" onkeydown="return allowAlphabets(event)" tabindex="25">
-                                    </div>
-                                </div>
-                            </div>
+                        </div>
+                        <textarea class="form-control" placeholder="Enter your Permanent Address" name="perm_addr" id="perm_addr" required tabindex="20"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Section 3: References ═══ -->
+            <div class="section-card">
+                <div class="section-title">References (Optional)</div>
+                <div class="ref-row">
+                    <div class="field-group">
+                        <label>Referrer Name</label>
+                        <input type="text" class="form-control" name="referral_name" id="referral_name" onkeydown="return allowAlphabets(event)" tabindex="19">
+                    </div>
+                    <div class="field-group">
+                        <label>Relationship</label>
+                        <input type="text" class="form-control" name="relationship" id="relationship" onkeydown="return allowAlphabets(event)" tabindex="20">
+                    </div>
+                    <div class="field-group">
+                        <label>Phone No.</label>
+                        <input type="text" class="form-control" name="phone_no" id="phone_no" minlength="10" maxlength="10" onKeyPress="return checkIt(event);" tabindex="21">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Section 4: HSC Examination ═══ -->
+            <div class="section-card" id="hscDetails">
+                <div class="section-title">HSC Examination Details</div>
+                <div style="overflow-x: auto;">
+                    <table class="marks-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;">Subject</th>
+                                <th>Maximum Marks</th>
+                                <th>Marks Obtained</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Maths (M)</td>
+                                <td><input type="number" step="1" min="0" max="100" value="0" class="form-control" name="total_maths" id="total_maths" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="25"></td>
+                                <td><input type="number" step="1" min="0" max="100" value="0" class="form-control" name="maths_marks" id="maths_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="26"></td>
+                                <td><input type="number" step="1" min="0" max="100" value="0" class="form-control" name="maths_perc" id="maths_perc" readonly tabindex="-1"></td>
+                            </tr>
+                            <tr>
+                                <td>Physics (P)</td>
+                                <td><input type="number" step="1" min="0" max="100" value="0" class="form-control" name="total_physics" id="total_physics" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="27"></td>
+                                <td><input type="number" step="1" min="0" max="100" value="0" class="form-control" name="physics_marks" id="physics_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="28"></td>
+                                <td><input type="number" step="1" min="0" max="100" value="0" class="form-control" name="physics_perc" id="physics_perc" readonly tabindex="-1"></td>
+                            </tr>
+                            <tr>
+                                <td>Chemistry (C)</td>
+                                <td><input type="number" step="1" min="0" max="100" value="0" class="form-control" name="total_chemistry" id="total_chemistry" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="29"></td>
+                                <td><input type="number" step="1" min="0" max="100" value="0" class="form-control" name="chemistry_marks" id="chemistry_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="30"></td>
+                                <td><input type="number" step="1" min="0" max="100" value="0" class="form-control" name="chemistry_perc" id="chemistry_perc" readonly tabindex="-1"></td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>Average: (P+C+M)/3</strong></td>
+                                <td colspan="3"><input type="number" step="0.01" min="0" max="100" value="0" class="form-control" name="average_marks" id="average_marks" readonly tabindex="-1" style="max-width:200px;margin:0 auto;"></td>
+                            </tr>
+                            <tr id="barch_hsc_total_row" style="display:none;">
+                                <td><strong>Total Marks (HSC)</strong> <span class="req">*</span><br><small class="text-muted">All subjects combined</small></td>
+                                <td><input type="number" step="1" min="1" value="" class="form-control" name="hsc_total_marks" id="hsc_total_marks" tabindex="31"></td>
+                                <td><input type="number" step="1" min="0" value="" class="form-control" name="hsc_marks_obtained" id="hsc_marks_obtained" tabindex="32"></td>
+                                <td></td>
+                            </tr>
+                            <tr class="highlight-row" id="cutoff_row">
+                                <td id="cutoff_label"><strong>Cut Off: (P+C)/2 + M</strong></td>
+                                <td colspan="3"><input type="number" step="0.01" min="0" max="400" value="0" class="form-control" name="cutoff_marks" id="cutoff_marks" readonly tabindex="-1" style="max-width:200px;margin:0 auto;"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══ Section 5: School Details (UG) ═══ -->
+            <div id="ugDetails">
+                <div class="section-card">
+                    <div class="section-title">School Details</div>
+                    <div class="field-grid cols-3">
+                        <div class="field-group">
+                            <label>Name of School (X Std) <span class="req">*</span></label>
+                            <input type="text" class="form-control" placeholder="Enter school name" name="school_name" id="school_name" onkeydown="return allowAlphabets(event)" tabindex="22">
+                        </div>
+                        <div class="field-group">
+                            <label>Year of Passing (X Std) <span class="req">*</span></label>
+                            <select class="form-control" name="tenth_passing" id="tenth_passing" tabindex="23">
+                                <option value="">Select Year</option>
+                                <?php for ($y = date('Y'); $y >= date('Y') - 10; $y--): ?>
+                                <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label>X Marks (in %) <span class="req">*</span></label>
+                            <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="Enter marks %" name="tenth_marks_percentage" id="tenth_marks_percentage" tabindex="24">
                         </div>
                     </div>
-                    
-                    <div id="lateralDetails" style="display:none">
-                        <div class="section-card">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Name of the school of X std*</label>
-                                        <input type="text" class="form-control" placeholder="Enter school name"  name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)" tabindex="29">
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Year of passing of X std*</label>
-                                        <select class="form-control" name="lateral_tenth_passing" id="lateral_tenth_passing" tabindex="30">
-                                            <option value="">Select Year</option>
-                                            <?php for ($y = date('Y'); $y >= date('Y') - 10; $y--): ?>
-                                            <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
-                                            <?php endfor; ?>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">X marks (in %)*</label>
-                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="Enter marks %" name="lateral_tenth_marks_percentage" id="lateral_tenth_marks_percentage" tabindex="31">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="section-card mt-4">
-                            <h5 class="text-center mb-3">Lateral Entry - Semester Marks</h5>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="border p-3">
-                                        <h6 class="text-center">Pre-Final Semester Subjects</h6>
-                                        <table class="table table-bordered">
-                                            <tbody>
-                                                <tr>
-                                                    <td>
-                                                        1. <input type="text" name="presub1" id="presub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="32"> : <input type="number" step="1"  class="form-control d-inline w-25" max="100" min="0" name="preout1" id="preout1" value="0" onKeyPress="return checkIt(event);" tabindex="33"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark1" id="premark1" onKeyPress="return checkIt(event);" tabindex="34">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        2. <input type="text" name="presub2" id="presub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="35"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout2" id="preout2" value="0" onKeyPress="return checkIt(event);" tabindex="36"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark2" id="premark2" onKeyPress="return checkIt(event);" tabindex="37">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        3. <input type="text" name="presub3" id="presub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="38"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout3" id="preout3" value="0" onKeyPress="return checkIt(event);" tabindex="39"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark3" id="premark3" onKeyPress="return checkIt(event);" tabindex="40">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        4. <input type="text" name="presub4" id="presub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="41"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout4" id="preout4" value="0" onKeyPress="return checkIt(event);" tabindex="42"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark4" id="premark4" onKeyPress="return checkIt(event);" tabindex="43">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        5. <input type="text" name="presub5" id="presub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="44"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout5" id="preout5" value="0" onKeyPress="return checkIt(event);" tabindex="45"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark5" id="premark5" onKeyPress="return checkIt(event);" tabindex="46">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        6. <input type="text" name="presub6" id="presub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="47"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout6" id="preout6" value="0" onKeyPress="return checkIt(event);" tabindex="48"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark6" id="premark6" onKeyPress="return checkIt(event);" tabindex="49">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="1" class="form-control d-inline w-25" name="pretotal" id="pretotal" value="0" onKeyPress="return checkIt(event);" readonly tabindex="-1"> out of <input type="number" step="1" class="form-control d-inline w-25" name="pretotal1" id="pretotal1" readonly onKeyPress="return checkIt(event);" value="0" tabindex="-1">
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <div class="col-md-12">
-                                    <div class="border p-3">
-                                        <h6 class="text-center">Final Semester Subjects</h6>
-                                        <table class="table table-bordered">
-                                            <tbody>
-                                                <tr>
-                                                    <td>
-                                                        1. <input type="text" name="finalsub1" id="finalsub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="50"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout1" id="finalout1" value="0" onKeyPress="return checkIt(event);" tabindex="51"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark1" id="finalmark1" onKeyPress="return checkIt(event);" tabindex="52">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        2. <input type="text" name="finalsub2" id="finalsub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="53"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout2" id="finalout2" value="0" onKeyPress="return checkIt(event);" tabindex="54"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark2" id="finalmark2" onKeyPress="return checkIt(event);" tabindex="55">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        3. <input type="text" name="finalsub3" id="finalsub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="56"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout3" id="finalout3" value="0" onKeyPress="return checkIt(event);" tabindex="57"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark3" id="finalmark3" onKeyPress="return checkIt(event);" tabindex="58">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        4. <input type="text" name="finalsub4" id="finalsub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="59"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout4" id="finalout4" value="0" onKeyPress="return checkIt(event);" tabindex="60"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark4" id="finalmark4" onKeyPress="return checkIt(event);" tabindex="61">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        5. <input type="text" name="finalsub5" id="finalsub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="62"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout5" id="finalout5" value="0" onKeyPress="return checkIt(event);" tabindex="63"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark5" id="finalmark5" onKeyPress="return checkIt(event);" tabindex="64">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        6. <input type="text" name="finalsub6" id="finalsub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="65"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout6" id="finalout6" value="0" onKeyPress="return checkIt(event);" tabindex="66"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark6" id="finalmark6" onKeyPress="return checkIt(event);" tabindex="67">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="1" class="form-control d-inline w-25" name="finaltotal" id="finaltotal" value="0" readonly onKeyPress="return checkIt(event);" tabindex="-1"> out of <input type="number" step="1" class="form-control d-inline w-25" name="finaltotal1" id="finaltotal1" readonly onKeyPress="return checkIt(event);" value="0" tabindex="-1">
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="nata_sec" style="display:none">
-                        <div class="section-card">
-                            <h5 class="mb-2">NATA Score (for B.Arch only)</h5>
-                            <p class="text-muted small mb-3">For B.Arch courses, admission eligibility is based on NATA Score % — not cut-off marks.</p>
-                            <div class="mb-3">
-                                <label class="form-label">NATA Score % <span class="text-danger">*</span></label>
-                                <input class="form-control" placeholder="Enter NATA Score %" name="nata_score" id="nata_score" tabindex="68">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Application Form</label>
-                                <input class="form-control" placeholder="Enter Application Form" name="application_number" id="application_number" tabindex="69">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Year</label>
-                                <input class="form-control" placeholder="Enter Year" name="nata_year" id="nata_year" tabindex="70">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="pgDetails" style="display: none;">
-                        <div class="section-card">
-                            <h5 class="mb-3">Academic  Details</h5>
-                            <div class="row">
-                                <div class="mb-3 col-md-6">
-                                    <label class="form-label">UG Course Studied</label>
-                                    <input class="form-control" type="text" placeholder="Enter your UG course" name="exam_passed" id="exam_passed" tabindex="71">
-                                </div>
-                                <div class="mb-3 col-md-6">
-                                    <label class="form-label">Major Stream</label>
-                                    <input type="text" class="form-control" placeholder="Enter your major stream" name="branch" id="branch" tabindex="72">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="mb-3 col-md-6">
-                                    <label class="form-label">Year of Passing</label>
-                                    <input type="text" class="form-control" placeholder="Enter your Year" onKeyPress="return checkIt(event);" name="yop" id="yop" tabindex="74">
-                                </div>
-                                <div class="mb-3 col-md-6">
-                                    <label class="form-label">Name of the College</label>
-                                    <input type="text" class="form-control" minlength="2" maxlength="200" placeholder="Enter your College" name="noc" id="noc" tabindex="75">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="mb-3 col-md-6">
-                                    <label class="form-label">University*</label>
-                                    <select class="form-control" id="university_id" name="university_id" tabindex="76" required>
-                                        <option value="">Select University</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3 col-md-6">
-                                    <label class="form-label">TANCET / PGETA Exam Application Number</label>
-                                    <input type="text" step="any" class="form-control" placeholder="Enter your Application Number" name="pg_app_num" id="pg_app_num" tabindex="77">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="mb-3 col-md-6">
-                                    <label class="form-label">TANCET / PGETA Examination Year</label>
-                                    <input type="text" step="any" class="form-control" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" placeholder="Enter your examination year" name="exam_year" id="exam_year" tabindex="78">
-                                </div>
-                                <div class="mb-3 col-md-6">
-                                    <label class="form-label">TANCET / PGETA Exam Score</label>
-                                    <input type="number" step="any" class="form-control" placeholder="Enter your Score" name="exam_score" id="exam_score" tabindex="79">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="mb-3 col-md-6">
-                                    <label class="form-label">UG Degree Score / Percentage*</label>
-                                    <div class="input-group">
-                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="0 – 100" name="ug_degree_score" id="ug_degree_score" tabindex="80"
-                                            oninput="if(parseFloat(this.value)>100){this.value=100;} if(parseFloat(this.value)<0){this.value=0;}">
-                                        <span class="input-group-text">%</span>
-                                    </div>
-                                    <small id="ug_degree_score_error" class="text-danger" style="display:none;">Value must be between 0 and 100.</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="section-card">
-                        <h5 class="mb-3">Additional Information</h5>
-                        <div class="mb-4">
-                            <label class="form-label">UG Alumni of Meenakshi Group of Institutions</label>
-                            <input type="file" class="form-control" name="bonafide" id="bonafide" tabindex="80">
-                            <small class="text-muted">Attach Bonafide Certificate</small>
-                        </div>
-                        <div class="row">
-                            <div class="mb-4">
-                                <label class="form-label">Eminent Sports Person</label><br>
-                                <input type="radio" name="sports" id="sports" value="Yes" tabindex="81"> Yes
-                                <input type="radio" name="sports" id="sports" value="No" checked tabindex="82"> No
-                                <br>
-                                <div id="level">
-                                    <label class="form-label mt-4">Level</label>
-                                    <select class="form-control" name="sports_level" id="sports_level" tabindex="83">
-                                        <option value="">Select Level</option>
-                                        <option value="District">District Level</option>
-                                        <option value="State">State Level</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label">Ward of Ex-Service Men</label><br>
-                                <input type="radio" name="exservice" value="Yes" tabindex="84"> Yes
-                                <input type="radio" name="exservice" value="No" checked tabindex="85"> No
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <label class="form-label">Differently Abled Person</label><br>
-                            <input type="radio" name="differently_abled" value="Yes" onclick="showDisabilityType(true)" tabindex="86"> Yes
-                            <input type="radio" name="differently_abled" value="No" onclick="showDisabilityType(false)" checked tabindex="87"> No
-                        </div>
-                        <div class="mb-3" id="disabilityType" style="display: none;">
-                            <label class="form-label">If Yes, Differently Abled Type</label>
-                            <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type" tabindex="88">
+                    <div class="field-grid cols-2" style="margin-top: 16px;">
+                        <div class="field-group">
+                            <label>Name of School (XII Std) <span class="req">*</span></label>
+                            <input type="text" class="form-control" placeholder="Enter 12th school name" name="school_name_xii" id="school_name_xii" onkeydown="return allowAlphabets(event)" tabindex="25">
                         </div>
                     </div>
                 </div>
-                <input type="hidden" name="payment_option" id="payment_option" value="">
-                <button class="btn btn-submit mt-3" type="button" id="submit_application_btn" name="submit" tabindex="89">Submit Application</button>
-            </form>
-        </div>
+            </div>
+
+            <!-- ═══ Section 6: Lateral Entry ═══ -->
+            <div id="lateralDetails" style="display:none">
+                <div class="section-card">
+                    <div class="section-title">Lateral Entry - School Details</div>
+                    <div class="field-grid cols-3">
+                        <div class="field-group">
+                            <label>Name of School (X Std) <span class="req">*</span></label>
+                            <input type="text" class="form-control" placeholder="Enter school name" name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)" tabindex="29">
+                        </div>
+                        <div class="field-group">
+                            <label>Year of Passing (X Std) <span class="req">*</span></label>
+                            <select class="form-control" name="lateral_tenth_passing" id="lateral_tenth_passing" tabindex="30">
+                                <option value="">Select Year</option>
+                                <?php for ($y = date('Y'); $y >= date('Y') - 10; $y--): ?>
+                                <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label>X Marks (in %) <span class="req">*</span></label>
+                            <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="Enter marks %" name="lateral_tenth_marks_percentage" id="lateral_tenth_marks_percentage" tabindex="31">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-title">Lateral Entry - Semester Marks</div>
+                    <div class="semester-panels">
+                        <!-- Pre-Final Semester -->
+                        <div class="semester-panel">
+                            <h6>Pre-Final Semester</h6>
+                            <?php for ($i = 1; $i <= 6; $i++): ?>
+                            <div class="sem-subject-row">
+                                <span class="sem-num"><?php echo $i; ?>.</span>
+                                <input type="text" name="presub<?php echo $i; ?>" id="presub<?php echo $i; ?>" class="form-control" placeholder="Subject" tabindex="<?php echo 30 + ($i-1)*3 + 2; ?>">
+                                <input type="number" step="1" class="form-control" max="100" min="0" name="preout<?php echo $i; ?>" id="preout<?php echo $i; ?>" value="0" onKeyPress="return checkIt(event);" tabindex="<?php echo 30 + ($i-1)*3 + 3; ?>">
+                                <span class="sep-text">of</span>
+                                <input type="number" step="1" class="form-control" max="100" min="0" value="0" name="premark<?php echo $i; ?>" id="premark<?php echo $i; ?>" onKeyPress="return checkIt(event);" tabindex="<?php echo 30 + ($i-1)*3 + 4; ?>">
+                            </div>
+                            <?php endfor; ?>
+                            <div class="sem-total-row">
+                                <span>Total:</span>
+                                <input type="number" step="1" class="form-control" name="pretotal" id="pretotal" value="0" onKeyPress="return checkIt(event);" readonly tabindex="-1">
+                                <span>of</span>
+                                <input type="number" step="1" class="form-control" name="pretotal1" id="pretotal1" readonly onKeyPress="return checkIt(event);" value="0" tabindex="-1">
+                            </div>
+                        </div>
+
+                        <!-- Final Semester -->
+                        <div class="semester-panel">
+                            <h6>Final Semester</h6>
+                            <?php for ($i = 1; $i <= 6; $i++): ?>
+                            <div class="sem-subject-row">
+                                <span class="sem-num"><?php echo $i; ?>.</span>
+                                <input type="text" name="finalsub<?php echo $i; ?>" id="finalsub<?php echo $i; ?>" class="form-control" placeholder="Subject" tabindex="<?php echo 49 + ($i-1)*3 + 1; ?>">
+                                <input type="number" step="1" class="form-control" max="100" min="0" name="finalout<?php echo $i; ?>" id="finalout<?php echo $i; ?>" value="0" onKeyPress="return checkIt(event);" tabindex="<?php echo 49 + ($i-1)*3 + 2; ?>">
+                                <span class="sep-text">of</span>
+                                <input type="number" step="1" class="form-control" max="100" min="0" value="0" name="finalmark<?php echo $i; ?>" id="finalmark<?php echo $i; ?>" onKeyPress="return checkIt(event);" tabindex="<?php echo 49 + ($i-1)*3 + 3; ?>">
+                            </div>
+                            <?php endfor; ?>
+                            <div class="sem-total-row">
+                                <span>Total:</span>
+                                <input type="number" step="1" class="form-control" name="finaltotal" id="finaltotal" value="0" readonly onKeyPress="return checkIt(event);" tabindex="-1">
+                                <span>of</span>
+                                <input type="number" step="1" class="form-control" name="finaltotal1" id="finaltotal1" readonly onKeyPress="return checkIt(event);" value="0" tabindex="-1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Section 7: NATA Score ═══ -->
+            <div id="nata_sec" style="display:none">
+                <div class="section-card">
+                    <div class="section-title">NATA Score (B.Arch Only)</div>
+                    <p class="text-muted" style="font-size:13px; margin-bottom:16px;">For B.Arch courses, admission eligibility is based on NATA Score % -- not cut-off marks.</p>
+                    <div class="field-grid cols-3">
+                        <div class="field-group">
+                            <label>NATA Score % <span class="req">*</span></label>
+                            <input class="form-control" placeholder="Enter NATA Score %" name="nata_score" id="nata_score" tabindex="68">
+                        </div>
+                        <div class="field-group">
+                            <label>Application Form</label>
+                            <input class="form-control" placeholder="Enter Application Form" name="application_number" id="application_number" tabindex="69">
+                        </div>
+                        <div class="field-group">
+                            <label>Year</label>
+                            <input class="form-control" placeholder="Enter Year" name="nata_year" id="nata_year" tabindex="70">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Section 8: PG Details ═══ -->
+            <div id="pgDetails" style="display: none;">
+                <div class="section-card">
+                    <div class="section-title">Academic Details (PG)</div>
+                    <div class="field-grid cols-2">
+                        <div class="field-group">
+                            <label>UG Course Studied</label>
+                            <input class="form-control" type="text" placeholder="Enter your UG course" name="exam_passed" id="exam_passed" tabindex="71">
+                        </div>
+                        <div class="field-group">
+                            <label>Major Stream</label>
+                            <input type="text" class="form-control" placeholder="Enter your major stream" name="branch" id="branch" tabindex="72">
+                        </div>
+                        <div class="field-group">
+                            <label>Year of Passing</label>
+                            <input type="text" class="form-control" placeholder="Enter your Year" onKeyPress="return checkIt(event);" name="yop" id="yop" tabindex="74">
+                        </div>
+                        <div class="field-group">
+                            <label>Name of the College</label>
+                            <input type="text" class="form-control" minlength="2" maxlength="200" placeholder="Enter your College" name="noc" id="noc" tabindex="75">
+                        </div>
+                        <div class="field-group">
+                            <label>University <span class="req">*</span></label>
+                            <select class="form-control" id="university_id" name="university_id" tabindex="76" required>
+                                <option value="">Select University</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label>TANCET / PGETA Application No.</label>
+                            <input type="text" step="any" class="form-control" placeholder="Enter Application Number" name="pg_app_num" id="pg_app_num" tabindex="77">
+                        </div>
+                        <div class="field-group">
+                            <label>TANCET / PGETA Exam Year</label>
+                            <input type="text" step="any" class="form-control" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" placeholder="Enter examination year" name="exam_year" id="exam_year" tabindex="78">
+                        </div>
+                        <div class="field-group">
+                            <label>TANCET / PGETA Exam Score</label>
+                            <input type="number" step="any" class="form-control" placeholder="Enter your Score" name="exam_score" id="exam_score" tabindex="79">
+                        </div>
+                    </div>
+                    <div class="field-grid cols-2" style="margin-top:16px;">
+                        <div class="field-group">
+                            <label>UG Degree Score / Percentage <span class="req">*</span></label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="0 - 100" name="ug_degree_score" id="ug_degree_score" tabindex="80"
+                                    oninput="if(parseFloat(this.value)>100){this.value=100;} if(parseFloat(this.value)<0){this.value=0;}">
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small id="ug_degree_score_error" class="text-danger" style="display:none;">Value must be between 0 and 100.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Section 9: Additional Information ═══ -->
+            <div class="section-card">
+                <div class="section-title">Additional Information</div>
+
+                <div class="info-item">
+                    <div class="info-label">UG Alumni of Meenakshi Group of Institutions</div>
+                    <input type="file" class="form-control" name="bonafide" id="bonafide" tabindex="80" style="max-width:400px;">
+                    <small class="text-muted">Attach Bonafide Certificate (PDF, max 5MB)</small>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">Eminent Sports Person</div>
+                    <div class="radio-group">
+                        <label><input type="radio" name="sports" id="sports" value="Yes" tabindex="81"> Yes</label>
+                        <label><input type="radio" name="sports" id="sports" value="No" checked tabindex="82"> No</label>
+                    </div>
+                    <div id="level" style="margin-top: 10px;">
+                        <label class="field-label" style="margin-bottom:6px;">Level</label>
+                        <select class="form-control" name="sports_level" id="sports_level" tabindex="83" style="max-width:300px;">
+                            <option value="">Select Level</option>
+                            <option value="District">District Level</option>
+                            <option value="State">State Level</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">Ward of Ex-Service Men</div>
+                    <div class="radio-group">
+                        <label><input type="radio" name="exservice" value="Yes" tabindex="84"> Yes</label>
+                        <label><input type="radio" name="exservice" value="No" checked tabindex="85"> No</label>
+                    </div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">Differently Abled Person</div>
+                    <div class="radio-group">
+                        <label><input type="radio" name="differently_abled" value="Yes" onclick="showDisabilityType(true)" tabindex="86"> Yes</label>
+                        <label><input type="radio" name="differently_abled" value="No" onclick="showDisabilityType(false)" checked tabindex="87"> No</label>
+                    </div>
+                    <div id="disabilityType" style="display: none; margin-top: 10px;">
+                        <label class="field-label">If Yes, type of disability</label>
+                        <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type" tabindex="88" style="max-width:400px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── Hidden + Submit ─── -->
+            <input type="hidden" name="payment_option" id="payment_option" value="">
+            <div class="submit-area">
+                <button class="btn-submit" type="button" id="submit_application_btn" name="submit" tabindex="89">Submit Application</button>
+            </div>
+        </form>
     </div>
-    <!-- Payment Option Modal -->
+
+    <!-- ─── Payment Option Modal ─── -->
     <div class="modal fade" id="paymentOptionModal" tabindex="-1" aria-labelledby="paymentOptionModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -810,8 +1307,8 @@
             </div>
         </div>
     </div>
-    
-    <!-- Error Modal -->
+
+    <!-- ─── Error Modal ─── -->
     <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -830,7 +1327,7 @@
             </div>
         </div>
     </div>
-</body>
+
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -838,57 +1335,6 @@
         document.getElementById("disabilityType").style.display = show ? "block" : "none";
     }
 </script>
-<script>
-    particlesJS("particles-js", {
-        "particles": {
-            "number": {
-                "value": 100,
-                "density": {
-                    "enable": true,
-                    "value_area": 800
-                }
-            },
-            "color": {
-                "value": "#000000"
-            },
-            "shape": {
-                "type": "circle"
-            },
-            "opacity": {
-                "value": 0.5,
-                "random": false
-            },
-            "size": {
-                "value": 3,
-                "random": true
-            },
-            "line_linked": {
-                "enable": true,
-                "distance": 150,
-                "color": "#000000",
-                "opacity": 0.4,
-                "width": 1
-            },
-            "move": {
-                "enable": true,
-                "speed": 3,
-                "direction": "none",
-                "random": false,
-                "straight": false,
-                "out_mode": "out"
-            }
-        },
-        "interactivity": {
-            "events": {
-                "onhover": {
-                    "enable": true,
-                    "mode": "repulse"
-                }
-            }
-        }
-    });
-</script>
-
 <script>
     // Initialize with UG selected by default
     document.addEventListener("DOMContentLoaded", function() {
@@ -900,40 +1346,40 @@
         const ugRadio = document.getElementById("ugRadio");
         const lateralRadio = document.getElementById("lateralRadio");
         const pgRadio = document.getElementById("pgRadio");
-        
+
         const ugDetails = document.getElementById("ugDetails");
         const lateralDetails = document.getElementById("lateralDetails");
         const pgDetails = document.getElementById("pgDetails");
         const hscDetails = document.getElementById("hscDetails");
-        
+
         if(ugRadio.checked) {
             // Show UG details, hide others
             ugDetails.style.display = "block";
             lateralDetails.style.display = "none";
             pgDetails.style.display = "none";
             hscDetails.style.display = "block";
-            
+
             // Show/hide course dropdowns in top row
             document.getElementById("ug_course").style.display = "block";
             document.getElementById("lateral_course").style.display = "none";
             document.getElementById("pg_course").style.display = "none";
-            
+
             // Set required fields for UG
             setRequiredFields(true, false, false);
             setHscRequired(true);
-        } 
+        }
         else if(lateralRadio.checked) {
             // Show Lateral details, hide others
             ugDetails.style.display = "none";
             lateralDetails.style.display = "block";
             pgDetails.style.display = "none";
             hscDetails.style.display = "none";
-            
+
             // Show/hide course dropdowns in top row
             document.getElementById("ug_course").style.display = "none";
             document.getElementById("lateral_course").style.display = "block";
             document.getElementById("pg_course").style.display = "none";
-            
+
             // Set required fields for Lateral
             setRequiredFields(false, true, false);
             setHscRequired(false);
@@ -945,12 +1391,12 @@
             lateralDetails.style.display = "none";
             pgDetails.style.display = "block";
             hscDetails.style.display = "none";
-            
+
             // Show/hide course dropdowns in top row
             document.getElementById("ug_course").style.display = "none";
             document.getElementById("lateral_course").style.display = "none";
             document.getElementById("pg_course").style.display = "block";
-            
+
             // Set required fields for PG
             setRequiredFields(false, false, true);
             setHscRequired(false);
@@ -965,7 +1411,7 @@
         $("#tenth_passing").prop("required", ugRequired);
         $("#tenth_marks_percentage").prop("required", ugRequired);
         $("#school_name_xii").prop("required", ugRequired);
-        
+
         // Lateral fields
         $("#lateral_course").prop("required", lateralRequired);
         $("#lateral_school_name").prop("required", lateralRequired);
@@ -979,7 +1425,7 @@
             $(`#finalout${i}`).prop("required", lateralRequired);
             $(`#finalmark${i}`).prop("required", lateralRequired);
         }
-        
+
         // PG fields
         $("#pg_course").prop("required", pgRequired);
         $("#exam_passed").prop("required", pgRequired);
@@ -1058,7 +1504,7 @@
             $("#nata_year").prop('required', true);
             // B.Arch: show cutoff row with NATA formula label
             $("#cutoff_row").show();
-            $("#cutoff_label").html('<strong>Cut Off: NATA + (Obtained/Total)\u00D7200</strong>');
+            $("#cutoff_label").html('<strong>Cut Off: NATA + (Obtained/Total)×200</strong>');
             $("#barch_hsc_total_row").show();
         } else {
             $("#nata_sec").hide();
@@ -1114,7 +1560,7 @@
                     let select = $('#university_id');
                     select.empty();
                     select.append('<option value="">Select University</option>');
-                    
+
                     data.forEach(function(uni) {
                         select.append(`<option value="${uni.id}">${uni.name}</option>`);
                     });
@@ -1208,12 +1654,12 @@
             if (charCode == 9) {
                 return true;
             }
-            if ((charCode >= 65 && charCode <= 90) || 
-                (charCode >= 97 && charCode <= 122) || 
-                charCode == 8 || 
+            if ((charCode >= 65 && charCode <= 90) ||
+                (charCode >= 97 && charCode <= 122) ||
+                charCode == 8 ||
                 charCode == 32) {
                 return true;
-            }   
+            }
             return false;
         }</script>
 <script type="text/javascript">
@@ -1285,7 +1731,7 @@
             }
             let percentage = (marks / total) * 100;
             $(percId).val(percentage.toFixed(2));
-            return marks; 
+            return marks;
         }
         function calculateTotal() {
             let mathsMarks     = calculatePercentage("#maths_marks", "#total_maths", "#maths_perc");
@@ -1345,7 +1791,7 @@
                     $(outId).val(0);
                     total = 0;
                 }
-                
+
                 // Validate marks obtained (premarkX)
                 if (marks > total) {
                     alert("Pre-Final Semester Marks Obtained cannot exceed Maximum Marks.");
@@ -1428,7 +1874,7 @@ $(document).ready(function() {
             if (value) {
                 const field = $('[name="' + key + '"]');
                 let errorSpan = '<span class="text-danger form-error">' + value + '</span>';
-                
+
                 if (key === 'user_image') {
                     $('#image-upload-area').after(errorSpan);
                 } else if (field.length > 0) {
@@ -1474,18 +1920,18 @@ $(document).ready(function() {
         }
 
         console.log('Client-side validation passed. Showing payment modal.');
-        
+
         // Clean up any existing modal instance first
         const modalEl = document.getElementById('paymentOptionModal');
         const existingModal = bootstrap.Modal.getInstance(modalEl);
         if (existingModal) {
             existingModal.dispose();
         }
-        
+
         // Remove any backdrops
         $('.modal-backdrop').remove();
         $('body').removeClass('modal-open').css('overflow', '').css('padding-right', '');
-        
+
         // Create fresh modal instance
         const paymentOptionModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
         paymentOptionModal.show();
@@ -1495,21 +1941,21 @@ $(document).ready(function() {
     function submitForm(paymentOption) {
         console.log('Submitting form with payment option:', paymentOption);
         $('#payment_option').val(paymentOption);
-        
+
         // Close the modal first
         const modalEl = document.getElementById('paymentOptionModal');
         const modal = bootstrap.Modal.getInstance(modalEl);
         if (modal) {
             modal.hide();
         }
-        
+
         $('.modal-backdrop').remove();
         $('body').removeClass('modal-open').css('overflow', '').css('padding-right', '');
-        
+
         var formData = new FormData(document.getElementById('admission_form'));
         const submitBtn = $('#submit_application_btn');
         submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...');
-        
+
         clearErrors();
 
         $.ajax({
@@ -1527,7 +1973,7 @@ $(document).ready(function() {
                 } else if (response.status === 'fail') {
                     console.log('Validation errors:', response.error);
                     displayErrors(response.error);
-                    
+
                     // Show errors in modal
                     let errorHtml = '<ul class="list-unstyled mb-0">';
                     $.each(response.error, function(field, message) {
@@ -1535,10 +1981,10 @@ $(document).ready(function() {
                     });
                     errorHtml += '</ul>';
                     $('#errorModalContent').html(errorHtml);
-                    
+
                     const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
                     errorModal.show();
-                    
+
                     submitBtn.prop('disabled', false).text('Submit Application');
                 } else {
                     console.error('Unknown response:', response);
@@ -1560,29 +2006,29 @@ $(document).ready(function() {
     }
 
     // Handlers for modal buttons
-    $(document).on('click', '#payOnlineBtn', function() { 
+    $(document).on('click', '#payOnlineBtn', function() {
         console.log('Pay Online button clicked - event delegated');
-        submitForm('pay_online'); 
+        submitForm('pay_online');
     });
-    $(document).on('click', '#payLaterBtn', function() { 
+    $(document).on('click', '#payLaterBtn', function() {
         console.log('Pay Later button clicked - event delegated');
-        submitForm('pay_later'); 
+        submitForm('pay_later');
     });
 
     // Reset state when navigating back to this page (bfcache)
     window.addEventListener('pageshow', function(event) {
         console.log('pageshow event fired, persisted:', event.persisted);
-        
+
         if (event.persisted) {
             // Page was restored from bfcache (back button was used)
             console.log('Resetting form state after back button navigation');
-            
+
             // Re-enable submit button and reset text
             $('#submit_application_btn').prop('disabled', false).text('Submit Application');
-            
+
             // Clear payment option
             $('#payment_option').val('');
-            
+
             // Destroy any existing modal instance and remove backdrops
             const modalEl = document.getElementById('paymentOptionModal');
             if (modalEl) {
@@ -1591,16 +2037,16 @@ $(document).ready(function() {
                     modalInstance.dispose(); // Completely destroy the modal instance
                 }
             }
-            
+
             // Force remove any modal artifacts
             $('.modal-backdrop').remove();
             $('body').removeClass('modal-open').css('overflow', '').css('padding-right', '');
-            
+
             // Clear any error messages
             clearErrors();
         }
     });
-    
+
     // --- Existing client-side validation handlers for instant feedback ---
     $('#student_email').on('change', function() {
         var email = $(this).val(), academic_year = $('#academic_year').val();
@@ -1647,22 +2093,22 @@ $(document).ready(function() {
 
     // Load India states and cities
     let statesData = {};
-    
+
     $.ajax({
         url: '<?php echo base_url("backend/json-files/india_states_cities.json"); ?>',
         type: 'GET',
         dataType: 'json',
         success: function(data) {
             const stateSelect = document.getElementById('state');
-            
+
             // Sort states alphabetically
             data.states.sort((a, b) => a.name.localeCompare(b.name));
-            
+
             data.states.forEach(function(state) {
                 // Sort cities alphabetically
                 state.cities.sort((a, b) => a.localeCompare(b));
                 statesData[state.name] = state.cities;
-                
+
                 const option = document.createElement('option');
                 option.value = state.name;
                 option.textContent = state.name;
@@ -1676,7 +2122,7 @@ $(document).ready(function() {
         const selectedState = this.value;
         const citySelect = document.getElementById('city');
         citySelect.innerHTML = '<option value="">Select City</option>';
-        
+
         if (statesData[selectedState]) {
             statesData[selectedState].forEach(function(city) {
                 const option = document.createElement('option');
@@ -1704,10 +2150,10 @@ $(document).ready(function() {
         var checkbox = document.getElementById('same_as_comm');
         var commAddr = document.getElementById('comm_addr');
         var permAddr = document.getElementById('perm_addr');
-        
+
         console.log('Checkbox checked:', checkbox.checked);
         console.log('Comm Address:', commAddr.value);
-        
+
         if (checkbox.checked) {
             permAddr.value = commAddr.value;
             permAddr.style.backgroundColor = '#f0f8ff';
@@ -1748,4 +2194,5 @@ $(document).ready(function() {
     // tenth_passing and lateral_tenth_passing are now <select> year dropdowns — no Flatpickr needed
 });
 </script>
+</body>
 </html>
