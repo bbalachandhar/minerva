@@ -148,6 +148,7 @@ class Admin extends Admin_Controller
             INNER JOIN classes  c   ON c.id        = ss.class_id
             INNER JOIN sections sec ON sec.id      = ss.section_id
             WHERE ss.session_id = $sess
+              AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
         ");
         $valid_ids = array_column($valid_ss_query->result_array(), 'id');
         if (empty($valid_ids)) {
