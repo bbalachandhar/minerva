@@ -139,9 +139,8 @@
 }
 .mn-metric-body { flex: 1; min-width: 0; }
 .mn-metric-value {
-    font-size: 22px; font-weight: 800; color: var(--mn-text);
+    font-size: 18px; font-weight: 800; color: var(--mn-text);
     line-height: 1.1; letter-spacing: -0.5px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .mn-metric-label {
     font-size: 11px; font-weight: 600; text-transform: uppercase;
@@ -591,29 +590,33 @@
                                     <div class="mn-hc-bar"><div class="progress-bar shc-other-bar" style="width:0%;background:var(--mn-amber);"></div></div>
                                 </div>
                             </div>
-                            <div style="display:flex;gap:12px;margin-top:20px;padding-top:18px;border-top:1px solid var(--mn-border);">
+                            <div style="display:flex;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--mn-border);">
                                 <?php if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) { ?>
-                                <a href="<?php echo site_url('studentfee'); ?>" class="mn-qlink" id="monthly-fees-collection-widget" data-url="<?php echo site_url('admin/admin/monthly_fees_collection_widget'); ?>" style="flex:1;">
-                                    <div class="mn-qlink-icon" style="background:#ecfdf5;color:var(--mn-green);"><i class="fa fa-money"></i></div>
-                                    <div><div class="mn-qlink-label"><?php echo $this->lang->line('monthly_fees_collection'); ?></div><div class="mn-qlink-value mfc-amount fo-skeleton">0</div></div>
+                                <a href="<?php echo site_url('studentfee'); ?>" id="monthly-fees-collection-widget" data-url="<?php echo site_url('admin/admin/monthly_fees_collection_widget'); ?>" style="flex:1;text-align:center;text-decoration:none;color:inherit;padding:10px 4px;border:1px solid var(--mn-border);border-radius:10px;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                                    <div style="width:32px;height:32px;border-radius:8px;background:#ecfdf5;color:var(--mn-green);display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto 6px;"><i class="fa fa-money"></i></div>
+                                    <div class="mfc-amount fo-skeleton" style="font-size:14px;font-weight:700;">0</div>
+                                    <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;color:var(--mn-text-sec);margin-top:2px;">Fees Collection</div>
                                 </a>
                                 <?php } ?>
                                 <?php if ($this->module_lib->hasActive('income') && $this->rbac->hasPrivilege('monthly_income_widget', 'can_view')) { ?>
-                                <a href="<?php echo site_url('admin/income'); ?>" class="mn-qlink" id="monthly-income-widget" data-url="<?php echo site_url('admin/admin/monthly_income_widget'); ?>" style="flex:1;">
-                                    <div class="mn-qlink-icon" style="background:#eff6ff;color:var(--mn-blue);"><i class="fa fa-bank"></i></div>
-                                    <div><div class="mn-qlink-label">Monthly <?php echo $this->lang->line('income'); ?></div><div class="mn-qlink-value mi-amount fo-skeleton">0</div></div>
+                                <a href="<?php echo site_url('admin/income'); ?>" id="monthly-income-widget" data-url="<?php echo site_url('admin/admin/monthly_income_widget'); ?>" style="flex:1;text-align:center;text-decoration:none;color:inherit;padding:10px 4px;border:1px solid var(--mn-border);border-radius:10px;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                                    <div style="width:32px;height:32px;border-radius:8px;background:#eff6ff;color:var(--mn-blue);display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto 6px;"><i class="fa fa-bank"></i></div>
+                                    <div class="mi-amount fo-skeleton" style="font-size:14px;font-weight:700;">0</div>
+                                    <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;color:var(--mn-text-sec);margin-top:2px;">Income</div>
                                 </a>
                                 <?php } ?>
                                 <?php if ($this->module_lib->hasActive('expense') && $this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) { ?>
-                                <a href="<?php echo site_url('admin/expense'); ?>" class="mn-qlink" id="monthly-expense-widget" data-url="<?php echo site_url('admin/admin/monthly_expense_widget'); ?>" style="flex:1;">
-                                    <div class="mn-qlink-icon" style="background:#fef2f2;color:var(--mn-red);"><i class="fa fa-credit-card"></i></div>
-                                    <div><div class="mn-qlink-label"><?php echo $this->lang->line('monthly_expenses'); ?></div><div class="mn-qlink-value me-amount fo-skeleton">0</div></div>
+                                <a href="<?php echo site_url('admin/expense'); ?>" id="monthly-expense-widget" data-url="<?php echo site_url('admin/admin/monthly_expense_widget'); ?>" style="flex:1;text-align:center;text-decoration:none;color:inherit;padding:10px 4px;border:1px solid var(--mn-border);border-radius:10px;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                                    <div style="width:32px;height:32px;border-radius:8px;background:#fef2f2;color:var(--mn-red);display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto 6px;"><i class="fa fa-credit-card"></i></div>
+                                    <div class="me-amount fo-skeleton" style="font-size:14px;font-weight:700;">0</div>
+                                    <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;color:var(--mn-text-sec);margin-top:2px;">Expenses</div>
                                 </a>
                                 <?php } ?>
                                 <?php if ($this->module_lib->hasActive('whatsapp_messaging')) { ?>
-                                <a href="<?php echo site_url('whatsappconfig'); ?>" class="mn-qlink" id="whatsapp-msg-widget" data-url="<?php echo site_url('admin/admin/whatsapp_sent_widget'); ?>" style="flex:1;">
-                                    <div class="mn-qlink-icon" style="background:#dcfce7;color:#25D366;"><i class="fa fa-whatsapp"></i></div>
-                                    <div><div class="mn-qlink-label">WhatsApp Sent</div><div class="mn-qlink-value wa-count fo-skeleton">0</div></div>
+                                <a href="<?php echo site_url('whatsappconfig'); ?>" id="whatsapp-msg-widget" data-url="<?php echo site_url('admin/admin/whatsapp_sent_widget'); ?>" style="flex:1;text-align:center;text-decoration:none;color:inherit;padding:10px 4px;border:1px solid var(--mn-border);border-radius:10px;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                                    <div style="width:32px;height:32px;border-radius:8px;background:#dcfce7;color:#25D366;display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto 6px;"><i class="fa fa-whatsapp"></i></div>
+                                    <div class="wa-count fo-skeleton" style="font-size:14px;font-weight:700;">0</div>
+                                    <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;color:var(--mn-text-sec);margin-top:2px;">WhatsApp</div>
                                 </a>
                                 <?php } ?>
                             </div>
