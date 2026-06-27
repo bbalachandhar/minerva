@@ -36,6 +36,24 @@ class Tt extends Admin_Controller
         ];
     }
 
+    private function _getAllClasses()
+    {
+        return $this->db->where('class_type', 'academic')
+            ->order_by('class', 'asc')
+            ->get('classes')->result_array();
+    }
+
+    private function _getAllSections($class_id)
+    {
+        return $this->db->select('class_sections.id, class_sections.section_id, sections.section')
+            ->from('class_sections')
+            ->join('sections', 'sections.id = class_sections.section_id')
+            ->where('class_sections.class_id', (int) $class_id)
+            ->group_by('sections.section')
+            ->order_by('sections.section')
+            ->get()->result_array();
+    }
+
     private function _getWorkingDays()
     {
         $days        = $this->customlib->getDaysnameWithoutLang();
@@ -233,7 +251,7 @@ class Tt extends Admin_Controller
 
         // Build classlist with sections pre-loaded for the picker
         $this->load->model('section_model');
-        $raw_classes = $this->class_model->get();
+        $raw_classes = $this->_getAllClasses();
         $classlist   = [];
         foreach ($raw_classes as $cls) {
             $sections = $this->section_model->getClassBySection($cls['id']);
@@ -517,7 +535,7 @@ class Tt extends Admin_Controller
         }
         $this->_setMenu();
         $data = $this->_baseData();
-        $data['classlist']   = $this->class_model->get();
+        $data['classlist']   = $this->_getAllClasses();
         $data['departments'] = $this->department_model->getDepartmentType();
         $data['batches']     = $this->Tt_batch_model->getAllWithNames($data['session_id']);
         $this->load->view('layout/header', $data);
@@ -567,7 +585,7 @@ class Tt extends Admin_Controller
         }
         $this->_setMenu();
         $data = $this->_baseData();
-        $data['classlist']   = $this->class_model->get();
+        $data['classlist']   = $this->_getAllClasses();
         $data['departments'] = $this->department_model->getDepartmentType();
         $data['rooms']       = $this->Tt_room_model->getAll();
         $this->load->view('layout/header', $data);
@@ -1338,7 +1356,7 @@ class Tt extends Admin_Controller
         }
         $this->_setMenu();
         $data = $this->_baseData();
-        $data['classlist']   = $this->class_model->get();
+        $data['classlist']   = $this->_getAllClasses();
         $data['departments'] = $this->department_model->getDepartmentType();
         $data['gen_logs']    = $this->Tt_generator_model->getRecentLogs($data['session_id'], 5);
         $this->load->view('layout/header', $data);
@@ -1568,7 +1586,7 @@ class Tt extends Admin_Controller
         }
         $this->_setMenu();
         $data = $this->_baseData();
-        $data['classlist']   = $this->class_model->get();
+        $data['classlist']   = $this->_getAllClasses();
         $data['departments'] = $this->department_model->getDepartmentType();
         $data['periods']     = [];
         $data['entries']     = [];
@@ -2579,7 +2597,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         }
         $this->_setMenu();
         $data = $this->_baseData();
-        $data['classlist']   = $this->class_model->get();
+        $data['classlist']   = $this->_getAllClasses();
         $data['departments'] = $this->department_model->getDepartmentType();
         $data['staff_list']  = $this->staff_model->getStaffbyrole(2);
         $data['periods']     = $this->Tt_period_model->getAllNonBreak($data['session_id']);
@@ -2672,7 +2690,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         }
         $this->_setMenu();
         $data = $this->_baseData();
-        $data['classlist']   = $this->class_model->get();
+        $data['classlist']   = $this->_getAllClasses();
         $data['departments'] = $this->department_model->getDepartmentType();
         $data['periods']     = $this->Tt_period_model->getAllNonBreak($data['session_id']);
         $all_days    = $this->customlib->getDaysnameWithoutLang();
@@ -3002,7 +3020,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
     public function get_sections_by_class()
     {
         $class_id = (int) $this->input->post('class_id');
-        $data = $this->section_model->getClassBySection($class_id);
+        $data = $this->_getAllSections($class_id);
         echo json_encode($data);
     }
 

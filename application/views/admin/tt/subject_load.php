@@ -20,7 +20,7 @@
         <select class="form-control" id="dept_filter">
           <option value="">-- All --</option>
           <?php foreach ($departments as $d): ?>
-          <option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['name']); ?></option>
+          <option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['department_name'] ?? $d['name'] ?? ''); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
