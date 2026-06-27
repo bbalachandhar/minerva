@@ -94,6 +94,17 @@ class Department_model extends MY_model
         return $query->result_array();
     }
 
+    public function getAcademicDepartments()
+    {
+        return $this->db->select('department.*')
+            ->from('department')
+            ->join('classes', 'classes.department_id = department.id')
+            ->where('classes.class_type', 'academic')
+            ->group_by('department.id')
+            ->order_by('department.department_name')
+            ->get()->result_array();
+    }
+
     public function addDepartmentType($data)
     {
         $this->db->trans_start(); # Starting Transaction

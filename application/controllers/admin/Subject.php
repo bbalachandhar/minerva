@@ -32,7 +32,7 @@ class Subject extends Admin_Controller
 
         $this->load->model('staff_model'); // Load staff model unconditionally
         $this->load->model('department_model'); // Load department model
-        $data['departmentlist'] = $this->department_model->getDepartmentType(); // Fetch all department types
+        $data['departmentlist'] = $this->department_model->getAcademicDepartments();
 
         foreach ($data['subjectlist'] as $key => $value) {
             $data['subjectlist'][$key]['teacher_name'] = ''; // Initialize to empty string by default
@@ -150,7 +150,7 @@ class Subject extends Admin_Controller
         
         $this->load->model('staff_model'); // Load staff model unconditionally
         $this->load->model('department_model'); // Load department model
-        $data['departmentlist'] = $this->department_model->getDepartmentType(); // Fetch all department types
+        $data['departmentlist'] = $this->department_model->getAcademicDepartments();
 
         log_message('debug', 'Subject Controller Edit: institution_type: ' . $this->sch_setting_detail->institution_type);
         log_message('debug', 'Subject Controller Edit: Initial $data[\'subjectlist\'] after model get: ' . print_r($data['subjectlist'], true));
