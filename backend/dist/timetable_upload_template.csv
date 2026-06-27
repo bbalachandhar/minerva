@@ -1,0 +1,15 @@
+day,period_no,subject_name,subject_code,subject_type,teacher_name,teacher_employee_id,room
+Monday,1,Engineering Mathematics – I,MA2101,theory,Dr. Kumar,MCE001,Room 101
+Monday,2,Engineering Mathematics – I,MA2101,theory,Dr. Kumar,MCE001,Room 101
+Monday,3,Data Structures,CS2201,theory,Prof. Ravi,MCE002,Room 101
+Monday,4,Physics,PH2101,theory,Dr. Singh,MCE003,Room 101
+Monday,5,Data Structures Lab,CS2202,practical,Prof. Ravi,MCE002,Lab 301
+Monday,6,Data Structures Lab,CS2202,practical,Prof. Ravi,MCE002,Lab 301
+Monday,7,FREE,,,,,,
+Tuesday,1,Physics,PH2101,theory,Dr. Singh,MCE003,Room 101
+Tuesday,2,English,EN2101,theory,Mrs. Priya,MCE004,Room 101
+Tuesday,3,Data Structures,CS2201,theory,Prof. Ravi,MCE002,Room 101
+Tuesday,4,Engineering Mathematics – I,MA2101,theory,Dr. Kumar,MCE001,Room 101
+Tuesday,5,Physics Lab,PH2102,practical,Dr. Singh,MCE003,Lab 201
+Tuesday,6,Physics Lab,PH2102,practical,Dr. Singh,MCE003,Lab 201
+Tuesday,7,FREE,,,,,,

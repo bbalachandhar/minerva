@@ -1572,7 +1572,7 @@ class Tt extends Admin_Controller
         $data = $this->_baseData();
         $data['classlist']   = $this->class_model->get();
         $data['departments'] = $this->department_model->getDepartmentType();
-        $data['periods']     = [];
+        $data['periods']     = $this->Tt_period_model->getAll($data['session_id']);
         $data['entries']     = [];
         $data['subjects']    = [];
         $data['staff_list']  = [];
@@ -2056,6 +2056,213 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         $locked  = (int) $this->input->post('locked');
         $this->Tt_entry_model->setLock($id, $locked);
         echo json_encode(['status' => '1']);
+    }
+
+    public function upload_csv_timetable()
+    {
+        if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_add')) {
+            echo json_encode(['status' => '0', 'error' => 'Access denied']); return;
+        }
+
+        $session_id = $this->setting_model->getCurrentSession();
+        $class_id   = (int) $this->input->post('class_id');
+        $section_id = (int) $this->input->post('section_id');
+
+        if (!$class_id || !$section_id) {
+            echo json_encode(['status' => '0', 'error' => 'Class and Section are required']); return;
+        }
+
+        if (empty($_FILES['csv_file']['tmp_name'])) {
+            echo json_encode(['status' => '0', 'error' => 'No CSV file uploaded']); return;
+        }
+
+        $file = fopen($_FILES['csv_file']['tmp_name'], 'r');
+        if (!$file) {
+            echo json_encode(['status' => '0', 'error' => 'Cannot read CSV file']); return;
+        }
+
+        $header = fgetcsv($file);
+        if (!$header) {
+            fclose($file);
+            echo json_encode(['status' => '0', 'error' => 'Empty CSV file']); return;
+        }
+        $header = array_map(fn($h) => strtolower(trim($h)), $header);
+
+        $required = ['day', 'period_no', 'subject_name'];
+        foreach ($required as $col) {
+            if (!in_array($col, $header)) {
+                fclose($file);
+                echo json_encode(['status' => '0', 'error' => "Missing required column: $col"]); return;
+            }
+        }
+
+        $periods = $this->Tt_period_model->getAll($session_id);
+        $period_map = [];
+        $sort = 1;
+        foreach ($periods as $p) {
+            if (!$p->is_break) {
+                $period_map[$sort] = $p->id;
+                $sort++;
+            }
+        }
+
+        $class_row = $this->db->where('id', $class_id)->get('classes')->row();
+        $dept_id   = $class_row ? $class_row->department_id : null;
+
+        $sg = $this->db->where('class_id', $class_id)->where('session_id', $session_id)
+            ->get('subject_groups')->row();
+        if (!$sg) {
+            $this->db->insert('subject_groups', [
+                'name'       => ($class_row ? $class_row->class : 'Class ' . $class_id) . ' – ' . $session_id,
+                'session_id' => $session_id,
+                'class_id'   => $class_id,
+            ]);
+            $sg_id = $this->db->insert_id();
+        } else {
+            $sg_id = $sg->id;
+        }
+
+        $all_staff = $this->db->select('id, name, surname, employee_id')->where('is_active', 1)->get('staff')->result();
+        $staff_by_empid = [];
+        $staff_by_name  = [];
+        foreach ($all_staff as $s) {
+            if (!empty($s->employee_id)) $staff_by_empid[strtolower(trim($s->employee_id))] = $s->id;
+            $staff_by_name[strtolower(trim($s->name . ' ' . $s->surname))] = $s->id;
+            $staff_by_name[strtolower(trim($s->name))] = $s->id;
+        }
+
+        $created_subjects = 0;
+        $created_rooms    = 0;
+        $entries_created  = 0;
+        $warnings         = [];
+        $line             = 1;
+
+        while (($row = fgetcsv($file)) !== false) {
+            $line++;
+            if (count($row) < count($header)) $row = array_pad($row, count($header), '');
+            $data = array_combine($header, array_map('trim', $row));
+
+            $day        = ucfirst(strtolower($data['day'] ?? ''));
+            $period_no  = (int) ($data['period_no'] ?? 0);
+            $subj_name  = trim($data['subject_name'] ?? '');
+
+            if (empty($day) || !$period_no || empty($subj_name)) continue;
+
+            if (!isset($period_map[$period_no])) {
+                $warnings[] = "Row $line: period_no $period_no not found";
+                continue;
+            }
+            $period_id = $period_map[$period_no];
+
+            if (strtoupper($subj_name) === 'FREE') {
+                $existing = $this->db->where('session_id', $session_id)
+                    ->where('class_id', $class_id)->where('section_id', $section_id)
+                    ->where('day', $day)->where('period_id', $period_id)
+                    ->count_all_results('tt_entries');
+                if (!$existing) {
+                    $this->db->insert('tt_entries', [
+                        'session_id' => $session_id, 'class_id' => $class_id, 'section_id' => $section_id,
+                        'day' => $day, 'period_id' => $period_id, 'is_free_period' => 1,
+                        'free_period_label' => 'Free Period', 'entry_type' => 'manual',
+                    ]);
+                    $entries_created++;
+                }
+                continue;
+            }
+
+            $subj_code = trim($data['subject_code'] ?? '');
+            $subj_type = strtolower(trim($data['subject_type'] ?? 'theory'));
+            if (!in_array($subj_type, ['theory', 'practical', 'project', 'other'])) $subj_type = 'theory';
+
+            $subject = null;
+            if (!empty($subj_code)) {
+                $subject = $this->db->where('code', $subj_code)->get('subjects')->row();
+            }
+            if (!$subject) {
+                $subject = $this->db->where('name', $subj_name)->get('subjects')->row();
+            }
+            if (!$subject) {
+                $this->db->insert('subjects', [
+                    'name' => $subj_name, 'code' => $subj_code, 'type' => $subj_type,
+                    'is_active' => 'yes', 'department_id' => $dept_id,
+                ]);
+                $subject = (object) ['id' => $this->db->insert_id()];
+                $created_subjects++;
+            }
+
+            $sgs = $this->db->where('subject_group_id', $sg_id)
+                ->where('subject_id', $subject->id)->where('session_id', $session_id)
+                ->get('subject_group_subjects')->row();
+            if (!$sgs) {
+                $this->db->insert('subject_group_subjects', [
+                    'subject_group_id' => $sg_id, 'session_id' => $session_id, 'subject_id' => $subject->id,
+                ]);
+                $sgs_id = $this->db->insert_id();
+            } else {
+                $sgs_id = $sgs->id;
+            }
+
+            $staff_id = null;
+            $teacher_empid = strtolower(trim($data['teacher_employee_id'] ?? ''));
+            $teacher_name  = strtolower(trim($data['teacher_name'] ?? ''));
+            if (!empty($teacher_empid) && isset($staff_by_empid[$teacher_empid])) {
+                $staff_id = $staff_by_empid[$teacher_empid];
+            } elseif (!empty($teacher_name) && isset($staff_by_name[$teacher_name])) {
+                $staff_id = $staff_by_name[$teacher_name];
+            } elseif (!empty($teacher_name)) {
+                $warnings[] = "Row $line: teacher '$teacher_name' not found";
+            }
+
+            $room_id  = null;
+            $room_str = trim($data['room'] ?? '');
+            if (!empty($room_str)) {
+                $room = $this->db->where('name', $room_str)->or_where('room_number', $room_str)
+                    ->get('tt_rooms')->row();
+                if (!$room) {
+                    $this->db->insert('tt_rooms', [
+                        'name' => $room_str, 'room_number' => $room_str,
+                        'capacity' => 60, 'room_type' => 'classroom', 'is_active' => 1,
+                    ]);
+                    $room_id = $this->db->insert_id();
+                    $created_rooms++;
+                } else {
+                    $room_id = $room->id;
+                }
+            }
+
+            $existing = $this->db->where('session_id', $session_id)
+                ->where('class_id', $class_id)->where('section_id', $section_id)
+                ->where('day', $day)->where('period_id', $period_id)
+                ->count_all_results('tt_entries');
+            if ($existing) {
+                $warnings[] = "Row $line: $day period $period_no already has an entry, skipped";
+                continue;
+            }
+
+            $this->db->insert('tt_entries', [
+                'session_id'               => $session_id,
+                'class_id'                 => $class_id,
+                'section_id'               => $section_id,
+                'subject_group_id'         => $sg_id,
+                'subject_group_subject_id' => $sgs_id,
+                'staff_id'                 => $staff_id,
+                'period_id'                => $period_id,
+                'day'                      => $day,
+                'room_id'                  => $room_id,
+                'is_free_period'           => 0,
+                'entry_type'               => 'manual',
+            ]);
+            $entries_created++;
+        }
+        fclose($file);
+
+        echo json_encode([
+            'status'           => '1',
+            'created_subjects' => $created_subjects,
+            'created_rooms'    => $created_rooms,
+            'entries_created'  => $entries_created,
+            'warnings'         => implode('<br>', $warnings),
+        ]);
     }
 
     public function fill_empty_cells()

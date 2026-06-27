@@ -468,7 +468,7 @@ if (!function_exists('main_menu_array')) {
                     'teacher_constraints', 'save_teacher_constraint', 'delete_teacher_constraint',
                     'teacher_unavail', 'get_teacher_unavail', 'save_teacher_unavail',
                     'generate', 'run_generate', 'test_generate', 'verify_constraints', 'preview', 'confirm_draft', 'discard_draft',
-                    'class_grid', 'load_class_grid', 'save_cell', 'delete_cell', 'toggle_lock',
+                    'class_grid', 'load_class_grid', 'save_cell', 'delete_cell', 'toggle_lock', 'upload_csv_timetable',
                     'teacher_view', 'load_teacher_grid',
                     'substitution', 'get_absent_slots', 'save_substitution', 'cancel_substitution', 'get_substitution_report',
                     'reports', 'get_master_report', 'get_room_utilization', 'get_teacher_workload',

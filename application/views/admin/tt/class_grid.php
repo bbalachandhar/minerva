@@ -70,6 +70,45 @@
   </div>
 </div>
 
+<!-- CSV Upload Panel -->
+<div class="box box-default" id="csv-upload-box">
+  <div class="box-header with-border" style="cursor:pointer;" onclick="$('#csv-upload-body').slideToggle(200);">
+    <h3 class="box-title"><i class="fa fa-upload"></i> Bulk Upload Timetable from CSV</h3>
+    <div class="box-tools pull-right"><button class="btn btn-box-tool"><i class="fa fa-chevron-down"></i></button></div>
+  </div>
+  <div class="box-body" id="csv-upload-body" style="display:none;">
+    <div class="row">
+      <div class="col-md-6">
+        <p style="font-size:13px;color:#555;">
+          <strong>How it works:</strong> Select a class &amp; section above, then upload a CSV file with the timetable.
+          The system will auto-create any missing subjects, rooms, and timetable entries.
+        </p>
+        <p style="font-size:12px;color:#888;">
+          <strong>CSV columns:</strong> <code>day, period_no, subject_name, subject_code, subject_type, teacher_name, teacher_employee_id, room</code><br>
+          &bull; <strong>day</strong> — Monday, Tuesday, etc.<br>
+          &bull; <strong>period_no</strong> — 1 to <?php echo count($periods ?? []); ?> (matches your period setup)<br>
+          &bull; <strong>subject_type</strong> — theory / practical<br>
+          &bull; <strong>teacher_employee_id</strong> — staff employee ID (used to match teacher)<br>
+          &bull; Write <strong>FREE</strong> as subject_name to mark a free period (leave other columns blank)
+        </p>
+        <a href="<?php echo base_url('backend/dist/timetable_upload_template.csv'); ?>" class="btn btn-default btn-sm">
+          <i class="fa fa-download"></i> Download Template CSV
+        </a>
+      </div>
+      <div class="col-md-6">
+        <div class="form-group">
+          <label>CSV File <span class="text-danger">*</span></label>
+          <input type="file" class="form-control" id="csv_file" accept=".csv">
+        </div>
+        <button class="btn btn-primary" id="btn-upload-csv" disabled>
+          <i class="fa fa-upload"></i> Upload &amp; Import
+        </button>
+        <div id="csv-upload-result" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Legend -->
 <div class="row" style="margin-bottom:8px;padding-left:15px;">
   <span class="label label-primary" style="font-size:12px;padding:5px 10px;">Theory</span>&nbsp;
@@ -604,6 +643,46 @@ $(function(){
         if (res.status === '1') { $('#cell-modal').modal('hide'); loadGrid(false); }
       toastr.success('Entry updated');
       },'json');
+  });
+  // --- CSV Upload ---
+  $('#csv_file').on('change', function(){ $('#btn-upload-csv').prop('disabled', !this.files.length); });
+
+  $('#btn-upload-csv').on('click', function(){
+    var classId = $('#cg_class').val(), sectionId = $('#cg_section').val();
+    if (!classId || !sectionId) { swal({title:'Alert', text:'Please select Class and Section first.', type:'warning'}); return; }
+    var file = $('#csv_file')[0].files[0];
+    if (!file) return;
+
+    var fd = new FormData();
+    fd.append('csv_file', file);
+    fd.append('class_id', classId);
+    fd.append('section_id', sectionId);
+    fd.append(csrf_name, csrf_val);
+
+    var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Importing...');
+    $.ajax({
+      url: '<?php echo site_url("admin/tt/upload_csv_timetable"); ?>',
+      type: 'POST', data: fd, processData: false, contentType: false, dataType: 'json',
+      success: function(res){
+        $btn.prop('disabled', false).html('<i class="fa fa-upload"></i> Upload & Import');
+        if (res.status === '1') {
+          var msg = '<div class="alert alert-success"><strong><i class="fa fa-check-circle"></i> Import Complete</strong><br>'
+            + res.created_subjects + ' subjects created, '
+            + res.created_rooms + ' rooms created, '
+            + res.entries_created + ' timetable entries placed.'
+            + (res.warnings ? '<br><small class="text-warning">' + res.warnings + '</small>' : '')
+            + '</div>';
+          $('#csv-upload-result').html(msg);
+          $('#csv_file').val('');
+          loadGrid(false);
+        } else {
+          $('#csv-upload-result').html('<div class="alert alert-danger"><i class="fa fa-times-circle"></i> ' + (res.error || 'Import failed') + '</div>');
+        }
+      },
+      error: function(xhr){ $btn.prop('disabled', false).html('<i class="fa fa-upload"></i> Upload & Import');
+        $('#csv-upload-result').html('<div class="alert alert-danger">Network error: ' + xhr.statusText + '</div>');
+      }
+    });
   });
 });
 </script>
