@@ -28,7 +28,7 @@ class Classes extends Admin_Controller
         $data['title_list'] = 'Class List';
 
         $data['sch_setting'] = $this->sch_setting_detail;
-        $data['department_list'] = $this->Department_model->getDepartmentType();
+        $data['department_list'] = $this->Department_model->getAcademicDepartments();
 
         $this->form_validation->set_rules(
             'class', $this->lang->line('class'), array(
@@ -138,7 +138,7 @@ class Classes extends Admin_Controller
         $data['class_data'] = $this->class_model->get($id);
 
         $data['sch_setting'] = $this->sch_setting_detail;
-        $data['department_list'] = $this->Department_model->getDepartmentType();
+        $data['department_list'] = $this->Department_model->getAcademicDepartments();
 
         $this->form_validation->set_rules(
             'class', $this->lang->line('class'), array(

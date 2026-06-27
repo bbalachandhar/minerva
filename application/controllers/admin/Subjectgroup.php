@@ -29,7 +29,7 @@ class Subjectgroup extends Admin_Controller
         $data['title_list']    = 'Class List';
         
         $this->load->model('department_model');
-        $data['departmentlist'] = $this->department_model->getDepartmentType();
+        $data['departmentlist'] = $this->department_model->getAcademicDepartments();
 
         if (!empty($data['department_id_selected'])) {
             $data['classlist'] = $this->class_model->get_class_by_department($data['department_id_selected']);
