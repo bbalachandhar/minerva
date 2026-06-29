@@ -962,7 +962,12 @@ class Tt extends Admin_Controller
         $slot_count   = $day_count * $period_count;
 
         $data = [];
-        $staff_rows = $this->db->select('id, name, surname')->where('role_id', 2)->get('staff')->result();
+        $staff_rows = $this->db->select('staff.id, staff.name, staff.surname')
+            ->from('staff')
+            ->join('staff_roles', 'staff_roles.staff_id = staff.id')
+            ->where('staff_roles.role_id', 2)
+            ->group_by('staff.id')
+            ->get()->result();
         foreach ($staff_rows as $sr) {
             $tid = (int)$sr->id;
             $max_week = isset($constraints[$tid]) ? (int)$constraints[$tid]->max_periods_per_week : 36;
