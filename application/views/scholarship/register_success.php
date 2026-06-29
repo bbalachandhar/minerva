@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Registration Successful — Scholarship Exam</title>
+<title><?php echo !empty($already_registered) ? 'Already Registered' : 'Registration Successful'; ?> — Scholarship Exam</title>
 <link rel="stylesheet" href="<?php echo base_url(); ?>backend/bootstrap/css/bootstrap.min.css">
 <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/font-awesome.min.css">
 <style>
@@ -27,6 +27,35 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
 </head>
 <body>
 
+<?php if (!empty($already_registered)): ?>
+
+<div class="success-header" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+    <h1><i class="fa fa-info-circle"></i> Already Registered</h1>
+</div>
+
+<div class="success-card">
+    <div class="success-icon" style="background:#fef3c7;"><i class="fa fa-exclamation-triangle" style="color:#f59e0b;"></i></div>
+    <h2 style="font-size:20px; font-weight:700; color:#1e293b; margin-bottom:4px;">You have already registered!</h2>
+    <p style="color:#64748b; font-size:14px;">A scholarship exam registration already exists for <strong><?php echo htmlspecialchars($existing_email); ?></strong>.</p>
+
+    <div class="cred-box">
+        <div class="cred-row">
+            <span class="cred-label">Your Reference No</span>
+            <span class="cred-value primary"><?php echo $existing_ref; ?></span>
+        </div>
+    </div>
+
+    <div class="warn-box">
+        <i class="fa fa-info-circle"></i> If you forgot your password, please contact the institution office with your Reference No.
+    </div>
+
+    <a href="<?php echo site_url('site/applicantlogin'); ?>" class="btn-login">
+        <i class="fa fa-sign-in"></i> Login to Exam Portal
+    </a>
+</div>
+
+<?php else: ?>
+
 <div class="success-header">
     <h1><i class="fa fa-check-circle"></i> Registration Successful!</h1>
 </div>
@@ -35,6 +64,10 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
     <div class="success-icon"><i class="fa fa-check"></i></div>
     <h2 style="font-size:20px; font-weight:700; color:#1e293b; margin-bottom:4px;">Welcome, <?php echo htmlspecialchars($firstname); ?>!</h2>
     <p style="color:#64748b; font-size:14px;">Your scholarship exam registration is complete. <?php echo $assigned_exams; ?> exam(s) have been assigned to your account.</p>
+
+    <div style="background:#d1fae5; border:1px solid #10b981; border-radius:8px; padding:14px 16px; font-size:14px; color:#065f46; margin-bottom:16px;">
+        <i class="fa fa-check-circle"></i> <strong>Form submitted successfully!</strong> Do not submit again.
+    </div>
 
     <div class="cred-box">
         <div class="cred-row">
@@ -55,6 +88,8 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
         <i class="fa fa-sign-in"></i> Login to Exam Portal
     </a>
 </div>
+
+<?php endif; ?>
 
 <div class="footer-text">
     &copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($sch_setting['name'] ?? ''); ?>. Powered by Minerva ERP.

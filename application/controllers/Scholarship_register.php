@@ -69,6 +69,7 @@ class Scholarship_register extends CI_Controller
     public function submit()
     {
         $this->form_validation->set_rules('firstname', 'First Name', 'required|trim|xss_clean');
+        $this->form_validation->set_rules('email', 'Email', 'required|trim|valid_email|xss_clean');
         $this->form_validation->set_rules('mobile', 'Mobile', 'required|trim|xss_clean');
         $this->form_validation->set_rules('preferred_course_id', 'Preferred Course', 'required');
         $this->form_validation->set_rules('gender', 'Gender', 'required');
@@ -79,6 +80,23 @@ class Scholarship_register extends CI_Controller
         }
 
         $session_id = $this->sch_setting['session_id'];
+        $email = trim($this->input->post('email'));
+
+        $existing = $this->db->where('email', $email)
+            ->where('source', 'scholarship')
+            ->where('session_id', $session_id)
+            ->get('online_admissions')->row();
+        if ($existing) {
+            $data = [
+                'sch_setting' => $this->sch_setting,
+                'title'       => 'Already Registered',
+                'already_registered' => true,
+                'existing_ref' => $existing->reference_no,
+                'existing_email' => $email,
+            ];
+            $this->load->view('scholarship/register_success', $data);
+            return;
+        }
         $preferred_course_id = (int) $this->input->post('preferred_course_id');
 
         // Generate unique reference number

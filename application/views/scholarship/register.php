@@ -169,8 +169,8 @@
                     <input type="tel" name="mobile" class="form-control" value="<?php echo set_value('mobile'); ?>" placeholder="10-digit mobile" required>
                 </div>
                 <div>
-                    <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" value="<?php echo set_value('email'); ?>" placeholder="your@email.com">
+                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                    <input type="email" name="email" class="form-control" value="<?php echo set_value('email'); ?>" placeholder="your@email.com" required>
                 </div>
                 <div>
                     <label class="form-label">Gender <span class="text-danger">*</span></label>
