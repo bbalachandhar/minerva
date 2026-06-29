@@ -4,21 +4,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
 
 <div class="content-wrapper">
-    <section class="content-header">
-        <h1>
-            <i class="fa fa-users"></i> Staff Directory
-            <?php if ($this->rbac->hasPrivilege('staff', 'can_add')) { ?>
-            <small class="pull-right">
-                <a href="<?php echo base_url(); ?>admin/staff/create" class="btn btn-primary btn-sm">
-                    <i class="fa fa-plus"></i> <?php echo $this->lang->line('add_staff'); ?>
-                </a>
-            </small>
-            <?php } ?>
-        </h1>
-    </section>
-
     <!-- Main content -->
     <section class="content">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;">
+            <h4 style="margin:0;font-weight:700;color:#0f172a;"><i class="fa fa-users"></i> Staff Directory</h4>
+            <?php if ($this->rbac->hasPrivilege('staff', 'can_add')) { ?>
+            <a href="<?php echo base_url(); ?>admin/staff/create" class="btn btn-primary btn-sm">
+                <i class="fa fa-plus"></i> <?php echo $this->lang->line('add_staff'); ?>
+            </a>
+            <?php } ?>
+        </div>
         <div class="row">
             <div class="col-md-12">
 
