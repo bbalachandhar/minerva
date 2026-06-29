@@ -166,6 +166,10 @@ class Payment extends Studentgateway_Controller
                     'address'                   => $student_record['permanent_address'],
                     'student_fees_master_array' => $fees_master_array,
                     'student_id'                => $student_id,
+                    'admission_no'              => $student_record['admission_no'] ?? '',
+                    'class'                     => $student_record['class'] ?? '',
+                    'section'                   => $student_record['section'] ?? '',
+                    'father_name'               => $student_record['father_name'] ?? '',
                     'processing_charge_type'=>$pay_method->charge_type,
                     'gateway_processing_charge'=>$gateway_processing_charge
                 );

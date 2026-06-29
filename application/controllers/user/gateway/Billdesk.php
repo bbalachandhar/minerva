@@ -156,9 +156,13 @@ class Billdesk extends Student_Controller
                                 'mercid' => $sub_mid,
                                 'amount' => number_format($item_amount, 2, '.', ''),
                                 'customer_refid' => $school_code . 'ORN' . uniqid(),
-                                'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
-                                'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
-                                'additional_info7' => 'NA',
+                                'additional_info1' => $data['params']['name'],
+                                'additional_info2' => $data['params']['admission_no'] ?? 'NA',
+                                'additional_info3' => $data['params']['guardian_phone'],
+                                'additional_info4' => $data['params']['email'],
+                                'additional_info5' => ($data['params']['class'] ?? '') . ' ' . ($data['params']['section'] ?? ''),
+                                'additional_info6' => $data['params']['father_name'] ?? 'NA',
+                                'additional_info7' => $fee['fee_group_name'] ?? 'NA',
                             ];
                         } else {
                             $unmapped_amount += $item_amount;
@@ -177,20 +181,24 @@ class Billdesk extends Student_Controller
                             'mercid' => $fallback_child_id,
                             'amount' => number_format($unmapped_amount, 2, '.', ''),
                             'customer_refid' => $school_code . 'ORN' . uniqid(),
-                            'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
-                            'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
-                            'additional_info7' => 'NA',
+                            'additional_info1' => $data['params']['name'],
+                            'additional_info2' => $data['params']['admission_no'] ?? 'NA',
+                            'additional_info3' => $data['params']['guardian_phone'],
+                            'additional_info4' => $data['params']['email'],
+                            'additional_info5' => ($data['params']['class'] ?? '') . ' ' . ($data['params']['section'] ?? ''),
+                            'additional_info6' => $data['params']['father_name'] ?? 'NA',
+                            'additional_info7' => implode(',', array_unique($fee_group_names)),
                         ];
                     }
                 }
                 $ecom_order_ref_no = time() . rand(1111, 9999);
                 $ecom_additional_info = [
                     'additional_info1' => $data['params']['name'],
-                    'additional_info2' => "NA",
+                    'additional_info2' => $data['params']['admission_no'] ?? 'NA',
                     'additional_info3' => $data['params']['guardian_phone'],
                     'additional_info4' => $data['params']['email'],
-                    'additional_info5' => $formatted_amount,
-                    'additional_info6' => implode(',', array_unique($fee_categories)),
+                    'additional_info5' => ($data['params']['class'] ?? '') . ' ' . ($data['params']['section'] ?? ''),
+                    'additional_info6' => $data['params']['father_name'] ?? 'NA',
                     'additional_info7' => implode(',', array_unique($fee_group_names)),
                 ];
                 
