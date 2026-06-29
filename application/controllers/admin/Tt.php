@@ -2131,17 +2131,71 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
             $staff_by_name[strtolower(trim($s->name))] = $s->id;
         }
 
-        $created_subjects = 0;
-        $created_rooms    = 0;
-        $entries_created  = 0;
-        $warnings         = [];
-        $line             = 1;
-
+        // --- Pass 1: read all rows and group by day+period to detect batch splits ---
+        $csv_rows = [];
+        $line = 1;
         while (($row = fgetcsv($file)) !== false) {
             $line++;
             if (count($row) < count($header)) $row = array_pad($row, count($header), '');
             $data = array_combine($header, array_map('trim', $row));
+            $data['_line'] = $line;
+            $csv_rows[] = $data;
+        }
+        fclose($file);
 
+        $slot_counts = [];
+        foreach ($csv_rows as $data) {
+            $day       = ucfirst(strtolower($data['day'] ?? ''));
+            $period_no = (int) ($data['period_no'] ?? 0);
+            $key = $day . '_' . $period_no;
+            $slot_counts[$key] = ($slot_counts[$key] ?? 0) + 1;
+        }
+
+        $needs_batches = false;
+        foreach ($slot_counts as $cnt) {
+            if ($cnt > 1) { $needs_batches = true; break; }
+        }
+
+        $batch_map = [];
+        $created_batches = 0;
+        if ($needs_batches) {
+            $existing_batches = $this->db->where('session_id', $session_id)
+                ->where('class_id', $class_id)->where('section_id', $section_id)
+                ->order_by('id', 'ASC')->get('tt_batches')->result();
+
+            $max_splits = max($slot_counts);
+            $batch_labels = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+            for ($i = 0; $i < $max_splits; $i++) {
+                if (isset($existing_batches[$i])) {
+                    $batch_map[$i] = (int) $existing_batches[$i]->id;
+                } else {
+                    $label = 'Batch ' . ($batch_labels[$i] ?? ($i + 1));
+                    $this->db->insert('tt_batches', [
+                        'session_id'    => $session_id,
+                        'class_id'      => $class_id,
+                        'section_id'    => $section_id,
+                        'batch_name'    => $label,
+                        'student_count' => 0,
+                    ]);
+                    $batch_map[$i] = $this->db->insert_id();
+                    $created_batches++;
+                }
+            }
+        }
+
+        // --- Pass 2: process rows and create entries ---
+        $created_subjects = 0;
+        $created_rooms    = 0;
+        $entries_created  = 0;
+        $warnings         = [];
+        $slot_batch_idx   = [];
+        $subject_cache    = [];
+        $sgs_cache        = [];
+        $room_cache       = [];
+
+        foreach ($csv_rows as $data) {
+            $line       = $data['_line'];
             $day        = ucfirst(strtolower($data['day'] ?? ''));
             $period_no  = (int) ($data['period_no'] ?? 0);
             $subj_name  = trim($data['subject_name'] ?? '');
@@ -2153,17 +2207,28 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
                 continue;
             }
             $period_id = $period_map[$period_no];
+            $slot_key  = $day . '_' . $period_no;
+
+            $is_batch_slot = ($slot_counts[$slot_key] ?? 1) > 1;
+            $batch_id = null;
+            if ($is_batch_slot) {
+                $idx = $slot_batch_idx[$slot_key] ?? 0;
+                $batch_id = $batch_map[$idx] ?? null;
+                $slot_batch_idx[$slot_key] = $idx + 1;
+            }
 
             if (strtoupper($subj_name) === 'FREE') {
                 $existing = $this->db->where('session_id', $session_id)
                     ->where('class_id', $class_id)->where('section_id', $section_id)
                     ->where('day', $day)->where('period_id', $period_id)
+                    ->where('batch_id', $batch_id)
                     ->count_all_results('tt_entries');
                 if (!$existing) {
                     $this->db->insert('tt_entries', [
                         'session_id' => $session_id, 'class_id' => $class_id, 'section_id' => $section_id,
                         'day' => $day, 'period_id' => $period_id, 'is_free_period' => 1,
                         'free_period_label' => 'Free Period', 'entry_type' => 'manual',
+                        'batch_id' => $batch_id,
                     ]);
                     $entries_created++;
                 }
@@ -2174,32 +2239,44 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
             $subj_type = strtolower(trim($data['subject_type'] ?? 'theory'));
             if (!in_array($subj_type, ['theory', 'practical', 'project', 'other'])) $subj_type = 'theory';
 
-            $subject = null;
-            if (!empty($subj_code)) {
-                $subject = $this->db->where('code', $subj_code)->get('subjects')->row();
-            }
-            if (!$subject) {
-                $subject = $this->db->where('name', $subj_name)->get('subjects')->row();
-            }
-            if (!$subject) {
-                $this->db->insert('subjects', [
-                    'name' => $subj_name, 'code' => $subj_code, 'type' => $subj_type,
-                    'is_active' => 'yes', 'department_id' => $dept_id,
-                ]);
-                $subject = (object) ['id' => $this->db->insert_id()];
-                $created_subjects++;
+            $cache_key = strtolower($subj_code ?: $subj_name);
+            if (isset($subject_cache[$cache_key])) {
+                $subject = $subject_cache[$cache_key];
+            } else {
+                $subject = null;
+                if (!empty($subj_code)) {
+                    $subject = $this->db->where('code', $subj_code)->get('subjects')->row();
+                }
+                if (!$subject) {
+                    $subject = $this->db->where('name', $subj_name)->get('subjects')->row();
+                }
+                if (!$subject) {
+                    $this->db->insert('subjects', [
+                        'name' => $subj_name, 'code' => $subj_code, 'type' => $subj_type,
+                        'is_active' => 'yes', 'department_id' => $dept_id,
+                    ]);
+                    $subject = (object) ['id' => $this->db->insert_id()];
+                    $created_subjects++;
+                }
+                $subject_cache[$cache_key] = $subject;
             }
 
-            $sgs = $this->db->where('subject_group_id', $sg_id)
-                ->where('subject_id', $subject->id)->where('session_id', $session_id)
-                ->get('subject_group_subjects')->row();
-            if (!$sgs) {
-                $this->db->insert('subject_group_subjects', [
-                    'subject_group_id' => $sg_id, 'session_id' => $session_id, 'subject_id' => $subject->id,
-                ]);
-                $sgs_id = $this->db->insert_id();
+            $sgs_key = $sg_id . '_' . $subject->id;
+            if (isset($sgs_cache[$sgs_key])) {
+                $sgs_id = $sgs_cache[$sgs_key];
             } else {
-                $sgs_id = $sgs->id;
+                $sgs = $this->db->where('subject_group_id', $sg_id)
+                    ->where('subject_id', $subject->id)->where('session_id', $session_id)
+                    ->get('subject_group_subjects')->row();
+                if (!$sgs) {
+                    $this->db->insert('subject_group_subjects', [
+                        'subject_group_id' => $sg_id, 'session_id' => $session_id, 'subject_id' => $subject->id,
+                    ]);
+                    $sgs_id = $this->db->insert_id();
+                } else {
+                    $sgs_id = $sgs->id;
+                }
+                $sgs_cache[$sgs_key] = $sgs_id;
             }
 
             $staff_id = null;
@@ -2210,31 +2287,41 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
             } elseif (!empty($teacher_name) && isset($staff_by_name[$teacher_name])) {
                 $staff_id = $staff_by_name[$teacher_name];
             } elseif (!empty($teacher_name)) {
-                $warnings[] = "Row $line: teacher '$teacher_name' not found";
+                $warnings[] = "Row $line: teacher '" . $data['teacher_name'] . "' not found";
             }
 
             $room_id  = null;
             $room_str = trim($data['room'] ?? '');
             if (!empty($room_str)) {
-                $room = $this->db->where('name', $room_str)->or_where('room_number', $room_str)
-                    ->get('tt_rooms')->row();
-                if (!$room) {
-                    $this->db->insert('tt_rooms', [
-                        'name' => $room_str, 'room_number' => $room_str,
-                        'capacity' => 60, 'room_type' => 'classroom', 'is_active' => 1,
-                    ]);
-                    $room_id = $this->db->insert_id();
-                    $created_rooms++;
+                $room_key = strtolower($room_str);
+                if (isset($room_cache[$room_key])) {
+                    $room_id = $room_cache[$room_key];
                 } else {
-                    $room_id = $room->id;
+                    $room = $this->db->where('name', $room_str)->or_where('room_number', $room_str)
+                        ->get('tt_rooms')->row();
+                    if (!$room) {
+                        $this->db->insert('tt_rooms', [
+                            'name' => $room_str, 'room_number' => $room_str,
+                            'capacity' => 60, 'room_type' => 'classroom', 'is_active' => 1,
+                        ]);
+                        $room_id = $this->db->insert_id();
+                        $created_rooms++;
+                    } else {
+                        $room_id = $room->id;
+                    }
+                    $room_cache[$room_key] = $room_id;
                 }
             }
 
-            $existing = $this->db->where('session_id', $session_id)
+            $dup_check = $this->db->where('session_id', $session_id)
                 ->where('class_id', $class_id)->where('section_id', $section_id)
-                ->where('day', $day)->where('period_id', $period_id)
-                ->count_all_results('tt_entries');
-            if ($existing) {
+                ->where('day', $day)->where('period_id', $period_id);
+            if ($batch_id) {
+                $dup_check->where('batch_id', $batch_id);
+            } else {
+                $dup_check->where('batch_id IS NULL', null, false);
+            }
+            if ($dup_check->count_all_results('tt_entries') > 0) {
                 $warnings[] = "Row $line: $day period $period_no already has an entry, skipped";
                 continue;
             }
@@ -2249,17 +2336,18 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
                 'period_id'                => $period_id,
                 'day'                      => $day,
                 'room_id'                  => $room_id,
+                'batch_id'                 => $batch_id,
                 'is_free_period'           => 0,
                 'entry_type'               => 'manual',
             ]);
             $entries_created++;
         }
-        fclose($file);
 
         echo json_encode([
             'status'           => '1',
             'created_subjects' => $created_subjects,
             'created_rooms'    => $created_rooms,
+            'created_batches'  => $created_batches,
             'entries_created'  => $entries_created,
             'warnings'         => implode('<br>', $warnings),
         ]);

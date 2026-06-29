@@ -669,6 +669,7 @@ $(function(){
           var msg = '<div class="alert alert-success"><strong><i class="fa fa-check-circle"></i> Import Complete</strong><br>'
             + res.created_subjects + ' subjects created, '
             + res.created_rooms + ' rooms created, '
+            + (res.created_batches > 0 ? res.created_batches + ' batches created, ' : '')
             + res.entries_created + ' timetable entries placed.'
             + (res.warnings ? '<br><small class="text-warning">' + res.warnings + '</small>' : '')
             + '</div>';
