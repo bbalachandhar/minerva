@@ -714,31 +714,21 @@ def solve(data: dict) -> dict:
 
     # --- 3a. Distribute evenly across days ---
     for i, load in enumerate(loads):
-        if not load.get("distribute_evenly", False):
-            continue
         ppw = load["periods_per_week"]
-        upper = (ppw + D - 1) // D  # ceil(ppw / D)
-        for d in range(D):
-            day_sum = sum(_x(i, d, p) for p in range(P))
-            excess = model.new_int_var(0, P, f"excess_{i}_{d}")
-            model.add(excess >= day_sum - upper)
-            obj_terms.append((-WEIGHT_EVEN, excess))
-            # Also penalise empty days to encourage spread
-            has_any = model.new_bool_var(f"has_{i}_{d}")
-            model.add(day_sum >= 1).only_enforce_if(has_any)
-            model.add(day_sum == 0).only_enforce_if(has_any.negated())
-            obj_terms.append((WEIGHT_EVEN, has_any))
+        if load.get("distribute_evenly", False):
+            upper = (ppw + D - 1) // D          # ceil(ppw / D)
+            lower = ppw // D if ppw >= D else 0  # floor(ppw / D)
+            for d in range(D):
+                day_sum = sum(_x(i, d, p) for p in range(P))
+                model.add(day_sum <= upper)
+                if lower > 0:
+                    model.add(day_sum >= lower)
 
-    # --- 3a2. Min-per-day: hard constraint — at least 1 every working day ---
-    for i, load in enumerate(loads):
-        if not load.get("min_per_day", False):
-            continue
-        ppw = load["periods_per_week"]
-        if ppw < D:
-            continue
-        for d in range(D):
-            day_sum = sum(_x(i, d, p) for p in range(P))
-            model.add(day_sum >= 1)
+        # min_per_day: at least 1 period every working day
+        if load.get("min_per_day", False) and ppw >= D:
+            for d in range(D):
+                day_sum = sum(_x(i, d, p) for p in range(P))
+                model.add(day_sum >= 1)
 
     # --- 3b. Prefer earlier periods ---
     for i in range(len(loads)):
