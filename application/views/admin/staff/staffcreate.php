@@ -120,13 +120,12 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('role'); ?> <span class="req">*</span></label>
-                                <select id="role" name="role" class="form-control">
-                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                <select id="role" name="role[]" class="form-control select2-multi-role" multiple="multiple" style="width:100%;">
                                     <?php foreach ($roles as $key => $role) { ?>
-                                        <option value="<?php echo $role['id'] ?>" <?php echo set_select('role', $role['id'], set_value('role')); ?>><?php echo $role["name"] ?></option>
+                                        <option value="<?php echo $role['id'] ?>"><?php echo $role["name"] ?></option>
                                     <?php } ?>
                                 </select>
-                                <span class="text-danger"><?php echo form_error('role'); ?></span>
+                                <span class="text-danger"><?php echo form_error('role[]'); ?></span>
                             </div>
                         </div>
                         <?php if ($sch_setting->staff_designation) { ?>
@@ -865,6 +864,7 @@
      ============================================================ -->
 <script>
 $(document).ready(function () {
+    $('.select2-multi-role').select2({ placeholder: 'Select Role(s)', width: '100%' });
     // ---- Wizard Navigation ----
     var totalSteps = $('.wizard-step-btn').length;
     var currentStep = 1;

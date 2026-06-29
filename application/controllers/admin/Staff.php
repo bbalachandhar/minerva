@@ -1516,7 +1516,7 @@ class Staff extends Admin_Controller
         }
 
         $this->form_validation->set_rules('name', $this->lang->line('name'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('role[]', $this->lang->line('role'), 'required');
         $this->form_validation->set_rules('gender', $this->lang->line('gender'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('dob', $this->lang->line('date_of_birth'), 'trim|required|xss_clean');
         
@@ -1558,7 +1558,8 @@ class Staff extends Admin_Controller
             $biometric_id      = $this->input->post("biometric_id");
             $department        = empty2null($this->input->post("department"));
             $designation       = empty2null($this->input->post("designation"));
-            $role              = $this->input->post("role");
+            $role_ids          = $this->input->post("role");
+            if (!is_array($role_ids)) $role_ids = array_filter([$role_ids]);
             $name              = $this->input->post("name");
             $gender            = $this->input->post("gender");
             $marital_status    = $this->input->post("marital_status");
@@ -1825,7 +1826,10 @@ class Staff extends Admin_Controller
                     );
                 }
             }
-            $role_array = array('role_id' => $this->input->post('role'), 'staff_id' => 0);
+            $role_array = [];
+            foreach ($role_ids as $rid) {
+                $role_array[] = ['role_id' => (int) $rid, 'staff_id' => 0, 'is_active' => 1];
+            }
 //==========================
             $insert                                = true;
             $data_setting                          = array();
@@ -2005,6 +2009,9 @@ class Staff extends Admin_Controller
         $staff = $this->staff_model->get($id);
         $data['staff'] = $staff;
 
+        $existing_roles = $this->db->select('role_id')->where('staff_id', $id)->get('staff_roles')->result_array();
+        $data['staff_role_ids'] = array_map(fn($r) => $r['role_id'], $existing_roles);
+
         $staff_leaves          = $this->leaverequest_model->staff_leave_request($id);
         $alloted_leavetype           = $this->staff_model->allotedLeaveType($id);
         $i                           = 0;
@@ -2030,7 +2037,7 @@ class Staff extends Admin_Controller
         }
 
         $this->form_validation->set_rules('name', $this->lang->line('name'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('role[]', $this->lang->line('role'), 'required');
         $this->form_validation->set_rules('gender', $this->lang->line('gender'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('dob', $this->lang->line('date_of_birth'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('biometric_id', $this->lang->line('biometric_id'), 'trim|xss_clean|callback__check_biometric_id_exists');
@@ -2304,7 +2311,12 @@ class Staff extends Admin_Controller
             // Leave balances must not be edited from staff profile edit screen.
             // Use admin/update_leave_balance for controlled updates.
             $leave_array = array();
-            $role_array = array('role_id' => $this->input->post('role'), 'staff_id' => $id);
+            $edit_role_ids = $this->input->post('role');
+            if (!is_array($edit_role_ids)) $edit_role_ids = array_filter([$edit_role_ids]);
+            $role_array = [];
+            foreach ($edit_role_ids as $rid) {
+                $role_array[] = ['role_id' => (int) $rid, 'staff_id' => $id, 'is_active' => 1];
+            }
 
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                 $upload_result = $this->media_storage->fileupload("file", "./uploads/staff_images/");

@@ -120,13 +120,14 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('role') ?: 'Role'; ?> <span class="req">*</span></label>
-                                <select id="role" name="role" class="form-control">
-                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                    <?php foreach ($getStaffRole as $key => $role) { ?>
-                                        <option value="<?php echo $role["id"] ?>" <?php if ($staff["user_type"] == $role["name"]) echo "selected"; ?>><?php echo $role["name"] ?></option>
+                                <select id="role" name="role[]" class="form-control select2-multi-role" multiple="multiple" style="width:100%;">
+                                    <?php
+                                    $staff_role_ids = isset($staff_role_ids) ? $staff_role_ids : [];
+                                    foreach ($getStaffRole as $key => $role) { ?>
+                                        <option value="<?php echo $role["id"] ?>" <?php echo in_array($role["id"], $staff_role_ids) ? 'selected' : ''; ?>><?php echo $role["name"] ?></option>
                                     <?php } ?>
                                 </select>
-                                <span class="text-danger"><?php echo form_error('role'); ?></span>
+                                <span class="text-danger"><?php echo form_error('role[]'); ?></span>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -980,6 +981,7 @@
      ============================================================ -->
 <script>
 $(document).ready(function () {
+    $('.select2-multi-role').select2({ placeholder: 'Select Role(s)', width: '100%' });
     // ---- Wizard Navigation ----
     var totalSteps = $('.wizard-step-btn').length;
     var currentStep = 1;

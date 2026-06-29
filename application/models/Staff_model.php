@@ -356,15 +356,13 @@ class Staff_model extends MY_Model
             $this->db->where('id', $staff_id);
             $this->db->update('staff', $data);
 
-            // Update staff_roles — delete all existing rows and insert fresh so
-            // the role is always active and duplicates can never accumulate.
-            if (!empty($roles['role_id'])) {
+            if (!empty($roles)) {
                 $this->db->where('staff_id', $staff_id)->delete('staff_roles');
-                $this->db->insert('staff_roles', [
-                    'role_id'   => (int) $roles['role_id'],
-                    'staff_id'  => $staff_id,
-                    'is_active' => 1,
-                ]);
+                if (isset($roles['role_id'])) {
+                    $roles = [['role_id' => (int) $roles['role_id'], 'staff_id' => $staff_id, 'is_active' => 1]];
+                }
+                foreach ($roles as &$r) { $r['staff_id'] = $staff_id; }
+                $this->db->insert_batch('staff_roles', $roles);
             }
 
             // Update staff_leave_details
@@ -379,10 +377,12 @@ class Staff_model extends MY_Model
 
         } else { // If 'id' is not set, it's an insert
             $this->db->insert('staff', $data);
-            $staff_id          = $this->db->insert_id();
-            $roles['staff_id'] = $staff_id;
-            $roles['is_active'] = 1;
-            $this->db->insert_batch('staff_roles', array($roles));
+            $staff_id = $this->db->insert_id();
+            if (isset($roles['role_id'])) {
+                $roles = [['role_id' => (int) $roles['role_id'], 'staff_id' => $staff_id, 'is_active' => 1]];
+            }
+            foreach ($roles as &$r) { $r['staff_id'] = $staff_id; }
+            $this->db->insert_batch('staff_roles', $roles);
 
             if (!empty($leave_array)) {
                 foreach ($leave_array as $key => $value) {
