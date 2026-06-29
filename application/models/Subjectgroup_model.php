@@ -284,7 +284,11 @@ class Subjectgroup_model extends MY_Model {
 
 
                     $my_subjects = $this->teacher_model->get_subjectby_staffid($userdata['id']);
-                    $subject_groupid_condition = " and subject_group_subjects.id in(" . $my_subjects['subject'] . ")";
+                    if (!empty($my_subjects['subject'])) {
+                        $subject_groupid_condition = " and subject_group_subjects.id in(" . $my_subjects['subject'] . ")";
+                    } else {
+                        $subject_groupid_condition = "";
+                    }
                 }
             }
         }
