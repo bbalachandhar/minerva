@@ -10,7 +10,8 @@ class Subjectgroup extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
-        if ($this->sch_setting_detail->institution_type != 'college') {
+        $allowed_methods = ['getGroupByClassandSection', 'getSubjectByClassandSectionDate', 'getGroupsubjectsByClassSection'];
+        if ($this->sch_setting_detail->institution_type != 'college' && !in_array($this->router->fetch_method(), $allowed_methods)) {
             $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('access_denied') . '</div>');
             redirect('admin/admin/dashboard');
         }
