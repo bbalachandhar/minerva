@@ -140,8 +140,9 @@ class Customlib
     public function subjectType()
     {
         $subject_type              = array();
-        $subject_type['theory']    = $this->CI->lang->line('theory');
-        $subject_type['practical'] = $this->CI->lang->line('practical');
+        $subject_type['theory']      = $this->CI->lang->line('theory');
+        $subject_type['practical']   = $this->CI->lang->line('practical');
+        $subject_type['integrated']  = $this->CI->lang->line('integrated') ?: 'Integrated';
         return $subject_type;
     }
 
