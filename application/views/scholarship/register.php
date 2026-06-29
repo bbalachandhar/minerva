@@ -219,11 +219,11 @@
         </div>
 
         <div class="section-card">
-            <div class="section-title"><i class="bi bi-camera-fill"></i> Photo</div>
+            <div class="section-title"><i class="bi bi-camera-fill"></i> Photo <span style="color:#ef4444;">*</span></div>
             <div class="upload-zone" id="photo-zone">
                 <div class="upload-icon"><i class="bi bi-cloud-arrow-up"></i></div>
                 <div class="upload-text">Click or drop photo here</div>
-                <input type="file" name="photo" id="photo" accept="image/jpeg,image/png">
+                <input type="file" name="photo" id="photo" accept="image/jpeg,image/png" required>
                 <img id="photo-preview" src="" alt="" style="display:none; max-height:80px; border-radius:6px; margin-top:8px;">
             </div>
             <div class="form-text"><i class="bi bi-info-circle"></i> JPG, PNG only. Max 300KB.</div>
@@ -240,6 +240,17 @@
 </div>
 
 <script>
+document.querySelector('form')?.addEventListener('submit', function(e) {
+    var photoInput = document.getElementById('photo');
+    if (!photoInput || !photoInput.files || !photoInput.files.length) {
+        e.preventDefault();
+        alert('Photo is mandatory. Please upload a photo.');
+        photoInput?.focus();
+        var zone = document.getElementById('photo-zone');
+        if (zone) { zone.style.borderColor = '#ef4444'; zone.style.background = '#fef2f2'; }
+        return false;
+    }
+});
 document.getElementById('photo')?.addEventListener('change', function() {
     var file = this.files[0];
     if (!file) return;
