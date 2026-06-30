@@ -12739,3 +12739,14 @@ FROM dual WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `url` = 'adm
 INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `lang_key`, `url`, `level`, `access_permissions`, `activate_controller`, `activate_methods`, `is_active`)
 SELECT 40, 'Scholarship Exams', 'scholarship_exams', 'admin/scholarshipexam', 5, 'online_examination,can_view', 'scholarshipexam', 'index,candidates', 1
 FROM dual WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `url` = 'admin/scholarshipexam');
+
+-- permission_category: Birthday List under Student Information (perm_group_id=1)
+-- sidebar_sub_menus id=239: fix access_permissions to match short_code 'birthday'
+INSERT INTO `permission_category` (`perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`)
+SELECT 1, 'Birthday List', 'birthday', 1, 0, 0, 0
+FROM dual WHERE NOT EXISTS (SELECT 1 FROM `permission_category` WHERE `short_code` = 'birthday');
+
+UPDATE `sidebar_sub_menus`
+SET `access_permissions` = "('birthday', 'can_view')"
+WHERE `url` = 'admin/birthday_list'
+  AND `access_permissions` != "('birthday', 'can_view')";
