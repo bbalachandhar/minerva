@@ -70,6 +70,12 @@ $type_class = ['theory'=>'slot-theory','practical'=>'slot-practical','project'=>
                 ?>
                 <span class="slot-tag <?php echo $slot_color ? '' : $tc; ?>" style="<?php echo $slot_style; ?>"><?php echo htmlspecialchars($slot_text); ?></span><br>
                 <?php
+                  $subj_display = $entry->is_free_period
+                      ? ($entry->free_period_label ?: '')
+                      : ($entry->subject_name ?: '');
+                ?>
+                <?php if ($subj_display): ?><small style="font-size:10px;color:#444;display:block;line-height:1.3;margin-bottom:1px;" title="<?php echo htmlspecialchars($subj_display); ?>"><?php echo htmlspecialchars(mb_strlen($subj_display)>28 ? mb_substr($subj_display,0,27).'…' : $subj_display); ?></small><?php endif; ?>
+                <?php
                   $sgs_key   = $entry->subject_group_subject_id ?? 0;
                   if (!empty($joint_teacher_map[$sgs_key])) {
                       $full_name = $joint_teacher_map[$sgs_key];
