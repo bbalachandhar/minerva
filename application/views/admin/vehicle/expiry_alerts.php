@@ -130,6 +130,22 @@ $active_days = array_map('intval', explode(',', $notify_days));
         </div>
     </div>
 
+    <!-- ── TEST NOTIFICATION BUTTON ── -->
+    <div class="row" style="margin-bottom:4px;">
+        <div class="col-md-12">
+            <div class="alert alert-info" style="padding:10px 16px;margin-bottom:10px;">
+                <strong><i class="fa fa-flask"></i> Test Notification</strong> —
+                Send a test email to all configured recipients right now (bypasses the day-threshold filter — useful for verifying email delivery).
+                &nbsp;
+                <button id="btnTestNotification" class="btn btn-info btn-sm"
+                        data-loading-text="<i class='fa fa-spinner fa-spin'></i> Sending...">
+                    <i class="fa fa-send"></i> Send Test Email Now
+                </button>
+                <span id="testNotifResult" style="margin-left:10px;font-weight:600;"></span>
+            </div>
+        </div>
+    </div>
+
     <!-- ── NOTIFICATION SETTINGS ── -->
     <div class="box box-warning">
         <div class="box-header with-border">
@@ -250,6 +266,26 @@ $(function() {
 
     // Select2 for staff dropdowns
     $('.veh-sel').select2({ placeholder: '— None —', allowClear: true, width: '100%' });
+
+    // Test notification
+    $('#btnTestNotification').on('click', function() {
+        var $btn = $(this).button('loading');
+        $('#testNotifResult').text('').css('color','');
+        $.post('<?php echo site_url("admin/vehicle/send_test_notification"); ?>',
+            {<?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'},
+            function(res) {
+                if (res.status === 'success') {
+                    $('#testNotifResult').css('color','#3c763d').text('✓ ' + res.message);
+                } else {
+                    $('#testNotifResult').css('color','#a94442').text('✗ ' + res.message);
+                }
+                $btn.button('reset');
+            }, 'json'
+        ).fail(function() {
+            $('#testNotifResult').css('color','#a94442').text('✗ Request failed. Check server logs.');
+            $btn.button('reset');
+        });
+    });
 
     // Save form
     $('#vehicleAssigneesForm').on('submit', function(e) {

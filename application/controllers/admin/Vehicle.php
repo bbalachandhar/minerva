@@ -55,6 +55,106 @@ class Vehicle extends Admin_Controller
         $this->load->view('layout/footer');
     }
 
+    /**
+     * AJAX: send a test notification email for all upcoming expiries right now,
+     * bypassing the day-threshold filter. Admin-only.
+     */
+    public function send_test_notification()
+    {
+        if (!$this->rbac->hasPrivilege('vehicle_expiry_alerts', 'can_edit')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Access denied.']);
+            return;
+        }
+
+        $this->load->library('mailer');
+
+        $assignees = $this->vehicle_model->getAssignees();
+        if (empty($assignees)) {
+            echo json_encode(['status' => 'fail', 'message' => 'No assignees configured. Please add recipients first.']);
+            return;
+        }
+
+        $emails = array_filter(array_column($assignees, 'email'));
+        if (empty($emails)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Assignees have no email addresses on record.']);
+            return;
+        }
+
+        // Get all vehicles expiring in next 365 days (ignore day thresholds for test)
+        $upcoming = $this->vehicle_model->getUpcomingExpiries(365);
+        if (empty($upcoming)) {
+            echo json_encode(['status' => 'fail', 'message' => 'No upcoming expiries found in the next 365 days — nothing to send.']);
+            return;
+        }
+
+        $setting     = $this->sch_setting_detail;
+        $school_name = $setting->name ?? 'School';
+        $date_fmt    = $this->customlib->getSchoolDateFormat();
+
+        // Build a single digest email listing all upcoming expiries
+        $rows_html = '';
+        foreach ($upcoming as $v) {
+            $d         = (int)$v['days_remaining'];
+            $color     = $d <= 5 ? '#d9534f' : ($d <= 15 ? '#e67e22' : '#3498db');
+            $exp_fmt   = $v['expiry_date'] ? date($date_fmt, strtotime($v['expiry_date'])) : '—';
+            $rows_html .= "<tr>
+                <td style='padding:8px 12px;border:1px solid #e0e0e0;'><strong>{$v['vehicle_no']}</strong></td>
+                <td style='padding:8px 12px;border:1px solid #e0e0e0;'>{$v['vehicle_model']}</td>
+                <td style='padding:8px 12px;border:1px solid #e0e0e0;'>{$v['registration_number']}</td>
+                <td style='padding:8px 12px;border:1px solid #e0e0e0;'>{$v['expiry_label']}</td>
+                <td style='padding:8px 12px;border:1px solid #e0e0e0;'>{$exp_fmt}</td>
+                <td style='padding:8px 12px;border:1px solid #e0e0e0;text-align:center;'>
+                    <span style='background:{$color};color:#fff;padding:3px 10px;border-radius:12px;font-weight:700;font-size:12px;'>{$d} day(s)</span>
+                </td>
+            </tr>";
+        }
+
+        $subject = "[TEST] [{$school_name}] Vehicle Expiry Notification — " . count($upcoming) . " document(s) upcoming";
+        $body    = "
+<html><body style='font-family:Arial,sans-serif;margin:0;padding:0;background:#f5f5f5;'>
+<div style='max-width:680px;margin:24px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);'>
+  <div style='background:#f0ad4e;padding:18px 24px;'>
+    <h2 style='color:#fff;margin:0;font-size:18px;'>&#128276; Vehicle Expiry Alert — TEST EMAIL</h2>
+    <p style='color:#fff;margin:4px 0 0;opacity:.9;font-size:13px;'>{$school_name} &nbsp;|&nbsp; Triggered manually from ERP</p>
+  </div>
+  <div style='padding:24px;'>
+    <p style='font-size:14px;color:#555;margin-top:0;'>
+      This is a <strong>test notification</strong>. In production, alerts are sent only on the configured days
+      before expiry (30 / 15 / 5 / 3 days). The following " . count($upcoming) . " document(s) are upcoming:
+    </p>
+    <table style='width:100%;border-collapse:collapse;font-size:13px;'>
+      <thead>
+        <tr style='background:#f8f8f8;'>
+          <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Vehicle No.</th>
+          <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Model</th>
+          <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Registration</th>
+          <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Document</th>
+          <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Expiry Date</th>
+          <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:center;'>Days Left</th>
+        </tr>
+      </thead>
+      <tbody>{$rows_html}</tbody>
+    </table>
+    <p style='color:#aaa;font-size:11px;margin-top:20px;border-top:1px solid #eee;padding-top:14px;'>
+      Automated test from <strong>{$school_name}</strong> ERP Vehicle Expiry Alerts module.
+    </p>
+  </div>
+</div>
+</body></html>";
+
+        $sent = 0;
+        foreach ($emails as $email) {
+            $this->mailer->compose_mail($email, $subject, $body);
+            $sent++;
+        }
+
+        $recipient_names = implode(', ', array_column($assignees, 'name'));
+        echo json_encode([
+            'status'  => 'success',
+            'message' => "Test email sent to {$sent} recipient(s): {$recipient_names}. Check their inboxes.",
+        ]);
+    }
+
     public function add()
     {
         if (!$this->rbac->hasPrivilege('vehicle', 'can_add')) {
