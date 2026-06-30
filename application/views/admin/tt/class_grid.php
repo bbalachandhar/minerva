@@ -10,63 +10,97 @@
 </section>
 <section class="content">
 
-<!-- Filter bar -->
-<div class="box box-primary">
-  <div class="box-body">
-    <div class="row" style="align-items:flex-end;">
-      <div class="col-md-3">
-        <label>Department</label>
-        <select class="form-control" id="cg_dept">
-          <option value="">-- All --</option>
-          <?php foreach ($departments as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['department_name']); ?></option><?php endforeach; ?>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label>Class <span class="text-danger">*</span></label>
-        <select class="form-control" id="cg_class">
-          <option value="">-- Select Class --</option>
-          <?php foreach ($classlist as $c): ?><option value="<?php echo $c['id']; ?>" data-dept="<?php echo $c['department_id']; ?>"><?php echo htmlspecialchars($c['class']); ?></option><?php endforeach; ?>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label>Section <span class="text-danger">*</span></label>
-        <select class="form-control" id="cg_section"><option value="">-- Select Section --</option></select>
-      </div>
-      <div class="col-md-3">
-        <div class="row" style="margin-top:25px;">
-          <div class="col-xs-5 pr-0">
-            <button class="btn btn-primary btn-block" id="btn-load-grid"><i class="fa fa-table"></i> Load</button>
-          </div>
-          <div class="col-xs-7 pl-1">
-            <div class="btn-group" id="export-btns" style="display:none;">
-              <button class="btn btn-default" id="btn-print-grid"  title="Print"><i class="fa fa-print"></i></button>
-              <button class="btn btn-danger"  id="btn-pdf-grid"    title="Export PDF"><i class="fa fa-file-pdf-o"></i></button>
-              <button class="btn btn-success" id="btn-excel-grid"  title="Export Excel"><i class="fa fa-file-excel-o"></i></button>
-            </div>
-            <button class="btn btn-info btn-sm" id="btn-gaps-overview" style="margin-top:2px;" title="Show classes with unfilled cells">
-              <i class="fa fa-list-ul"></i> Gaps
-            </button>
-            <button class="btn btn-success btn-sm" id="btn-fill-all" style="margin-top:2px;" title="Run Fill Empty Cells on ALL classes automatically">
-              <i class="fa fa-magic"></i> Fill All Classes
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Week navigation (shown after first load) -->
-    <div class="row" id="week-nav-row" style="display:none;margin-top:8px;">
-      <div class="col-md-12 text-center">
-        <div class="btn-group">
-          <button class="btn btn-sm btn-default" id="btn-week-prev"><i class="fa fa-chevron-left"></i> Prev Week</button>
-          <button class="btn btn-sm btn-default" id="btn-week-cur"><i class="fa fa-calendar"></i> Current Week</button>
-          <button class="btn btn-sm btn-default" id="btn-week-next">Next Week <i class="fa fa-chevron-right"></i></button>
-        </div>
-        <span id="week-label" class="text-muted" style="margin-left:10px;font-size:12px;"></span>
-        <button class="btn btn-sm btn-warning" id="btn-fill-gaps" style="display:none;margin-left:12px;" title="Fill all empty cells with an available subject or a Free Period placeholder">
-          <i class="fa fa-magic"></i> Fill Empty Cells
+<!-- Filter & Action Card -->
+<div class="box box-primary" style="border-radius:8px;overflow:hidden;">
+  <div class="box-header with-border" style="background:linear-gradient(135deg,#3c8dbc,#357ca5);padding:12px 16px;">
+    <h3 class="box-title" style="color:#fff;font-size:15px;">
+      <i class="fa fa-calendar-check-o"></i>&nbsp; Class Timetable
+    </h3>
+    <div class="box-tools pull-right" style="display:flex;gap:6px;align-items:center;">
+      <!-- Export buttons — always visible, disabled until loaded -->
+      <div class="btn-group" id="export-btns">
+        <button class="btn btn-sm" id="btn-print-grid" title="Print"
+          style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);">
+          <i class="fa fa-print"></i>
+        </button>
+        <button class="btn btn-sm" id="btn-pdf-grid" title="Export PDF"
+          style="background:rgba(231,76,60,.8);color:#fff;border-color:rgba(255,255,255,.2);">
+          <i class="fa fa-file-pdf-o"></i>
+        </button>
+        <button class="btn btn-sm" id="btn-excel-grid" title="Export Excel"
+          style="background:rgba(39,174,96,.8);color:#fff;border-color:rgba(255,255,255,.2);">
+          <i class="fa fa-file-excel-o"></i>
         </button>
       </div>
     </div>
+  </div>
+  <div class="box-body" style="background:#f9fbfd;padding:16px;">
+
+    <!-- Row 1: Filters + Load -->
+    <div class="row" style="align-items:flex-end;margin-bottom:0;">
+      <div class="col-md-3 col-sm-6">
+        <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Department</label>
+        <select class="form-control input-sm" id="cg_dept" style="border-radius:6px;">
+          <option value="">— All —</option>
+          <?php foreach ($departments as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['department_name']); ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Class <span class="text-danger">*</span></label>
+        <select class="form-control input-sm" id="cg_class" style="border-radius:6px;">
+          <option value="">— Select Class —</option>
+          <?php foreach ($classlist as $c): ?><option value="<?php echo $c['id']; ?>" data-dept="<?php echo $c['department_id']; ?>"><?php echo htmlspecialchars($c['class']); ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-2 col-sm-4">
+        <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Section <span class="text-danger">*</span></label>
+        <select class="form-control input-sm" id="cg_section" style="border-radius:6px;"><option value="">— Select —</option></select>
+      </div>
+      <div class="col-md-4 col-sm-8" style="padding-top:20px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-primary" id="btn-load-grid" style="border-radius:6px;padding:6px 20px;font-weight:600;white-space:nowrap;">
+            <i class="fa fa-table"></i>&nbsp; Load
+          </button>
+          <div style="height:32px;border-left:1px solid #ddd;margin:0 4px;"></div>
+          <button class="btn btn-sm" id="btn-gaps-overview"
+            style="border-radius:6px;background:#6f5499;color:#fff;border-color:#6f5499;white-space:nowrap;"
+            title="Show gaps — classes with unfilled timetable cells">
+            <i class="fa fa-list-ul"></i>&nbsp; Gaps
+          </button>
+          <button class="btn btn-sm btn-success" id="btn-fill-all"
+            style="border-radius:6px;white-space:nowrap;"
+            title="Auto-fill empty cells across ALL classes">
+            <i class="fa fa-magic"></i>&nbsp; Fill All
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Week navigation (shown after load) -->
+    <div id="week-nav-row" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid #e8ecf0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <!-- Left: week navigation -->
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="btn-group">
+            <button class="btn btn-sm btn-default" id="btn-week-prev" style="border-radius:4px 0 0 4px;">
+              <i class="fa fa-chevron-left"></i>&nbsp;Prev
+            </button>
+            <button class="btn btn-sm btn-default" id="btn-week-cur">
+              <i class="fa fa-calendar"></i>&nbsp;Current
+            </button>
+            <button class="btn btn-sm btn-default" id="btn-week-next" style="border-radius:0 4px 4px 0;">
+              Next&nbsp;<i class="fa fa-chevron-right"></i>
+            </button>
+          </div>
+          <span id="week-label" style="font-size:12px;color:#888;font-weight:500;padding:0 6px;"></span>
+        </div>
+        <!-- Right: fill action -->
+        <button class="btn btn-sm btn-warning" id="btn-fill-gaps" style="display:none;border-radius:6px;font-weight:600;">
+          <i class="fa fa-magic"></i>&nbsp; Fill Empty Cells
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -361,7 +395,6 @@ $(function(){
           loaded_class_id   = class_id;
           loaded_section_id = section_id;
           initExportDataTable(res.flat_rows || [], res.flat_cols || [], res.cls_label || '');
-          $('#export-btns').show();
           $('#btn-fill-gaps').show();
           $('#week-nav-row').show();
           $('#week-label').text(weekLabel(weekOffset));
