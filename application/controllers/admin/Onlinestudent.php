@@ -861,7 +861,9 @@ class Onlinestudent extends Admin_Controller
         }
 
         if (!empty($course_id_filter)) {
-            $this->db->where('COALESCE(oa.admission_course_id, oa.ug_course_id)', intval($course_id_filter));
+            // Pass false as 3rd arg to prevent CI's protect_identifiers from wrapping
+            // the COALESCE expression in backticks and generating invalid SQL
+            $this->db->where('COALESCE(oa.admission_course_id, oa.ug_course_id) = ' . intval($course_id_filter), null, false);
         }
         if (!empty($course_level_filter)) {
             $this->db->where('oa.course_level', $course_level_filter);
@@ -932,13 +934,7 @@ class Onlinestudent extends Admin_Controller
         if (!empty($community_filter)) {
             $this->db->where('oa.`cast`', $community_filter);
         }
-        $query = $this->db->get();
-        if ($query === false) {
-            log_message('error', 'export_excel SQL FAILED. Last query: ' . $this->db->last_query() . ' | Error: ' . $this->db->error()['message']);
-            show_error('Export failed: database query error. Please check server logs.', 500);
-            return;
-        }
-        $rows = $query->result_array();
+        $rows = $this->db->get()->result_array();
 
         // Collect reference numbers for bulk fee lookups
         $refs = array();

@@ -460,7 +460,7 @@ class enquiry_model extends MY_Model
 
         // Paginated data
         $start  = max(0, (int) $start);
-        $length = max(1, min(200, (int) $length));
+        $length = max(1, (int) $length);
 
         $rows = $db->query("
             SELECT
