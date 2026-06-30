@@ -15,7 +15,7 @@ class Birthday extends Admin_Controller
 
     public function birthday_list()
     {
-        if (!$this->rbac->hasPrivilege('student', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('birthday', 'can_view')) {
             access_denied();
         }
 
@@ -59,7 +59,7 @@ class Birthday extends Admin_Controller
 
     public function export_pdf()
     {
-        if (!$this->rbac->hasPrivilege('student', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('birthday', 'can_view')) {
             access_denied();
         }
         $date_from = $this->input->get('date_from');
@@ -133,7 +133,7 @@ class Birthday extends Admin_Controller
 
     public function export_xls()
     {
-        if (!$this->rbac->hasPrivilege('student', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('birthday', 'can_view')) {
             access_denied();
         }
         $date_from = $this->input->get('date_from');
