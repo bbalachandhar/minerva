@@ -9,6 +9,15 @@ foreach ($data as $r) {
     $grouped[$key]['entries'][] = $r;
 }
 $type_class = ['theory'=>'slot-theory','practical'=>'slot-practical','project'=>'slot-project','other'=>'slot-other'];
+
+// Helper: compute badge style with auto-contrast text
+function rpt_slot_style($color) {
+    if (!$color) return '';
+    list($r,$g,$b) = sscanf($color,'#%02x%02x%02x');
+    $lum = ($r*0.299 + $g*0.587 + $b*0.114) / 255;
+    $txt = $lum > 0.55 ? '#222' : '#fff';
+    return "background:{$color};color:{$txt};border-radius:4px;padding:2px 6px;display:inline-block;font-size:10px;font-weight:600;";
+}
 ?>
 <?php foreach ($grouped as $class_data): ?>
 <div style="margin-bottom:20px;">
@@ -35,13 +44,31 @@ foreach ($class_data['entries'] as $e) {
       <?php if ($p->is_break): ?>
       <td colspan="<?php echo count($days); ?>" style="background:#fffde7;text-align:center;color:#aaa;"><i class="fa fa-coffee"></i> <?php echo $p->break_label ?: $p->name; ?></td>
       <?php else: foreach ($days as $dk=>$dv): ?>
-      <td style="text-align:center;vertical-align:middle;min-height:45px;">
+      <td style="text-align:center;vertical-align:middle;padding:5px 3px;">
         <?php foreach ($entry_map[$dk][$p->id] ?? [] as $e): ?>
-          <?php $tc = $type_class[strtolower($e->subject_type??'other')]??'slot-other'; ?>
-          <span class="slot-tag <?php echo $tc; ?>" style="font-size:10px;"><?php echo htmlspecialchars($e->subject_code?:$e->subject_name); ?></span><br>
-          <small style="font-size:9px;"><?php echo htmlspecialchars($e->staff_name.' '.($e->staff_surname??'')); ?></small>
+          <?php
+            $tc    = $type_class[strtolower($e->subject_type??'other')] ?? 'slot-other';
+            $color = !empty($e->tt_color) ? $e->tt_color : null;
+            $badge = !empty($e->tt_abbr) ? $e->tt_abbr : ($e->subject_code ?: $e->subject_name);
+            $style = $color ? rpt_slot_style($color) : '';
+            $disp  = $e->is_free_period
+                     ? ($e->free_period_label ?: $badge)
+                     : ($e->subject_name ?: $badge);
+            $disp  = mb_strlen($disp) > 24 ? mb_substr($disp,0,23).'…' : $disp;
+          ?>
+          <?php if ($color): ?>
+            <span style="<?php echo $style; ?>"><?php echo htmlspecialchars($badge); ?></span>
+          <?php else: ?>
+            <span class="slot-tag <?php echo $tc; ?>" style="font-size:10px;"><?php echo htmlspecialchars($badge); ?></span>
+          <?php endif; ?><br>
+          <small style="font-size:9px;color:#444;display:block;line-height:1.3;margin-bottom:1px;" title="<?php echo htmlspecialchars($e->subject_name?:''); ?>">
+            <?php echo htmlspecialchars($disp); ?>
+          </small>
+          <?php if ($e->staff_name): ?>
+          <small style="font-size:9px;color:#666;"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($e->staff_name,0,10))); ?></small>
+          <?php endif; ?>
         <?php endforeach; ?>
-        <?php if (empty($entry_map[$dk][$p->id] ?? [])): ?><span style="color:#ccc;">—</span><?php endif; ?>
+        <?php if (empty($entry_map[$dk][$p->id] ?? [])): ?><span style="color:#ddd;">—</span><?php endif; ?>
       </td>
       <?php endforeach; endif; ?>
     </tr>
