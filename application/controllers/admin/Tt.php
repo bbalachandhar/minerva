@@ -2921,6 +2921,166 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         echo json_encode(['status' => '1', 'html' => $html]);
     }
 
+    // ── PDF export for master timetable report ──────────────────────────────
+    public function export_report_pdf()
+    {
+        if (!$this->rbac->hasPrivilege('tt_reports', 'can_view')) { access_denied(); }
+
+        $session_id  = $this->setting_model->getCurrentSession();
+        $school_name = $this->sch_setting_detail->name ?? '';
+        $dept_id     = (int) $this->input->get('dept_id');
+
+        // Resolve class_ids from department filter (same logic as get_master_report)
+        $class_ids = null;
+        if ($dept_id > 0) {
+            $rows = $this->db
+                ->select('classes.id')
+                ->from('classes')
+                ->join('student_session', 'student_session.class_id = classes.id')
+                ->where('classes.department_id', $dept_id)
+                ->where('student_session.session_id', $session_id)
+                ->group_by('classes.id')
+                ->get()->result_array();
+            $class_ids = array_column($rows, 'id');
+        }
+
+        $all_entries = $this->Tt_entry_model->getMasterReport($session_id, $class_ids);
+        $periods     = $this->Tt_period_model->getAll($session_id);
+        $days        = $this->_getWorkingDays();
+        $day_names   = array_keys($days);
+        $n_days      = count($day_names);
+
+        // Header image
+        $header_img = $this->setting_model->get_general_purpose_header();
+        $img_local  = null;
+        if ($header_img) {
+            $p = FCPATH . 'uploads/print_headerfooter/general_purpose/' . $header_img;
+            if (file_exists($p)) $img_local = $p;
+        }
+
+        $type_bg = ['theory'=>'#3498db','practical'=>'#e74c3c','project'=>'#f39c12','other'=>'#7f8c8d'];
+
+        // Group entries by class+section
+        $grouped = [];
+        foreach ($all_entries as $r) {
+            $key = $r->class_id . '_' . $r->section_id;
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['class'=>$r->class_name,'section'=>$r->section_name,'entries'=>[]];
+            }
+            $grouped[$key]['entries'][] = $r;
+        }
+
+        if (empty($grouped)) {
+            echo '<div class="alert alert-warning">No timetable data found.</div>'; return;
+        }
+
+        // Build PDF HTML
+        $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+body  { font-family:dejavusans,Arial,sans-serif; font-size:8.5pt; color:#333; margin:0; padding:0; }
+h2    { text-align:center; font-size:11pt; margin:5pt 0 6pt; color:#2c3e50; }
+h3    { text-align:center; font-size:9pt;  margin:0 0 4pt;  color:#555; font-weight:normal; }
+table { width:100%; border-collapse:collapse; }
+th    { background:#3c8dbc; color:#fff; padding:4px 3px; text-align:center;
+        border:1px solid #2980b9; font-size:8pt; white-space:nowrap; }
+td    { border:1px solid #ccc; padding:4px 3px; vertical-align:middle;
+        text-align:center; min-height:42pt; }
+.tc   { background:#f4f4f4; text-align:left; width:60pt; }
+.brk td { background:#fffde7; color:#999; font-style:italic; }
+.stag { color:#fff; font-weight:bold; font-size:7.5pt; padding:1px 4px; border-radius:3px; }
+.subj { font-size:7pt; color:#444; display:block; margin-top:2pt; line-height:1.2; }
+.tchr { font-size:7pt; color:#666; display:block; }
+.hdr  { border-bottom:2px solid #3c8dbc; margin-bottom:6pt; padding-bottom:5pt; text-align:center; }
+.foot { text-align:right; font-size:6.5pt; color:#aaa; margin-top:4pt; }
+</style></head><body>';
+
+        $first = true;
+        foreach ($grouped as $class_data) {
+            if (!$first) {
+                $html .= '<pagebreak orientation="landscape" />';
+            }
+            $first = false;
+
+            // Per-class entry map
+            $entry_map = [];
+            foreach ($class_data['entries'] as $e) {
+                $entry_map[$e->day][$e->period_id][] = $e;
+            }
+
+            // Header
+            if ($img_local) {
+                $html .= '<div class="hdr"><img src="' . $img_local . '" style="width:100%;height:22mm;" alt=""></div>';
+            } elseif ($school_name) {
+                $html .= '<div class="hdr"><span style="font-size:13pt;font-weight:bold;color:#2c3e50;">'
+                       . htmlspecialchars($school_name) . '</span></div>';
+            }
+
+            $html .= '<h2>' . htmlspecialchars($class_data['class'] . ' &mdash; Section ' . $class_data['section']) . '</h2>';
+            $html .= '<h3>Academic Timetable &nbsp;|&nbsp; Generated: ' . date('d M Y') . '</h3>';
+
+            // Table
+            $html .= '<table><thead><tr><th class="tc">Period</th>';
+            foreach ($day_names as $dn) { $html .= '<th>' . htmlspecialchars($dn) . '</th>'; }
+            $html .= '</tr></thead><tbody>';
+
+            foreach ($periods as $p) {
+                $t = date('g:i', strtotime($p->start_time)) . '–' . date('g:i A', strtotime($p->end_time));
+                if ($p->is_break) {
+                    $html .= '<tr class="brk"><td class="tc"><b>' . htmlspecialchars($p->name) . '</b><br><small>' . $t . '</small></td>'
+                           . '<td colspan="' . $n_days . '">' . htmlspecialchars($p->break_label ?: $p->name) . '</td></tr>';
+                    continue;
+                }
+                $html .= '<tr><td class="tc"><b>' . htmlspecialchars($p->name) . '</b><br><small>' . $t . '</small></td>';
+                foreach ($day_names as $dn) {
+                    $entries_cell = $entry_map[$dn][$p->id] ?? [];
+                    if (empty($entries_cell)) { $html .= '<td></td>'; continue; }
+                    $html .= '<td>';
+                    foreach ($entries_cell as $e) {
+                        if ($e->is_free_period) {
+                            $html .= '<span class="stag" style="background:#27ae60;">'
+                                   . htmlspecialchars(mb_substr($e->free_period_label ?: 'Free', 0, 20)) . '</span>';
+                        } else {
+                            $badge = !empty($e->tt_abbr) ? $e->tt_abbr : ($e->subject_code ?: $e->subject_name);
+                            $bg    = !empty($e->tt_color) ? $e->tt_color
+                                   : ($type_bg[strtolower($e->subject_type ?? 'other')] ?? '#7f8c8d');
+                            $lum   = isset($bg[1]) ? (hexdec(substr($bg,1,2))*0.299 + hexdec(substr($bg,3,2))*0.587 + hexdec(substr($bg,5,2))*0.114)/255 : 0;
+                            $txt   = $lum > 0.55 ? '#222' : '#fff';
+                            $sname = mb_strlen($e->subject_name ?: '') > 22 ? mb_substr($e->subject_name,0,21).'…' : ($e->subject_name ?: '');
+                            $tname = mb_strtoupper(mb_substr($e->staff_name ?? '', 0, 10));
+                            $html .= '<span class="stag" style="background:' . $bg . ';color:' . $txt . ';">'
+                                   . htmlspecialchars($badge) . '</span>';
+                            if ($sname) $html .= '<span class="subj">' . htmlspecialchars($sname) . '</span>';
+                            if ($tname) $html .= '<span class="tchr">' . htmlspecialchars($tname) . '</span>';
+                        }
+                    }
+                    $html .= '</td>';
+                }
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody></table>';
+            $html .= '<p class="foot">Printed: ' . date('d M Y, h:i A') . '</p>';
+        }
+
+        $html .= '</body></html>';
+
+        $this->load->library('m_pdf');
+        $mpdf = $this->m_pdf->load([
+            'tempDir'       => sys_get_temp_dir() . '/mpdf',
+            'mode'          => 'utf-8',
+            'default_font'  => 'dejavusans',
+            'margin_left'   => 8,
+            'margin_right'  => 8,
+            'margin_top'    => 6,
+            'margin_bottom' => 6,
+            'format'        => 'A4-L',
+            'orientation'   => 'L',
+        ]);
+        $mpdf->WriteHTML($html);
+        $dept_label = $dept_id > 0 ? '_dept' . $dept_id : '_all';
+        $mpdf->Output('timetable_report' . $dept_label . '_' . date('Ymd') . '.pdf', 'D');
+        exit;
+    }
+
     public function get_room_utilization()
     {
         $session_id = $this->setting_model->getCurrentSession();

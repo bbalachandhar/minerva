@@ -33,9 +33,13 @@
           <label>&nbsp;</label>
           <button class="btn btn-primary btn-block" id="btn-load-master"><i class="fa fa-search"></i> Load</button>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label>&nbsp;</label>
           <button class="btn btn-default btn-block" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
+        </div>
+        <div class="col-md-2">
+          <label>&nbsp;</label>
+          <button class="btn btn-danger btn-block" id="btn-download-pdf"><i class="fa fa-file-pdf-o"></i> Download PDF</button>
         </div>
       </div>
       <div id="master-report-container">
@@ -114,6 +118,13 @@ $(function(){
   $('#sub_to_pick').datetimepicker({ format:'YYYY-MM-DD', icons: dpIcons });
   $('#sub_from_pick').on('dp.change', function(e){ $('#sub_to_pick').data('DateTimePicker').minDate(e.date); });
   $('#sub_to_pick').on('dp.change',   function(e){ $('#sub_from_pick').data('DateTimePicker').maxDate(e.date); });
+
+  $('#btn-download-pdf').on('click', function(){
+    var dept_id = $('#report_dept').val();
+    var url = '<?php echo site_url('admin/tt/export_report_pdf'); ?>';
+    if (dept_id) url += '?dept_id=' + encodeURIComponent(dept_id);
+    window.location.href = url;
+  });
 
   $('#btn-load-master').on('click', function(){
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
