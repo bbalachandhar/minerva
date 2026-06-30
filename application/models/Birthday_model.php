@@ -139,7 +139,7 @@ class Birthday_model extends MY_Model
         }
 
         $this->db->group_by('students.id');
-        $this->db->order_by("DATE_FORMAT(students.dob, '%m%d')", 'ASC');
+        $this->db->order_by("DATE_FORMAT(students.dob, '%m%d') ASC", '', FALSE);
         return $this->db->get()->result_array();
     }
 
