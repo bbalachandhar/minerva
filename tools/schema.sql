@@ -7522,6 +7522,8 @@ DROP TABLE IF EXISTS `vehicle_notification_config`;
 CREATE TABLE `vehicle_notification_config` (
   `id` int NOT NULL DEFAULT '1',
   `wa_template_id` varchar(255) DEFAULT NULL,
+  `notify_days` varchar(50) NOT NULL DEFAULT '30,15,5,3',
+  `enable_email` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -12750,3 +12752,28 @@ UPDATE `sidebar_sub_menus`
 SET `access_permissions` = "('birthday', 'can_view')"
 WHERE `url` = 'admin/birthday_list'
   AND `access_permissions` != "('birthday', 'can_view')";
+
+-- vehicle_notification_config: add notify_days and enable_email columns (vehicle expiry alerts)
+SET @v1 = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='vehicle_notification_config' AND column_name='notify_days');
+SET @s1 = IF(@v1=0, "ALTER TABLE vehicle_notification_config ADD COLUMN notify_days VARCHAR(50) NOT NULL DEFAULT '30,15,5,3'", 'SELECT 1');
+PREPARE _s FROM @s1; EXECUTE _s; DEALLOCATE PREPARE _s;
+
+SET @v2 = (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='vehicle_notification_config' AND column_name='enable_email');
+SET @s2 = IF(@v2=0, 'ALTER TABLE vehicle_notification_config ADD COLUMN enable_email TINYINT(1) NOT NULL DEFAULT 1', 'SELECT 1');
+PREPARE _s FROM @s2; EXECUTE _s; DEALLOCATE PREPARE _s;
+
+INSERT IGNORE INTO `vehicle_notification_config` (`id`, `notify_days`, `enable_email`) VALUES (1, '30,15,5,3', 1);
+
+-- permission_category: Vehicle Expiry Alerts under Transport (perm_group_id=11)
+INSERT INTO `permission_category` (`perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`)
+SELECT 11, 'Vehicle Expiry Alerts', 'vehicle_expiry_alerts', 1, 0, 1, 0
+FROM dual WHERE NOT EXISTS (SELECT 1 FROM `permission_category` WHERE `short_code` = 'vehicle_expiry_alerts');
+
+-- sidebar_sub_menus: Vehicle Expiry Alerts under Transport sidebar menu
+INSERT INTO `sidebar_sub_menus` (`sidebar_menu_id`, `menu`, `lang_key`, `url`, `level`, `access_permissions`, `activate_controller`, `activate_methods`, `is_active`)
+SELECT sm.id, 'vehicle_expiry_alerts', 'vehicle_expiry_alerts', 'admin/vehicle/expiry_alerts', 13,
+       "('vehicle_expiry_alerts', 'can_view')", 'vehicle', 'expiry_alerts', 1
+FROM sidebar_menus sm
+WHERE sm.activate_menu = 'transport'
+  AND NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `url` = 'admin/vehicle/expiry_alerts')
+LIMIT 1;
