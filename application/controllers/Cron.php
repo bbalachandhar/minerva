@@ -397,6 +397,87 @@ class Cron extends MY_Controller
      * Crontab (daily at 08:00):
      *   0 8 * * * curl -s "https://yourdomain.com/index.php/cron/vehicleExpiryReminder/{key}" > /dev/null 2>&1
      */
+    /**
+     * One-shot test: send a digest of all vehicles expiring in next 60 days
+     * to all configured assignees, regardless of day thresholds.
+     * URL: /cron/vehicleExpiryTest/{cron_key}
+     */
+    public function vehicleExpiryTest($key = '')
+    {
+        if ($key == "" || $this->cron_key != $key) {
+            echo "Invalid Key or Direct access is not allowed";
+            return;
+        }
+
+        $this->load->model('vehicle_model');
+        $this->load->library('mailer');
+
+        $setting     = $this->setting_model->getSetting();
+        $school_name = $setting->name ?? 'School';
+        $date_fmt    = $this->customlib->getSchoolDateFormat();
+
+        $assignees = $this->vehicle_model->getAssignees();
+        if (empty($assignees)) { echo "No assignees configured.\n"; return; }
+
+        $upcoming = $this->vehicle_model->getUpcomingExpiries(60);
+        if (empty($upcoming)) { echo "No vehicles expiring in the next 60 days.\n"; return; }
+
+        $rows = '';
+        foreach ($upcoming as $v) {
+            $d     = (int)$v['days_remaining'];
+            $color = $d <= 5 ? '#d9534f' : ($d <= 15 ? '#e67e22' : '#3498db');
+            $exp   = $v['expiry_date'] ? date($date_fmt, strtotime($v['expiry_date'])) : '—';
+            $rows .= "<tr>
+              <td style='padding:8px 12px;border:1px solid #e0e0e0;'><strong>{$v['vehicle_no']}</strong></td>
+              <td style='padding:8px 12px;border:1px solid #e0e0e0;'>{$v['vehicle_model']}</td>
+              <td style='padding:8px 12px;border:1px solid #e0e0e0;'>{$v['registration_number']}</td>
+              <td style='padding:8px 12px;border:1px solid #e0e0e0;'>{$v['expiry_label']}</td>
+              <td style='padding:8px 12px;border:1px solid #e0e0e0;'>{$exp}</td>
+              <td style='padding:8px 12px;border:1px solid #e0e0e0;text-align:center;'>
+                <span style='background:{$color};color:#fff;padding:3px 10px;border-radius:12px;font-weight:700;font-size:12px;'>{$d} day(s)</span>
+              </td></tr>";
+        }
+
+        $cnt     = count($upcoming);
+        $subject = "[TEST] [{$school_name}] Vehicle Expiry — {$cnt} document(s) expiring in next 60 days";
+        $body    = "<html><body style='font-family:Arial,sans-serif;background:#f5f5f5;'>
+<div style='max-width:680px;margin:24px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);'>
+  <div style='background:#f0ad4e;padding:18px 24px;'>
+    <h2 style='color:#fff;margin:0;'>&#128276; Vehicle Expiry Alert &mdash; TEST EMAIL</h2>
+    <p style='color:#fff;margin:4px 0 0;opacity:.9;font-size:13px;'>{$school_name}</p>
+  </div>
+  <div style='padding:24px;'>
+    <p style='font-size:14px;color:#555;'>
+      This is a <strong>test notification</strong> listing all {$cnt} document(s) expiring in the next 60 days.<br>
+      <em>In production, alerts fire only on the configured day thresholds before expiry.</em>
+    </p>
+    <table style='width:100%;border-collapse:collapse;font-size:13px;'>
+      <thead><tr style='background:#f8f8f8;'>
+        <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Vehicle No.</th>
+        <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Model</th>
+        <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Registration</th>
+        <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Document</th>
+        <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:left;'>Expiry Date</th>
+        <th style='padding:9px 12px;border:1px solid #e0e0e0;text-align:center;'>Days Left</th>
+      </tr></thead>
+      <tbody>{$rows}</tbody>
+    </table>
+    <p style='color:#aaa;font-size:11px;margin-top:20px;border-top:1px solid #eee;padding-top:14px;'>
+      Automated test from <strong>{$school_name}</strong> ERP Vehicle Expiry Alerts.
+    </p>
+  </div>
+</div></body></html>";
+
+        $sent = 0;
+        foreach ($assignees as $a) {
+            if (empty($a['email'])) continue;
+            $this->mailer->compose_mail($a['email'], $subject, $body);
+            echo "Sent to: {$a['name']} <{$a['email']}>\n";
+            $sent++;
+        }
+        echo "\nTest complete. Emails sent: {$sent}\n";
+    }
+
     public function vehicleExpiryReminder($key = '')
     {
         if ($key == "" || $this->cron_key != $key) {

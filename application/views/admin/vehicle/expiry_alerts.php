@@ -184,7 +184,7 @@ $active_days = array_map('intval', explode(',', $notify_days));
             <p class="expiry-section-title" style="margin-top:20px;"><i class="fa fa-clock-o" style="color:#f0ad4e;"></i>&nbsp; When to Send Alerts</p>
             <p class="text-muted" style="font-size:13px;margin-bottom:12px;">Select how many days before expiry each alert should be sent. You can pick multiple.</p>
             <div style="margin-bottom:16px;">
-                <?php foreach ([30, 15, 10, 5, 3] as $day):
+                <?php foreach ([60, 30, 15, 10, 5, 3] as $day):
                     $sel = in_array($day, $active_days);
                 ?>
                 <label class="day-chip <?php echo $sel ? 'selected' : ''; ?>" for="day_<?php echo $day; ?>">
