@@ -686,8 +686,9 @@ class Report extends Admin_Controller
         $html .= '</tbody></table>';
 
         $this->load->library('m_pdf');
-        $this->m_pdf->pdf->WriteHTML($html);
-        $this->m_pdf->pdf->Output('staff_birthday_list.pdf', 'D');
+        $pdf = $this->m_pdf->load(['format' => 'A4', 'orientation' => 'L']);
+        $pdf->WriteHTML($html);
+        $pdf->Output('staff_birthday_list.pdf', 'D');
     }
 
     public function staff_birthday_list_xls()
