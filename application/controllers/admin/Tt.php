@@ -2895,6 +2895,25 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
     {
         $session_id = $this->setting_model->getCurrentSession();
         $class_ids  = $this->input->post('class_ids');
+
+        // Department filter: resolve dept_id → class IDs for this session
+        $dept_id = (int) $this->input->post('dept_id');
+        if ($dept_id > 0) {
+            $rows = $this->db
+                ->select('classes.id')
+                ->from('classes')
+                ->join('student_session', 'student_session.class_id = classes.id')
+                ->where('classes.department_id', $dept_id)
+                ->where('student_session.session_id', $session_id)
+                ->group_by('classes.id')
+                ->get()->result_array();
+            $class_ids = array_column($rows, 'id');
+            if (empty($class_ids)) {
+                echo json_encode(['status' => '1', 'html' => '<div class="alert alert-info">No timetable entries found for this department.</div>']);
+                return;
+            }
+        }
+
         $data = $this->Tt_entry_model->getMasterReport($session_id, $class_ids);
         $periods = $this->Tt_period_model->getAll($session_id);
         $days    = $this->_getWorkingDays();

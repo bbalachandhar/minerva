@@ -118,7 +118,7 @@ $(function(){
   $('#btn-load-master').on('click', function(){
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/get_master_report'); ?>',
-      {[csrf_name]: csrf_val}, function(res){
+      {[csrf_name]: csrf_val, dept_id: $('#report_dept').val()}, function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-search"></i> Load');
         $('#master-report-container').html(res.status==='1' ? res.html : '<div class="alert alert-warning">No data found.</div>');
       },'json');
