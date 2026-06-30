@@ -81,6 +81,22 @@ class Department_model extends MY_model
         }
     }
 
+    /**
+     * Departments that have at least one class with students in the given session.
+     * Filters out non-teaching departments (admin, transport, housekeeping, etc.)
+     */
+    public function getDepartmentsForSession($session_id)
+    {
+        return $this->db
+            ->select('DISTINCT department.id, department.department_name', false)
+            ->from('department')
+            ->join('classes', 'classes.department_id = department.id')
+            ->join('student_session', 'student_session.class_id = classes.id')
+            ->where('student_session.session_id', (int)$session_id)
+            ->order_by('department.department_name', 'ASC')
+            ->get()->result_array();
+    }
+
     public function getDepartmentsWithStudents()
     {
         $this->db->select('department.*');

@@ -2882,7 +2882,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         $this->_setMenu();
         $data = $this->_baseData();
         $data['classlist']   = $this->class_model->get();
-        $data['departments'] = $this->department_model->getDepartmentType();
+        $data['departments'] = $this->department_model->getDepartmentsForSession($data['session_id']);
         $data['staff_list']  = $this->staff_model->getStaffbyrole(2);
         $data['periods']     = $this->Tt_period_model->getAllNonBreak($data['session_id']);
         $data['rooms']       = $this->Tt_room_model->getActive();
