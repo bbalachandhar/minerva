@@ -2832,7 +2832,20 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         $from_date   = $this->input->post('from_date');
         $to_date     = $this->input->post('to_date');
         $staff_id    = (int) $this->input->post('staff_id') ?: null;
-        $data = $this->Tt_substitution_model->getReport($session_id, $from_date, $to_date, $staff_id);
+        $dept_id     = (int) $this->input->post('dept_id') ?: null;
+
+        // Resolve dept_id → class_ids for filtering
+        $class_ids = null;
+        if ($dept_id) {
+            $rows = $this->db->select('classes.id')->from('classes')
+                ->join('student_session','student_session.class_id=classes.id')
+                ->where('classes.department_id', $dept_id)
+                ->where('student_session.session_id', $session_id)
+                ->group_by('classes.id')->get()->result_array();
+            $class_ids = array_column($rows, 'id') ?: [-1];
+        }
+
+        $data = $this->Tt_substitution_model->getReport($session_id, $from_date, $to_date, $staff_id, $class_ids);
         echo json_encode(['status' => '1', 'data' => $data]);
     }
 
@@ -3084,7 +3097,8 @@ td    { border:1px solid #ccc; padding:4px 3px; vertical-align:middle;
     public function get_room_utilization()
     {
         $session_id = $this->setting_model->getCurrentSession();
-        $data    = $this->Tt_entry_model->getRoomUtilization($session_id);
+        $dept_id    = (int) $this->input->post('dept_id') ?: null;
+        $data    = $this->Tt_entry_model->getRoomUtilization($session_id, $dept_id);
         $periods = $this->Tt_period_model->getAllNonBreak($session_id);
         $rooms   = $this->Tt_room_model->getActive();
         $days    = $this->_getWorkingDays();
@@ -3095,7 +3109,8 @@ td    { border:1px solid #ccc; padding:4px 3px; vertical-align:middle;
     public function get_teacher_workload()
     {
         $session_id = $this->setting_model->getCurrentSession();
-        $data       = $this->Tt_entry_model->getTeacherWorkload($session_id);
+        $dept_id    = (int) $this->input->post('dept_id') ?: null;
+        $data       = $this->Tt_entry_model->getTeacherWorkload($session_id, $dept_id);
         $html = $this->load->view('admin/tt/_report_workload', compact('data'), true);
         echo json_encode(['status' => '1', 'html' => $html]);
     }

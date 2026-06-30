@@ -10,7 +10,25 @@
 </section>
 <section class="content">
 
-<div class="nav-tabs-custom">
+<!-- Shared department filter (applies to all tabs) -->
+<div class="box box-default" style="margin-bottom:0;border-bottom:none;border-radius:4px 4px 0 0;">
+  <div class="box-body" style="padding:10px 15px;">
+    <div class="row" style="align-items:flex-end;">
+      <div class="col-md-4">
+        <label><i class="fa fa-filter"></i> Filter by Department</label>
+        <select class="form-control" id="report_dept">
+          <option value="">All Departments</option>
+          <?php foreach ($departments as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['department_name']); ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-8" style="padding-top:4px;">
+        <small class="text-muted"><i class="fa fa-info-circle"></i> This filter applies to all tabs below.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nav-tabs-custom" style="margin-top:0;border-radius:0 0 4px 4px;">
   <ul class="nav nav-tabs">
     <li class="active"><a href="#tab-master" data-toggle="tab"><i class="fa fa-table"></i> Master Timetable</a></li>
     <li><a href="#tab-rooms" data-toggle="tab"><i class="fa fa-building"></i> Room Utilization</a></li>
@@ -22,28 +40,18 @@
     <!-- MASTER TIMETABLE -->
     <div class="tab-pane active" id="tab-master">
       <div class="row" style="padding:10px 0;">
-        <div class="col-md-4">
-          <label>Filter by Department</label>
-          <select class="form-control" id="report_dept">
-            <option value="">All Departments</option>
-            <?php foreach ($departments as $d): ?><option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['department_name']); ?></option><?php endforeach; ?>
-          </select>
-        </div>
         <div class="col-md-3">
-          <label>&nbsp;</label>
           <button class="btn btn-primary btn-block" id="btn-load-master"><i class="fa fa-search"></i> Load</button>
         </div>
         <div class="col-md-2">
-          <label>&nbsp;</label>
           <button class="btn btn-default btn-block" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
         </div>
         <div class="col-md-2">
-          <label>&nbsp;</label>
           <button class="btn btn-danger btn-block" id="btn-download-pdf"><i class="fa fa-file-pdf-o"></i> Download PDF</button>
         </div>
       </div>
       <div id="master-report-container">
-        <div class="text-center text-muted p-4"><i class="fa fa-arrow-up"></i> Click Load to view master timetable.</div>
+        <div class="text-center text-muted p-4"><i class="fa fa-arrow-up"></i> Select department above then click Load.</div>
       </div>
     </div>
 
@@ -54,7 +62,7 @@
         <button class="btn btn-default" onclick="window.print()" style="margin-left:8px;"><i class="fa fa-print"></i> Print</button>
       </div>
       <div id="room-report-container">
-        <div class="text-center text-muted p-4"><i class="fa fa-arrow-up"></i> Click Load to view room utilization.</div>
+        <div class="text-center text-muted p-4"><i class="fa fa-arrow-up"></i> Select department above then click Load.</div>
       </div>
     </div>
 
@@ -64,7 +72,7 @@
         <button class="btn btn-primary" id="btn-load-workload"><i class="fa fa-bar-chart"></i> Load Teacher Workload</button>
       </div>
       <div id="workload-container">
-        <div class="text-center text-muted p-4"><i class="fa fa-arrow-up"></i> Click Load to view teacher workload.</div>
+        <div class="text-center text-muted p-4"><i class="fa fa-arrow-up"></i> Select department above then click Load.</div>
       </div>
     </div>
 
@@ -138,7 +146,7 @@ $(function(){
   $('#btn-load-rooms').on('click', function(){
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/get_room_utilization'); ?>',
-      {[csrf_name]: csrf_val}, function(res){
+      {[csrf_name]: csrf_val, dept_id: $('#report_dept').val()}, function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-search"></i> Load Room Utilization');
         $('#room-report-container').html(res.status==='1' ? res.html : '<div class="alert alert-warning">No data found.</div>');
       },'json');
@@ -147,7 +155,7 @@ $(function(){
   $('#btn-load-workload').on('click', function(){
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/get_teacher_workload'); ?>',
-      {[csrf_name]: csrf_val}, function(res){
+      {[csrf_name]: csrf_val, dept_id: $('#report_dept').val()}, function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-bar-chart"></i> Load Teacher Workload');
         $('#workload-container').html(res.status==='1' ? res.html : '<div class="alert alert-warning">No data found.</div>');
       },'json');
@@ -156,7 +164,7 @@ $(function(){
   $('#btn-load-sub-report').on('click', function(){
     var $btn = $(this).prop('disabled',true).html('<i class="fa fa-spinner fa-spin"></i>');
     $.post('<?php echo site_url('admin/tt/get_substitution_report'); ?>',
-      {from_date: $('#sub_from').val(), to_date: $('#sub_to').val(), staff_id: $('#sub_staff').val(), [csrf_name]: csrf_val},
+      {from_date: $('#sub_from').val(), to_date: $('#sub_to').val(), staff_id: $('#sub_staff').val(), dept_id: $('#report_dept').val(), [csrf_name]: csrf_val},
       function(res){
         $btn.prop('disabled',false).html('<i class="fa fa-search"></i> Load');
         if (res.status === '1' && res.data.length > 0) {

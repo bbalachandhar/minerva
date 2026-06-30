@@ -117,7 +117,7 @@ class Tt_substitution_model extends MY_Model
             ->get()->result();
     }
 
-    public function getReport($session_id, $from_date, $to_date, $staff_id = null)
+    public function getReport($session_id, $from_date, $to_date, $staff_id = null, $class_ids = null)
     {
         $this->db->select('tt_substitutions.*, a.name as absent_name, a.surname as absent_surname, a.employee_id as absent_employee_id, s.name as sub_name, s.surname as sub_surname, s.employee_id as sub_employee_id, subjects.name as subject_name, classes.class, sections.section, tt_periods.name as period_name, tt_periods.start_time')
             ->from('tt_substitutions')
@@ -130,9 +130,10 @@ class Tt_substitution_model extends MY_Model
             ->join('tt_periods', 'tt_periods.id = tt_substitutions.period_id', 'left')
             ->where('tt_substitutions.session_id', $session_id)
             ->where('tt_substitutions.status', 'confirmed');
-        if ($from_date) $this->db->where('tt_substitutions.date >=', $from_date);
-        if ($to_date)   $this->db->where('tt_substitutions.date <=', $to_date);
-        if ($staff_id)  $this->db->where('tt_substitutions.absent_staff_id', $staff_id);
+        if ($from_date)  $this->db->where('tt_substitutions.date >=', $from_date);
+        if ($to_date)    $this->db->where('tt_substitutions.date <=', $to_date);
+        if ($staff_id)   $this->db->where('tt_substitutions.absent_staff_id', $staff_id);
+        if ($class_ids)  $this->db->where_in('tt_substitutions.class_id', $class_ids);
         return $this->db->order_by('tt_substitutions.date','DESC')->get()->result();
     }
 }

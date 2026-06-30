@@ -254,9 +254,9 @@ class Tt_entry_model extends MY_Model
         return $this->db->get()->result();
     }
 
-    public function getRoomUtilization($session_id)
+    public function getRoomUtilization($session_id, $dept_id = null)
     {
-        return $this->db->select('tt_rooms.name as room_name, tt_rooms.room_number, tt_rooms.capacity, tt_rooms.room_type, tt_entries.day, tt_entries.period_id, tt_periods.start_time, tt_periods.end_time, classes.class, sections.section, subjects.name as subject_name')
+        $this->db->select('tt_rooms.name as room_name, tt_rooms.room_number, tt_rooms.capacity, tt_rooms.room_type, tt_entries.day, tt_entries.period_id, tt_periods.start_time, tt_periods.end_time, classes.class, sections.section, subjects.name as subject_name')
             ->from('tt_entries')
             ->join('tt_rooms', 'tt_rooms.id = tt_entries.room_id')
             ->join('tt_periods', 'tt_periods.id = tt_entries.period_id', 'left')
@@ -265,21 +265,24 @@ class Tt_entry_model extends MY_Model
             ->join('classes', 'classes.id = tt_entries.class_id', 'left')
             ->join('sections', 'sections.id = tt_entries.section_id', 'left')
             ->where('tt_entries.session_id', $session_id)
-            ->where('tt_entries.room_id IS NOT NULL', null, false)
-            ->order_by('tt_rooms.name','ASC')
+            ->where('tt_entries.room_id IS NOT NULL', null, false);
+        if ($dept_id) $this->db->where('classes.department_id', (int)$dept_id);
+        return $this->db->order_by('tt_rooms.name','ASC')
             ->order_by('tt_entries.day','ASC')
             ->order_by('tt_periods.sort_order','ASC')
             ->get()->result();
     }
 
-    public function getTeacherWorkload($session_id)
+    public function getTeacherWorkload($session_id, $dept_id = null)
     {
-        return $this->db->select('staff.id as staff_id, staff.name, staff.surname, staff.employee_id, COUNT(tt_entries.id) as total_periods, SUM(CASE WHEN tt_entries.is_free_period=1 THEN 0 ELSE 1 END) as teaching_periods')
+        $this->db->select('staff.id as staff_id, staff.name, staff.surname, staff.employee_id, COUNT(tt_entries.id) as total_periods, SUM(CASE WHEN tt_entries.is_free_period=1 THEN 0 ELSE 1 END) as teaching_periods')
             ->from('tt_entries')
             ->join('staff', 'staff.id = tt_entries.staff_id')
+            ->join('classes', 'classes.id = tt_entries.class_id', 'left')
             ->where('tt_entries.session_id', $session_id)
-            ->where('tt_entries.staff_id IS NOT NULL', null, false)
-            ->group_by('staff.id')
+            ->where('tt_entries.staff_id IS NOT NULL', null, false);
+        if ($dept_id) $this->db->where('classes.department_id', (int)$dept_id);
+        return $this->db->group_by('staff.id')
             ->order_by('staff.name','ASC')
             ->get()->result();
     }
