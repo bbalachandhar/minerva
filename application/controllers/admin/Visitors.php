@@ -161,14 +161,17 @@ class Visitors extends Admin_Controller
                 $student_session_id = $this->input->post('student_session_id');
             }
 
-            $upload_result = $this->media_storage->fileupload("file", "./uploads/front_office/visitors/");
-            if ($upload_result['status'] === false) {
-                $msg = array('file' => $upload_result['message']);
-                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
-                echo json_encode($array);
-                return;
+            $img_name = '';
+            if (isset($_FILES['file']) && !empty($_FILES['file']['name'])) {
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/front_office/visitors/");
+                if ($upload_result['status'] === false) {
+                    $msg = array('file' => $upload_result['message']);
+                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];
             }
-            $img_name = $upload_result['message'];
             $visitors = array(
                 'purpose'            => $this->input->post('purpose'),
                 'name'               => $this->input->post('name'),
