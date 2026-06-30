@@ -27,6 +27,9 @@ class Vehicle extends Admin_Controller
         $data['staffList']       = $this->staff_model->getAll(null, 1);
         $data['assigneesBySlot'] = $this->vehicle_model->getAssigneesBySlot();
         $data['wa_template_id']  = $this->vehicle_model->getNotificationConfig('wa_template_id');
+        $data['notify_days']     = $this->vehicle_model->getNotificationConfig('notify_days') ?: '30,15,5,3';
+        $data['enable_email']    = (int)($this->vehicle_model->getNotificationConfig('enable_email') ?? 1);
+        $data['upcoming_expiries'] = $this->vehicle_model->getUpcomingExpiries(30);
         $this->load->view('layout/header');
         $this->load->view('admin/vehicle/index', $data);
         $this->load->view('layout/footer');
@@ -212,8 +215,21 @@ class Vehicle extends Admin_Controller
         ];
         $this->vehicle_model->saveAssignees($data);
 
-        $wa_template_id = $this->input->post('wa_template_id');
-        $this->vehicle_model->saveNotificationConfig('wa_template_id', $wa_template_id ?: null);
+        // Save all notification config fields together
+        $days_raw    = $this->input->post('notify_days');          // array of day values
+        $days_clean  = [];
+        if (is_array($days_raw)) {
+            foreach ($days_raw as $d) {
+                $d = (int)$d;
+                if ($d > 0) $days_clean[] = $d;
+            }
+        }
+        sort($days_clean);
+        $this->vehicle_model->saveNotificationConfigs([
+            'notify_days'   => $days_clean ? implode(',', $days_clean) : '30,15,5,3',
+            'enable_email'  => $this->input->post('enable_email') ? 1 : 0,
+            'wa_template_id'=> $this->input->post('wa_template_id') ?: null,
+        ]);
 
         echo json_encode(['status' => 'success', 'message' => $this->lang->line('success_message')]);
     }

@@ -406,70 +406,94 @@ class Cron extends MY_Controller
 
         $this->load->model('vehicle_model');
         $this->load->library('mailer');
-        $this->load->library('whatsappgateway');
 
-        $assignees = $this->vehicle_model->getAssignees();
+        $setting     = $this->setting_model->getSetting();
+        $school_name = $setting->name ?? 'School';
+        $date_fmt    = $this->customlib->getSchoolDateFormat();
 
-        if (empty($assignees)) {
-            echo "No assignees configured. Skipping vehicle expiry reminders.\n";
-            return;
+        // Read admin-configurable notification days (default: 30,15,5,3)
+        $days_str      = $this->vehicle_model->getNotificationConfig('notify_days') ?: '30,15,5,3';
+        $enable_email  = (int)($this->vehicle_model->getNotificationConfig('enable_email') ?? 1);
+        $wa_template   = $this->vehicle_model->getNotificationConfig('wa_template_id');
+        $reminder_days = array_values(array_filter(array_map('intval', explode(',', $days_str))));
+
+        if (empty($reminder_days)) {
+            echo "No notification days configured.\n"; return;
         }
 
-        // Optional WA template ID from config table (if set by admin)
-        $wa_template_id = $this->vehicle_model->getNotificationConfig('wa_template_id');
+        $assignees = $this->vehicle_model->getAssignees();
+        if (empty($assignees)) {
+            echo "No assignees configured. Skipping.\n"; return;
+        }
 
-        $reminder_days = [15, 10, 5];
-        $school_name   = $this->customlib->getSchoolName();
-        $total_sent    = 0;
+        $total_sent = 0;
 
         foreach ($reminder_days as $days) {
             $expiring = $this->vehicle_model->getExpiringVehicles($days);
+            if (empty($expiring)) continue;
 
-            if (empty($expiring)) {
-                continue;
-            }
+            foreach ($expiring as $v) {
+                $raw_date    = $v[$v['expiry_field']] ?? '';
+                $expiry_fmt  = $raw_date ? date($date_fmt, strtotime($raw_date)) : $raw_date;
+                $urgency_hex = $days <= 5 ? '#d9534f' : ($days <= 15 ? '#e67e22' : '#3498db');
 
-            foreach ($expiring as $vehicle) {
-                $expiry_date = $vehicle[$vehicle['expiry_field']];
-                $subject     = "[{$school_name}] Vehicle Expiry Alert – {$days} Days Remaining";
-                $message     = "Dear Staff,<br><br>"
-                    . "This is an automated reminder that the following vehicle validity is expiring in <strong>{$days} days</strong>:<br><br>"
-                    . "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse:collapse'>"
-                    . "<tr><td><strong>Vehicle No.</strong></td><td>" . htmlspecialchars($vehicle['vehicle_no']) . "</td></tr>"
-                    . "<tr><td><strong>Model</strong></td><td>" . htmlspecialchars($vehicle['vehicle_model']) . "</td></tr>"
-                    . "<tr><td><strong>Registration No.</strong></td><td>" . htmlspecialchars($vehicle['registration_number']) . "</td></tr>"
-                    . "<tr><td><strong>Expiry Type</strong></td><td><strong>" . htmlspecialchars($vehicle['expiry_label']) . "</strong></td></tr>"
-                    . "<tr><td><strong>Expiry Date</strong></td><td>" . htmlspecialchars($expiry_date) . "</td></tr>"
-                    . "</table><br>"
-                    . "Please take necessary action before the expiry date.<br><br>"
-                    . "Regards,<br>{$school_name}";
+                $subject = "[{$school_name}] Vehicle Alert: {$v['expiry_label']} expires in {$days} day(s) — {$v['vehicle_no']}";
+
+                $body = "
+<html><body style='font-family:Arial,sans-serif;margin:0;padding:0;background:#f5f5f5;'>
+<div style='max-width:600px;margin:24px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);'>
+  <div style='background:{$urgency_hex};padding:20px 24px;'>
+    <h2 style='color:#fff;margin:0;font-size:20px;'>&#9888;&#65039; Vehicle Document Expiry Alert</h2>
+    <p style='color:#fff;margin:6px 0 0;opacity:.9;font-size:13px;'>{$school_name}</p>
+  </div>
+  <div style='padding:24px;'>
+    <p style='font-size:15px;color:#333;'>The <strong>{$v['expiry_label']}</strong> document for vehicle
+       <strong>{$v['vehicle_no']}</strong> is expiring in
+       <strong style='color:{$urgency_hex};'>{$days} day(s)</strong> on
+       <strong>{$expiry_fmt}</strong>. Please renew it immediately.</p>
+
+    <table style='width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;'>
+      <tr style='background:#f8f8f8;'><td style='padding:10px 14px;font-weight:bold;border:1px solid #e0e0e0;width:40%;'>Vehicle No.</td><td style='padding:10px 14px;border:1px solid #e0e0e0;'><strong>{$v['vehicle_no']}</strong></td></tr>
+      <tr><td style='padding:10px 14px;font-weight:bold;border:1px solid #e0e0e0;'>Model</td><td style='padding:10px 14px;border:1px solid #e0e0e0;'>{$v['vehicle_model']}</td></tr>
+      <tr style='background:#f8f8f8;'><td style='padding:10px 14px;font-weight:bold;border:1px solid #e0e0e0;'>Registration No.</td><td style='padding:10px 14px;border:1px solid #e0e0e0;'>{$v['registration_number']}</td></tr>
+      <tr><td style='padding:10px 14px;font-weight:bold;border:1px solid #e0e0e0;'>Document</td><td style='padding:10px 14px;border:1px solid #e0e0e0;font-weight:bold;color:{$urgency_hex};'>{$v['expiry_label']}</td></tr>
+      <tr style='background:#fff8e1;'><td style='padding:10px 14px;font-weight:bold;border:1px solid #e0e0e0;'>Expiry Date</td><td style='padding:10px 14px;border:1px solid #e0e0e0;font-weight:bold;font-size:16px;color:{$urgency_hex};'>{$expiry_fmt}</td></tr>
+      <tr><td style='padding:10px 14px;font-weight:bold;border:1px solid #e0e0e0;'>Days Remaining</td><td style='padding:10px 14px;border:1px solid #e0e0e0;font-weight:bold;color:{$urgency_hex};'>{$days} day(s)</td></tr>
+    </table>
+
+    <p style='color:#888;font-size:12px;margin-top:20px;border-top:1px solid #eee;padding-top:14px;'>
+      This is an automated alert from <strong>{$school_name}</strong> ERP.<br>
+      Please log in to the transport module to update the document details after renewal.
+    </p>
+  </div>
+</div>
+</body></html>";
 
                 $wa_vars = [
-                    'vehicle_no'      => $vehicle['vehicle_no'],
-                    'vehicle_model'   => $vehicle['vehicle_model'],
-                    'registration_no' => $vehicle['registration_number'],
-                    'expiry_type'     => $vehicle['expiry_label'],
-                    'expiry_date'     => $expiry_date,
+                    'vehicle_no'      => $v['vehicle_no'],
+                    'vehicle_model'   => $v['vehicle_model'],
+                    'registration_no' => $v['registration_number'],
+                    'expiry_type'     => $v['expiry_label'],
+                    'expiry_date'     => $expiry_fmt,
                     'days_remaining'  => (string)$days,
                 ];
 
                 foreach ($assignees as $assignee) {
-                    // --- Email ---
-                    if (!empty($assignee['email'])) {
-                        $this->mailer->compose_mail($assignee['email'], $subject, $message);
+                    if ($enable_email && !empty($assignee['email'])) {
+                        $this->mailer->compose_mail($assignee['email'], $subject, $body);
                         $total_sent++;
                     }
-
-                    // --- WhatsApp (only if template ID is configured) ---
-                    if (!empty($assignee['contact_no']) && !empty($wa_template_id)) {
+                    if (!empty($wa_template) && !empty($assignee['contact_no'])) {
+                        $this->load->library('whatsappgateway');
                         $phone = preg_replace('/\D/', '', $assignee['contact_no']);
-                        $this->whatsappgateway->sendVehicleExpiryReminder($phone, $wa_vars, $wa_template_id);
+                        $this->whatsappgateway->sendVehicleExpiryReminder($phone, $wa_vars, $wa_template);
                     }
                 }
             }
         }
 
-        echo "Vehicle expiry reminder cron completed. Emails sent: {$total_sent}\n";
+        echo "Vehicle expiry reminder completed. Days checked: " . implode(',', $reminder_days)
+           . ". Emails sent: {$total_sent}\n";
     }
 
     /**

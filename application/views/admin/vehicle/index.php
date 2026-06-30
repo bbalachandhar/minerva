@@ -74,92 +74,179 @@
         </div>
     </section>
 
-    <!-- ===== Vehicle Expiry Notification Assignees ===== -->
+    <!-- ===== Expiry Status Dashboard ===== -->
+    <?php
+    $expiry_groups = ['critical'=>[],'warning'=>[],'info'=>[]];
+    foreach ($upcoming_expiries as $e) {
+        $d = (int)$e['days_remaining'];
+        if ($d <= 5)       $expiry_groups['critical'][] = $e;
+        elseif ($d <= 15)  $expiry_groups['warning'][]  = $e;
+        else               $expiry_groups['info'][]      = $e;
+    }
+    $date_fmt = $this->customlib->getSchoolDateFormat();
+    ?>
+    <?php if (!empty($upcoming_expiries)): ?>
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-danger">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-exclamation-triangle"></i> Vehicle Expiry Status — Next 30 Days</h3>
+                        <div class="box-tools pull-right">
+                            <span class="badge bg-red"><?php echo count($expiry_groups['critical']); ?> Critical (≤5 days)</span>
+                            <span class="badge bg-yellow" style="margin-left:4px"><?php echo count($expiry_groups['warning']); ?> Warning (6-15 days)</span>
+                            <span class="badge bg-blue" style="margin-left:4px"><?php echo count($expiry_groups['info']); ?> Upcoming (16-30 days)</span>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <div class="table-responsive">
+                        <table class="table table-bordered table-hover" style="font-size:13px;margin-bottom:0;">
+                            <thead>
+                                <tr style="background:#f4f4f4;">
+                                    <th>Vehicle No.</th>
+                                    <th>Model</th>
+                                    <th>Registration</th>
+                                    <th>Document</th>
+                                    <th>Expiry Date</th>
+                                    <th style="width:120px">Days Left</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($upcoming_expiries as $e):
+                                $d = (int)$e['days_remaining'];
+                                $row_class = $d <= 5 ? 'danger' : ($d <= 15 ? 'warning' : 'info');
+                                $badge_bg  = $d <= 5 ? '#d9534f' : ($d <= 15 ? '#f0ad4e' : '#31b0d5');
+                            ?>
+                            <tr class="<?php echo $row_class; ?>">
+                                <td><strong><?php echo htmlspecialchars($e['vehicle_no']); ?></strong></td>
+                                <td><?php echo htmlspecialchars($e['vehicle_model']); ?></td>
+                                <td><?php echo htmlspecialchars($e['registration_number']); ?></td>
+                                <td><?php echo htmlspecialchars($e['expiry_label']); ?></td>
+                                <td><?php echo $e['expiry_date'] ? date($date_fmt, strtotime($e['expiry_date'])) : '—'; ?></td>
+                                <td>
+                                    <span style="display:inline-block;background:<?php echo $badge_bg; ?>;color:#fff;padding:3px 10px;border-radius:12px;font-weight:700;font-size:12px;">
+                                        <?php echo $d; ?> day<?php echo $d != 1 ? 's' : ''; ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <!-- ===== Vehicle Expiry Notification Settings ===== -->
     <section class="content">
         <div class="row">
             <div class="col-md-12">
                 <div class="box box-warning">
-                    <div class="box-header ptbnull">
-                        <h3 class="box-title titlefix"><i class="fa fa-bell"></i> Vehicle Expiry Notification Assignees</h3>
-                        <small class="text-muted" style="display:block;margin-top:4px">
-                            These staff members will receive email &amp; WhatsApp alerts <strong>15, 10, and 5 days</strong> before any vehicle validity expires (FC, Insurance, Permit, Road Tax, Pollution Cert, Green Tax).
-                        </small>
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-bell"></i> Vehicle Expiry Notification Settings</h3>
                     </div>
                     <div class="box-body">
                         <form id="vehicleAssigneesForm">
-                            <div class="row">
-                                <div class="col-sm-4">
-                                    <div class="form-group">
-                                        <label>Assignee 1</label>
-                                        <select name="assignee_1" class="form-control select2" style="width:100%">
-                                            <option value="">-- Select Staff --</option>
-                                            <?php foreach ($staffList as $s): ?>
-                                            <option value="<?php echo $s['id']; ?>" <?php echo (isset($assigneesBySlot[1]) && $assigneesBySlot[1] == $s['id']) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($s['name']); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-sm-4">
-                                    <div class="form-group">
-                                        <label>Assignee 2</label>
-                                        <select name="assignee_2" class="form-control select2" style="width:100%">
-                                            <option value="">-- Select Staff --</option>
-                                            <?php foreach ($staffList as $s): ?>
-                                            <option value="<?php echo $s['id']; ?>" <?php echo (isset($assigneesBySlot[2]) && $assigneesBySlot[2] == $s['id']) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($s['name']); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-sm-4">
-                                    <div class="form-group">
-                                        <label>Assignee 3</label>
-                                        <select name="assignee_3" class="form-control select2" style="width:100%">
-                                            <option value="">-- Select Staff --</option>
-                                            <?php foreach ($staffList as $s): ?>
-                                            <option value="<?php echo $s['id']; ?>" <?php echo (isset($assigneesBySlot[3]) && $assigneesBySlot[3] == $s['id']) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($s['name']); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
+                        <?php echo $this->customlib->getCSRF(); ?>
+
+                        <!-- Row 1: Notification Recipients -->
+                        <h4 style="margin:0 0 12px;font-size:14px;color:#555;border-bottom:1px solid #eee;padding-bottom:8px;">
+                            <i class="fa fa-users text-warning"></i> Notification Recipients (up to 3 staff)
+                        </h4>
+                        <div class="row">
+                            <?php foreach ([1,2,3] as $slot): ?>
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label>Recipient <?php echo $slot; ?></label>
+                                    <select name="assignee_<?php echo $slot; ?>" class="form-control veh-select2" style="width:100%">
+                                        <option value="">-- Select Staff --</option>
+                                        <?php foreach ($staffList as $s): ?>
+                                        <option value="<?php echo $s['id']; ?>" <?php echo (isset($assigneesBySlot[$slot]) && $assigneesBySlot[$slot] == $s['id']) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($s['name'] . ' ' . ($s['surname'] ?? '')); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group">
-                                        <label>WhatsApp Template ID <small class="text-muted">(optional – Twilio SID or Meta template name)</small></label>
-                                        <input type="text" name="wa_template_id" class="form-control"
-                                               value="<?php echo htmlspecialchars($wa_template_id ?? ''); ?>"
-                                               placeholder="e.g. HXxxxxxxxx or vehicle_expiry_reminder">
-                                        <p class="help-block text-muted" style="font-size:12px">
-                                            Leave blank to send email only. To enable WhatsApp, create a pre-approved template in your Twilio/Meta account and paste its ID here.
-                                            Template variables: <code>{{vehicle_no}}</code> <code>{{vehicle_model}}</code> <code>{{registration_no}}</code> <code>{{expiry_type}}</code> <code>{{expiry_date}}</code> <code>{{days_remaining}}</code>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <!-- Row 2: Notify Days -->
+                        <?php $active_days = array_map('intval', explode(',', $notify_days)); ?>
+                        <h4 style="margin:16px 0 12px;font-size:14px;color:#555;border-bottom:1px solid #eee;padding-bottom:8px;">
+                            <i class="fa fa-calendar text-warning"></i> Send Alerts Before Expiry
+                        </h4>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <?php foreach ([30, 15, 10, 5, 3] as $day): ?>
+                                    <label class="checkbox-inline" style="margin-right:18px;font-size:14px;">
+                                        <input type="checkbox" name="notify_days[]" value="<?php echo $day; ?>"
+                                            <?php echo in_array($day, $active_days) ? 'checked' : ''; ?>>
+                                        <strong><?php echo $day; ?></strong> days before
+                                    </label>
+                                    <?php endforeach; ?>
+                                    <p class="help-block" style="margin-top:8px;font-size:12px;">
+                                        Cron runs daily — one alert per threshold per vehicle. e.g. checking "30, 15, 5, 3" sends an email exactly 30 days before, again 15 days before, etc.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Channel toggles -->
+                        <h4 style="margin:16px 0 12px;font-size:14px;color:#555;border-bottom:1px solid #eee;padding-bottom:8px;">
+                            <i class="fa fa-paper-plane text-warning"></i> Delivery Channels
+                        </h4>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" name="enable_email" value="1" <?php echo $enable_email ? 'checked' : ''; ?>>
+                                        &nbsp;<strong>Email</strong>
+                                        <small class="text-muted">(uses school SMTP settings)</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-sm-8">
+                                <div class="form-group">
+                                    <label>WhatsApp Template ID <small class="text-muted">(optional)</small></label>
+                                    <input type="text" name="wa_template_id" class="form-control input-sm"
+                                           value="<?php echo htmlspecialchars($wa_template_id ?? ''); ?>"
+                                           placeholder="e.g. HXxxxxxxxx or vehicle_expiry_reminder">
+                                    <p class="help-block" style="font-size:11px;margin-top:4px;">
+                                        Leave blank for email only. Variables: <code>{{vehicle_no}}</code> <code>{{expiry_type}}</code> <code>{{expiry_date}}</code> <code>{{days_remaining}}</code>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 4: Cron setup + Save -->
+                        <div class="row">
+                            <div class="col-sm-7">
+                                <div class="box box-solid box-default" style="margin-bottom:0;border:1px solid #ddd;">
+                                    <div class="box-body" style="padding:10px 14px;">
+                                        <strong><i class="fa fa-clock-o text-info"></i> EC2 Cron Setup</strong>
+                                        <p class="text-muted" style="margin:6px 0 4px;font-size:12px;">Run daily at 8:00 AM — add via <code>crontab -e</code> on EC2:</p>
+                                        <code style="font-size:11px;display:block;word-break:break-all;background:#f9f9f9;padding:6px 10px;border-radius:4px;">
+                                            0 8 * * * curl -s "<?php echo base_url(); ?>index.php/cron/vehicleExpiryReminder/<?php echo htmlspecialchars($this->setting_model->getSetting()->cron_secret_key ?? ''); ?>" &gt; /dev/null 2&gt;&amp;1
+                                        </code>
+                                        <p class="text-muted" style="margin:6px 0 0;font-size:11px;">
+                                            <i class="fa fa-check text-success"></i> Already installed on all 7 instances via system cron.
                                         </p>
                                     </div>
                                 </div>
-                                <div class="col-sm-6" style="padding-top:25px">
-                                    <div class="box box-solid box-default" style="margin-bottom:0">
-                                        <div class="box-body" style="padding:10px 15px">
-                                            <strong><i class="fa fa-info-circle text-info"></i> Cron Setup Instructions</strong><br>
-                                            <p class="text-muted" style="margin:8px 0 4px;font-size:12px">Run this cron daily at 8:00 AM on EC2:</p>
-                                            <code style="font-size:11px;display:block;word-break:break-all">0 8 * * * curl -s "<?php echo base_url(); ?>index.php/cron/vehicleExpiryReminder/<?php echo $this->setting_model->getSetting()->cron_secret_key; ?>" &gt; /dev/null 2&gt;&amp;1</code>
-                                            <p class="text-muted" style="margin:6px 0 0;font-size:11px">Add via <code>crontab -e</code> on the EC2 server.</p>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <button type="submit" class="btn btn-warning" id="saveAssigneesBtn"
-                                            data-loading-text="<i class='fa fa-spinner fa-spin'></i> Saving...">
-                                        <i class="fa fa-save"></i> Save Notification Settings
-                                    </button>
-                                </div>
+                            <div class="col-sm-5" style="padding-top:4px;">
+                                <button type="submit" class="btn btn-warning btn-block" id="saveAssigneesBtn"
+                                        data-loading-text="<i class='fa fa-spinner fa-spin'></i> Saving...">
+                                    <i class="fa fa-save"></i> Save Notification Settings
+                                </button>
                             </div>
+                        </div>
+
                         </form>
                     </div>
                 </div>
@@ -170,7 +257,7 @@
 
 <script>
 $(document).ready(function() {
-    $('[name="assignee_1"], [name="assignee_2"], [name="assignee_3"]').select2({
+    $('.veh-select2').select2({
         placeholder: '-- Select Staff --',
         allowClear: true,
         width: '100%'

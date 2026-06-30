@@ -238,4 +238,62 @@ class Vehicle_model extends MY_Model
         }
     }
 
+    /** Save multiple config key-value pairs in one call */
+    public function saveNotificationConfigs(array $data)
+    {
+        $exists = $this->db->get('vehicle_notification_config')->num_rows() > 0;
+        if ($exists) {
+            $this->db->where('id', 1)->update('vehicle_notification_config', $data);
+        } else {
+            $data['id'] = 1;
+            $this->db->insert('vehicle_notification_config', $data);
+        }
+    }
+
+    /**
+     * Get all vehicles with any expiry date within the next $max_days days.
+     * Returns each matching (vehicle, field) pair with days_remaining.
+     */
+    public function getUpcomingExpiries($max_days = 30)
+    {
+        $today  = date('Y-m-d');
+        $cutoff = date('Y-m-d', strtotime("+{$max_days} days"));
+
+        $end_fields = [
+            'fc_validity_end'    => 'FC Validity',
+            'insurance_end'      => 'Insurance',
+            'permit_expiry_end'  => 'Permit Expiry',
+            'road_tax_end'       => 'Road Tax',
+            'pollution_cert_end' => 'Pollution Certificate',
+            'green_tax_end'      => 'Green Tax',
+        ];
+
+        $results = [];
+        foreach ($end_fields as $field => $label) {
+            $rows = $this->db
+                ->select("id, vehicle_no, vehicle_model, registration_number,
+                          {$field} AS expiry_date,
+                          DATEDIFF({$field}, CURDATE()) AS days_remaining")
+                ->from('vehicles')
+                ->where("{$field} IS NOT NULL", null, false)
+                ->where("{$field} >=", $today)
+                ->where("{$field} <=", $cutoff)
+                ->order_by("expiry_date", 'ASC')
+                ->get()->result_array();
+
+            foreach ($rows as &$row) {
+                $row['expiry_label'] = $label;
+                $row['expiry_field'] = $field;
+            }
+            $results = array_merge($results, $rows);
+        }
+
+        // Sort by days_remaining ascending
+        usort($results, function($a, $b) {
+            return (int)$a['days_remaining'] - (int)$b['days_remaining'];
+        });
+
+        return $results;
+    }
+
 }
