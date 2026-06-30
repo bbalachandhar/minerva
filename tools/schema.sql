@@ -12777,3 +12777,31 @@ FROM sidebar_menus sm
 WHERE sm.activate_menu = 'transport'
   AND NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `url` = 'admin/vehicle/expiry_alerts')
 LIMIT 1;
+
+-- Standard free-activity subjects for timetable (Placement Training, Library, PE, etc.)
+INSERT IGNORE INTO `subjects` (`name`, `code`, `type`, `is_active`) VALUES
+  ('Placement Training',  'PLT',  'other',   'yes'),
+  ('Library',             'LIB',  'other',   'yes'),
+  ('Physical Education',  'PE',   'other',   'yes'),
+  ('Seminar',             'SEM',  'other',   'yes'),
+  ('Naan Mudhalvan',      'NM',   'other',   'yes'),
+  ('Internship',          'INTR', 'other',   'yes'),
+  ('Skill Development',   'SKLD', 'other',   'yes'),
+  ('Mini Project',        'MPRJ', 'project', 'yes'),
+  ('Film Appreciation',   'FILM', 'other',   'yes'),
+  ('NPTEL Activity',      'NPTL', 'other',   'yes');
+
+-- Link activity subjects to all subject_groups in the current session
+-- (run after timetable setup — makes them appear in the class grid edit modal)
+INSERT IGNORE INTO `subject_group_subjects` (`subject_group_id`, `session_id`, `subject_id`)
+SELECT sg.id,
+       (SELECT session_id FROM sch_settings LIMIT 1),
+       s.id
+FROM subject_groups sg
+CROSS JOIN subjects s
+WHERE s.code IN ('PLT','LIB','PE','SEM','NM','INTR','SKLD','MPRJ','FILM','NPTL')
+  AND sg.session_id = (SELECT session_id FROM sch_settings LIMIT 1)
+  AND NOT EXISTS (
+    SELECT 1 FROM subject_group_subjects sgs2
+    WHERE sgs2.subject_group_id = sg.id AND sgs2.subject_id = s.id
+  );

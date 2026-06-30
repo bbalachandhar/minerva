@@ -208,17 +208,41 @@ $(function(){
 
   // Remove subject card
   $(document).on('click', '.btn-remove-sl-row', function(){
-    var $card   = $(this).closest('.sl-card');
-    var load_id = $(this).data('load-id');
-    swal({title:'Remove Subject?',text:'Remove this subject from the class?',type:'warning',showCancelButton:true,confirmButtonColor:'#e74c3c',confirmButtonText:'Yes, remove'},function(isConfirm){
+    var $card    = $(this).closest('.sl-card');
+    var load_id  = $(this).data('load-id');
+    var subName  = $card.find('.sl-card-subject strong').text().trim() || 'this subject';
+
+    swal({
+      title: 'Remove Subject?',
+      text:  'Remove "' + subName + '" from this class? This cannot be undone.',
+      type:  'warning',
+      showCancelButton:   true,
+      confirmButtonColor: '#e74c3c',
+      cancelButtonColor:  '#6c757d',
+      confirmButtonText:  '<i class="fa fa-trash"></i>&nbsp; Yes, Remove',
+      cancelButtonText:   'Cancel',
+      closeOnConfirm: false,
+      closeOnCancel:  true,
+      animation: 'slide-from-top'
+    }, function(isConfirm){
       if (!isConfirm) return;
+      swal.close();
       if (load_id > 0) {
+        $card.css('opacity', '0.5');
         $.post('<?php echo site_url('admin/tt/delete_subject_load_row'); ?>',
           {id: load_id, [csrf_name]: csrf_val},
-          function(res){ if (res.status === '1') { $card.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); }); }
-            else { swal({title:'Error',text:'Error removing subject.',type:'error'}); } }, 'json');
+          function(res){
+            if (res.status === '1') {
+              $card.slideUp(300, function(){ $(this).remove(); updateStatusBadge(); });
+              toastr.success('"' + subName + '" removed successfully.');
+            } else {
+              $card.css('opacity','1');
+              swal({title:'Error', text:'Could not remove subject. Please try again.', type:'error'});
+            }
+          }, 'json');
       } else {
-        $card.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); });
+        $card.slideUp(300, function(){ $(this).remove(); updateStatusBadge(); });
+        toastr.success('"' + subName + '" removed.');
       }
     });
   });
