@@ -81,6 +81,7 @@
                                    data-code="<?php echo htmlspecialchars($feetype['code'], ENT_QUOTES); ?>"
                                    data-submerchant="<?php echo htmlspecialchars($feetype['sub_merchant_id'], ENT_QUOTES); ?>"
                                    data-description="<?php echo htmlspecialchars($feetype['description'], ENT_QUOTES); ?>"
+                                   data-isactive="<?php echo $feetype['is_active'] === 'yes' ? 'yes' : 'no'; ?>"
                                    onclick="openEditModal(this)"
                                    data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">
                                     <i class="fa fa-pencil"></i>
@@ -129,9 +130,20 @@
                     <label>Sub-Merchant ID (BillDesk)</label>
                     <input type="text" name="sub_merchant_id" id="modalSubMerchant" class="crud-input" placeholder="Sub-Merchant ID">
                 </div>
-                <div class="form-group" style="margin-bottom:0;">
+                <div class="form-group" style="margin-bottom:14px;">
                     <label><?php echo $this->lang->line('description'); ?></label>
                     <textarea name="description" id="modalDescription" class="crud-input" rows="3" placeholder="<?php echo $this->lang->line('description'); ?>" style="resize:vertical;min-height:60px;"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Active</label>
+                    <div style="display:flex;gap:12px;margin-top:4px;">
+                        <label style="font-weight:normal;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="radio" name="is_active" id="modalIsActiveYes" value="yes" checked> Yes
+                        </label>
+                        <label style="font-weight:normal;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="radio" name="is_active" id="modalIsActiveNo" value="no"> No
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="crud-modal-footer">
@@ -174,16 +186,18 @@ function openAddModal() {
     $('#modalCode').val('');
     $('#modalSubMerchant').val('');
     $('#modalDescription').val('');
+    $('#modalIsActiveYes').prop('checked', true);
     $('#crudModal').addClass('show');
     setTimeout(function(){ $('#modalName').focus(); }, 200);
 }
 
 function openEditModal(el) {
-    var id = $(el).data('id');
-    var name = $(el).data('name');
-    var code = $(el).data('code');
+    var id          = $(el).data('id');
+    var name        = $(el).data('name');
+    var code        = $(el).data('code');
     var submerchant = $(el).data('submerchant');
     var description = $(el).data('description');
+    var isactive    = $(el).data('isactive');
 
     $('#modalTitle').html('<i class="fa fa-pencil" style="color:#5b73e8;margin-right:6px;"></i> <?php echo $this->lang->line('edit'); ?> <?php echo $this->lang->line('fees_type'); ?>');
     $('#crudForm').attr('action', '<?php echo base_url(); ?>admin/feetype/edit/' + id);
@@ -192,6 +206,7 @@ function openEditModal(el) {
     $('#modalCode').val(code);
     $('#modalSubMerchant').val(submerchant);
     $('#modalDescription').val(description);
+    $('input[name="is_active"][value="' + (isactive === 'yes' ? 'yes' : 'no') + '"]').prop('checked', true);
     $('#crudModal').addClass('show');
     setTimeout(function(){ $('#modalName').focus(); }, 200);
 }
