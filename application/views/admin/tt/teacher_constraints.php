@@ -29,7 +29,7 @@
             <div class="col-sm-6">
               <div class="form-group">
                 <label>Max Periods / Day</label>
-                <input type="number" class="form-control" name="max_periods_per_day" id="tc_max_day" value="6" min="1" max="12">
+                <input type="number" class="form-control" name="max_periods_per_day" id="tc_max_day" value="5" min="1" max="12">
               </div>
             </div>
             <div class="col-sm-6">
