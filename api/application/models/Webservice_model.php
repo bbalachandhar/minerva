@@ -427,6 +427,14 @@ class Webservice_model extends CI_Model
 
     public function submitComplaint($data)
     {
+        // Stamp current session_id from sch_settings if not provided by the app
+        if (empty($data['session_id'])) {
+            $setting = $this->db->select('session_id')->from('sch_settings')->limit(1)->get()->row_array();
+            if (!empty($setting['session_id'])) {
+                $data['session_id'] = (int)$setting['session_id'];
+            }
+        }
+
         // Generate unique ticket number
         $ticket_no = 'TKT-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid(rand(), true)), 0, 5));
         $data['ticket_no'] = $ticket_no;
