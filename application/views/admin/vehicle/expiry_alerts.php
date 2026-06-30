@@ -193,7 +193,7 @@ $active_days = array_map('intval', explode(',', $notify_days));
                             <label style="font-size:14px;">
                                 <input type="checkbox" name="enable_email" value="1" <?php echo $enable_email ? 'checked' : ''; ?>>
                                 <strong>Email</strong>
-                                <small class="text-muted">(uses school SMTP)</small>
+                                <small class="text-muted">(sent via configured email provider — <a href="<?php echo site_url('emailconfig'); ?>" target="_blank">Email Settings</a>)</small>
                             </label>
                         </div>
                     </div>
