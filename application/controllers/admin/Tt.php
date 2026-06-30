@@ -177,7 +177,7 @@ class Tt extends Admin_Controller
         $session_id = $this->setting_model->getCurrentSession();
 
         $data = $this->_baseData();
-        $data['departments'] = $this->department_model->getDepartmentType();
+        $data['departments'] = $this->department_model->getDepartmentsForSession($data['session_id']);
         $data['staff_list']  = $this->staff_model->getStaffbyrole(2);
 
         $this->load->view('layout/header', $data);
@@ -470,7 +470,7 @@ class Tt extends Admin_Controller
         $this->_setMenu();
         $data = $this->_baseData();
         $data['rooms']       = $this->Tt_room_model->getAll();
-        $data['departments'] = $this->department_model->getDepartmentType();
+        $data['departments'] = $this->department_model->getDepartmentsForSession($data['session_id']);
         $this->load->view('layout/header', $data);
         $this->load->view('admin/tt/rooms', $data);
         $this->load->view('layout/footer', $data);
@@ -520,7 +520,7 @@ class Tt extends Admin_Controller
         $this->_setMenu();
         $data = $this->_baseData();
         $data['classlist']   = $this->class_model->get();
-        $data['departments'] = $this->department_model->getDepartmentType();
+        $data['departments'] = $this->department_model->getDepartmentsForSession($data['session_id']);
         $data['batches']     = $this->Tt_batch_model->getAllWithNames($data['session_id']);
         $this->load->view('layout/header', $data);
         $this->load->view('admin/tt/batches', $data);
@@ -570,7 +570,7 @@ class Tt extends Admin_Controller
         $this->_setMenu();
         $data = $this->_baseData();
         $data['classlist']   = $this->class_model->get();
-        $data['departments'] = $this->department_model->getDepartmentType();
+        $data['departments'] = $this->department_model->getDepartmentsForSession($data['session_id']);
         $data['rooms']       = $this->Tt_room_model->getAll();
         $this->load->view('layout/header', $data);
         $this->load->view('admin/tt/subject_load', $data);
@@ -1346,7 +1346,7 @@ class Tt extends Admin_Controller
         $this->_setMenu();
         $data = $this->_baseData();
         $data['classlist']   = $this->class_model->get();
-        $data['departments'] = $this->department_model->getDepartmentType();
+        $data['departments'] = $this->department_model->getDepartmentsForSession($data['session_id']);
         $data['gen_logs']    = $this->Tt_generator_model->getRecentLogs($data['session_id'], 5);
         $this->load->view('layout/header', $data);
         $this->load->view('admin/tt/generate', $data);
@@ -1576,7 +1576,7 @@ class Tt extends Admin_Controller
         $this->_setMenu();
         $data = $this->_baseData();
         $data['classlist']   = $this->class_model->get();
-        $data['departments'] = $this->department_model->getDepartmentType();
+        $data['departments'] = $this->department_model->getDepartmentsForSession($data['session_id']);
         $data['periods']     = $this->Tt_period_model->getAll($data['session_id']);
         $data['entries']     = [];
         $data['subjects']    = [];
@@ -2994,7 +2994,7 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         $this->_setMenu();
         $data = $this->_baseData();
         $data['classlist']   = $this->class_model->get();
-        $data['departments'] = $this->department_model->getDepartmentType();
+        $data['departments'] = $this->department_model->getDepartmentsForSession($data['session_id']);
         $data['periods']     = $this->Tt_period_model->getAllNonBreak($data['session_id']);
         $all_days    = $this->customlib->getDaysnameWithoutLang();
         $sch_settings = $this->setting_model->getSetting();
