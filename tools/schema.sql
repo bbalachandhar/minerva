@@ -12251,7 +12251,7 @@ CREATE TABLE IF NOT EXISTS `tt_teacher_constraints` (
   `id`                    INT(11)    NOT NULL AUTO_INCREMENT,
   `session_id`            INT(11)    NOT NULL,
   `staff_id`              INT(11)    NOT NULL,
-  `max_periods_per_day`   INT(11)    NOT NULL DEFAULT 6,
+  `max_periods_per_day`   INT(11)    NOT NULL DEFAULT 5,
   `max_periods_per_week`  INT(11)    NOT NULL DEFAULT 30,
   `min_free_per_day`      INT(11)    NOT NULL DEFAULT 0,
   `preferred_start_time`  TIME                DEFAULT NULL,

@@ -161,8 +161,8 @@ def _solve_joints_only(data: dict, days, period_ids, D, P, day_idx, pid_idx,
 
     for tid, sm in jtc.items():
         tc = _get_tc(tid)
-        md = tc.get("max_per_day", 6)
-        mw = tc.get("max_per_week", 36)
+        md = tc.get("max_per_day", 5)
+        mw = tc.get("max_per_week", 30)
         if md and md > 0:
             for d in range(D):
                 dv = []
@@ -257,8 +257,8 @@ def solve(data: dict) -> dict:
         return {"status": "error", "message": "No working days or periods configured."}
 
     default_tc = {
-        "max_per_day": 6,
-        "max_per_week": 36,
+        "max_per_day": 5,
+        "max_per_week": 30,
         "avoid_first_period": False,
         "avoid_last_period": False,
         "max_consecutive": 0,
@@ -1114,7 +1114,7 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
 
     def _can_teach(tid, d):
         tc = _get_tc(tid)
-        md = (tc.get("max_per_day", 6) or 6) + 1
+        md = (tc.get("max_per_day", 5) or 5) + 1
         return teacher_day_count.get(tid, {}).get(d, 0) < md
 
     def _find_blocker(staff_id, d, p):
@@ -1283,7 +1283,7 @@ def _repair_unplaced(entries, unplaced, loads, joints, days, period_ids, D, P,
             still_unplaced.append(u)
             continue
 
-        mw = (_get_tc(staff_id).get("max_per_week", 36) or 36)
+        mw = (_get_tc(staff_id).get("max_per_week", 30) or 30)
         if teacher_week_count.get(staff_id, 0) >= mw:
             still_unplaced.append(u)
             continue
@@ -1416,8 +1416,8 @@ def _analyze_issues(data, days, periods, loads, joints):
 
     tc_map = data.get("teacher_constraints", {})
     t_unavail = data.get("teacher_unavailability", {})
-    default_max_week = 36
-    default_max_day = 6
+    default_max_week = 30
+    default_max_day = 5
 
     # ── Collect teacher workload ──
     teacher_loads = {}   # tid -> list of {label, ppw, subject, class_key}
