@@ -449,4 +449,48 @@ class Webservice_model extends CI_Model
         return array('success' => false);
     }
 
+    /**
+     * Complaints assigned to a staff member by their name (matches complaint.assigned).
+     */
+    public function getAssignedComplaints($staff_name)
+    {
+        if (empty($staff_name)) return array();
+        return $this->db
+            ->select('id, ticket_no, complaint_type, source, name, admission_no, class_name,
+                      section_name, employee_id, contact, date, description, action_taken,
+                      assigned, note, status, priority, admin_response, created_at, updated_at')
+            ->from('complaint')
+            ->where('assigned', $staff_name)
+            ->order_by('id', 'desc')
+            ->get()->result_array();
+    }
+
+    /**
+     * Staff updates a complaint assigned to them.
+     * Only allows updating status/action_taken/admin_response/note.
+     */
+    public function updateAssignedComplaint($id, $staff_name, $data)
+    {
+        // Verify the complaint is actually assigned to this staff
+        $row = $this->db->select('id, assigned, status')
+            ->from('complaint')
+            ->where('id', (int)$id)
+            ->get()->row_array();
+
+        if (empty($row) || $row['assigned'] !== $staff_name) {
+            return array('success' => false, 'message' => 'Complaint not found or not assigned to you.');
+        }
+
+        $allowed = array('status', 'action_taken', 'admin_response', 'note');
+        $update  = array('updated_at' => date('Y-m-d H:i:s'));
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $update[$field] = $data[$field];
+            }
+        }
+
+        $this->db->where('id', (int)$id)->update('complaint', $update);
+        return array('success' => true);
+    }
+
 }

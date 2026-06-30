@@ -9978,6 +9978,97 @@ class Webservice extends CI_Controller
         }
     }
 
+    /**
+     * Staff: get complaints assigned to the logged-in staff member.
+     */
+    public function getAssignedComplaints()
+    {
+        if ($this->input->server('REQUEST_METHOD') != 'POST') {
+            json_output(400, array('status' => 0, 'message' => 'Bad request.')); return;
+        }
+        if ($this->auth_model->check_auth_client() !== true) return;
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) { json_output($response['status'], $response); return; }
+
+        // Resolve logged-in staff name (complaint.assigned stores staff.name)
+        $user_row = $response['data'] ?? array();
+        $role     = strtolower(trim((string)($user_row['role'] ?? '')));
+        if (!in_array($role, array('admin', 'super admin', 'teacher', 'accountant', 'librarian', 'receptionist', 'human resource'))) {
+            json_output(403, array('status' => 0, 'message' => 'Only staff can view assigned complaints.')); return;
+        }
+
+        $staff_id = (int)($user_row['user_id'] ?? 0);
+        if ($staff_id <= 0) {
+            json_output(400, array('status' => 0, 'message' => 'Could not identify staff.')); return;
+        }
+
+        $staff = $this->db->select('name')->from('staff')->where('id', $staff_id)->get()->row_array();
+        $staff_name = $staff['name'] ?? '';
+
+        if (empty($staff_name)) {
+            json_output(200, array('status' => 1, 'complaints' => array())); return;
+        }
+
+        $complaints = $this->webservice_model->getAssignedComplaints($staff_name);
+        json_output(200, array('status' => 1, 'complaints' => $complaints, 'staff_name' => $staff_name));
+    }
+
+    /**
+     * Staff: update an assigned complaint (status, action_taken, admin_response, note).
+     */
+    public function updateAssignedComplaint()
+    {
+        if ($this->input->server('REQUEST_METHOD') != 'POST') {
+            json_output(400, array('status' => 0, 'message' => 'Bad request.')); return;
+        }
+        if ($this->auth_model->check_auth_client() !== true) return;
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) { json_output($response['status'], $response); return; }
+
+        $user_row = $response['data'] ?? array();
+        $role     = strtolower(trim((string)($user_row['role'] ?? '')));
+        if (!in_array($role, array('admin', 'super admin', 'teacher', 'accountant', 'librarian', 'receptionist', 'human resource'))) {
+            json_output(403, array('status' => 0, 'message' => 'Only staff can update complaints.')); return;
+        }
+
+        $staff_id = (int)($user_row['user_id'] ?? 0);
+        $staff    = $this->db->select('name')->from('staff')->where('id', $staff_id)->get()->row_array();
+        $staff_name = $staff['name'] ?? '';
+
+        $params     = json_decode(file_get_contents('php://input'), true) ?: array();
+        $id         = (int)($params['id'] ?? 0);
+
+        if ($id <= 0 || empty($staff_name)) {
+            json_output(400, array('status' => 0, 'message' => 'Missing complaint id or staff identity.')); return;
+        }
+
+        $valid_statuses = array('open', 'in_progress', 'resolved', 'closed');
+        $update = array();
+        if (isset($params['status']) && in_array($params['status'], $valid_statuses)) {
+            $update['status'] = $params['status'];
+        }
+        if (isset($params['action_taken'])) {
+            $update['action_taken'] = $this->security->xss_clean(trim((string)$params['action_taken']));
+        }
+        if (isset($params['admin_response'])) {
+            $update['admin_response'] = $this->security->xss_clean(trim((string)$params['admin_response']));
+        }
+        if (isset($params['note'])) {
+            $update['note'] = $this->security->xss_clean(trim((string)$params['note']));
+        }
+
+        if (empty($update)) {
+            json_output(400, array('status' => 0, 'message' => 'Nothing to update.')); return;
+        }
+
+        $result = $this->webservice_model->updateAssignedComplaint($id, $staff_name, $update);
+        if ($result['success']) {
+            json_output(200, array('status' => 1, 'message' => 'Complaint updated successfully.'));
+        } else {
+            json_output(403, array('status' => 0, 'message' => $result['message']));
+        }
+    }
+
     public function getMySubstitutions()
     {
         $method = $this->input->server('REQUEST_METHOD');
