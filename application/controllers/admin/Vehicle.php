@@ -21,17 +21,37 @@ class Vehicle extends Admin_Controller
 
         $this->session->set_userdata('top_menu', 'Transport');
         $this->session->set_userdata('sub_menu', 'vehicle/index');
-        $data['title']           = 'Add Vehicle';
-        $listVehicle             = $this->vehicle_model->get();
-        $data['listVehicle']     = $listVehicle;
-        $data['staffList']       = $this->staff_model->getAll(null, 1);
-        $data['assigneesBySlot'] = $this->vehicle_model->getAssigneesBySlot();
-        $data['wa_template_id']  = $this->vehicle_model->getNotificationConfig('wa_template_id');
-        $data['notify_days']     = $this->vehicle_model->getNotificationConfig('notify_days') ?: '30,15,5,3';
-        $data['enable_email']    = (int)($this->vehicle_model->getNotificationConfig('enable_email') ?? 1);
-        $data['upcoming_expiries'] = $this->vehicle_model->getUpcomingExpiries(30);
+        $data['title']       = 'Add Vehicle';
+        $data['listVehicle'] = $this->vehicle_model->get();
         $this->load->view('layout/header');
         $this->load->view('admin/vehicle/index', $data);
+        $this->load->view('layout/footer');
+    }
+
+    /**
+     * Dedicated page: Vehicle Expiry Alerts & Notification Settings
+     * URL: admin/vehicle/expiry_alerts
+     */
+    public function expiry_alerts()
+    {
+        if (!$this->rbac->hasPrivilege('vehicle_expiry_alerts', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Transport');
+        $this->session->set_userdata('sub_menu', 'admin/vehicle/expiry_alerts');
+
+        $data['title']             = 'Vehicle Expiry Alerts';
+        $data['staffList']         = $this->staff_model->getAll(null, 1);
+        $data['assigneesBySlot']   = $this->vehicle_model->getAssigneesBySlot();
+        $data['wa_template_id']    = $this->vehicle_model->getNotificationConfig('wa_template_id');
+        $data['notify_days']       = $this->vehicle_model->getNotificationConfig('notify_days') ?: '30,15,5,3';
+        $data['enable_email']      = (int)($this->vehicle_model->getNotificationConfig('enable_email') ?? 1);
+        $data['upcoming_expiries'] = $this->vehicle_model->getUpcomingExpiries(60);
+        $data['cron_key']          = $this->setting_model->getSetting()->cron_secret_key ?? '';
+
+        $this->load->view('layout/header');
+        $this->load->view('admin/vehicle/expiry_alerts', $data);
         $this->load->view('layout/footer');
     }
 
