@@ -61,7 +61,12 @@
                 $tc = $type_class[strtolower($entry->subject_type ?? 'other')] ?? 'slot-other';
                 $slot_color = !empty($entry->tt_color) ? $entry->tt_color : null;
                 $slot_text  = !empty($entry->tt_abbr)  ? $entry->tt_abbr  : ($entry->subject_code ?: $entry->subject_name);
-                $slot_style = $slot_color ? "background-color:{$slot_color};color:#fff;" : '';
+                if ($slot_color) {
+                    list($r,$g,$b) = sscanf($slot_color,'#%02x%02x%02x');
+                    $lum = ($r*0.299 + $g*0.587 + $b*0.114) / 255;
+                    $txt = $lum > 0.55 ? '#222' : '#fff';
+                    $slot_style = "background-color:{$slot_color};color:{$txt};";
+                } else { $slot_style = ''; }
               ?>
               <span class="slot-tag <?php echo $slot_color ? '' : $tc; ?>" style="<?php echo $slot_style; ?>"><?php echo htmlspecialchars($slot_text); ?></span><br>
               <?php
