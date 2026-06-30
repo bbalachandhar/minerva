@@ -91,9 +91,10 @@ class Customstudentfeemaster_model extends MY_Model
             $data_insert = array();
             foreach ($fee_session_group as $fee_session_key => $fee_session_value) {
                 $array = array();
-                $array['is_system'] = 0;
-                $array['student_session_id'] = $student_session_id;
+                $array['is_system']            = 0;
+                $array['student_session_id']   = $student_session_id;
                 $array['fee_session_group_id'] = $fee_session_value;
+                $array['is_active']            = 'yes';
                 $data_insert[] = $array;
             }
             $this->db->insert_batch('student_fees_master', $data_insert);
