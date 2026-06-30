@@ -80,10 +80,10 @@ class Vehicle extends Admin_Controller
             return;
         }
 
-        // Get all vehicles expiring in next 365 days (ignore day thresholds for test)
-        $upcoming = $this->vehicle_model->getUpcomingExpiries(365);
+        // Get vehicles expiring in next 60 days (same window as dashboard)
+        $upcoming = $this->vehicle_model->getUpcomingExpiries(60);
         if (empty($upcoming)) {
-            echo json_encode(['status' => 'fail', 'message' => 'No upcoming expiries found in the next 365 days — nothing to send.']);
+            echo json_encode(['status' => 'fail', 'message' => 'No upcoming expiries found in the next 60 days — nothing to send.']);
             return;
         }
 
@@ -119,8 +119,9 @@ class Vehicle extends Admin_Controller
   </div>
   <div style='padding:24px;'>
     <p style='font-size:14px;color:#555;margin-top:0;'>
-      This is a <strong>test notification</strong>. In production, alerts are sent only on the configured days
-      before expiry (30 / 15 / 5 / 3 days). The following " . count($upcoming) . " document(s) are upcoming:
+      This is a <strong>test notification</strong> showing documents expiring in the next <strong>60 days</strong>.
+      In production, alerts fire only on the configured day thresholds (30 / 15 / 5 / 3 days before expiry).
+      The following " . count($upcoming) . " document(s) are upcoming:
     </p>
     <table style='width:100%;border-collapse:collapse;font-size:13px;'>
       <thead>
