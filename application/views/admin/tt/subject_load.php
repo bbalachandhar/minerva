@@ -8,145 +8,138 @@
         <li class="active">Subject Load</li>
     </ol>
 </section>
-<style>
-.sl-cfg-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  align-items: flex-end;
-}
-.sl-cfg-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.sl-cfg-item > label {
-  font-size: 10px;
-  color: #888;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin: 0;
-  letter-spacing: 0.3px;
-}
-.sl-cfg-item .form-control {
-  height: 28px;
-  font-size: 12px;
-  padding: 2px 6px;
-}
-.sl-cfg-check {
-  display: flex;
-  align-items: center;
-  height: 28px;
-}
-.sl-main-row.sl-expanded > td {
-  border-bottom: none;
-}
-.sl-config-row > td {
-  padding-top: 0 !important;
-}
-#sl-legend {
-  display: none;
-}
-#sl-legend.open {
-  display: flex;
-}
-</style>
 <section class="content">
-<div class="box box-primary">
-  <div class="box-header with-border">
-    <h3 class="box-title"><i class="fa fa-filter"></i> Select Class</h3>
+
+<!-- Select Class Card -->
+<div class="box box-primary" style="border-radius:8px;overflow:hidden;margin-bottom:16px;">
+  <div class="box-header" style="background:linear-gradient(135deg,#3c8dbc,#357ca5);padding:12px 16px;">
+    <h3 class="box-title" style="color:#fff;font-size:15px;">
+      <i class="fa fa-book"></i>&nbsp; Subject Load Configuration
+    </h3>
+    <small style="color:rgba(255,255,255,.7);display:block;margin-top:2px;font-size:11px;">
+      Configure how many periods/week each subject has and which teachers to assign
+    </small>
   </div>
-  <div class="box-body">
-    <div class="row">
-      <div class="col-md-3">
-        <label>Department</label>
-        <select class="form-control" id="dept_filter">
-          <option value="">-- All --</option>
+  <div class="box-body" style="background:#f9fbfd;padding:16px;">
+    <div class="row" style="align-items:flex-end;">
+      <div class="col-md-3 col-sm-6">
+        <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Department</label>
+        <select class="form-control input-sm" id="dept_filter" style="border-radius:6px;">
+          <option value="">— All —</option>
           <?php foreach ($departments as $d): ?>
           <option value="<?php echo $d['id']; ?>"><?php echo htmlspecialchars($d['department_name'] ?? $d['name'] ?? ''); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
+      <div class="col-md-3 col-sm-6">
+        <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Class <span class="text-danger">*</span></label>
+        <select class="form-control input-sm" id="sl_class_id" style="border-radius:6px;">
+          <option value="">— Select Class —</option>
+          <?php foreach ($classlist as $cls): ?>
+          <option value="<?php echo $cls['id']; ?>"><?php echo htmlspecialchars($cls['class']); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-2 col-sm-4">
+        <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Section <span class="text-danger">*</span></label>
+        <select class="form-control input-sm" id="sl_section_id" style="border-radius:6px;">
+          <option value="">— Select —</option>
+        </select>
+      </div>
+      <div class="col-md-4 col-sm-8" style="padding-top:20px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-primary" id="btn-load-subjects" style="border-radius:6px;font-weight:600;white-space:nowrap;">
+            <i class="fa fa-search"></i>&nbsp; Load Subjects
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Subject Load Container (shown after load) -->
+<div id="subject-load-container" style="display:none;">
+
+  <!-- Toolbar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <h4 style="margin:0;font-size:15px;font-weight:700;color:#2c3e50;">
+        <i class="fa fa-list" style="color:#3498db;"></i>&nbsp; Subjects
+      </h4>
+      <span id="sl-status-badge"></span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-sm" id="btn-toggle-copy-panel"
+        style="border-radius:6px;background:#f0f4f8;border:1px solid #dce0e8;color:#555;">
+        <i class="fa fa-copy"></i>&nbsp; Copy from Section
+      </button>
+      <button class="btn btn-success btn-sm" id="btn-save-loads"
+        style="border-radius:6px;font-weight:600;padding:6px 18px;">
+        <i class="fa fa-save"></i>&nbsp; Save All
+      </button>
+    </div>
+  </div>
+
+  <!-- Copy-from panel -->
+  <div id="copy-from-panel" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:14px 16px;margin-bottom:12px;">
+    <div class="row" style="align-items:flex-end;">
       <div class="col-md-3">
-        <label>Class <span class="text-danger">*</span></label>
-        <select class="form-control" id="sl_class_id">
-          <option value="">-- Select Class --</option>
+        <label style="font-size:12px;font-weight:600;">Source Class</label>
+        <select class="form-control input-sm" id="cp_class_id">
+          <option value="">— Select Class —</option>
           <?php foreach ($classlist as $cls): ?>
           <option value="<?php echo $cls['id']; ?>"><?php echo htmlspecialchars($cls['class']); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
       <div class="col-md-3">
-        <label>Section <span class="text-danger">*</span></label>
-        <select class="form-control" id="sl_section_id">
-          <option value="">-- Select Section --</option>
+        <label style="font-size:12px;font-weight:600;">Source Section</label>
+        <select class="form-control input-sm" id="cp_section_id">
+          <option value="">— Select Section —</option>
         </select>
       </div>
       <div class="col-md-3">
-        <label>&nbsp;</label>
-        <button class="btn btn-primary btn-block" id="btn-load-subjects"><i class="fa fa-search"></i> Load Subjects</button>
+        <button class="btn btn-warning btn-sm" id="btn-apply-copy" style="margin-top:20px;border-radius:6px;">
+          <i class="fa fa-arrow-down"></i> Apply P/Week Only
+        </button>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted" style="display:block;margin-top:22px;">
+          Copies <em>Periods/Week</em> for matching subjects only. Teacher assignments not copied.
+        </small>
       </div>
     </div>
   </div>
-</div>
 
-<div id="subject-load-container" style="display:none;">
-  <div class="box box-default">
-    <div class="box-header with-border">
-      <h3 class="box-title"><i class="fa fa-table"></i> Subject Load Configuration <span id="sl-status-badge"></span></h3>
-      <div class="box-tools">
-        <button class="btn btn-default btn-sm" id="btn-toggle-copy-panel" title="Copy load settings from another section"><i class="fa fa-copy"></i> Copy from Section</button>
-        &nbsp;
-        <button class="btn btn-success btn-sm" id="btn-save-loads"><i class="fa fa-save"></i> Save All</button>
-      </div>
-    </div>
-    <!-- Copy-from panel (hidden by default) -->
-    <div id="copy-from-panel" style="display:none;background:#f9f9f9;border-bottom:1px solid #ddd;padding:12px 15px;">
-      <div class="row" style="align-items:flex-end;">
-        <div class="col-md-3">
-          <label style="font-size:12px;">Source Class</label>
-          <select class="form-control input-sm" id="cp_class_id">
-            <option value="">-- Select Class --</option>
-            <?php foreach ($classlist as $cls): ?>
-            <option value="<?php echo $cls['id']; ?>"><?php echo htmlspecialchars($cls['class']); ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label style="font-size:12px;">Source Section</label>
-          <select class="form-control input-sm" id="cp_section_id">
-            <option value="">-- Select Section --</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <button class="btn btn-primary btn-sm" id="btn-apply-copy" style="margin-top:20px;"><i class="fa fa-arrow-down"></i> Apply (Periods/Week only)</button>
-        </div>
-        <div class="col-md-3">
-          <small class="text-muted" style="display:block;margin-top:22px;">Copies <em>Periods/Week</em> values for matching subjects. Teacher assignments are not copied.</small>
-        </div>
-      </div>
-    </div>
-    <div class="box-body p-0">
-      <form id="subject-load-form">
-        <input type="hidden" name="class_id" id="sl_class_id_hidden">
-        <input type="hidden" name="section_id" id="sl_section_id_hidden">
-        <div id="subject-load-rows"></div>
-      </form>
-    </div>
-    <div id="sl-teacher-warnings" style="display:none;padding:8px 15px;">
-    </div>
-    <div class="box-footer">
-      <button class="btn btn-success" id="btn-save-loads-bottom"><i class="fa fa-save"></i> Save All Changes</button>
-      <small class="text-muted ml-3"><i class="fa fa-info-circle"></i> Changes take effect on the next Auto Generate run.</small>
-    </div>
+  <!-- Teacher workload warnings -->
+  <div id="sl-teacher-warnings" style="display:none;margin-bottom:12px;"></div>
+
+  <!-- Subject cards -->
+  <form id="subject-load-form">
+    <input type="hidden" name="class_id"   id="sl_class_id_hidden">
+    <input type="hidden" name="section_id" id="sl_section_id_hidden">
+    <div id="subject-load-rows" style="padding:0;"></div>
+  </form>
+
+  <!-- Save footer -->
+  <div style="margin-top:16px;padding:14px 16px;background:#f8fdf8;border:1px solid #c8e6c9;border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <small class="text-muted">
+      <i class="fa fa-info-circle text-success"></i>
+      Changes take effect on the next Auto Generate run.
+    </small>
+    <button class="btn btn-success" id="btn-save-loads-bottom" style="border-radius:6px;font-weight:600;">
+      <i class="fa fa-save"></i>&nbsp; Save All Changes
+    </button>
   </div>
+
 </div>
 
-<div id="subject-load-empty" class="text-center text-muted p-5" style="display:none;">
-  <i class="fa fa-exclamation-circle fa-3x"></i><br>
-  <strong>Could not load subjects.</strong><br>
-  Please try again.
+<div id="subject-load-empty" class="text-center" style="display:none;padding:50px;color:#ccc;">
+  <i class="fa fa-exclamation-circle fa-3x" style="display:block;margin-bottom:10px;"></i>
+  <strong style="color:#999;">Could not load subjects.</strong><br>
+  <small>Please check the class/section selection and try again.</small>
 </div>
+
 </section>
 
 <script>
@@ -172,11 +165,16 @@ $(function(){
 
   function updateStatusBadge() {
     var $pools = $('#subject-load-rows .sl-teacher-pool');
-    var total = $pools.length;
+    var total  = $pools.length;
     if (!total) { $('#sl-status-badge').html(''); return; }
     var configured = $pools.filter(function(){ return $(this).val() && $(this).val().length > 0; }).length;
-    var color = (configured === total) ? 'success' : (configured > 0 ? 'warning' : 'danger');
-    $('#sl-status-badge').html('<span class="label label-'+color+'" style="font-size:11px;vertical-align:middle;margin-left:6px;">'+configured+'/'+total+' teacher pools assigned</span>');
+    var pct   = Math.round(configured / total * 100);
+    var color = (configured === total) ? '#27ae60' : (configured > 0 ? '#f39c12' : '#e74c3c');
+    var bg    = (configured === total) ? '#eafaf1' : (configured > 0 ? '#fef9e7' : '#fdf2f2');
+    $('#sl-status-badge').html(
+      '<span style="display:inline-flex;align-items:center;gap:6px;background:'+bg+';color:'+color+';border:1px solid '+color+';border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">'
+      + '<i class="fa fa-users"></i> '+configured+'/'+total+' teacher pools ('+pct+'%)</span>'
+    );
   }
 
   function loadSubjects() {
@@ -208,53 +206,37 @@ $(function(){
 
   $('#btn-load-subjects').on('click', loadSubjects);
 
-  // Remove subject row
+  // Remove subject card
   $(document).on('click', '.btn-remove-sl-row', function(){
-    var $row = $(this).closest('tr');
-    var sgs = $(this).data('sgs');
-    var $cfgRow = $('.sl-config-row[data-sgs="'+sgs+'"]');
+    var $card   = $(this).closest('.sl-card');
     var load_id = $(this).data('load-id');
-    swal({title:'Remove Subject?',text:'Remove this subject from the class?',type:'warning',showCancelButton:true,confirmButtonColor:'#dd4b39',confirmButtonText:'Yes, remove'},function(isConfirm){
+    swal({title:'Remove Subject?',text:'Remove this subject from the class?',type:'warning',showCancelButton:true,confirmButtonColor:'#e74c3c',confirmButtonText:'Yes, remove'},function(isConfirm){
       if (!isConfirm) return;
       if (load_id > 0) {
         $.post('<?php echo site_url('admin/tt/delete_subject_load_row'); ?>',
           {id: load_id, [csrf_name]: csrf_val},
-          function(res){ if (res.status === '1') { $cfgRow.remove(); $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); }); }
+          function(res){ if (res.status === '1') { $card.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); }); }
             else { swal({title:'Error',text:'Error removing subject.',type:'error'}); } }, 'json');
       } else {
-        $cfgRow.remove(); $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); });
+        $card.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); });
       }
     });
   });
 
-  // Toggle config row
+  // Toggle config (card design)
   $(document).on('click', '.btn-sl-toggle', function(){
     var sgs = $(this).data('sgs');
-    var $cfgRow = $('.sl-config-row[data-sgs="'+sgs+'"]');
+    var $cfg = $('.sl-card-config[data-sgs="'+sgs+'"]');
     var $icon = $(this).find('i');
-    $cfgRow.toggle();
-    $(this).closest('tr').toggleClass('sl-expanded');
-    $icon.toggleClass('fa-chevron-down fa-chevron-up');
+    $cfg.slideToggle(180);
+    $icon.toggleClass('fa-cog fa-times');
+    $(this).closest('.sl-card').toggleClass('sl-expanded');
   });
 
-  // Expand/Collapse all
-  $(document).on('click', '#btn-expand-all', function(){
-    var $cfgRows = $('.sl-config-row');
-    var anyHidden = $cfgRows.filter(':hidden').length > 0;
-    if (anyHidden) {
-      $cfgRows.show();
-      $('.sl-main-row').addClass('sl-expanded');
-      $('.btn-sl-toggle i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
-    } else {
-      $cfgRows.hide();
-      $('.sl-main-row').removeClass('sl-expanded');
-      $('.btn-sl-toggle i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-    }
-  });
-
-  // Toggle legend
+  // Legend toggle
   $(document).on('click', '#btn-toggle-legend', function(){
-    $('#sl-legend').toggleClass('open');
+    var $legend = $('#sl-legend');
+    $legend.toggleClass('open');
     $(this).find('.fa-chevron-down, .fa-chevron-up').toggleClass('fa-chevron-down fa-chevron-up');
   });
 
@@ -367,15 +349,15 @@ $(function(){
     $('.sl-main-row').each(function(){
       var sgs = $(this).data('sgs');
       var ppw = parseInt($(this).find('[name$="[periods_per_week]"]').val()) || 0;
-      var $cfgRow = $('.sl-config-row[data-sgs="'+sgs+'"]');
-      var $chk = $cfgRow.find('[name$="[min_per_day]"]');
+      var $cfg = $('.sl-card-config[data-sgs="'+sgs+'"]');
+      var $chk = $cfg.find('[name$="[min_per_day]"]');
       if (!$chk.length) return;
       var $item = $chk.closest('.sl-cfg-item');
       $item.find('.min-day-warn').remove();
       if (ppw < workingDays) {
         if ($chk.is(':checked')) $chk.prop('checked', false);
         $chk.prop('disabled', true);
-        $item.append('<div class="min-day-warn text-muted" style="font-size:9px;margin-top:1px;" title="' + ppw + ' periods/week < ' + workingDays + ' working days — impossible to have 1 per day"><i class="fa fa-ban"></i> ' + ppw + '<' + workingDays + '</div>');
+        $item.append('<div class="min-day-warn text-muted" style="font-size:9px;margin-top:1px;" title="' + ppw + ' p/week < ' + workingDays + ' days"><i class="fa fa-ban"></i> Needs ≥' + workingDays + ' P/W</div>');
       } else {
         $chk.prop('disabled', false);
       }
@@ -390,93 +372,71 @@ $(function(){
     var classId = $('#sl_class_id_hidden').val();
     if (!classId || !Object.keys(teacherCap).length) return;
 
+    // Clear existing inline workload bars
+    $('.sl-workload-bar').empty();
+
     var formLoads = {};
-    $('#sl-rows-table tbody tr').each(function(){
-      var ppw = parseInt($(this).find('[name$="[periods_per_week]"]').val()) || 0;
+    // card-based: iterate sl-main-row divs
+    $('.sl-main-row').each(function(){
+      var ppw  = parseInt($(this).find('[name$="[periods_per_week]"]').val()) || 0;
       var $pool = $(this).find('.sl-teacher-pool');
       if (!$pool.length) return;
       var tids = $pool.val() || [];
-      $.each(tids, function(i, tid) {
-        formLoads[tid] = (formLoads[tid] || 0) + ppw;
-      });
+      $.each(tids, function(i, tid) { formLoads[tid] = (formLoads[tid] || 0) + ppw; });
     });
 
     if (!Object.keys(formLoads).length) { $('#sl-teacher-warnings').hide(); return; }
 
-    var $rows = $('#sl-rows-table tbody tr');
-    $rows.find('.sl-cap-warn').remove();
-
     var summaryRows = [];
-    $.each(formLoads, function(tid, formPpw) {
-      var cap = teacherCap[tid];
-      if (!cap) return;
+    $.each(formLoads, function(tid) {
+      var cap = teacherCap[tid]; if (!cap) return;
       var total = cap.total_ppw;
       var pct = cap.max_week > 0 ? Math.round(total / cap.max_week * 100) : 0;
       var overWeek = total > cap.max_week;
-      var overSlots = total > cap.avail_slots && cap.unavail > 0;
       var dayCapacity = cap.max_day * cap.day_count;
-      var overDay = total > dayCapacity;
-
-      var color = overWeek || overSlots || overDay ? 'danger' : (pct >= 85 ? 'warning' : (pct >= 60 ? 'info' : 'success'));
-      var barWidth = Math.min(pct, 100);
+      var overDay    = total > dayCapacity;
+      var overSlots  = total > cap.avail_slots && cap.unavail > 0;
+      var color = (overWeek || overSlots || overDay) ? 'danger' : (pct >= 85 ? 'warning' : (pct >= 60 ? 'info' : 'success'));
+      var barColor = color === 'danger' ? '#e74c3c' : color === 'warning' ? '#f39c12' : color === 'info' ? '#3498db' : '#27ae60';
       var issues = [];
-      if (overWeek) issues.push('OVER weekly cap by ' + (total - cap.max_week));
-      if (overSlots) issues.push(cap.unavail + ' unavailable slots, only ' + cap.avail_slots + ' free');
-      if (overDay) issues.push('exceeds ' + cap.max_day + '/day × ' + cap.day_count + ' days = ' + dayCapacity);
+      if (overWeek)  issues.push('OVER weekly cap by ' + (total - cap.max_week));
+      if (overSlots) issues.push(cap.unavail + ' unavail slots');
+      if (overDay)   issues.push('exceeds ' + dayCapacity + ' day-cap');
+      summaryRows.push({ tid: tid, name: cap.name, total: total, max: cap.max_week, pct: pct, color: color, barColor: barColor, barWidth: Math.min(pct,100), issues: issues });
 
-      summaryRows.push({
-        tid: tid, name: cap.name, total: total, max: cap.max_week, pct: pct,
-        color: color, barWidth: barWidth, issues: issues, thisClass: formPpw,
-        overWeek: overWeek, overSlots: overSlots, overDay: overDay
-      });
-
-      // Inline indicator on each row that uses this teacher
-      $rows.each(function(){
-        var $pool = $(this).find('.sl-teacher-pool');
-        if (!$pool.length) return;
-        var poolVals = $pool.val() || [];
+      // Render inline workload bar inside each card that uses this teacher
+      $('.sl-main-row').each(function(){
+        var $pool2 = $(this).find('.sl-teacher-pool');
+        if (!$pool2.length) return;
         var match = false;
-        $.each(poolVals, function(i, v) { if (v == tid) match = true; });
+        $.each($pool2.val() || [], function(i,v){ if (v == tid) match = true; });
         if (!match) return;
-        var $td = $pool.closest('td');
-        var labelClass = color === 'danger' ? 'label-danger' : (color === 'warning' ? 'label-warning' : 'label-info');
-        $td.append('<div class="sl-cap-warn" style="font-size:10px;margin-top:2px;">'
-          + '<span class="label ' + labelClass + '" style="font-weight:normal;">'
-          + cap.name + ': ' + total + '/' + cap.max_week + ' (' + pct + '%)'
-          + '</span></div>');
+        var sgs = $(this).data('sgs');
+        var $wb = $('#sl-wb-' + sgs);
+        $wb.append(
+          '<div class="sl-workload-row">'
+          + '<span class="sl-workload-name" title="' + cap.name + '">' + cap.name + '</span>'
+          + '<div class="sl-workload-track"><div class="sl-workload-fill" style="width:' + Math.min(pct,100) + '%;background:' + barColor + ';"></div></div>'
+          + '<span class="sl-workload-pct" style="color:' + barColor + ';">' + total + '/' + cap.max_week + ' <small style="font-weight:400;color:#aaa;">(' + pct + '%)</small></span>'
+          + (issues.length ? '<span style="color:#e74c3c;font-size:9px;margin-left:4px;" title="' + issues.join(', ') + '"><i class="fa fa-exclamation-triangle"></i></span>' : '')
+          + '</div>'
+        );
       });
     });
 
-    // Sort: problems first, then by utilization descending
-    summaryRows.sort(function(a, b) {
-      if (a.color === 'danger' && b.color !== 'danger') return -1;
-      if (b.color === 'danger' && a.color !== 'danger') return 1;
-      return b.pct - a.pct;
-    });
-
-    var $panel = $('#sl-teacher-warnings');
+    summaryRows.sort(function(a,b){ return (b.color==='danger'?1:0)-(a.color==='danger'?1:0) || b.pct-a.pct; });
     var hasDanger = summaryRows.some(function(r){ return r.color === 'danger'; });
-    var alertClass = hasDanger ? 'alert-danger' : 'alert-info';
-    var html = '<div class="alert ' + alertClass + '" style="margin-bottom:0;font-size:12px;padding:10px 12px;">'
-      + '<strong><i class="fa fa-users"></i> Teacher Workload — This Class</strong>'
-      + '<div style="margin-top:6px;">';
-
-    $.each(summaryRows, function(i, r) {
-      html += '<div style="display:flex;align-items:center;margin-bottom:4px;">'
-        + '<span style="min-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + r.name + '">' + r.name + '</span>'
-        + '<div style="flex:1;margin:0 8px;background:#eee;border-radius:3px;height:14px;position:relative;">'
-        + '<div style="width:' + r.barWidth + '%;height:100%;border-radius:3px;background:' + (r.color==='danger'?'#dd4b39':r.color==='warning'?'#f39c12':r.color==='info'?'#00c0ef':'#00a65a') + ';"></div>'
-        + '</div>'
-        + '<span style="min-width:90px;text-align:right;white-space:nowrap;" class="text-' + r.color + '">'
-        + '<b>' + r.total + '</b>/' + r.max + ' <small>(' + r.pct + '%)</small>'
-        + '</span></div>';
-      if (r.issues.length) {
-        html += '<div style="margin:-2px 0 4px 168px;font-size:11px;" class="text-danger"><i class="fa fa-exclamation-triangle"></i> ' + r.issues.join(' | ') + '</div>';
-      }
+    var html = '<div class="alert alert-' + (hasDanger?'danger':'info') + '" style="padding:10px 14px;font-size:12px;margin-bottom:0;">'
+      + '<strong><i class="fa fa-users"></i> Overall Teacher Workload</strong><div style="margin-top:6px;">';
+    $.each(summaryRows, function(i,r){
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+        + '<span style="min-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;" title="'+r.name+'">'+r.name+'</span>'
+        + '<div style="flex:1;background:#eee;border-radius:3px;height:10px;"><div style="width:'+r.barWidth+'%;height:100%;border-radius:3px;background:'+r.barColor+';"></div></div>'
+        + '<span style="min-width:80px;text-align:right;font-size:11px;color:'+r.barColor+';">'+r.total+'/'+r.max+' ('+r.pct+'%)</span></div>';
+      if (r.issues.length) html += '<div style="font-size:10px;color:#e74c3c;margin:-2px 0 4px 158px;"><i class="fa fa-exclamation-triangle"></i> '+r.issues.join(' | ')+'</div>';
     });
-
     html += '</div></div>';
-    $panel.html(html).show();
+    $('#sl-teacher-warnings').html(html).show();
   }
 
   $(document).on('change', '.sl-teacher-pool, [name$="[periods_per_week]"]', function(){
