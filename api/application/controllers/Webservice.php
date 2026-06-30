@@ -9978,6 +9978,19 @@ class Webservice extends CI_Controller
         }
     }
 
+    /** Resolve logged-in staff from User-ID header — shared by complaint endpoints */
+    private function _resolveStaffUser()
+    {
+        $login_user_id = trim((string) $this->input->get_request_header('User-ID', true));
+        if ($login_user_id === '') return null;
+        $row = $this->db->select('users.role, users.user_id as staff_id, staff.name as staff_name')
+            ->from('users')
+            ->join('staff', 'staff.id = users.user_id', 'left')
+            ->where('users.id', $login_user_id)
+            ->get()->row();
+        return $row ?: null;
+    }
+
     /**
      * Staff: get complaints assigned to the logged-in staff member.
      */
@@ -9990,21 +10003,15 @@ class Webservice extends CI_Controller
         $response = $this->auth_model->auth();
         if ($response['status'] != 200) { json_output($response['status'], $response); return; }
 
-        // Resolve logged-in staff name (complaint.assigned stores staff.name)
-        $user_row = $response['data'] ?? array();
-        $role     = strtolower(trim((string)($user_row['role'] ?? '')));
-        if (!in_array($role, array('admin', 'super admin', 'teacher', 'accountant', 'librarian', 'receptionist', 'human resource'))) {
+        $user = $this->_resolveStaffUser();
+        if (!$user) { json_output(401, array('status' => 0, 'message' => 'Could not identify user.')); return; }
+
+        $role = strtolower(trim((string)($user->role ?? '')));
+        if ($role === 'student' || $role === 'parent') {
             json_output(403, array('status' => 0, 'message' => 'Only staff can view assigned complaints.')); return;
         }
 
-        $staff_id = (int)($user_row['user_id'] ?? 0);
-        if ($staff_id <= 0) {
-            json_output(400, array('status' => 0, 'message' => 'Could not identify staff.')); return;
-        }
-
-        $staff = $this->db->select('name')->from('staff')->where('id', $staff_id)->get()->row_array();
-        $staff_name = $staff['name'] ?? '';
-
+        $staff_name = $user->staff_name ?? '';
         if (empty($staff_name)) {
             json_output(200, array('status' => 1, 'complaints' => array())); return;
         }
@@ -10025,15 +10032,15 @@ class Webservice extends CI_Controller
         $response = $this->auth_model->auth();
         if ($response['status'] != 200) { json_output($response['status'], $response); return; }
 
-        $user_row = $response['data'] ?? array();
-        $role     = strtolower(trim((string)($user_row['role'] ?? '')));
-        if (!in_array($role, array('admin', 'super admin', 'teacher', 'accountant', 'librarian', 'receptionist', 'human resource'))) {
+        $user = $this->_resolveStaffUser();
+        if (!$user) { json_output(401, array('status' => 0, 'message' => 'Could not identify user.')); return; }
+
+        $role = strtolower(trim((string)($user->role ?? '')));
+        if ($role === 'student' || $role === 'parent') {
             json_output(403, array('status' => 0, 'message' => 'Only staff can update complaints.')); return;
         }
 
-        $staff_id = (int)($user_row['user_id'] ?? 0);
-        $staff    = $this->db->select('name')->from('staff')->where('id', $staff_id)->get()->row_array();
-        $staff_name = $staff['name'] ?? '';
+        $staff_name = $user->staff_name ?? '';
 
         $params     = json_decode(file_get_contents('php://input'), true) ?: array();
         $id         = (int)($params['id'] ?? 0);
