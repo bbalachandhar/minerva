@@ -103,4 +103,44 @@ class Birthday_model extends MY_Model
         ];
     }
 
+    public function getByDateRange($date_from, $date_to)
+    {
+        $date_from_formatted = $this->customlib->dateFormatToYYYYMMDD($date_from);
+        $date_to_formatted   = $this->customlib->dateFormatToYYYYMMDD($date_to);
+
+        $this->db->select('
+            students.id, students.admission_no, students.roll_no,
+            students.firstname, students.middlename, students.lastname,
+            students.image, students.mobileno, students.email,
+            students.current_address, students.dob, students.gender,
+            classes.class, sections.section
+        ');
+        $this->db->from('students');
+        $this->db->join('student_session', 'student_session.student_id = students.id AND student_session.session_id = ' . $this->current_session);
+        $this->db->join('classes', 'student_session.class_id = classes.id');
+        $this->db->join('sections', 'sections.id = student_session.section_id');
+        $this->db->where('students.is_active', 'yes');
+        $this->db->group_start();
+        $this->db->where('student_session.is_alumni', 0);
+        $this->db->or_where('student_session.is_alumni IS NULL', null, false);
+        $this->db->group_end();
+
+        $month_day_from = date('m-d', strtotime($date_from_formatted));
+        $month_day_to   = date('m-d', strtotime($date_to_formatted));
+
+        if ($month_day_from <= $month_day_to) {
+            $this->db->where("DATE_FORMAT(students.dob, '%m-%d') >= ", $month_day_from);
+            $this->db->where("DATE_FORMAT(students.dob, '%m-%d') <= ", $month_day_to);
+        } else {
+            $this->db->group_start();
+            $this->db->where("DATE_FORMAT(students.dob, '%m-%d') >= ", $month_day_from);
+            $this->db->or_where("DATE_FORMAT(students.dob, '%m-%d') <= ", $month_day_to);
+            $this->db->group_end();
+        }
+
+        $this->db->group_by('students.id');
+        $this->db->order_by("DATE_FORMAT(students.dob, '%m%d')", 'ASC');
+        return $this->db->get()->result_array();
+    }
+
 }

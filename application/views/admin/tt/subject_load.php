@@ -8,6 +8,49 @@
         <li class="active">Subject Load</li>
     </ol>
 </section>
+<style>
+.sl-cfg-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+}
+.sl-cfg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sl-cfg-item > label {
+  font-size: 10px;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+.sl-cfg-item .form-control {
+  height: 28px;
+  font-size: 12px;
+  padding: 2px 6px;
+}
+.sl-cfg-check {
+  display: flex;
+  align-items: center;
+  height: 28px;
+}
+.sl-main-row.sl-expanded > td {
+  border-bottom: none;
+}
+.sl-config-row > td {
+  padding-top: 0 !important;
+}
+#sl-legend {
+  display: none;
+}
+#sl-legend.open {
+  display: flex;
+}
+</style>
 <section class="content">
 <div class="box box-primary">
   <div class="box-header with-border">
@@ -153,7 +196,7 @@ $(function(){
           $('#sl_class_id_hidden').val(class_id);
           $('#sl_section_id_hidden').val(section_id);
           $('#subject-load-rows').html(res.html);
-          $('#subject-load-rows select:not(#sl-add-subject-picker)').select2({ width: 'resolve', placeholder: '-- Select --', allowClear: true });
+          $('#subject-load-rows .sl-teacher-pool').select2({ width: '100%', placeholder: '-- Select Teachers --', allowClear: true });
           $('#sl-add-subject-picker').select2({ width: '100%', placeholder: 'Select subjects to add...', allowClear: true });
           $('#subject-load-container').show();
           updateStatusBadge();
@@ -168,18 +211,51 @@ $(function(){
   // Remove subject row
   $(document).on('click', '.btn-remove-sl-row', function(){
     var $row = $(this).closest('tr');
+    var sgs = $(this).data('sgs');
+    var $cfgRow = $('.sl-config-row[data-sgs="'+sgs+'"]');
     var load_id = $(this).data('load-id');
     swal({title:'Remove Subject?',text:'Remove this subject from the class?',type:'warning',showCancelButton:true,confirmButtonColor:'#dd4b39',confirmButtonText:'Yes, remove'},function(isConfirm){
       if (!isConfirm) return;
       if (load_id > 0) {
         $.post('<?php echo site_url('admin/tt/delete_subject_load_row'); ?>',
           {id: load_id, [csrf_name]: csrf_val},
-          function(res){ if (res.status === '1') { $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); }); }
+          function(res){ if (res.status === '1') { $cfgRow.remove(); $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); }); }
             else { swal({title:'Error',text:'Error removing subject.',type:'error'}); } }, 'json');
       } else {
-        $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); });
+        $cfgRow.remove(); $row.fadeOut(300, function(){ $(this).remove(); updateStatusBadge(); });
       }
     });
+  });
+
+  // Toggle config row
+  $(document).on('click', '.btn-sl-toggle', function(){
+    var sgs = $(this).data('sgs');
+    var $cfgRow = $('.sl-config-row[data-sgs="'+sgs+'"]');
+    var $icon = $(this).find('i');
+    $cfgRow.toggle();
+    $(this).closest('tr').toggleClass('sl-expanded');
+    $icon.toggleClass('fa-chevron-down fa-chevron-up');
+  });
+
+  // Expand/Collapse all
+  $(document).on('click', '#btn-expand-all', function(){
+    var $cfgRows = $('.sl-config-row');
+    var anyHidden = $cfgRows.filter(':hidden').length > 0;
+    if (anyHidden) {
+      $cfgRows.show();
+      $('.sl-main-row').addClass('sl-expanded');
+      $('.btn-sl-toggle i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+    } else {
+      $cfgRows.hide();
+      $('.sl-main-row').removeClass('sl-expanded');
+      $('.btn-sl-toggle i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+    }
+  });
+
+  // Toggle legend
+  $(document).on('click', '#btn-toggle-legend', function(){
+    $('#sl-legend').toggleClass('open');
+    $(this).find('.fa-chevron-down, .fa-chevron-up').toggleClass('fa-chevron-down fa-chevron-up');
   });
 
   // Add subjects
@@ -288,17 +364,18 @@ $(function(){
   }
 
   function enforceMinPerDay() {
-    $('#sl-rows-table tbody tr').each(function(){
-      var $row = $(this);
-      var ppw = parseInt($row.find('[name$="[periods_per_week]"]').val()) || 0;
-      var $chk = $row.find('[name$="[min_per_day]"]');
+    $('.sl-main-row').each(function(){
+      var sgs = $(this).data('sgs');
+      var ppw = parseInt($(this).find('[name$="[periods_per_week]"]').val()) || 0;
+      var $cfgRow = $('.sl-config-row[data-sgs="'+sgs+'"]');
+      var $chk = $cfgRow.find('[name$="[min_per_day]"]');
       if (!$chk.length) return;
-      var $td = $chk.closest('td');
-      $td.find('.min-day-warn').remove();
+      var $item = $chk.closest('.sl-cfg-item');
+      $item.find('.min-day-warn').remove();
       if (ppw < workingDays) {
         if ($chk.is(':checked')) $chk.prop('checked', false);
         $chk.prop('disabled', true);
-        $td.append('<div class="min-day-warn text-muted" style="font-size:9px;margin-top:1px;" title="' + ppw + ' periods/week < ' + workingDays + ' working days — impossible to have 1 per day"><i class="fa fa-ban"></i> ' + ppw + '<' + workingDays + '</div>');
+        $item.append('<div class="min-day-warn text-muted" style="font-size:9px;margin-top:1px;" title="' + ppw + ' periods/week < ' + workingDays + ' working days — impossible to have 1 per day"><i class="fa fa-ban"></i> ' + ppw + '<' + workingDays + '</div>');
       } else {
         $chk.prop('disabled', false);
       }

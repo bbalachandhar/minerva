@@ -572,7 +572,9 @@ class Report extends Admin_Controller
                         CONCAT(s.name, ' ', s.surname) AS staff_name,
                         d.department_name,
                         sd.designation,
-                        s.dob
+                        s.dob,
+                        s.image,
+                        s.contact_no
                  FROM staff s
                  LEFT JOIN department d ON s.department = d.id
                  LEFT JOIN staff_designation sd ON s.designation = sd.id
@@ -587,6 +589,199 @@ class Report extends Admin_Controller
         $this->load->view('layout/header', $data);
         $this->load->view('reports/staff_birthday_list', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+    private function _getStaffBirthdayData($from_date_raw, $to_date_raw)
+    {
+        $from_date = $this->customlib->dateFormatToYYYYMMDD($from_date_raw);
+        $to_date   = $this->customlib->dateFormatToYYYYMMDD($to_date_raw);
+        $from_md   = date('md', strtotime($from_date));
+        $to_md     = date('md', strtotime($to_date));
+        if ($from_md <= $to_md) {
+            $where = "DATE_FORMAT(s.dob, '%m%d') BETWEEN '{$from_md}' AND '{$to_md}'";
+        } else {
+            $where = "(DATE_FORMAT(s.dob, '%m%d') >= '{$from_md}' OR DATE_FORMAT(s.dob, '%m%d') <= '{$to_md}')";
+        }
+        $query = $this->db->query(
+            "SELECT s.employee_id,
+                    CONCAT(s.name, ' ', s.surname) AS staff_name,
+                    s.name, s.surname,
+                    d.department_name,
+                    sd.designation,
+                    s.dob, s.image, s.contact_no
+             FROM staff s
+             LEFT JOIN department d ON s.department = d.id
+             LEFT JOIN staff_designation sd ON s.designation = sd.id
+             WHERE s.dob IS NOT NULL AND {$where}
+             ORDER BY DATE_FORMAT(s.dob, '%m%d')"
+        );
+        return $query->result_array();
+    }
+
+    public function staff_birthday_list_pdf()
+    {
+        $from_date = $this->input->get('date_from');
+        $to_date   = $this->input->get('date_to');
+        if (!$from_date || !$to_date) { show_error('Missing date range'); return; }
+
+        $resultlist  = $this->_getStaffBirthdayData($from_date, $to_date);
+        $sch_setting = $this->sch_setting_detail;
+        $dateFormat  = $this->customlib->getSchoolDateFormat();
+        $today_md    = date('md');
+
+        $html  = '<style>
+            body { font-family: DejaVu Sans, sans-serif; font-size:11px; }
+            h2 { text-align:center; margin:0; font-size:16px; }
+            .sub { text-align:center; font-size:11px; color:#555; margin-bottom:10px; }
+            table { width:100%; border-collapse:collapse; margin-top:10px; }
+            th { background:#2c3e7a; color:#fff; padding:7px 6px; text-align:left; font-size:10px; }
+            td { padding:6px; border-bottom:1px solid #eee; vertical-align:middle; font-size:10px; }
+            tr:nth-child(even) td { background:#f0f4ff; }
+            .today { background:#fff3cd !important; font-weight:bold; }
+            img.avatar { border-radius:50%; object-fit:cover; }
+        </style>';
+        $html .= '<h2>' . htmlspecialchars($sch_setting->name ?? '') . '</h2>';
+        $html .= '<div class="sub">' . htmlspecialchars($sch_setting->address ?? '') . '</div>';
+        $html .= '<div class="sub"><b>Staff Birthday List &mdash; ' . $from_date . ' to ' . $to_date . '</b></div>';
+        $html .= '<table>
+            <thead><tr>
+                <th width="40">#</th>
+                <th width="55">Photo</th>
+                <th>Name</th>
+                <th>Emp ID</th>
+                <th>Department</th>
+                <th>Designation</th>
+                <th>Birthday</th>
+                <th>Contact</th>
+            </tr></thead><tbody>';
+
+        $i = 1;
+        foreach ($resultlist as $row) {
+            $dob_md   = $row['dob'] ? date('md', strtotime($row['dob'])) : '';
+            $is_today = ($dob_md === $today_md);
+            $rowclass = $is_today ? ' class="today"' : '';
+            $dob_fmt  = $row['dob'] ? date($dateFormat, strtotime($row['dob'])) : '—';
+            $name     = htmlspecialchars($row['staff_name']);
+            $init     = strtoupper(substr($row['name'] ?? $row['staff_name'], 0, 1));
+
+            $img_path = !empty($row['image']) ? FCPATH . 'uploads/staff_images/' . ltrim($row['image'], '/') : '';
+            $img_tag  = '';
+            if ($img_path && file_exists($img_path)) {
+                $img_tag = '<img class="avatar" src="' . $img_path . '" width="40" height="40">';
+            } else {
+                $img_tag = '<div style="width:40px;height:40px;border-radius:50%;background:#d4e0f7;text-align:center;line-height:40px;font-weight:bold;color:#2c3e7a;font-size:16px;">' . $init . '</div>';
+            }
+
+            $html .= '<tr' . $rowclass . '>
+                <td>' . $i++ . ($is_today ? ' 🎂' : '') . '</td>
+                <td>' . $img_tag . '</td>
+                <td><b>' . $name . '</b></td>
+                <td>' . htmlspecialchars($row['employee_id']) . '</td>
+                <td>' . htmlspecialchars($row['department_name'] ?? '—') . '</td>
+                <td>' . htmlspecialchars($row['designation'] ?? '—') . '</td>
+                <td>' . $dob_fmt . '</td>
+                <td>' . htmlspecialchars($row['contact_no'] ?? '') . '</td>
+            </tr>';
+        }
+        $html .= '</tbody></table>';
+
+        $this->load->library('m_pdf');
+        $this->m_pdf->pdf->WriteHTML($html);
+        $this->m_pdf->pdf->Output('staff_birthday_list.pdf', 'D');
+    }
+
+    public function staff_birthday_list_xls()
+    {
+        $from_date = $this->input->get('date_from');
+        $to_date   = $this->input->get('date_to');
+        if (!$from_date || !$to_date) { show_error('Missing date range'); return; }
+
+        require_once APPPATH . 'third_party/vendor/autoload.php';
+
+        $resultlist  = $this->_getStaffBirthdayData($from_date, $to_date);
+        $sch_setting = $this->sch_setting_detail;
+        $dateFormat  = $this->customlib->getSchoolDateFormat();
+        $today_md    = date('md');
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Staff Birthdays');
+
+        $sheet->mergeCells('A1:H1');
+        $sheet->setCellValue('A1', ($sch_setting->name ?? '') . ' — Staff Birthday List (' . $from_date . ' to ' . $to_date . ')');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal('center');
+        $sheet->getRowDimension(1)->setRowHeight(20);
+
+        $headers = ['#', 'Photo', 'Staff Name', 'Emp ID', 'Department', 'Designation', 'Birthday', 'Contact'];
+        foreach ($headers as $col => $h) {
+            $cell = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col + 1) . '2';
+            $sheet->setCellValue($cell, $h);
+        }
+        $hStyle = $sheet->getStyle('A2:H2');
+        $hStyle->getFont()->setBold(true)->setColor((new \PhpOffice\PhpSpreadsheet\Style\Color())->setARGB('FFFFFFFF'));
+        $hStyle->getFill()->setFillType('solid')->getStartColor()->setARGB('FF2C3E7A');
+        $sheet->getRowDimension(2)->setRowHeight(18);
+
+        $sheet->getColumnDimension('A')->setWidth(6);
+        $sheet->getColumnDimension('B')->setWidth(10);
+        $sheet->getColumnDimension('C')->setWidth(26);
+        $sheet->getColumnDimension('D')->setWidth(14);
+        $sheet->getColumnDimension('E')->setWidth(20);
+        $sheet->getColumnDimension('F')->setWidth(18);
+        $sheet->getColumnDimension('G')->setWidth(14);
+        $sheet->getColumnDimension('H')->setWidth(14);
+
+        $row = 3;
+        foreach ($resultlist as $i => $staff) {
+            $name     = $staff['staff_name'];
+            $dob_md   = $staff['dob'] ? date('md', strtotime($staff['dob'])) : '';
+            $is_today = ($dob_md === $today_md);
+            $dob_fmt  = $staff['dob'] ? date($dateFormat, strtotime($staff['dob'])) : '';
+            $init     = strtoupper(substr($staff['name'] ?? $name, 0, 1));
+
+            $sheet->getRowDimension($row)->setRowHeight(45);
+            $sheet->setCellValue('A' . $row, ($i + 1) . ($is_today ? ' 🎂' : ''));
+            $sheet->setCellValue('C' . $row, $name);
+            $sheet->setCellValue('D' . $row, $staff['employee_id']);
+            $sheet->setCellValue('E' . $row, $staff['department_name'] ?? '');
+            $sheet->setCellValue('F' . $row, $staff['designation'] ?? '');
+            $sheet->setCellValue('G' . $row, $dob_fmt);
+            $sheet->setCellValue('H' . $row, $staff['contact_no'] ?? '');
+
+            if ($is_today) {
+                $sheet->getStyle('A' . $row . ':H' . $row)->getFill()
+                    ->setFillType('solid')->getStartColor()->setARGB('FFFFF3CD');
+            }
+
+            $img_path = !empty($staff['image']) ? FCPATH . 'uploads/staff_images/' . ltrim($staff['image'], '/') : '';
+            if ($img_path && file_exists($img_path)) {
+                $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                $drawing->setName('Photo');
+                $drawing->setPath($img_path);
+                $drawing->setCoordinates('B' . $row);
+                $drawing->setOffsetX(3)->setOffsetY(3);
+                $drawing->setWidth(38)->setHeight(38);
+                $drawing->setWorksheet($sheet);
+            } else {
+                $sheet->setCellValue('B' . $row, $init);
+                $sheet->getStyle('B' . $row)->getAlignment()->setHorizontal('center')->setVertical('center');
+            }
+
+            $sheet->getStyle('A' . $row . ':H' . $row)->getBorders()->getAllBorders()
+                ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+            $sheet->getStyle('A' . $row . ':H' . $row)->getAlignment()->setVertical('center');
+            $row++;
+        }
+
+        $sheet->freezePane('A3');
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="staff_birthday_list.xlsx"');
+        header('Cache-Control: max-age=0');
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
     }
 
     public function library()

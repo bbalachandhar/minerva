@@ -81,7 +81,11 @@ $route['admin/librarypositionrack'] = 'admin/librarypositionrack';
 $route['admin/librarypositionrack/(:any)'] = 'admin/librarypositionrack/$1';
 $route['admin/librarypositionshelf'] = 'admin/librarypositionshelf';
 $route['admin/librarypositionshelf/(:any)'] = 'admin/librarypositionshelf/$1';
-        $route['admin/birthday_list'] = 'admin/birthday/birthday_list';
+        $route['admin/birthday_list']        = 'admin/birthday/birthday_list';
+        $route['admin/birthday/export_pdf']  = 'admin/birthday/export_pdf';
+        $route['admin/birthday/export_xls']  = 'admin/birthday/export_xls';
+        $route['report/staff_birthday_list_pdf'] = 'report/staff_birthday_list_pdf';
+        $route['report/staff_birthday_list_xls'] = 'report/staff_birthday_list_xls';
 
         // Hall Management Module Routes
         $route['admin/hall/hall_master'] = 'admin/hall/hall_master';
