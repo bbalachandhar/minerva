@@ -44,6 +44,7 @@
                   $slot_text = !empty($entry->tt_abbr) ? $entry->tt_abbr : ($entry->subject_code ?: $entry->subject_name);
                 ?>
                 <span class="slot-tag <?php echo $tc; ?>" style="opacity:.45;"><?php echo htmlspecialchars($slot_text); ?></span><br>
+                <?php if ($entry->subject_name): ?><small style="font-size:10px;color:#aaa;text-decoration:line-through;"><?php echo htmlspecialchars($entry->subject_name); ?></small><br><?php endif; ?>
                 <small style="font-size:10px;color:#aaa;text-decoration:line-through;"><?php echo htmlspecialchars($entry->class_name.' '.$entry->section_name); ?></small><br>
               <?php endif; ?>
               <div style="margin-top:3px;background:#e74c3c;color:#fff;border-radius:3px;padding:2px 5px;font-size:10px;line-height:1.5;">
@@ -63,6 +64,12 @@
                 $slot_style = $slot_color ? "background-color:{$slot_color};color:#fff;" : '';
               ?>
               <span class="slot-tag <?php echo $slot_color ? '' : $tc; ?>" style="<?php echo $slot_style; ?>"><?php echo htmlspecialchars($slot_text); ?></span><br>
+              <?php
+                $display_name = $entry->is_free_period
+                    ? ($entry->free_period_label ?: '')
+                    : ($entry->subject_name ?: ($entry->subject_code ?: ''));
+              ?>
+              <?php if ($display_name): ?><small style="font-size:10px;color:#444;display:block;line-height:1.3;margin-bottom:2px;"><?php echo htmlspecialchars($display_name); ?></small><?php endif; ?>
               <small style="font-size:11px;"><strong><?php echo htmlspecialchars($entry->class_name); ?> <?php echo htmlspecialchars($entry->section_name); ?></strong></small>
               <?php if ($entry->room_name): ?><br><small style="font-size:10px;color:#777;"><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($entry->room_name); ?></small><?php endif; ?>
               <?php if ($entry->batch_name): ?><br><span class="label label-info" style="font-size:9px;">Batch <?php echo $entry->batch_name; ?></span><?php endif; ?>
