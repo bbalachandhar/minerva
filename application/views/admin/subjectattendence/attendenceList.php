@@ -270,81 +270,70 @@ $att_default = ['bg'=>'#e9ecef','text'=>'#555','icon'=>'fa-circle-o'];
             <?php endif; ?>
 
             <!-- Student table -->
-            <div class="table-responsive" style="border-radius:8px;border:1px solid #e8ecf0;">
-              <table class="att-table download_label" data-label="<?php echo $this->lang->line('student_list'); ?>">
+            <div class="table-responsive">
+              <div class="download_label" style="display:none"><?php echo $this->lang->line('student_list'); ?></div>
+              <table class="table table-hover table-striped example" style="margin-bottom:0;font-size:13px;">
                 <thead>
-                  <tr>
-                    <th style="width:40px;">#</th>
-                    <th>Admission No</th>
-                    <th>Roll No</th>
-                    <th>Student Name</th>
-                    <th style="min-width:340px;">Attendance</th>
-                    <th style="min-width:130px;">Note</th>
+                  <tr style="background:#2c3e50;color:#fff;">
+                    <th style="width:40px;background:#2c3e50;color:#fff;">#</th>
+                    <th style="background:#2c3e50;color:#fff;">Admission No</th>
+                    <th style="background:#2c3e50;color:#fff;">Roll No</th>
+                    <th style="background:#2c3e50;color:#fff;">Student Name</th>
+                    <th style="min-width:340px;background:#2c3e50;color:#fff;">Attendance</th>
+                    <th style="min-width:130px;background:#2c3e50;color:#fff;">Note</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <?php $row_count = 1; foreach ($resultlist as $value): ?>
+                  <?php
+                  // Find present type ID for default selection
+                  $present_type_id = null;
+                  if (!empty($attendencetypeslist)) {
+                    foreach ($attendencetypeslist as $_t) {
+                      if (strtolower($_t['type']) === 'present') { $present_type_id = $_t['id']; break; }
+                    }
+                    if (!$present_type_id) $present_type_id = $attendencetypeslist[0]['id'];
+                  }
+                  $row_count = 1;
+                  foreach ($resultlist as $key => $value):
+                  ?>
                   <tr>
-                    <td class="att-sno">
-                      <input type="hidden" name="student_session[]"
-                             value="<?php echo $value['student_session_id']; ?>">
-                      <input type="hidden" name="attendance_id<?php echo $value['student_session_id']; ?>"
-                             value="<?php echo $value['student_subject_attendance_id']; ?>">
-                      <?php echo $row_count; ?>
+                    <td style="vertical-align:middle;">
+                      <input type="hidden" name="student_session[]" value="<?php echo $value['student_session_id']; ?>">
+                      <input type="hidden" name="attendance_id<?php echo $value['student_session_id']; ?>" value="<?php echo $value['student_subject_attendance_id']; ?>">
+                      <strong style="color:#666;"><?php echo $row_count; ?></strong>
                     </td>
-                    <td class="att-sub"><?php echo $value['admission_no']; ?></td>
-                    <td class="att-sub"><?php echo $value['roll_no']; ?></td>
-                    <td>
-                      <span class="att-name">
-                        <?php echo $this->customlib->getFullName(
-                          $value['firstname'], $value['middlename'],
-                          $value['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?>
-                      </span>
-                    </td>
-                    <td>
-                      <div class="att-pill-group" id="pills_<?php echo $value['student_session_id']; ?>">
-                        <?php
-                          // Resolve the Present type ID once
-                          $present_type_id = null;
-                          foreach ($attendencetypeslist as $_t) {
-                            if (strtolower($_t['type']) === 'present') { $present_type_id = $_t['id']; break; }
-                          }
-                          if (!$present_type_id) $present_type_id = $attendencetypeslist[0]['id'] ?? 1;
+                    <td style="vertical-align:middle;font-size:12px;color:#888;"><?php echo $value['admission_no']; ?></td>
+                    <td style="vertical-align:middle;font-size:12px;color:#888;"><?php echo $value['roll_no']; ?></td>
+                    <td style="vertical-align:middle;"><strong style="color:#2c3e50;"><?php echo $this->customlib->getFullName($value['firstname'], $value['middlename'], $value['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></strong></td>
+                    <td style="vertical-align:middle;">
+                      <div class="att-pill-group">
+                        <?php $cnt = 0; foreach ($attendencetypeslist as $atype):
+                          $akey = str_replace(" ", "_", strtolower($atype['type']));
+                          $acfg = $att_colors[$akey] ?? $att_default;
+                          $achk = ($value['date'] != 'xxx')
+                            ? ($value['attendence_type_id'] == $atype['id'])
+                            : ($atype['id'] == $present_type_id);
+                          $apid = 'ap_' . $value['student_session_id'] . '_' . $cnt;
                         ?>
-                        <?php $count=0; foreach ($attendencetypeslist as $type):
-                          $att_key = str_replace(" ", "_", strtolower($type['type']));
-                          $cfg     = $att_colors[$att_key] ?? $att_default;
-                          if ($value['date'] != "xxx") {
-                            // Existing attendance — highlight what was saved
-                            $is_checked = ((string)$value['attendence_type_id'] === (string)$type['id']);
-                          } else {
-                            // Fresh — default to Present
-                            $is_checked = ($type['id'] == $present_type_id);
-                          }
-                          $pill_id = 'att_' . $value['student_session_id'] . '_' . $count;
-                        ?>
-                        <label class="att-pill <?php echo $is_checked ? 'selected' : ''; ?>"
-                               for="<?php echo $pill_id; ?>"
-                               style="<?php echo $is_checked
-                                 ? "background:{$cfg['bg']};color:{$cfg['text']};"
-                                 : "background:{$cfg['bg']}18;color:{$cfg['bg']};border-color:{$cfg['bg']}40;"; ?>">
-                          <input type="radio"
-                                 id="<?php echo $pill_id; ?>"
+                        <label class="att-pill<?php echo $achk ? ' selected' : ''; ?>"
+                               for="<?php echo $apid; ?>"
+                               style="<?php echo $achk ? "background:{$acfg['bg']};color:{$acfg['text']};" : "background:{$acfg['bg']}20;color:{$acfg['bg']};border:1.5px solid {$acfg['bg']}50;"; ?>">
+                          <input type="radio" id="<?php echo $apid; ?>"
                                  name="attendencetype<?php echo $value['student_session_id']; ?>"
-                                 value="<?php echo $type['id']; ?>"
-                                 class="radio_<?php echo $type['id']; ?>"
-                                 <?php echo $is_checked ? 'checked' : ''; ?>>
-                          <i class="fa <?php echo $cfg['icon']; ?>"></i>
-                          <?php echo $this->lang->line($att_key); ?>
+                                 value="<?php echo $atype['id']; ?>"
+                                 class="radio_<?php echo $atype['id']; ?>"
+                                 <?php echo $achk ? 'checked' : ''; ?>>
+                          <i class="fa <?php echo $acfg['icon']; ?>"></i>
+                          <?php echo $this->lang->line($akey); ?>
                         </label>
-                        <?php $count++; endforeach; ?>
+                        <?php $cnt++; endforeach; ?>
                       </div>
                     </td>
-                    <td>
-                      <input type="text" class="att-note"
+                    <td style="vertical-align:middle;">
+                      <input type="text" class="form-control input-sm"
                              name="remark<?php echo $value['student_session_id']; ?>"
                              value="<?php echo ($value['date'] != 'xxx') ? htmlspecialchars($value['remark'] ?? '') : ''; ?>"
-                             placeholder="Note...">
+                             placeholder="Note..." style="border-radius:6px;">
                     </td>
                   </tr>
                   <?php $row_count++; endforeach; ?>
