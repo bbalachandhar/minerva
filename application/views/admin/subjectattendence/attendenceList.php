@@ -400,12 +400,13 @@ $(function(){
   function updatePillGroup($group) {
     $group.find('.att-pill').each(function(){
       var $radio = $(this).find('input[type="radio"]');
-      var val    = $radio.val();
-      var cfg    = attColors[val] || {bg:'#7f8c8d', text:'#fff'};
+      // Strip "radio_" prefix used by bulk-bar radios (value="radio_1" → "1")
+      var val = ($radio.val() || '').replace('radio_', '');
+      var cfg = attColors[val] || {bg:'#95a5a6', text:'#fff'};
       if ($radio.is(':checked')) {
-        $(this).css({ background: cfg.bg, color: cfg.text, border: '2px solid transparent' });
+        $(this).css({ background: cfg.bg, color: cfg.text, border: '2px solid ' + cfg.bg });
       } else {
-        $(this).css({ background: cfg.bg+'22', color: cfg.bg, border: '1.5px solid ' + cfg.bg + '55' });
+        $(this).css({ background: '#f5f5f5', color: '#888', border: '1.5px solid #ddd' });
       }
     });
   }
@@ -414,8 +415,18 @@ $(function(){
     updatePillGroup($(this).closest('.att-pill-group'));
   });
 
-  // On page load: apply correct styles to pre-checked radios (set by PHP)
-  $('.att-pill-group').each(function(){ updatePillGroup($(this)); });
+  // Run after DataTables finishes drawing (student rows)
+  // Use setTimeout to ensure DataTables has re-rendered
+  setTimeout(function(){
+    $('.att-pill-group').each(function(){ updatePillGroup($(this)); });
+  }, 100);
+
+  // Also hook DataTables draw event if table is initialized
+  if ($.fn.DataTable) {
+    $(document).on('draw.dt', function(){
+      $('.att-pill-group').each(function(){ updatePillGroup($(this)); });
+    });
+  }
 
   // ── Bulk set all students ──
   $(document).on('change', '.default_radio', function(){
