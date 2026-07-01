@@ -91,10 +91,7 @@
           <div class="form-group">
             <label>Class <small class="req">*</small></label>
             <select id="class_id" name="class_id" class="form-control">
-              <option value="">Select Class</option>
-              <?php foreach ($classlist as $c): ?>
-              <option value="<?php echo $c['id']; ?>" <?php if ($this->input->post('class_id')==$c['id']) echo 'selected'; ?>><?php echo htmlspecialchars($c['class']); ?></option>
-              <?php endforeach; ?>
+              <option value="">— Select Class —</option>
             </select>
           </div>
         </div>
@@ -251,40 +248,86 @@ var SCHOOL = '<?php echo addslashes(htmlspecialchars($sch_setting->name ?? ''));
 flatpickr('#pick_date', { dateFormat:'Y-m-d', altInput:true, altFormat:'D, d M Y', maxDate:'today', allowInput:false });
 
 $(window).on('load', function() {
+    var savedCls = '<?php echo addslashes($this->input->post('class_id') ?: ''); ?>';
+    var savedSec = '<?php echo addslashes($this->input->post('section_id') ?: ''); ?>';
+    var savedStt = '<?php echo addslashes($this->input->post('subject_timetable_id') ?: ''); ?>';
+    var savedDt  = '<?php echo addslashes($this->input->post('date') ?: ''); ?>';
+    var allClasses = [];
+
+    // ── Select2 ─────────────────────────────────────────────────
     var s2 = {width:'100%', allowClear:true};
-    $('#department_id').select2($.extend({},s2,{placeholder:'— All Departments —'}));
+    $('#department_id').select2($.extend({},s2,{placeholder:'— All Departments (optional) —'}));
     $('#class_id').select2($.extend({},s2,{placeholder:'— Select Class —'}));
     $('#section_id').select2($.extend({},s2,{placeholder:'— Select Section —'}));
     $('#subject_timetable_id').select2($.extend({},s2,{placeholder:'— Select Period —'}));
 
-    var savedCls = '<?php echo addslashes($this->input->post('class_id') ?: ''); ?>';
-    var savedSec = '<?php echo addslashes($this->input->post('section_id') ?: ''); ?>';
-    if (savedCls) loadSections(savedCls, savedSec);
+    // ── Load all classes on page load ────────────────────────────
+    $.getJSON(baseurl+'attendencereports/getAllAcademicClasses', function(data) {
+        allClasses = data;
+        renderClasses(allClasses, savedCls, function() {
+            if (savedCls) {
+                loadSections(savedCls, savedSec, function() {
+                    if (savedSec && savedDt) loadPeriods();
+                });
+            }
+        });
+    });
 
-    $('#department_id').on('change', function() { resetDrop('#class_id','— Select Class —'); resetDrop('#section_id','— Select Section —'); resetDrop('#subject_timetable_id','— Select Period —'); });
-    $('#class_id').on('change select2:select', function() { resetDrop('#section_id','— Select Section —'); resetDrop('#subject_timetable_id','— Select Period —'); loadSections($(this).val(),''); });
-    $(document).on('change','#section_id', loadPeriods); $('#section_id').on('select2:select', loadPeriods);
+    // ── Department → filter classes (client-side) ────────────────
+    $('#department_id').on('select2:select select2:unselect select2:clear change', function() {
+        var deptId = $(this).val();
+        var filtered = deptId ? allClasses.filter(function(c){ return String(c.department_id) === String(deptId); }) : allClasses;
+        renderClasses(filtered, '', null);
+        resetDrop('#section_id','— Select Section —');
+        resetDrop('#subject_timetable_id','— Select Period —');
+    });
+
+    // ── Class → load sections ────────────────────────────────────
+    $(document).on('change', '#class_id', function() {
+        var cid=$(this).val();
+        resetDrop('#section_id','— Select Section —');
+        resetDrop('#subject_timetable_id','— Select Period —');
+        if (cid) loadSections(cid, '', null);
+    });
+    $('#class_id').on('select2:select', function() {
+        var cid=$(this).val();
+        resetDrop('#section_id','— Select Section —');
+        resetDrop('#subject_timetable_id','— Select Period —');
+        if (cid) loadSections(cid, '', null);
+    });
+
+    // ── Section or Date change → load periods ────────────────────
+    $(document).on('change','#section_id', loadPeriods);
+    $('#section_id').on('select2:select', loadPeriods);
     $('#pick_date').on('change', loadPeriods);
 
-    function loadSections(cid, sel) {
+    // ── Helpers ──────────────────────────────────────────────────
+    function renderClasses(classes, sel, callback) {
+        var h = '<option value="">— Select Class —</option>';
+        $.each(classes, function(i,c) {
+            h += '<option value="'+c.id+'" data-dept="'+c.department_id+'"'+(sel && sel==c.id?' selected':'')+'>'+esc(c['class'])+'</option>';
+        });
+        $('#class_id').html(h).trigger('change.select2');
+        if (callback) callback();
+    }
+    function loadSections(cid, sel, callback) {
         if (!cid) return;
         $.getJSON(baseurl+'sections/getByClass',{class_id:cid,department_id:$('#department_id').val()},function(data){
             var h='<option value="">— Select Section —</option>';
-            $.each(data,function(i,o){h+='<option value="'+o.section_id+'"'+(sel==o.section_id?' selected':'')+'>'+o.section+'</option>';});
+            $.each(data,function(i,o){h+='<option value="'+o.section_id+'"'+(sel && sel==o.section_id?' selected':'')+'>'+esc(o.section)+'</option>';});
             $('#section_id').html(h).trigger('change.select2');
+            if (callback) callback();
         });
     }
-
     function loadPeriods() {
         var cid=$('#class_id').val(), sid=$('#section_id').val(), dt=$('#pick_date').val();
         if (!cid || !sid || !dt) return;
         $.getJSON(baseurl+'attendencereports/getPeriodsForDay',{class_id:cid,section_id:sid,date:dt},function(data){
             var h='<option value="">— Select Period —</option>';
-            $.each(data,function(i,o){h+='<option value="'+o.id+'">'+esc(o.subject_name)+' ('+esc(o.time_from)+')</option>';});
+            $.each(data,function(i,o){h+='<option value="'+o.id+'"'+(savedStt && savedStt==o.id?' selected':'')+'>'+esc(o.subject_name)+' ('+esc(o.time_from)+')</option>';});
             $('#subject_timetable_id').html(h).trigger('change.select2');
         });
     }
-
     function resetDrop(sel,ph){ $(sel).html('<option value="">'+ph+'</option>').trigger('change.select2'); }
     function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 });

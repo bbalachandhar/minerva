@@ -1515,6 +1515,14 @@ class Attendencereports extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    // ── AJAX: all academic classes with dept_id (client-side dept filter) ─
+    public function getAllAcademicClasses()
+    {
+        $sql = "SELECT id, `class`, department_id FROM classes WHERE class_type = 'academic' ORDER BY LENGTH(`class`), `class` ASC";
+        $rows = $this->db->query($sql)->result_array();
+        $this->output->set_content_type('application/json')->set_output(json_encode($rows));
+    }
+
     // ── AJAX: get periods for a class-section-date ────────────────
     public function getPeriodsForDay()
     {
