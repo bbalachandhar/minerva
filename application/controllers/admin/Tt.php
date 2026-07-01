@@ -1564,6 +1564,78 @@ class Tt extends Admin_Controller
                 'msg' => "Sync complete: {$inserted} new periods added, {$updated} updated."];
     }
 
+    /**
+     * Sync a single tt_entry → subject_timetable row.
+     * Called automatically after every save_cell / delete_cell so that
+     * period-wise subject attendance always has up-to-date timetable data.
+     *
+     * On delete ($delete=true): removes the subject_timetable row only when
+     * no attendance records reference it (preserves historical attendance FKs).
+     */
+    private function _syncOneEntryToAttendance($tt_entry_id, $delete = false)
+    {
+        if ($delete) {
+            // Only delete if no attendance is linked to this subject_timetable row
+            $st = $this->db->where('tt_entry_id', $tt_entry_id)
+                           ->get('subject_timetable')->row();
+            if ($st) {
+                $has_attendance = $this->db->where('subject_timetable_id', $st->id)
+                                           ->count_all_results('student_subject_attendence');
+                if ($has_attendance == 0) {
+                    $this->db->where('id', $st->id)->delete('subject_timetable');
+                }
+                // If attendance exists: leave row intact — historical data preserved
+            }
+            return;
+        }
+
+        // Fetch the entry with period times and room
+        $entry = $this->db
+            ->select('te.id AS tt_entry_id, te.session_id, te.class_id, te.section_id,
+                      te.subject_group_subject_id, te.staff_id, te.day,
+                      sgs.subject_group_id,
+                      tp.start_time, tp.end_time,
+                      COALESCE(tr.room_number, tr.name, "") AS room_no')
+            ->from('tt_entries te')
+            ->join('tt_periods tp',              'tp.id = te.period_id',                   'left')
+            ->join('tt_rooms tr',                'tr.id = te.room_id',                     'left')
+            ->join('subject_group_subjects sgs', 'sgs.id = te.subject_group_subject_id',   'left')
+            ->where('te.id', $tt_entry_id)
+            ->where('te.is_free_period', 0)
+            ->where('te.subject_group_subject_id IS NOT NULL', null, false)
+            ->get()->row();
+
+        if (!$entry) {
+            // Entry is a free period or has no subject — remove from subject_timetable if safe
+            $this->_syncOneEntryToAttendance($tt_entry_id, true);
+            return;
+        }
+
+        $row = [
+            'session_id'               => $entry->session_id,
+            'class_id'                 => $entry->class_id,
+            'section_id'               => $entry->section_id,
+            'subject_group_id'         => $entry->subject_group_id,
+            'subject_group_subject_id' => $entry->subject_group_subject_id,
+            'staff_id'                 => $entry->staff_id,
+            'day'                      => $entry->day,
+            'time_from'                => $entry->start_time ? date('h:i A', strtotime($entry->start_time)) : '',
+            'time_to'                  => $entry->end_time   ? date('h:i A', strtotime($entry->end_time))   : '',
+            'start_time'               => $entry->start_time,
+            'end_time'                 => $entry->end_time,
+            'room_no'                  => $entry->room_no,
+            'tt_entry_id'              => $entry->tt_entry_id,
+        ];
+
+        $existing = $this->db->where('tt_entry_id', $tt_entry_id)
+                              ->get('subject_timetable')->row();
+        if ($existing) {
+            $this->db->where('id', $existing->id)->update('subject_timetable', $row);
+        } else {
+            $this->db->insert('subject_timetable', $row);
+        }
+    }
+
     // =========================================================================
     // CLASS TIMETABLE GRID (manual view/edit)
     // =========================================================================
@@ -2040,6 +2112,10 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         }
 
         $result = $this->Tt_entry_model->saveCell($data, $cell_id);
+        if ($result) {
+            // Sync the saved entry → subject_timetable so period attendance stays current
+            $this->_syncOneEntryToAttendance((int)$result);
+        }
         echo json_encode(['status' => $result ? '1' : '0']);
     }
 
@@ -2048,7 +2124,10 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
         if (!$this->rbac->hasPrivilege('tt_class_grid', 'can_delete')) {
             access_denied();
         }
-        $this->Tt_entry_model->deleteCell((int)$id);
+        $id = (int)$id;
+        // Sync-delete before the tt_entry row is gone (we still need tt_entry_id to find st row)
+        $this->_syncOneEntryToAttendance($id, true);
+        $this->Tt_entry_model->deleteCell($id);
         echo json_encode(['status' => '1']);
     }
 
@@ -2346,6 +2425,11 @@ td{border:1px solid #bbb;padding:4px 3px;vertical-align:middle;text-align:center
                 'entry_type'               => 'manual',
             ]);
             $entries_created++;
+        }
+
+        // Sync all new entries for this class/section → subject_timetable
+        if ($entries_created > 0) {
+            $this->_doSyncToAttendance();
         }
 
         echo json_encode([

@@ -174,9 +174,10 @@ class Tt_entry_model extends MY_Model
             $this->db->where('id', $existing_id)->update('tt_entries', $data);
         } else {
             $this->db->insert('tt_entries', $data);
+            $existing_id = $this->db->insert_id();
         }
         $this->db->trans_complete();
-        return $this->db->trans_status();
+        return $this->db->trans_status() ? $existing_id : false;
     }
 
     public function deleteCell($id)
