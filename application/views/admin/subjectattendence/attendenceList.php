@@ -30,7 +30,7 @@ $att_default = ['bg'=>'#e9ecef','text'=>'#555','icon'=>'fa-circle-o'];
   padding:5px 11px;border-radius:20px;cursor:pointer;
   font-size:11px;font-weight:600;border:2px solid transparent;
   transition:all .15s;user-select:none;white-space:nowrap;
-  background:#f0f2f5;color:#666;
+  background:#f0f2f5;color:#666;position:relative;overflow:hidden;
 }
 .att-pill:hover { filter:brightness(.93); }
 .att-pill.selected { border-color:transparent !important; }
@@ -303,14 +303,23 @@ $att_default = ['bg'=>'#e9ecef','text'=>'#555','icon'=>'fa-circle-o'];
                     </td>
                     <td>
                       <div class="att-pill-group" id="pills_<?php echo $value['student_session_id']; ?>">
+                        <?php
+                          // Resolve the Present type ID once
+                          $present_type_id = null;
+                          foreach ($attendencetypeslist as $_t) {
+                            if (strtolower($_t['type']) === 'present') { $present_type_id = $_t['id']; break; }
+                          }
+                          if (!$present_type_id) $present_type_id = $attendencetypeslist[0]['id'] ?? 1;
+                        ?>
                         <?php $count=0; foreach ($attendencetypeslist as $type):
                           $att_key = str_replace(" ", "_", strtolower($type['type']));
                           $cfg     = $att_colors[$att_key] ?? $att_default;
-                          // Determine if checked
                           if ($value['date'] != "xxx") {
-                            $is_checked = ($value['attendence_type_id'] == $type['id']);
+                            // Existing attendance — highlight what was saved
+                            $is_checked = ((string)$value['attendence_type_id'] === (string)$type['id']);
                           } else {
-                            $is_checked = ($count == 0); // default first = Present
+                            // Fresh — default to Present
+                            $is_checked = ($type['id'] == $present_type_id);
                           }
                           $pill_id = 'att_' . $value['student_session_id'] . '_' . $count;
                         ?>
@@ -385,44 +394,54 @@ $(function(){
   populateSection(section_id_post, class_id_post);
   getSubjects(class_id_post, section_id_post, date_post, subject_timetable_id);
 
-  // ── Attendance pill toggle (visual) ──
-  $(document).on('change', 'input[type="radio"].radio_<?php echo implode('], input[type="radio"].radio_', array_column($attendencetypeslist ?? [], 'id')); ?>, [class^="radio_"]', function(){}).end();
-
-  // Generic pill toggle for any attendance radio
-  $(document).on('change', '.att-pill input[type="radio"]', function(){
-    var $group = $(this).closest('.att-pill-group');
-    var typeId = $(this).val();
-    $group.find('.att-pill').each(function(){
-      var $radio = $(this).find('input[type="radio"]');
-      var cfg = attColors[$radio.val()] || {bg:'#e9ecef',text:'#555'};
-      if ($radio.is(':checked')) {
-        $(this).addClass('selected').css({
-          'background': cfg.bg, 'color': cfg.text, 'border-color': 'transparent'
-        });
-      } else {
-        $(this).removeClass('selected').css({
-          'background': cfg.bg + '18', 'color': cfg.bg, 'border-color': cfg.bg + '40'
-        });
-      }
-    });
-  });
-
   // ── Pill colours map for JS ──
   var attColors = {
-    <?php foreach ($attendencetypeslist as $type):
+    <?php if (!empty($attendencetypeslist)): foreach ($attendencetypeslist as $type):
       $att_key = str_replace(" ", "_", strtolower($type['type']));
       $cfg = $att_colors[$att_key] ?? $att_default;
     ?>
     "<?php echo $type['id']; ?>": { bg: "<?php echo $cfg['bg']; ?>", text: "<?php echo $cfg['text']; ?>" },
-    <?php endforeach; ?>
+    <?php endforeach; endif; ?>
   };
 
-  // ── Bulk set all ──
-  $('.default_radio').on('change', function(){
+  // ── Pill toggle: click label → update visual style ──
+  $(document).on('click', '.att-pill', function(){
+    var $group = $(this).closest('.att-pill-group');
+    $group.find('.att-pill').each(function(){
+      var $radio = $(this).find('input[type="radio"]');
+      var cfg    = attColors[$radio.val()] || {bg:'#95a5a6', text:'#fff'};
+      if ($radio.is(':checked')) {
+        $(this).addClass('selected').css({ background: cfg.bg, color: cfg.text, borderColor: 'transparent' });
+      } else {
+        $(this).removeClass('selected').css({ background: cfg.bg+'18', color: cfg.bg, borderColor: cfg.bg+'40' });
+      }
+    });
+  });
+
+  // ── Bulk set all students ──
+  $(document).on('change', '.default_radio', function(){
     var returnVal = confirm("<?php echo $this->lang->line('are_you_sure'); ?>");
     if (!returnVal) { $(this).prop('checked', false); return false; }
-    var radioClass = $(this).val(); // e.g. "radio_1"
-    $('input[type="radio"][class="' + radioClass + '"]').prop('checked', true).trigger('change');
+    var typeId = $(this).val().replace('radio_', ''); // "radio_1" → "1"
+    // Check the matching radio in every student's pill group and refresh visuals
+    $('.att-pill-group').each(function(){
+      var $match = $(this).find('input[type="radio"][value="' + typeId + '"]');
+      if ($match.length) {
+        $match.prop('checked', true);
+        $(this).find('.att-pill').trigger('click.refresh');
+        // Directly update styles
+        var cfg = attColors[typeId] || {bg:'#95a5a6', text:'#fff'};
+        $(this).find('.att-pill').each(function(){
+          var $r = $(this).find('input[type="radio"]');
+          if ($r.val() == typeId) {
+            $(this).addClass('selected').css({ background: cfg.bg, color: cfg.text, borderColor: 'transparent' });
+          } else {
+            var c2 = attColors[$r.val()] || {bg:'#95a5a6'};
+            $(this).removeClass('selected').css({ background: c2.bg+'18', color: c2.bg, borderColor: c2.bg+'40' });
+          }
+        });
+      }
+    });
   });
 
   // ── Section population ──
