@@ -30,14 +30,28 @@ $att_default = ['bg'=>'#7f8c8d','text'=>'#fff','icon'=>'fa-circle-o'];
 .att-pill-group { display:flex;flex-wrap:wrap;gap:5px; }
 .att-pill {
   display:inline-flex;align-items:center;gap:5px;
-  padding:5px 11px;border-radius:20px;cursor:pointer;
-  font-size:11px;font-weight:600;border:2px solid transparent;
-  transition:all .15s;user-select:none;white-space:nowrap;
-  background:#f0f2f5;color:#666;position:relative;overflow:hidden;
+  padding:6px 13px;border-radius:20px;cursor:pointer;
+  font-size:11px;font-weight:600;border:1.5px solid #ddd;
+  transition:background .15s,color .15s,border-color .15s;
+  user-select:none;white-space:nowrap;
+  background:#f5f5f5;color:#888;position:relative;overflow:hidden;
 }
-.att-pill:hover { filter:brightness(.93); }
-.att-pill.selected { border-color:transparent !important; }
 .att-pill input[type="radio"] { position:absolute;opacity:0;width:0;height:0; }
+/* Per-type colours via CSS class — works without JS */
+.att-pill.p-present  { background:#eafaf1;color:#27ae60;border-color:#a9dfbf; }
+.att-pill.p-late     { background:#fef9e7;color:#d68910;border-color:#f9e79f; }
+.att-pill.p-late_with_excuse { background:#fef5e4;color:#ca6f1e;border-color:#f5cba7; }
+.att-pill.p-absent   { background:#fdedec;color:#e74c3c;border-color:#fadbd8; }
+.att-pill.p-holiday  { background:#eaf2ff;color:#2e86c1;border-color:#aed6f1; }
+.att-pill.p-half_day { background:#f5eef8;color:#8e44ad;border-color:#d7bde2; }
+/* Selected / active state */
+.att-pill.att-active.p-present  { background:#27ae60;color:#fff;border-color:#27ae60; }
+.att-pill.att-active.p-late     { background:#f39c12;color:#fff;border-color:#f39c12; }
+.att-pill.att-active.p-late_with_excuse { background:#e67e22;color:#fff;border-color:#e67e22; }
+.att-pill.att-active.p-absent   { background:#e74c3c;color:#fff;border-color:#e74c3c; }
+.att-pill.att-active.p-holiday  { background:#3498db;color:#fff;border-color:#3498db; }
+.att-pill.att-active.p-half_day { background:#9b59b6;color:#fff;border-color:#9b59b6; }
+.att-pill.att-active            { background:#7f8c8d;color:#fff;border-color:#7f8c8d; } /* fallback */
 
 /* Student table */
 .att-table { width:100%;border-collapse:collapse;font-size:13px; }
@@ -247,7 +261,7 @@ $att_default = ['bg'=>'#7f8c8d','text'=>'#fff','icon'=>'fa-circle-o'];
                   $att_key = str_replace(" ", "_", strtolower($type['type']));
                   $cfg = $att_colors[$att_key] ?? $att_default;
                 ?>
-                <label class="att-pill default_radio_label" style="background:<?php echo $cfg['bg']; ?>20;color:<?php echo $cfg['bg']; ?>;border:2px solid <?php echo $cfg['bg']; ?>40;">
+                <label class="att-pill p-<?php echo $att_key; ?> default_radio_label">
                   <input type="radio" name="attendencetype" class="default_radio" value="radio_<?php echo $type['id']; ?>" id="bulk_<?php echo $type['id']; ?>">
                   <i class="fa <?php echo $cfg['icon']; ?>"></i>
                   <?php echo $this->lang->line($att_key); ?>
@@ -318,9 +332,8 @@ $att_default = ['bg'=>'#7f8c8d','text'=>'#fff','icon'=>'fa-circle-o'];
                             : ($atype['id'] == $present_type_id);
                           $apid = 'ap_' . $value['student_session_id'] . '_' . $cnt;
                         ?>
-                        <label class="att-pill<?php echo $achk ? ' selected' : ''; ?>"
-                               for="<?php echo $apid; ?>"
-                               style="<?php echo $achk ? "background:{$acfg['bg']};color:{$acfg['text']};" : "background:{$acfg['bg']}20;color:{$acfg['bg']};border:1.5px solid {$acfg['bg']}50;"; ?>">
+                        <label class="att-pill p-<?php echo $akey; ?><?php echo $achk ? ' att-active' : ''; ?>"
+                               for="<?php echo $apid; ?>">
                           <input type="radio" id="<?php echo $apid; ?>"
                                  name="attendencetype<?php echo $value['student_session_id']; ?>"
                                  value="<?php echo $atype['id']; ?>"
@@ -400,13 +413,10 @@ $(function(){
   function updatePillGroup($group) {
     $group.find('.att-pill').each(function(){
       var $radio = $(this).find('input[type="radio"]');
-      // Strip "radio_" prefix used by bulk-bar radios (value="radio_1" → "1")
-      var val = ($radio.val() || '').replace('radio_', '');
-      var cfg = attColors[val] || {bg:'#95a5a6', text:'#fff'};
       if ($radio.is(':checked')) {
-        $(this).css({ background: cfg.bg, color: cfg.text, border: '2px solid ' + cfg.bg });
+        $(this).addClass('att-active');
       } else {
-        $(this).css({ background: '#f5f5f5', color: '#888', border: '1.5px solid #ddd' });
+        $(this).removeClass('att-active');
       }
     });
   }
