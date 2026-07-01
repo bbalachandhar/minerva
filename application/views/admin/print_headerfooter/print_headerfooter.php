@@ -171,6 +171,7 @@ if ($this->session->flashdata('msg') != '') {
 
 <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css">
 <script src="<?php echo base_url(); ?>backend/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.all.min.js"></script>
+<script src="<?php echo base_url(); ?>backend/dist/js/bootstrap-filestyle.min.js"></script>
 
 <script>
     $(function () {
