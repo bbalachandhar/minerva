@@ -242,10 +242,18 @@ $card4_label  = $is_period ? 'Periods Not Marked'      : 'Classes Not Marked';
           </div>
         </div>
         <div class="ad-trend-body">
-          <canvas id="weeklyChart"></canvas>
-          <div id="trend-empty" style="display:none;text-align:center;padding:50px 0;color:#9ca3af;">
-            <i class="fa fa-bar-chart" style="font-size:28px;display:block;margin-bottom:8px;opacity:.35;"></i>
-            No attendance data in past 7 days
+          <!-- explicit height needed: Chart.js ignores max-height on canvas -->
+          <canvas id="weeklyChart" style="height:200px;"></canvas>
+          <div id="trend-empty" style="display:none;text-align:center;padding:36px 20px;">
+            <i class="fa fa-bar-chart" style="font-size:36px;display:block;margin-bottom:10px;color:#c7d2fe;"></i>
+            <div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:6px;">No data yet for this week</div>
+            <div style="font-size:12px;color:#6b7280;max-width:260px;margin:0 auto;line-height:1.6;">
+              The trend builds automatically as teachers mark attendance each day.
+              Check back tomorrow to see the pattern.
+            </div>
+          </div>
+          <div id="trend-single-note" style="display:none;text-align:center;padding:6px 0 2px;font-size:11px;color:#6b7280;">
+            <i class="fa fa-info-circle"></i> Only today's data available — chart will grow as the week progresses
           </div>
         </div>
       </div>
@@ -271,6 +279,9 @@ $card4_label  = $is_period ? 'Periods Not Marked'      : 'Classes Not Marked';
         <span><span class="hm-dot" style="background:#fef3c7;border:1px solid #fde68a;"></span> Partial</span>
         <span><span class="hm-dot" style="background:#fee2e2;border:1px solid #fca5a5;"></span> Not Marked</span>
         <span><span class="hm-dot" style="background:#f3f4f6;border:1px solid #e5e7eb;"></span> No Schedule Today</span>
+        <span style="margin-left:auto;color:#9ca3af;font-size:11px;" id="hm-section-note">
+          <i class="fa fa-info-circle"></i> Sections are dynamic — from today's timetable
+        </span>
       </div>
     </div>
 
@@ -284,6 +295,22 @@ $card4_label  = $is_period ? 'Periods Not Marked'      : 'Classes Not Marked';
       </div>
     </div>
     <div class="ad-box">
+      <!-- Context strip: explains why count may seem low -->
+      <div id="low-ctx-strip" style="display:none;background:#f8fafc;border-bottom:1px solid #f3f4f6;padding:10px 16px;font-size:12px;color:#374151;display:flex;gap:20px;flex-wrap:wrap;align-items:center;">
+        <span><i class="fa fa-users" style="color:#6366f1;margin-right:4px;"></i>
+          <strong id="ctx-covered">—</strong> students with attendance records this month
+        </span>
+        <span><i class="fa fa-exclamation-triangle" style="color:#dc2626;margin-right:4px;"></i>
+          <strong id="ctx-below">—</strong> below <?php echo $low_limit; ?>%
+        </span>
+        <span><i class="fa fa-clock-o" style="color:#9ca3af;margin-right:4px;"></i>
+          <strong id="ctx-enrolled">—</strong> total enrolled
+        </span>
+        <span style="color:#9ca3af;font-size:11px;margin-left:auto;">
+          <i class="fa fa-info-circle"></i>
+          Students whose class hasn't been marked yet are not shown here — they have no records to calculate % from.
+        </span>
+      </div>
       <div id="low-att-wrap" style="overflow:hidden;">
         <table class="ad-low-tbl">
           <thead>
@@ -426,32 +453,64 @@ function loadTrend() {
     return fetch(ATT_BASE + '/ajax_weekly_trend', {credentials:'same-origin'})
         .then(r => r.json()).then(function(d) {
             trendData = d.rows || [];
-            var emEl = document.getElementById('trend-empty');
-            if (!trendData.length) { emEl.style.display='block'; return; }
-            emEl.style.display='none';
+            var emEl    = document.getElementById('trend-empty');
+            var noteEl  = document.getElementById('trend-single-note');
+            var canvasEl= document.getElementById('weeklyChart');
+
+            if (!trendData.length) {
+                emEl.style.display = 'block';
+                canvasEl.style.display = 'none';
+                return;
+            }
+            emEl.style.display = 'none';
+            canvasEl.style.display = 'block';
+
+            var isSingle = (trendData.length === 1);
+            if (isSingle) {
+                noteEl.style.display = 'block';
+            } else {
+                noteEl.style.display = 'none';
+            }
+
             var labels = trendData.map(function(r){
                 var dt=new Date(r.date+'T00:00:00');
                 return dt.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
             });
-            var pcts = trendData.map(function(r){return parseFloat(r.pct)||0;});
-            var ctx  = document.getElementById('weeklyChart').getContext('2d');
+            var pcts = trendData.map(function(r){ return parseFloat(r.pct)||0; });
+            var ptColors = pcts.map(function(p){ return p>=80?'#059669':p>=60?'#d97706':'#dc2626'; });
+
+            var ctx = canvasEl.getContext('2d');
             if(trendChart) trendChart.destroy();
-            trendChart=new Chart(ctx,{
-                type:'line',
-                data:{labels:labels,datasets:[{
-                    label:'Present %',data:pcts,
-                    borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.08)',
-                    borderWidth:2.5,fill:true,tension:0.35,
-                    pointBackgroundColor:pcts.map(function(p){return p>=80?'#059669':p>=60?'#d97706':'#dc2626';}),
-                    pointRadius:5,pointHoverRadius:7
-                }]},
-                options:{
-                    responsive:true,maintainAspectRatio:true,
-                    scales:{
-                        y:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'#f3f4f6'}},
-                        x:{ticks:{font:{size:10}},grid:{display:false}}
+
+            // Use bar for single day, line for multiple days
+            var chartType = isSingle ? 'bar' : 'line';
+            var dataset = isSingle ? {
+                label:'Present %', data: pcts,
+                backgroundColor: ptColors,
+                borderColor: ptColors, borderWidth: 0,
+                borderRadius: 6,
+            } : {
+                label:'Present %', data: pcts,
+                borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.08)',
+                borderWidth: 2.5, fill: true, tension: 0.35,
+                pointBackgroundColor: ptColors,
+                pointRadius: 5, pointHoverRadius: 7,
+            };
+
+            trendChart = new Chart(ctx, {
+                type: chartType,
+                data: { labels: labels, datasets: [dataset] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,  // must be false to respect canvas height attribute
+                    scales: {
+                        y: { min:0, max:100, ticks:{ callback: v => v+'%', font:{size:11} }, grid:{ color:'#f3f4f6' } },
+                        x: { ticks:{ font:{size:10} }, grid:{ display:false } }
                     },
-                    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+'% present'}}}
+                    plugins: {
+                        legend: { display:false },
+                        tooltip: { callbacks: { label: ctx => ctx.parsed.y+'% present' } }
+                    }
                 }
             });
         }).catch(function(){});
@@ -477,6 +536,11 @@ function loadHeatmap() {
             var cids=Object.keys(classes);
             var sids=Object.keys(sections);
             var link=isPd?'<?php echo site_url("attendencereports/reportbymonth"); ?>':'<?php echo site_url("attendencereports/classattendencereport"); ?>';
+
+            // Update legend note with actual section count
+            var secNames = sids.map(function(sid){ return sections[sid]; }).join(', ');
+            var noteEl = document.getElementById('hm-section-note');
+            if (noteEl) noteEl.innerHTML = '<i class="fa fa-info-circle"></i> Dynamic from today\'s timetable &mdash; <strong>'+sids.length+' section'+(sids.length!==1?'s':'')+' found</strong> ('+esc(secNames)+')';
 
             var tbl='<table class="ad-hm-tbl"><thead><tr><th class="ad-hm-th-cls">Class</th>';
             sids.forEach(function(sid){tbl+='<th>'+esc(sections[sid])+'</th>';});
@@ -507,6 +571,19 @@ function loadLowAtt() {
         .then(r => r.json()).then(function(d) {
             lowAttData = d.rows || [];
             lowPage = 1;
+
+            // Populate context strip
+            var strip    = document.getElementById('low-ctx-strip');
+            var covEl    = document.getElementById('ctx-covered');
+            var belowEl  = document.getElementById('ctx-below');
+            var enrollEl = document.getElementById('ctx-enrolled');
+            if (strip && covEl) {
+                covEl.textContent    = (d.covered   || 0).toLocaleString();
+                belowEl.textContent  = lowAttData.length.toLocaleString();
+                enrollEl.textContent = (d.enrolled  || 0).toLocaleString();
+                strip.style.display  = 'flex';
+            }
+
             renderLowPage();
         }).catch(function(){document.getElementById('low-att-tbody').innerHTML='<tr><td colspan="8" style="color:#ef4444;padding:16px;">Error loading data.</td></tr>';});
 }
