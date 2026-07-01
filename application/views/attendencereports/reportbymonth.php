@@ -361,7 +361,7 @@ $(window).on('load', function() {
         // Use explicit $.ajax (not $.post shorthand) for reliable JSON handling
         $.ajax({
             type: 'POST',
-            url:  baseurl + 'admin/subjectgroup/getAllSubjectByClassandSection',
+            url:  baseurl + 'attendencereports/getSubjectsByClassSection',
             data: {class_id: cid, section_id: sid},
             dataType: 'json',
             success: function(data) {
