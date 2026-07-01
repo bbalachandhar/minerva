@@ -57,13 +57,23 @@
         <!-- ── Period-wise student reports ──────────────────── -->
         <?php if (is_subAttendence()) {
             if ($this->rbac->hasPrivilege('student_period_attendance_report', 'can_view')) { ?>
-        <a href="<?php echo site_url('attendencereports/reportbymonth'); ?>" class="report-tile <?php echo set_subSubmenu('Reports/attendence/reportbymonth'); ?>">
-            <span class="tile-icon"><i class="fa fa-th"></i></span>
-            Class Attendance Matrix
+        <!-- Period-wise: CLASS-LEVEL reports -->
+        <a href="<?php echo site_url('attendencereports/classdaymatrix'); ?>" class="report-tile <?php echo set_subSubmenu('Reports/attendence/classdaymatrix'); ?>" title="One date → all students × all periods">
+            <span class="tile-icon" style="background:#eef2ff;color:#6366f1;"><i class="fa fa-th"></i></span>
+            Day Attendance Matrix
         </a>
-        <a href="<?php echo site_url('attendencereports/reportbymonthstudent'); ?>" class="report-tile <?php echo set_subSubmenu('Reports/attendence/reportbymonthstudent'); ?>">
+        <a href="<?php echo site_url('attendencereports/classperiodrollcall'); ?>" class="report-tile <?php echo set_subSubmenu('Reports/attendence/classperiodrollcall'); ?>" title="One period → all students attendance">
+            <span class="tile-icon" style="background:#f0fdf4;color:#059669;"><i class="fa fa-list-ol"></i></span>
+            Period Roll Call
+        </a>
+        <a href="<?php echo site_url('attendencereports/reportbymonth'); ?>" class="report-tile <?php echo set_subSubmenu('Reports/attendence/reportbymonth'); ?>" title="Monthly: all students × all subjects %">
+            <span class="tile-icon" style="background:#f5f3ff;color:#8b5cf6;"><i class="fa fa-bar-chart"></i></span>
+            Monthly Class Matrix
+        </a>
+        <!-- Period-wise: INDIVIDUAL student report -->
+        <a href="<?php echo site_url('attendencereports/reportbymonthstudent'); ?>" class="report-tile <?php echo set_subSubmenu('Reports/attendence/reportbymonthstudent'); ?>" title="One student monthly period timeline">
             <span class="tile-icon"><i class="fa fa-user-circle"></i></span>
-            <?php echo $this->lang->line('student_period_attendance'); ?>
+            Student Monthly Report
         </a>
             <?php }
             if ($this->rbac->hasPrivilege('teacher_marking_coverage', 'can_view')) { ?>

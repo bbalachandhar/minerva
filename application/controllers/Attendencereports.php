@@ -1515,6 +1515,125 @@ class Attendencereports extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    // ── AJAX: get periods for a class-section-date ────────────────
+    public function getPeriodsForDay()
+    {
+        $class_id   = $this->input->get('class_id');
+        $section_id = $this->input->get('section_id');
+        $date       = $this->input->get('date');
+        if (!$class_id || !$section_id || !$date) { echo json_encode([]); return; }
+        $day        = date('l', strtotime($date));
+        $session    = $this->setting_model->getCurrentSession();
+        $sql = "SELECT DISTINCT st.id, st.time_from, st.time_to,
+                       subj.name AS subject_name, subj.code AS subject_code
+                FROM subject_timetable st
+                JOIN subject_group_subjects sgs ON sgs.id = st.subject_group_subject_id
+                JOIN subjects subj ON subj.id = sgs.subject_id
+                WHERE st.class_id = " . $this->db->escape($class_id) . "
+                  AND st.section_id = " . $this->db->escape($section_id) . "
+                  AND st.day = " . $this->db->escape($day) . "
+                  AND st.session_id = " . $this->db->escape($session) . "
+                ORDER BY st.start_time ASC";
+        $rows = $this->db->query($sql)->result_array();
+        $this->output->set_content_type('application/json')->set_output(json_encode($rows));
+    }
+
+    // ── Period Roll Call: one specific period → all students ──────
+    public function classperiodrollcall()
+    {
+        if (!$this->rbac->hasPrivilege('student_period_attendance_report', 'can_view')) {
+            access_denied();
+        }
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/attendence');
+        $this->session->set_userdata('subsub_menu', 'Reports/attendence/classperiodrollcall');
+
+        $sch_setting             = $this->setting_model->getSetting();
+        $data['sch_setting']     = $sch_setting;
+        $data['classlist']       = $this->class_model->get('', $classteacher = 'yes');
+        $data['department_list'] = $this->Department_model->getDepartmentsForSession($this->setting_model->getCurrentSession());
+        $data['attendencetypeslist'] = $this->attendencetype_model->get();
+        $data['result']          = null;
+        $data['periods']         = [];
+        $data['selected_period'] = null;
+
+        if ($this->input->post('class_id')) {
+            $class_id   = $this->input->post('class_id');
+            $section_id = $this->input->post('section_id');
+            $date       = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date')));
+            $stt_id     = $this->input->post('subject_timetable_id');
+            $session    = $this->setting_model->getCurrentSession();
+            $day        = date('l', strtotime($date));
+
+            // Load today's periods for this class-section so user can pick one
+            $period_sql = "SELECT DISTINCT st.id, st.time_from, st.time_to, st.start_time,
+                                  subj.name AS subject_name, subj.code AS subject_code,
+                                  TRIM(CONCAT(stf.name,' ',IFNULL(stf.surname,''))) AS teacher_name
+                           FROM subject_timetable st
+                           JOIN subject_group_subjects sgs ON sgs.id = st.subject_group_subject_id
+                           JOIN subjects subj ON subj.id = sgs.subject_id
+                           LEFT JOIN staff stf ON stf.id = st.staff_id
+                           WHERE st.class_id = " . $this->db->escape($class_id) . "
+                             AND st.section_id = " . $this->db->escape($section_id) . "
+                             AND st.day = " . $this->db->escape($day) . "
+                             AND st.session_id = " . $this->db->escape($session) . "
+                           ORDER BY st.start_time ASC";
+            $data['periods'] = $this->db->query($period_sql)->result_array();
+
+            if ($stt_id) {
+                $data['result'] = $this->studentsubjectattendence_model->searchAttendenceClassSection(
+                    $class_id, $section_id, $stt_id, $date
+                );
+                // Find selected period details
+                foreach ($data['periods'] as $p) {
+                    if ($p['id'] == $stt_id) { $data['selected_period'] = $p; break; }
+                }
+                $data['date_formatted']  = $this->customlib->dateformat($date);
+                $data['date_raw']        = $date;
+                $data['class_id']        = $class_id;
+                $data['section_id']      = $section_id;
+            }
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('attendencereports/classperiodrollcall', $data);
+        $this->load->view('layout/footer');
+    }
+
+    // ── Class Day Matrix: one date → all students × all periods ──
+    public function classdaymatrix()
+    {
+        if (!$this->rbac->hasPrivilege('student_period_attendance_report', 'can_view')) {
+            access_denied();
+        }
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/attendence');
+        $this->session->set_userdata('subsub_menu', 'Reports/attendence/classdaymatrix');
+
+        $sch_setting             = $this->setting_model->getSetting();
+        $data['sch_setting']     = $sch_setting;
+        $data['classlist']       = $this->class_model->get('', $classteacher = 'yes');
+        $data['department_list'] = $this->Department_model->getDepartmentsForSession($this->setting_model->getCurrentSession());
+        $data['attendencetypeslist'] = $this->attendencetype_model->get();
+        $data['matrix']          = null;
+
+        if ($this->input->post('class_id')) {
+            $class_id   = $this->input->post('class_id');
+            $section_id = $this->input->post('section_id');
+            $date       = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date')));
+            $session    = $this->setting_model->getCurrentSession();
+
+            $data['matrix']         = $this->studentsubjectattendence_model->getClassDayMatrix($class_id, $section_id, $date, $session);
+            $data['date_formatted'] = $this->customlib->dateformat($date);
+            $data['date_raw']       = $date;
+            $data['day_name']       = date('l', strtotime($date));
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('attendencereports/classdaymatrix', $data);
+        $this->load->view('layout/footer');
+    }
+
     public function reportbymonth()
     {
         $this->session->set_userdata('top_menu', 'Reports');
