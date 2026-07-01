@@ -12805,3 +12805,14 @@ WHERE s.code IN ('PLT','LIB','PE','SEM','NM','INTR','SKLD','MPRJ','FILM','NPTL')
     SELECT 1 FROM subject_group_subjects sgs2
     WHERE sgs2.subject_group_id = sg.id AND sgs2.subject_id = s.id
   );
+
+-- Fix NULL access_permissions on 7 TT sidebar sub-menus
+-- These were NULL so only super-admins could see them; any role with the
+-- corresponding permission can now access them.
+UPDATE sidebar_sub_menus SET access_permissions="('tt_dashboard','can_view')"      WHERE url='admin/tt/dashboard'       AND (access_permissions IS NULL OR access_permissions='');
+UPDATE sidebar_sub_menus SET access_permissions="('tt_class_avail','can_view')"    WHERE url='admin/tt/class_unavail'   AND (access_permissions IS NULL OR access_permissions='');
+UPDATE sidebar_sub_menus SET access_permissions="('tt_joint_lessons','can_view')"  WHERE url='admin/tt/joint_lessons'   AND (access_permissions IS NULL OR access_permissions='');
+UPDATE sidebar_sub_menus SET access_permissions="('tt_lesson_browser','can_view')" WHERE url='admin/tt/lesson_browser'  AND (access_permissions IS NULL OR access_permissions='');
+UPDATE sidebar_sub_menus SET access_permissions="('tt_room_avail','can_view')"     WHERE url='admin/tt/room_unavail'    AND (access_permissions IS NULL OR access_permissions='');
+UPDATE sidebar_sub_menus SET access_permissions="('tt_subject_colors','can_view')" WHERE url='admin/tt/subject_colors'  AND (access_permissions IS NULL OR access_permissions='');
+UPDATE sidebar_sub_menus SET access_permissions="('tt_subject_avail','can_view')"  WHERE url='admin/tt/subject_unavail' AND (access_permissions IS NULL OR access_permissions='');
