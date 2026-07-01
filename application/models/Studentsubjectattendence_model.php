@@ -463,7 +463,7 @@ class Studentsubjectattendence_model extends CI_Model
           GROUP BY ss.id
           HAVING pct < " . (int) $threshold . "
           ORDER BY pct ASC
-          LIMIT 20";
+          LIMIT 500";
         return $this->db->query($sql)->result_array();
     }
 
