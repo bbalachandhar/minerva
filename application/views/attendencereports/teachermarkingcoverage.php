@@ -51,6 +51,16 @@
 <section class="content">
     <?php $this->load->view('attendencereports/_attendance'); ?>
 
+    <!-- Flatpickr — loaded inline so it never depends on footer load order -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <style>
+    .flatpickr-input { cursor: pointer !important; background:#fff !important; }
+    .fp-wrap { position:relative; }
+    .fp-wrap .fp-icon { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#5b73e8; pointer-events:none; font-size:14px; }
+    </style>
+
     <!-- Filter form -->
     <div class="rpt-filter-box">
         <form method="post" action="<?php echo site_url('attendencereports/teachermarkingcoverage'); ?>">
@@ -59,15 +69,23 @@
                 <div class="col-md-3">
                     <div class="form-group">
                         <label>From Date <small class="req">*</small></label>
-                        <input type="text" name="from_date" id="from_date" class="form-control datepicker"
-                               value="<?php echo htmlspecialchars($from_date); ?>" autocomplete="off" placeholder="Select date">
+                        <div class="fp-wrap">
+                            <input type="text" name="from_date" id="from_date" class="form-control"
+                                   value="<?php echo htmlspecialchars($from_date); ?>"
+                                   autocomplete="off" placeholder="Select from date" readonly>
+                            <i class="fa fa-calendar fp-icon"></i>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="form-group">
                         <label>To Date <small class="req">*</small></label>
-                        <input type="text" name="to_date" id="to_date" class="form-control datepicker"
-                               value="<?php echo htmlspecialchars($to_date); ?>" autocomplete="off" placeholder="Select date">
+                        <div class="fp-wrap">
+                            <input type="text" name="to_date" id="to_date" class="form-control"
+                                   value="<?php echo htmlspecialchars($to_date); ?>"
+                                   autocomplete="off" placeholder="Select to date" readonly>
+                            <i class="fa fa-calendar fp-icon"></i>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-3" style="padding-top:22px;">
@@ -260,23 +278,36 @@ $(document).ready(function() {
     if (first) first.click();
 });
 
-// Datepicker: use $(window).load so bootstrap-datepicker JS is ready (loaded in footer)
-$(window).on('load', function() {
-    if ($.fn.datepicker) {
-        $('#from_date, #to_date').datepicker({
-            format:         '<?php echo $this->customlib->getdateformat(); ?>',
-            autoclose:      true,
-            todayHighlight: true,
-            weekStart:      1,
-            orientation:    'bottom auto'
-        });
-        // Ensure toDate >= fromDate
-        $('#from_date').on('changeDate', function(e) {
-            $('#to_date').datepicker('setStartDate', e.date);
-        });
-        $('#to_date').on('changeDate', function(e) {
-            $('#from_date').datepicker('setEndDate', e.date);
-        });
-    }
-});
+// Flatpickr — runs immediately since the script is embedded above
+(function initFlatpickr() {
+    // dateFormat Y-m-d: Flatpickr submits YYYY-MM-DD, customlib->datetostrtotime() handles it fine.
+    // altInput + altFormat gives the user a readable display like "Wed 01 Jul 2026".
+    var fromPicker = flatpickr('#from_date', {
+        dateFormat:  'Y-m-d',
+        altInput:    true,
+        altFormat:   'D, d M Y',
+        allowInput:  false,
+        maxDate:     'today',
+        disableMobile: false,
+        onChange: function(dates) {
+            if (dates.length) toPicker.set('minDate', dates[0]);
+        }
+    });
+    var toPicker = flatpickr('#to_date', {
+        dateFormat:  'Y-m-d',
+        altInput:    true,
+        altFormat:   'D, d M Y',
+        allowInput:  false,
+        maxDate:     'today',
+        disableMobile: false,
+        onChange: function(dates) {
+            if (dates.length) fromPicker.set('maxDate', dates[0]);
+        }
+    });
+    // If pre-filled values exist (page reloaded after submit), parse them
+    var fv = document.getElementById('from_date').value;
+    var tv = document.getElementById('to_date').value;
+    if (fv) fromPicker.setDate(fv, false);
+    if (tv) toPicker.setDate(tv, false);
+})();
 </script>

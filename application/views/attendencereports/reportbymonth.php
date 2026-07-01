@@ -320,7 +320,8 @@ $(window).on('load', function() {
     });
 
     // ── Class changes → reload sections ──────────────────────
-    $('#class_id').on('change', function() {
+    // Use BOTH direct and Select2 events to guarantee firing
+    $('#class_id').on('change select2:select', function() {
         var cid = $(this).val();
         resetDropdown('#section_id', '— Select Section —');
         resetDropdown('#subject_id', '— All Subjects —', true);
@@ -329,11 +330,17 @@ $(window).on('load', function() {
     });
 
     // ── Section changes → reload subjects ────────────────────
-    $('#section_id').on('change', function() {
+    // Delegated + select2:select covers all Select2 interaction modes
+    $(document).on('change', '#section_id', function() {
         var sid = $(this).val();
         resetDropdown('#subject_id', '— All Subjects —', true);
         if (!sid) return;
         loadSubjects($('#class_id').val(), sid, '');
+    });
+    $('#section_id').on('select2:select', function() {
+        var sid = $(this).val();
+        resetDropdown('#subject_id', '— All Subjects —', true);
+        if (sid) loadSubjects($('#class_id').val(), sid, '');
     });
 
     // ── Helpers ───────────────────────────────────────────────
@@ -351,20 +358,26 @@ $(window).on('load', function() {
 
     function loadSubjects(cid, sid, sel) {
         if (!cid || !sid) return;
-        $.post(baseurl + 'admin/subjectgroup/getAllSubjectByClassandSection',
-            {class_id: cid, section_id: sid},
-            function(data) {
+        // Use explicit $.ajax (not $.post shorthand) for reliable JSON handling
+        $.ajax({
+            type: 'POST',
+            url:  baseurl + 'admin/subjectgroup/getAllSubjectByClassandSection',
+            data: {class_id: cid, section_id: sid},
+            dataType: 'json',
+            success: function(data) {
                 var html = '<option value="">— All Subjects —</option>';
                 if (data && data.length) {
                     $.each(data, function(i, o) {
-                        var lbl = escHtml(o.subject_name) + (o.subject_code ? ' ('+escHtml(o.subject_code)+')' : '');
-                        html += '<option value="'+o.subject_id+'"'+(sel && sel==o.subject_id?' selected':'')+'>'+lbl+'</option>';
+                        var lbl = escHtml(o.subject_name) + (o.subject_code ? ' (' + escHtml(o.subject_code) + ')' : '');
+                        html += '<option value="' + o.subject_id + '"' + (sel && sel == o.subject_id ? ' selected' : '') + '>' + lbl + '</option>';
                     });
                 }
                 $('#subject_id').html(html).trigger('change.select2');
-            }, 'json'
-        ).fail(function() {
-            $('#subject_id').html('<option value="">— All Subjects —</option>').trigger('change.select2');
+            },
+            error: function(xhr) {
+                console.error('Subject load failed:', xhr.status, xhr.responseText);
+                $('#subject_id').html('<option value="">— All Subjects —</option>').trigger('change.select2');
+            }
         });
     }
 
