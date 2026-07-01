@@ -1479,7 +1479,8 @@ class Attendencereports extends Admin_Controller
         $sch_setting         = $this->setting_model->getSetting();
         $data['sch_setting'] = $sch_setting;
         $data['monthlist']   = $this->customlib->getMonthNoDropdown($sch_setting->start_month);
-        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
+        // Teaching departments only — excludes admin/transport/housekeeping (those with no enrolled students)
+        $data['department_list'] = $this->Department_model->getDepartmentsForSession($this->setting_model->getCurrentSession());
 
         $data['student_id'] = "";
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
@@ -1524,7 +1525,7 @@ class Attendencereports extends Admin_Controller
         $sch_setting             = $this->setting_model->getSetting();
         $data['sch_setting']     = $sch_setting;
         $data['classlist']       = $this->class_model->get('', $classteacher = 'yes');
-        $data['department_list'] = $this->Department_model->getDepartmentType();
+        $data['department_list'] = $this->Department_model->getDepartmentsForSession($this->setting_model->getCurrentSession());
         $data['monthlist']       = $this->customlib->getMonthNoDropdown($sch_setting->start_month);
         $data['matrix']          = null;
 
