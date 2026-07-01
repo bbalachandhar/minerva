@@ -13,9 +13,12 @@ class Attendancedashboard extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
-        $this->is_period_wise  = (bool) $this->sch_setting_detail->attendence_type;
+        // getSchoolDetail() (used by Admin_Controller for sch_setting_detail) does NOT include
+        // attendence_type or low_attendance_limit — must call getSetting() for those fields.
+        $full_setting          = $this->setting_model->getSetting();
+        $this->is_period_wise  = (bool) ($full_setting->attendence_type ?? false);
         $this->current_session = $this->setting_model->getCurrentSession();
-        $this->low_att_limit   = (int) ($this->sch_setting_detail->low_attendance_limit ?? 75);
+        $this->low_att_limit   = (int) ($full_setting->low_attendance_limit ?? 75);
         if ($this->low_att_limit <= 0) {
             $this->low_att_limit = 75;
         }
