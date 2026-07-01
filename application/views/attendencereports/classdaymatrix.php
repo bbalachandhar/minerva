@@ -246,7 +246,19 @@
         <tr>
           <td class="sticky-col">
             <span class="std-name"><?php echo htmlspecialchars($this->customlib->getFullName($s['firstname'], $s['middlename'], $s['lastname'], $sch_setting->middlename, $sch_setting->lastname)); ?></span>
-            <br><span class="std-roll">Roll: <?php echo htmlspecialchars($s['roll_no']); ?> &bull; <?php echo htmlspecialchars($s['admission_no']); ?></span>
+            <br>
+            <?php
+            // Suppress browser phone-number auto-detection with a zero-width space every 4 chars
+            $adm = htmlspecialchars($s['admission_no']);
+            $roll = htmlspecialchars($s['roll_no']);
+            $show_roll = ($roll && $roll !== $adm); // only show roll if different from adm no
+            ?>
+            <span class="std-roll" style="-webkit-text-size-adjust:none;" translate="no">
+              <?php if ($show_roll): ?>
+              Roll: <?php echo $roll; ?> &bull;
+              <?php endif; ?>
+              Adm: <?php echo chunk_split(htmlspecialchars($s['admission_no']), 4, '<wbr>'); ?>
+            </span>
           </td>
           <?php foreach ($periods as $p):
             $aid  = $att_map[$ssid][$p['id']] ?? null;

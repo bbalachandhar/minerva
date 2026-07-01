@@ -221,8 +221,13 @@
         <tr>
           <td style="color:#9ca3af;"><?php echo $i+1; ?></td>
           <td><strong><?php echo htmlspecialchars($full_name); ?></strong></td>
-          <td><?php echo htmlspecialchars($r['roll_no']); ?></td>
-          <td style="font-family:monospace;font-size:12px;"><?php echo htmlspecialchars($r['admission_no']); ?></td>
+          <?php
+          $rc_adm  = $r['admission_no'] ?? '';
+          $rc_roll = $r['roll_no'] ?? '';
+          $rc_show_roll = ($rc_roll && $rc_roll !== $rc_adm);
+          ?>
+          <td translate="no" style="-webkit-text-size-adjust:none;"><?php echo $rc_show_roll ? htmlspecialchars($rc_roll) : htmlspecialchars($rc_adm); ?></td>
+          <td style="font-family:monospace;font-size:12px;" translate="no"><?php echo htmlspecialchars($rc_adm); ?></td>
           <td style="text-align:center;"><span class="<?php echo $pill_cls; ?>"><?php echo $pill_txt; ?></span></td>
           <td style="font-size:12px;color:#6b7280;"><?php echo htmlspecialchars($r['remark'] ?? ''); ?></td>
         </tr>
