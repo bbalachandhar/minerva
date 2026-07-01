@@ -144,7 +144,7 @@ $att_default = ['bg'=>'#e9ecef','text'=>'#555','icon'=>'fa-circle-o'];
                   Date <span style="color:#e74c3c;">*</span>
                 </label>
                 <input name="date" type="text" class="form-control date"
-                  value="<?php echo set_value('date') ?: $this->customlib->convertDateFormat(date('Y-m-d')); ?>"
+                  value="<?php echo set_value('date') ?: $this->customlib->dateyyyymmddTodateformat(date('Y-m-d')); ?>"
                   readonly style="border-radius:6px;background:#fff;cursor:pointer;">
                 <span class="text-danger" style="font-size:11px;"><?php echo form_error('date'); ?></span>
               </div>
