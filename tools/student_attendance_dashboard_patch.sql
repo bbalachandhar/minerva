@@ -48,8 +48,22 @@ SELECT
   'index',
   1,
   1,
-  'student_attendance_dashboard'
+  'student_attendance_dashboard',
+  "('student_attendance_dashboard','can_view')"
 WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key` = 'student_attendance_dashboard');
+
+-- Fix access_permissions if NULL from earlier deploy
+UPDATE `sidebar_sub_menus`
+SET access_permissions = "('student_attendance_dashboard','can_view')"
+WHERE `key` = 'student_attendance_dashboard'
+  AND (access_permissions IS NULL OR access_permissions = '');
+
+-- Grant to all roles
+INSERT INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`, `can_edit`, `can_delete`)
+SELECT r.id, pc.id, 1, 0, 0, 0
+FROM roles r CROSS JOIN permission_category pc
+WHERE pc.short_code = 'student_attendance_dashboard'
+  AND NOT EXISTS (SELECT 1 FROM roles_permissions rp2 WHERE rp2.role_id = r.id AND rp2.perm_cat_id = pc.id);
 
 -- 4. Bump all other Attendance sub-menus down so dashboard stays first
 UPDATE `sidebar_sub_menus` ssm
