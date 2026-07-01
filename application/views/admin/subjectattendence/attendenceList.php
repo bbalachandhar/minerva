@@ -229,8 +229,11 @@ $att_default = ['bg'=>'#7f8c8d','text'=>'#fff','icon'=>'fa-circle-o'];
           ?>
 
           <?php if (isset($msg)): ?>
-            <div class="alert alert-success" style="border-radius:8px;">
-              <i class="fa fa-check-circle"></i> <?php echo $this->lang->line('attendance_saved_successfully'); ?>
+            <div class="alert alert-success" style="border-radius:8px;display:flex;align-items:center;gap:12px;">
+              <span><i class="fa fa-check-circle"></i> <?php echo $this->lang->line('attendance_saved_successfully'); ?></span>
+              <a href="<?php echo site_url('admin/attendancedashboard/index'); ?>" class="btn btn-sm" style="margin-left:auto;background:linear-gradient(135deg,#5b73e8,#7c5ce7);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;white-space:nowrap;">
+                <i class="fa fa-bar-chart"></i> View Attendance Dashboard
+              </a>
             </div>
           <?php elseif ($already_submitted && !$is_holiday): ?>
             <div class="alert alert-info" style="border-radius:8px;font-size:13px;">

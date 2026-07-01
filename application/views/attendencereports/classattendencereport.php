@@ -132,9 +132,35 @@ foreach ($department_list as $department) {
                     if ($this->module_lib->hasActive('student_attendance')) {
 
                         if (isset($resultlist)) {
+                            // Quick summary for the result
+                            $rs_total = count($resultlist);
+                            $rs_present = 0; $rs_absent = 0;
+                            foreach ($resultlist as $rs) {
+                                if (!empty($rs['student_monthly_attendance'])) {
+                                    foreach ($rs['student_monthly_attendance'] as $d) {
+                                        if (isset($d['key']) && $d['key'] === 'P') $rs_present++;
+                                        if (isset($d['key']) && $d['key'] === 'A') $rs_absent++;
+                                    }
+                                }
+                            }
                             ?>
+                            <!-- Summary + Dashboard link banner -->
+                            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px 4px;">
+                                <span style="background:#edf2ff;color:#5b73e8;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;">
+                                    <i class="fa fa-users"></i> <?php echo $rs_total; ?> Students
+                                </span>
+                                <span style="background:#d4f5e4;color:#1a6b3c;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;">
+                                    <i class="fa fa-check"></i> <?php echo $rs_present; ?> Present records
+                                </span>
+                                <span style="background:#fdecea;color:#c0392b;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;">
+                                    <i class="fa fa-times"></i> <?php echo $rs_absent; ?> Absent records
+                                </span>
+                                <a href="<?php echo site_url('admin/attendancedashboard/index'); ?>" class="btn btn-sm" style="margin-left:auto;background:linear-gradient(135deg,#5b73e8,#7c5ce7);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;">
+                                    <i class="fa fa-bar-chart"></i> Live Dashboard
+                                </a>
+                            </div>
                             <div class="" id="attendencelist">
-                                <div class="box-header ptbnull"></div>  
+                                <div class="box-header ptbnull"></div>
                                 <div class="box-header with-border" >
                                     <div class="row">
                                         <div class="col-md-4 col-sm-4">

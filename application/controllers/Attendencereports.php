@@ -1520,44 +1520,65 @@ class Attendencereports extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'Reports/attendence');
         $this->session->set_userdata('subsub_menu', 'Reports/attendence/reportbymonth');
 
-        $data              = array();
-        $class             = $this->class_model->get('', $classteacher = 'yes');
-        $data['classlist'] = $class;
+        $data                    = array();
+        $sch_setting             = $this->setting_model->getSetting();
+        $data['sch_setting']     = $sch_setting;
+        $data['classlist']       = $this->class_model->get('', $classteacher = 'yes');
+        $data['department_list'] = $this->Department_model->getDepartmentType();
+        $data['monthlist']       = $this->customlib->getMonthNoDropdown($sch_setting->start_month);
+        $data['matrix']          = null;
 
-        $sch_setting         = $this->setting_model->getSetting();
-        $data['sch_setting'] = $sch_setting;
-        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
-
-        $data['monthlist'] = $this->customlib->getMonthNoDropdown($sch_setting->start_month);
-
-        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('class_id',   $this->lang->line('class'),   'trim|required|xss_clean');
         $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('month', $this->lang->line('month'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('month',      $this->lang->line('month'),   'trim|required|xss_clean');
 
         if ($this->form_validation->run() == true) {
-            $attendencetypes             = $this->attendencetype_model->get();
-            $data['attendencetypeslist'] = $attendencetypes;
-            $subject_id                  = $this->input->post('subject_id');
-            $class_id                    = $this->input->post('class_id');
-            $section_id                  = $this->input->post('section_id');
-            $month                       = $this->input->post('month');
-            $year                        = $this->input->post('year');
-            $department_id = $this->input->post('department_id'); // Retrieve department_id
-            $month_data                  = sessionMonthDetails($sch_setting->session, $sch_setting->start_month, $month);
+            $class_id      = $this->input->post('class_id');
+            $section_id    = $this->input->post('section_id');
+            $month         = $this->input->post('month');
+            $subject_id    = $this->input->post('subject_id');
+            $department_id = $this->input->post('department_id');
+            $month_data    = sessionMonthDetails($sch_setting->session, $sch_setting->start_month, $month);
 
-            $attr_result        = array();
-            $attendence_array   = array();
-            $student_result     = array();
-            $data['no_of_days'] = $month_data['total_days'];
-            $date_result        = array();
-
-            $resultlist = $this->studentsubjectattendence_model->getStudentsMontlyAttendence($class_id, $section_id, $month_data['month_start'], $month_data['month_end'], $subject_id, $department_id); // Pass department_id
-
-            $data['resultlist'] = $resultlist;
+            $data['matrix']          = $this->studentsubjectattendence_model->getStudentSubjectMatrix(
+                $class_id, $section_id, $month_data['month_start'], $month_data['month_end'], $subject_id, $department_id
+            );
+            $data['month_label']     = date('F Y', strtotime($month_data['month_start']));
+            $data['low_att_limit']   = (int) ($sch_setting->low_attendance_limit ?: 75);
         }
 
         $this->load->view('layout/header', $data);
         $this->load->view('attendencereports/reportbymonth', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function teachermarkingcoverage()
+    {
+        if (!$this->rbac->hasPrivilege('teacher_marking_coverage', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/attendence');
+        $this->session->set_userdata('subsub_menu', 'Reports/attendence/teachermarkingcoverage');
+
+        $sch_setting         = $this->setting_model->getSetting();
+        $data['sch_setting'] = $sch_setting;
+        $data['rows']        = null;
+        $data['from_date']   = '';
+        $data['to_date']     = '';
+
+        if ($this->input->post('from_date')) {
+            $from_date        = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('from_date')));
+            $to_date          = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('to_date')));
+            $session          = $this->setting_model->getCurrentSession();
+            $data['rows']     = $this->studentsubjectattendence_model->getTeacherMarkingCoverage($session, $from_date, $to_date);
+            $data['from_date']= $this->input->post('from_date');
+            $data['to_date']  = $this->input->post('to_date');
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('attendencereports/teachermarkingcoverage', $data);
         $this->load->view('layout/footer', $data);
     }
 

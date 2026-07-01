@@ -218,6 +218,130 @@ class Studentsubjectattendence_model extends CI_Model
         return false;
     }
 
+    // ── Report: subject attendance matrix (reportbymonth redesign) ─
+
+    public function getStudentSubjectMatrix($class_id, $section_id, $from_date, $to_date, $subject_id = null, $department_id = null)
+    {
+        $subject_filter = $subject_id ? " AND subj.id = " . $this->db->escape($subject_id) : "";
+        $dept_filter    = $department_id ? " AND ss.department_id = " . $this->db->escape($department_id) : "";
+
+        $sql = "SELECT
+            ss.id AS student_session_id,
+            students.firstname, students.middlename, students.lastname,
+            students.admission_no, students.roll_no,
+            subj.id   AS subject_id,
+            subj.name AS subject_name,
+            subj.code AS subject_code,
+            COUNT(DISTINCT ssa.id) AS total_periods,
+            SUM(CASE WHEN ssa.attendence_type_id = 1 THEN 1 ELSE 0 END) AS present_count,
+            SUM(CASE WHEN ssa.attendence_type_id = 4 THEN 1 ELSE 0 END) AS absent_count,
+            ROUND(SUM(CASE WHEN ssa.attendence_type_id = 1 THEN 100.0 ELSE 0 END) / NULLIF(COUNT(DISTINCT ssa.id),0), 1) AS pct
+          FROM student_session ss
+          JOIN students ON students.id = ss.student_id AND students.is_active = 'yes'
+          JOIN student_subject_attendances ssa ON ssa.student_session_id = ss.id
+            AND ssa.date >= " . $this->db->escape($from_date) . "
+            AND ssa.date <= " . $this->db->escape($to_date) . "
+          JOIN subject_timetable st ON st.id = ssa.subject_timetable_id
+          JOIN subject_group_subjects sgs ON sgs.id = st.subject_group_subject_id
+          JOIN subjects subj ON subj.id = sgs.subject_id
+          WHERE ss.session_id = " . $this->db->escape($this->current_session) . "
+            AND ss.class_id   = " . $this->db->escape($class_id) . "
+            AND ss.section_id = " . $this->db->escape($section_id) . "
+            AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
+            $subject_filter
+            $dept_filter
+          GROUP BY ss.id, subj.id
+          ORDER BY students.admission_no ASC, subj.name ASC";
+
+        $rows = $this->db->query($sql)->result_array();
+
+        // Reshape into matrix structure
+        $students = []; $subjects = []; $matrix = []; $subject_totals = [];
+
+        foreach ($rows as $r) {
+            $sid = $r['student_session_id'];
+            $xid = $r['subject_id'];
+
+            if (!isset($students[$sid])) {
+                $students[$sid] = [
+                    'student_session_id' => $sid,
+                    'firstname'  => $r['firstname'],
+                    'middlename' => $r['middlename'],
+                    'lastname'   => $r['lastname'],
+                    'admission_no' => $r['admission_no'],
+                    'roll_no'    => $r['roll_no'],
+                ];
+            }
+            if (!isset($subjects[$xid])) {
+                $subjects[$xid] = ['subject_id' => $xid, 'name' => $r['subject_name'], 'code' => $r['subject_code']];
+            }
+
+            $matrix[$sid][$xid] = [
+                'total'   => (int) $r['total_periods'],
+                'present' => (int) $r['present_count'],
+                'absent'  => (int) $r['absent_count'],
+                'pct'     => (float) $r['pct'],
+            ];
+
+            if (!isset($subject_totals[$xid])) {
+                $subject_totals[$xid] = ['total' => 0, 'present' => 0];
+            }
+            $subject_totals[$xid]['total']   += (int) $r['total_periods'];
+            $subject_totals[$xid]['present'] += (int) $r['present_count'];
+        }
+
+        foreach ($subject_totals as $xid => &$t) {
+            $t['pct'] = $t['total'] > 0 ? round($t['present'] * 100 / $t['total'], 1) : 0;
+        }
+
+        return compact('students', 'subjects', 'matrix', 'subject_totals');
+    }
+
+    // ── Report: teacher marking coverage ────────────────────────────
+
+    public function getTeacherMarkingCoverage($session, $from_date, $to_date, $staff_id = null)
+    {
+        $staff_filter = $staff_id ? " AND st.staff_id = " . $this->db->escape($staff_id) : "";
+
+        $sql = "SELECT
+            st.staff_id,
+            TRIM(CONCAT(s.name,' ',IFNULL(s.surname,''))) AS teacher_name,
+            s.employee_id, s.image,
+            subj.name AS subject_name, subj.code AS subject_code,
+            cl.class AS class_name, sec.section AS section_name,
+            COUNT(DISTINCT CONCAT(st.id,'-',cal.dt)) AS scheduled_periods,
+            COUNT(DISTINCT CASE WHEN ssa_check.subject_timetable_id IS NOT NULL
+                THEN CONCAT(st.id,'-',cal.dt) END)   AS marked_periods
+          FROM subject_timetable st
+          JOIN staff s ON s.id = st.staff_id AND s.is_active = 1
+          JOIN classes cl ON cl.id = st.class_id
+          JOIN sections sec ON sec.id = st.section_id
+          JOIN subject_group_subjects sgs ON sgs.id = st.subject_group_subject_id
+          JOIN subjects subj ON subj.id = sgs.subject_id
+          JOIN (
+            SELECT DATE_ADD(" . $this->db->escape($from_date) . ", INTERVAL (t4*10000 + t3*1000 + t2*100 + t1*10 + t0) DAY) dt
+            FROM
+              (SELECT 0 t0 UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+               UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) t0,
+              (SELECT 0 t1 UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+               UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) t1,
+              (SELECT 0 t2 UNION SELECT 1 UNION SELECT 2) t2,
+              (SELECT 0 t3) t3, (SELECT 0 t4) t4
+            WHERE DATE_ADD(" . $this->db->escape($from_date) . ", INTERVAL (t4*10000 + t3*1000 + t2*100 + t1*10 + t0) DAY)
+              BETWEEN " . $this->db->escape($from_date) . " AND " . $this->db->escape($to_date) . "
+          ) cal ON DAYNAME(cal.dt) = st.day
+          LEFT JOIN (
+            SELECT DISTINCT subject_timetable_id, date FROM student_subject_attendances
+            WHERE date BETWEEN " . $this->db->escape($from_date) . " AND " . $this->db->escape($to_date) . "
+          ) ssa_check ON ssa_check.subject_timetable_id = st.id AND ssa_check.date = cal.dt
+          WHERE st.session_id = " . $this->db->escape($session) . "
+            $staff_filter
+          GROUP BY st.staff_id, subj.id, st.class_id, st.section_id
+          ORDER BY teacher_name, class_name, subject_name";
+
+        return $this->db->query($sql)->result_array();
+    }
+
     // ── Dashboard: period-wise analytics ──────────────────────────
 
     public function getDashboardTodayCoverage($session)

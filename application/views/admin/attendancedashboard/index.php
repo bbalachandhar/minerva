@@ -158,7 +158,13 @@ $low_limit  = (int) $low_att_limit;
                 <i class="fa fa-pencil-square-o"></i> Mark Attendance
             </a>
             <a href="<?php echo site_url('attendencereports/reportbymonth'); ?>" class="btn btn-sm btn-default">
-                <i class="fa fa-table"></i> Period Reports
+                <i class="fa fa-th"></i> Class Matrix
+            </a>
+            <a href="<?php echo site_url('attendencereports/reportbymonthstudent'); ?>" class="btn btn-sm btn-default">
+                <i class="fa fa-user-circle-o"></i> Student Report
+            </a>
+            <a href="<?php echo site_url('attendencereports/teachermarkingcoverage'); ?>" class="btn btn-sm btn-default">
+                <i class="fa fa-user-circle-o"></i> Teacher Coverage
             </a>
             <?php else: ?>
             <a href="<?php echo site_url('admin/stuattendence/index'); ?>" class="btn btn-sm btn-default">
@@ -166,6 +172,9 @@ $low_limit  = (int) $low_att_limit;
             </a>
             <a href="<?php echo site_url('attendencereports/classattendencereport'); ?>" class="btn btn-sm btn-default">
                 <i class="fa fa-table"></i> Attendance Reports
+            </a>
+            <a href="<?php echo site_url('attendencereports/daywiseattendancereport'); ?>" class="btn btn-sm btn-default">
+                <i class="fa fa-calendar"></i> Day-wise Report
             </a>
             <?php endif; ?>
             <button onclick="refreshAll()" class="btn btn-sm btn-primary">

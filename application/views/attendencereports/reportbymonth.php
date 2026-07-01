@@ -1,354 +1,318 @@
-<div class="content-wrapper" style="min-height: 946px;">
-    <!-- Content Header (Page header) -->
-    <section class="content-header">
-        <h1><i class="fa fa-calendar-check-o"></i> <?php echo $this->lang->line('attendance'); ?> <small><?php echo $this->lang->line('by_date1'); ?></small></h1>
-    </section>
-    <!-- Main content -->
-    <section class="content">
-        <?php $this->load->view('attendencereports/_attendance');?>
-        <div class="row">
-            <div class="col-md-12">
-                <div class="box removeboxmius">
-                    <div class="box-header ptbnull"></div>
-                    <div class="box-header with-border">
-                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+<?php
+$low_limit = isset($low_att_limit) ? (int)$low_att_limit : 75;
+$warn_limit = $low_limit + 10;
+?>
+<style>
+/* ── Filter form ─────────────────────────────── */
+.rpt-filter-box { background:#fff; border-radius:10px; border:1px solid #eef0f3; box-shadow:0 2px 8px rgba(0,0,0,.05); padding:18px 20px 10px; margin-bottom:18px; }
+.rpt-filter-box .form-group label { font-size:12px; font-weight:600; color:#7f8c8d; text-transform:uppercase; letter-spacing:.5px; }
+.rpt-filter-box .form-control { border-radius:7px; border-color:#dde1e7; font-size:13px; height:36px; }
+.rpt-search-btn { background:linear-gradient(135deg,#5b73e8,#7c5ce7); border:none; border-radius:8px; color:#fff; padding:7px 22px; font-size:13px; font-weight:600; }
+/* ── Summary bar ─────────────────────────────── */
+.rpt-summary { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+.rpt-sum-card { background:#fff; border-radius:10px; border:1px solid #eef0f3; box-shadow:0 1px 5px rgba(0,0,0,.05); padding:12px 18px; display:flex; align-items:center; gap:10px; flex:1; min-width:130px; }
+.rpt-sum-icon { width:38px; height:38px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.rpt-sum-val { font-size:22px; font-weight:700; color:#2c3e50; line-height:1; }
+.rpt-sum-lbl { font-size:11px; color:#7f8c8d; margin-top:2px; font-weight:500; }
+/* ── Matrix table ────────────────────────────── */
+.matrix-wrap { overflow-x:auto; }
+.matrix-tbl { border-collapse:separate; border-spacing:0; font-size:12px; white-space:nowrap; width:100%; }
+.matrix-tbl th { background:#f8f9fb; color:#7f8c8d; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.4px; padding:8px 10px; border-bottom:2px solid #eef0f3; position:sticky; top:0; z-index:2; }
+.matrix-tbl th.subj-th { text-align:center; min-width:90px; max-width:120px; overflow:hidden; white-space:normal; }
+.matrix-tbl th.subj-th small { display:block; font-weight:400; color:#bbb; font-size:10px; }
+.matrix-tbl th.sticky-col { position:sticky; left:0; z-index:3; background:#f8f9fb; min-width:160px; }
+.matrix-tbl td { padding:7px 10px; border-bottom:1px solid #f4f5f7; vertical-align:middle; }
+.matrix-tbl td.sticky-col { position:sticky; left:0; z-index:1; background:#fff; border-right:2px solid #eef0f3; }
+.matrix-tbl tr:hover td { background:#fafbff; }
+.matrix-tbl tr:hover td.sticky-col { background:#fafbff; }
+.matrix-tbl .foot-row td { background:#f8f9fb; font-weight:700; font-size:11px; border-top:2px solid #eef0f3; }
+/* ── Attendance cells ────────────────────────── */
+.att-cell { border-radius:8px; padding:5px 7px; text-align:center; display:inline-block; min-width:56px; font-weight:700; font-size:12px; line-height:1.3; }
+.att-cell small { display:block; font-size:10px; font-weight:400; opacity:.85; }
+.att-good    { background:#d4f5e4; color:#1a6b3c; }
+.att-warn    { background:#fff8e1; color:#7a5c00; }
+.att-low     { background:#fdecea; color:#c0392b; }
+.att-empty   { background:#f4f5f7; color:#bbb; }
+.student-name { font-size:13px; font-weight:600; color:#2c3e50; }
+.student-adm  { font-size:11px; color:#7f8c8d; }
+.no-data-block { text-align:center; padding:50px 20px; color:#7f8c8d; }
+.no-data-block i { font-size:40px; margin-bottom:10px; display:block; color:#dde1e7; }
+</style>
+
+<div class="content-wrapper">
+<section class="content-header">
+    <h1>
+        <i class="fa fa-th" style="color:#5b73e8;margin-right:8px;"></i>
+        Period Attendance — Class Matrix
+        <small><?php echo isset($month_label) ? htmlspecialchars($month_label) : 'Select filters below'; ?></small>
+    </h1>
+    <ol class="breadcrumb">
+        <li><a href="<?php echo site_url('admin/dashboard'); ?>"><i class="fa fa-dashboard"></i> Home</a></li>
+        <li><a href="<?php echo site_url('admin/attendancedashboard/index'); ?>">Attendance Dashboard</a></li>
+        <li class="active">Class Matrix Report</li>
+    </ol>
+</section>
+
+<section class="content">
+    <?php $this->load->view('attendencereports/_attendance'); ?>
+
+    <!-- Filter form -->
+    <div class="rpt-filter-box">
+        <form method="post" action="<?php echo site_url('attendencereports/reportbymonth'); ?>">
+            <?php echo $this->customlib->getCSRF(); ?>
+            <div class="row">
+                <?php if ($sch_setting->institution_type == 'college'): ?>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Department</label>
+                        <select id="department_id" name="department_id" class="form-control">
+                            <option value="">All</option>
+                            <?php foreach ($department_list as $d): ?>
+                            <option value="<?php echo $d['id']; ?>" <?php if (set_value('department_id') == $d['id']) echo 'selected'; ?>><?php echo htmlspecialchars($d['department_name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                    <form id='form1' action="<?php echo site_url('attendencereports/reportbymonth') ?>"  method="post" accept-charset="utf-8">
-                        <div class="box-body">
-                            <?php
-if ($this->session->flashdata('msg')) {
-    echo $this->session->flashdata('msg');
-    $this->session->unset_userdata('msg');
-}
-?>
-                            <?php echo $this->customlib->getCSRF(); ?>
-                            <div class="row">
-                                <?php if ($sch_setting->institution_type == 'college') {?>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label><?php echo $this->lang->line('department'); ?></label>
-                                        <select autofocus="" id="department_id" name="department_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-foreach ($department_list as $department) {
-    ?>
-                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
-        echo "selected=selected";
-    }
-    ?>><?php echo $department['department_name'] ?></option>
-                                                <?php
-}
-?>
-                                        </select>
-                                        <span class="text-danger" id="error_department_id"></span>
-                                    </div>
-                                </div>
-                                <?php }?>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                                        <select autofocus="" id="class_id" name="class_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-foreach ($classlist as $class) {
-    ?>
-                                                <option value="<?php echo $class['id'] ?>" <?php
-if (set_value('class_id') == $class['id']) {
-        echo "selected =selected";
-    }
-    ?>><?php echo $class['class'] ?></option>
-                                                        <?php
-$count++;
-}
-?>
-                                        </select>
-                                        <span class="text-danger"><?php echo form_error('class_id'); ?></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('section'); ?></label><small class="req"> *</small>
-                                        <select  id="section_id" name="section_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                        </select>
-                                        <span class="text-danger"><?php echo form_error('section_id'); ?></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="exampleInputEmail1">
-
-                                            <?php echo $this->lang->line('month') ?>
-                                        </label><small class="req"> *</small>
-                                        <select  id="month" name="month" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-foreach ($monthlist as $m_key => $month) {
-    ?>
-                                                <option value="<?php echo $m_key ?>" <?php echo set_select('month', $m_key, set_value('month')) ?>><?php echo $month; ?></option>
-                                                <?php
-}
-?>
-                                        </select>
-                                        <span class="text-danger"><?php echo form_error('month'); ?></span>
-                                    </div>
-                                </div>
-                                      <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="exampleInputEmail1">
-
-                                            <?php echo $this->lang->line('subject') ?>
-                                        </label>
-                                        <select  id="subject_id" name="subject_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <button type="submit" name="search" value="search" class="btn btn-primary btn-sm pull-right checkbox-toggle"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-
-                    <?php
-if (isset($resultlist)) {
-    ?>
-
-                        <div class="">
-                            <div class="box-header ptbnull"></div>
-                            <div class="box-header with-border">
-                                <h3 class="box-title"><i class="fa fa-users"></i> <?php echo $this->lang->line('student_period_attendance'); ?> </h3>
-                                <div class="box-tools pull-right">
-                                </div>
-                            </div>
-                            <div class="box-body">
-                                <?php
-if (!empty($resultlist)) {
-        ?>
-                                    <div class="download_label"><?php echo $this->lang->line('student_period_attendance'); ?>  </div>
-                                    <div class="table-responsive">
-                                        <table class="table table-hover table stripped attendance_table example" >
-                                            <thead>
-                                                <tr>
-                                                    <th>Student</th>
-                                                    <?php
-for ($i = 1; $i <= $no_of_days; $i++) {
-            ?>
-                                                        <th class="text text-center">
-                                                            <?php
- echo sprintf("%02d", $i);
-            ?>
-                                                        </th>
-                                                        <?php
-}
-        ?>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php
-if (!empty($resultlist['class_students'])) {
-            foreach ($resultlist['class_students'] as $student_key => $student_value) {
-                ?>
-                                                        <tr>
-                                                            <td>
-                    <?php echo $this->customlib->getFullName($student_value['firstname'], $student_value['middlename'], $student_value['lastname'], $sch_setting->middlename, $sch_setting->lastname) . ' (' . $student_value['admission_no'] . ')'; ?></td>
-                                                            <?php
-for ($i = 1; $i <= $no_of_days; $i++) {
-    
-     $i =  sprintf("%02d", $i);
-     
-                    ?>
-                                                                <td class="text text-center">
-                                                                    <?php
-if (!empty($resultlist['students_attendances'][$i]['subjects'])) {
-                        $students_attendance_list = getAttendance($resultlist['students_attendances'][$i]['students'], $student_value['id']);
-
-                        $count = 1;
-                        foreach ($resultlist['students_attendances'][$i]['subjects'] as $subject_loop_key => $subject_loop_value) {
-                            ?>
-                                                                            <div class="list-group" style="width: 180px;">
-                                                                                <?php
-echo $subject_loop_value->name;
-                            if ($subject_loop_value->code != '') {
-                                echo "  (" . $subject_loop_value->code . ") ";
-                            }
-                            echo "<br/>";
-                            echo $subject_loop_value->time_from . " - " . $subject_loop_value->time_to;
-                            echo "<br/>";
-
-                            if ($students_attendance_list->{"attendence_type_id_" . $count} == "") {
-                                ?>
-                                                                                    <span class="label label-danger">N/A</span>
-                                                                                    <?php
-} else {
-                                echo " ";
-                                echo getattendencetype($attendencetypeslist, $students_attendance_list->{"attendence_type_id_" . $count});
-                            }
-                            ?>
-                                                                            </div>
-                                                                            <?php
-$count++;
-                        }
-                    } else {
-                        ?>
-                                                                        <span class="label label-danger">N/A</span>
-                                                                        <?php
-}
-                    ?>
-                                                                </td>
-                                                                <?php
-}
-                ?>
-                                                        </tr>
-                                                        <?php
-}
-        }
-        ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <?php
-} else {
-        ?>
-                                    <div class="alert alert-info">No student admitted in this Class-Section</div>
-                                    <?php
-}
-    ?>
-                            </div>
-                        </div>
+                </div>
+                <?php endif; ?>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Class <small class="req">*</small></label>
+                        <select id="class_id" name="class_id" class="form-control">
+                            <option value="">Select</option>
+                            <?php foreach ($classlist as $c): ?>
+                            <option value="<?php echo $c['id']; ?>" <?php if (set_value('class_id') == $c['id']) echo 'selected'; ?>><?php echo htmlspecialchars($c['class']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                     </div>
-                    <?php
-}
-?>
-                </section>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Section <small class="req">*</small></label>
+                        <select id="section_id" name="section_id" class="form-control">
+                            <option value="">Select</option>
+                        </select>
+                        <span class="text-danger"><?php echo form_error('section_id'); ?></span>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Month <small class="req">*</small></label>
+                        <select id="month" name="month" class="form-control">
+                            <option value="">Select</option>
+                            <?php foreach ($monthlist as $mk => $mv): ?>
+                            <option value="<?php echo $mk; ?>" <?php echo set_select('month', $mk); ?>><?php echo $mv; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="text-danger"><?php echo form_error('month'); ?></span>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Subject <small style="font-weight:400;color:#bbb;">(optional)</small></label>
+                        <select id="subject_id" name="subject_id" class="form-control">
+                            <option value="">All Subjects</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2" style="padding-top:22px;">
+                    <button type="submit" class="btn rpt-search-btn btn-block">
+                        <i class="fa fa-search"></i> Generate
+                    </button>
+                </div>
             </div>
+        </form>
+    </div>
 
-            <?php
+    <?php if (isset($matrix) && $matrix !== null): ?>
 
-function getAttendance($array, $student_session_id)
-{
-    if (!empty($array)) {
-        return $array[$student_session_id];
-    }
-}
+    <?php if (empty($matrix['students'])): ?>
+        <div class="rpt-filter-box no-data-block">
+            <i class="fa fa-calendar-times-o"></i>
+            No attendance records found for the selected criteria.
+        </div>
+    <?php else:
+        $students      = $matrix['students'];
+        $subjects      = $matrix['subjects'];
+        $mat           = $matrix['matrix'];
+        $subj_totals   = $matrix['subject_totals'];
 
-function getattendencetype($attendencetype, $find)
-{
-    foreach ($attendencetype as $attendencetype_key => $attendencetype_value) {
-        if ($attendencetype_value['id'] == $find) {
-            return $attendencetype_value['key_value'];
+        // Summary stats
+        $total_records = 0; $total_present = 0;
+        foreach ($mat as $sid => $subjs) {
+            foreach ($subjs as $xid => $cell) {
+                $total_records += $cell['total'];
+                $total_present += $cell['present'];
+            }
         }
+        $overall_pct = $total_records > 0 ? round($total_present * 100 / $total_records, 1) : 0;
+        $low_students = 0;
+        foreach ($students as $sid => $st) {
+            $sp = 0; $st_total = 0;
+            if (!empty($mat[$sid])) {
+                foreach ($mat[$sid] as $c) { $sp += $c['present']; $st_total += $c['total']; }
+            }
+            if ($st_total > 0 && round($sp * 100 / $st_total, 1) < $low_limit) $low_students++;
+        }
+    ?>
+
+    <!-- Summary bar -->
+    <div class="rpt-summary">
+        <div class="rpt-sum-card">
+            <div class="rpt-sum-icon" style="background:#edf2ff;color:#5b73e8;"><i class="fa fa-users"></i></div>
+            <div><div class="rpt-sum-val"><?php echo count($students); ?></div><div class="rpt-sum-lbl">Students</div></div>
+        </div>
+        <div class="rpt-sum-card">
+            <div class="rpt-sum-icon" style="background:#e8fdf4;color:#27ae60;"><i class="fa fa-book"></i></div>
+            <div><div class="rpt-sum-val"><?php echo count($subjects); ?></div><div class="rpt-sum-lbl">Subjects</div></div>
+        </div>
+        <div class="rpt-sum-card">
+            <div class="rpt-sum-icon" style="background:#fef9e7;color:#f39c12;"><i class="fa fa-clock-o"></i></div>
+            <div><div class="rpt-sum-val"><?php echo number_format($total_records); ?></div><div class="rpt-sum-lbl">Total Periods</div></div>
+        </div>
+        <div class="rpt-sum-card">
+            <div class="rpt-sum-icon" style="background:<?php echo $overall_pct >= 80 ? '#e8fdf4' : ($overall_pct >= $low_limit ? '#fff8e1' : '#fdecea'); ?>;color:<?php echo $overall_pct >= 80 ? '#27ae60' : ($overall_pct >= $low_limit ? '#f39c12' : '#e74c3c'); ?>;"><i class="fa fa-percent"></i></div>
+            <div><div class="rpt-sum-val" style="color:<?php echo $overall_pct >= 80 ? '#27ae60' : ($overall_pct >= $low_limit ? '#f39c12' : '#e74c3c'); ?>;"><?php echo $overall_pct; ?>%</div><div class="rpt-sum-lbl">Overall Attendance</div></div>
+        </div>
+        <?php if ($low_students > 0): ?>
+        <div class="rpt-sum-card">
+            <div class="rpt-sum-icon" style="background:#fdecea;color:#e74c3c;"><i class="fa fa-exclamation-triangle"></i></div>
+            <div><div class="rpt-sum-val" style="color:#e74c3c;"><?php echo $low_students; ?></div><div class="rpt-sum-lbl">Below <?php echo $low_limit; ?>%</div></div>
+        </div>
+        <?php endif; ?>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:#7f8c8d;">Legend:</span>
+            <span class="att-cell att-good" style="font-size:11px;">≥ <?php echo $warn_limit; ?>%</span>
+            <span class="att-cell att-warn" style="font-size:11px;">≥ <?php echo $low_limit; ?>%</span>
+            <span class="att-cell att-low" style="font-size:11px;">< <?php echo $low_limit; ?>%</span>
+        </div>
+    </div>
+
+    <!-- Matrix table -->
+    <div class="rpt-filter-box" style="padding:0;">
+        <div class="matrix-wrap">
+            <table class="matrix-tbl">
+                <thead>
+                    <tr>
+                        <th class="sticky-col" style="min-width:180px;">#&nbsp; Student</th>
+                        <?php foreach ($subjects as $xid => $subj): ?>
+                        <th class="subj-th">
+                            <?php echo htmlspecialchars($subj['name']); ?>
+                            <?php if ($subj['code']): ?><small><?php echo htmlspecialchars($subj['code']); ?></small><?php endif; ?>
+                        </th>
+                        <?php endforeach; ?>
+                        <th class="subj-th" style="background:#f0f2ff;">Overall</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php $i = 1; foreach ($students as $sid => $st):
+                    $st_present = 0; $st_total = 0;
+                    if (!empty($mat[$sid])) { foreach ($mat[$sid] as $c) { $st_present += $c['present']; $st_total += $c['total']; } }
+                    $st_pct = $st_total > 0 ? round($st_present * 100 / $st_total, 1) : null;
+                    $st_cls = is_null($st_pct) ? 'att-empty' : ($st_pct >= $warn_limit ? 'att-good' : ($st_pct >= $low_limit ? 'att-warn' : 'att-low'));
+                ?>
+                <tr>
+                    <td class="sticky-col">
+                        <span style="color:#bbb;margin-right:6px;font-size:11px;"><?php echo $i++; ?></span>
+                        <span class="student-name"><?php echo htmlspecialchars($this->customlib->getFullName($st['firstname'], $st['middlename'], $st['lastname'], $sch_setting->middlename, $sch_setting->lastname)); ?></span>
+                        <br><span class="student-adm"><?php echo htmlspecialchars($st['admission_no']); ?></span>
+                    </td>
+                    <?php foreach ($subjects as $xid => $subj):
+                        $cell = isset($mat[$sid][$xid]) ? $mat[$sid][$xid] : null;
+                        if ($cell) {
+                            $cls = $cell['pct'] >= $warn_limit ? 'att-good' : ($cell['pct'] >= $low_limit ? 'att-warn' : 'att-low');
+                        }
+                    ?>
+                    <td style="text-align:center;">
+                        <?php if ($cell): ?>
+                        <span class="att-cell <?php echo $cls; ?>">
+                            <?php echo $cell['pct']; ?>%
+                            <small><?php echo $cell['present']; ?>/<?php echo $cell['total']; ?></small>
+                        </span>
+                        <?php else: ?>
+                        <span class="att-cell att-empty">—</span>
+                        <?php endif; ?>
+                    </td>
+                    <?php endforeach; ?>
+                    <td style="text-align:center;">
+                        <?php if (!is_null($st_pct)): ?>
+                        <span class="att-cell <?php echo $st_cls; ?>" style="font-size:13px;">
+                            <strong><?php echo $st_pct; ?>%</strong>
+                            <small><?php echo $st_present; ?>/<?php echo $st_total; ?></small>
+                        </span>
+                        <?php else: ?>
+                        <span class="att-cell att-empty">—</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr class="foot-row">
+                        <td class="sticky-col" style="font-size:12px;color:#5b73e8;font-weight:700;">
+                            <i class="fa fa-bar-chart"></i> Subject Average
+                        </td>
+                        <?php foreach ($subjects as $xid => $subj):
+                            $t = isset($subj_totals[$xid]) ? $subj_totals[$xid] : null;
+                            $tcls = $t ? ($t['pct'] >= $warn_limit ? 'att-good' : ($t['pct'] >= $low_limit ? 'att-warn' : 'att-low')) : 'att-empty';
+                        ?>
+                        <td style="text-align:center;">
+                            <?php if ($t): ?>
+                            <span class="att-cell <?php echo $tcls; ?>">
+                                <?php echo $t['pct']; ?>%
+                                <small><?php echo $t['present']; ?>/<?php echo $t['total']; ?></small>
+                            </span>
+                            <?php else: ?><span class="att-cell att-empty">—</span><?php endif; ?>
+                        </td>
+                        <?php endforeach; ?>
+                        <td style="text-align:center;">
+                            <?php $ocls = $overall_pct >= $warn_limit ? 'att-good' : ($overall_pct >= $low_limit ? 'att-warn' : 'att-low'); ?>
+                            <span class="att-cell <?php echo $ocls; ?>" style="font-size:13px;"><strong><?php echo $overall_pct; ?>%</strong></span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <?php endif; // empty check
+    endif; // matrix isset ?>
+
+</section>
+</div>
+
+<script>
+$(document).ready(function() {
+    var cls = '<?php echo set_value('class_id'); ?>';
+    var sec = '<?php echo set_value('section_id'); ?>';
+    var subj = '<?php echo set_value('subject_id'); ?>';
+    var dept = '<?php echo set_value('department_id'); ?>';
+
+    if (cls) { loadSections(cls, sec); loadSubjects(cls, sec, subj); }
+
+    $('#department_id').on('change', function() {
+        $('#class_id').val(''); $('#section_id').html('<option value="">Select</option>'); $('#subject_id').html('<option value="">All Subjects</option>');
+    });
+    $('#class_id').on('change', function() {
+        loadSections($(this).val(), ''); $('#subject_id').html('<option value="">All Subjects</option>');
+    });
+    $('#section_id').on('change', function() { loadSubjects($('#class_id').val(), $(this).val(), ''); });
+
+    function loadSections(cid, sel) {
+        if (!cid) return;
+        $.getJSON(baseurl + 'sections/getByClass', {class_id: cid, department_id: $('#department_id').val()}, function(data) {
+            var html = '<option value="">Select</option>';
+            $.each(data, function(i, o) { html += '<option value="'+o.section_id+'"'+(sel==o.section_id?' selected':'')+'>'+o.section+'</option>'; });
+            $('#section_id').html(html);
+        });
     }
-    return false;
-}
-?>
-            <script type="text/javascript">
-
-                $(document).ready(function () {
-                    var section_id_post = "<?php echo set_value('section_id'); ?>";
-                    var class_id_post = "<?php echo set_value('class_id'); ?>";
-                    var date_post = "<?php echo set_value('date'); ?>";
-                    var subject_id = "<?php echo set_value('subject_id'); ?>";
-                    var subject_timetable_id = "<?php echo set_value('subject_timetable_id', 0); ?>";
-                    populateSection(section_id_post, class_id_post);
-                    populateSubject(class_id_post,section_id_post,subject_id);
-
-                    function populateSection(section_id_post, class_id_post) {
-                        if (class_id_post != "") {
-
-                            $('#section_id').html("");
-
-                            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-                            var department_id = $('#department_id').val(); // Get selected department_id
-                            $.ajax({
-                                type: "GET",
-                                url: baseurl + "sections/getByClass",
-                                data: {'class_id': class_id_post, 'department_id': department_id}, // Pass department_id
-                                dataType: "json",
-                                success: function (data) {
-                                    $.each(data, function (i, obj)
-                                    {
-                                        var select = "";
-                                        if (section_id_post == obj.section_id) {
-                                            var select = "selected=selected";
-                                        }
-                                        div_data += "<option value=" + obj.section_id + " " + select + ">" + obj.section + "</option>";
-                                    });
-                                    $('#section_id').append(div_data);
-                                }
-                            });
-                        }
-                    }
-
-                    $(document).on('change', '#department_id', function(e) {
-                        $('#class_id').val('');
-                        $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
-                        $('#subject_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
-                    });
-
-                    $(document).on('change', '#class_id', function (e) {
-                        $('#section_id').html("");
-                        var class_id = $(this).val();
-                        var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-                        var url = "";
-                        var department_id = $('#department_id').val(); // Get selected department_id
-                        $.ajax({
-                            type: "GET",
-                            url: baseurl + "sections/getByClass",
-                            data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
-                            dataType: "json",
-                            success: function (data) {
-                                $.each(data, function (i, obj)
-                                {
-                                    div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
-                                });
-                                $('#section_id').append(div_data);
-                            }
-                        });
-                    });
-
-   function populateSubject(class_id_post,section_id_post,subject_id_post) {
-
-                        if (section_id_post != "" && class_id_post != "") {
-                             $('#subject_id').html("");
-
-                            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-                            $.ajax({
-                                type: "POST",
-                                url: baseurl + "admin/subjectgroup/getAllSubjectByClassandSection",
-                            data: {'class_id': class_id_post,'section_id':section_id_post},
-                                dataType: "json",
-                                success: function (data) {
-                                    $.each(data, function (i, obj)
-                                    {
-                                        var select = "";
-                                        if (subject_id_post == obj.subject_id) {
-                                            var select = "selected=selected";
-                                        }
-                                        
-                                        var code ='';
-                                        if(obj.subject_code){
-                                            code = " (" + obj.subject_code + ") ";
-                                        }
-                        
-                                        div_data += "<option value=" + obj.subject_id + " " + select + ">" + obj.subject_name + code +"</option>";
-                                    });
-                                    $('#subject_id').append(div_data);
-                                }
-                            });
-                        }
-                    }
-
-                    $(document).on('change', '#section_id', function (e) {
-                        $('#subject_id').html("");
-                        let class_id = $('#class_id').val();
-                        let section_id = $(this).val();
-                        populateSubject(class_id,section_id,0);
-
-                    });
-                });
-            </script>
+    function loadSubjects(cid, sid, sel) {
+        if (!cid || !sid) return;
+        $.post(baseurl + 'admin/subjectgroup/getAllSubjectByClassandSection', {class_id: cid, section_id: sid}, function(data) {
+            var html = '<option value="">All Subjects</option>';
+            $.each(data, function(i, o) { html += '<option value="'+o.subject_id+'"'+(sel==o.subject_id?' selected':'')+'>'+ o.subject_name + (o.subject_code ? ' ('+o.subject_code+')' : '') +'</option>'; });
+            $('#subject_id').html(html);
+        }, 'json');
+    }
+});
+</script>
