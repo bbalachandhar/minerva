@@ -276,7 +276,11 @@ class Studentsubjectattendence_model extends CI_Model
     public function getStudentSubjectMatrix($class_id, $section_id, $from_date, $to_date, $subject_id = null, $department_id = null)
     {
         $subject_filter = $subject_id ? " AND subj.id = " . $this->db->escape($subject_id) : "";
-        $dept_filter    = $department_id ? " AND ss.department_id = " . $this->db->escape($department_id) : "";
+        // Department filter intentionally omitted: student_session.department_id is NULL in many
+        // installations (populated via classes.department_id instead). The class_id + section_id
+        // filters already uniquely identify the class — adding department_id would wrongly exclude
+        // all students whose student_session.department_id is NULL.
+        $dept_filter    = "";
 
         $sql = "SELECT
             ss.id AS student_session_id,
