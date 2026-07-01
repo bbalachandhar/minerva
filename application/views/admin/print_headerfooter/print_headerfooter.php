@@ -30,7 +30,7 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/student_receipt/<?php echo ($result['student_receipt']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/student_receipt/<?php echo ($result['student_receipt']['header_image'] ?? '') ?>" placeholder="" type="file" class="dropify" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="student_receipt" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
@@ -56,7 +56,7 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/staff_payslip/<?php echo ($result['staff_payslip']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/staff_payslip/<?php echo ($result['staff_payslip']['header_image'] ?? '') ?>" placeholder="" type="file" class="dropify" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="staff_payslip" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
@@ -83,7 +83,7 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="admission_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/online_admission_receipt/<?php echo ($result['online_admission_receipt']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="admission_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/online_admission_receipt/<?php echo ($result['online_admission_receipt']['header_image'] ?? '') ?>" placeholder="" type="file" class="dropify" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="online_admission_receipt" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
@@ -111,7 +111,7 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="admission_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/online_exam/<?php echo ($result['online_exam']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="admission_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/online_exam/<?php echo ($result['online_exam']['header_image'] ?? '') ?>" placeholder="" type="file" class="dropify" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="online_exam" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
@@ -139,7 +139,7 @@ if ($this->session->flashdata('msg') != '') {
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('header_image') . " (2230px X 300px)"; ?><small class="req"> *</small></label>
-                                            <input id="general_purpose_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/general_purpose/<?php echo ($result['general_purpose']['header_image'] ?? '') ?>" placeholder="" type="file" class="filestyle form-control" data-height="180"  name="header_image">
+                                            <input id="general_purpose_documents" data-default-file="<?php echo $this->customlib->getBaseUrl() ?>./uploads/print_headerfooter/general_purpose/<?php echo ($result['general_purpose']['header_image'] ?? '') ?>" placeholder="" type="file" class="dropify" data-height="180"  name="header_image">
                                             <input  placeholder="" type="hidden" class="form-control" value="general_purpose" name="type">
                                             <span class="text-danger"><?php echo form_error('header_image'); ?></span>
                                         </div>
@@ -171,7 +171,6 @@ if ($this->session->flashdata('msg') != '') {
 
 <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css">
 <script src="<?php echo base_url(); ?>backend/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.all.min.js"></script>
-<script src="<?php echo base_url(); ?>backend/dist/js/bootstrap-filestyle.min.js"></script>
 
 <script>
     $(function () {
@@ -180,8 +179,18 @@ if ($this->session->flashdata('msg') != '') {
         $("#online_exam_textarea").wysihtml5();
         $("#online_admission_textarea").wysihtml5();
         $("#general_purpose_textarea").wysihtml5();
-     
 
+        // Initialise Dropify on all header image inputs
+        if ($.fn.dropify) {
+            $('.dropify').dropify({
+                messages: {
+                    default:  'Drag and drop or <strong>click</strong> to upload',
+                    replace:  'Drag and drop or <strong>click</strong> to replace',
+                    remove:   'Remove',
+                    error:    'An error occurred'
+                }
+            });
+        }
     });
 </script>
 
