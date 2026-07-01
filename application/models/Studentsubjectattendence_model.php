@@ -218,6 +218,133 @@ class Studentsubjectattendence_model extends CI_Model
         return false;
     }
 
+    // ── Dashboard: period-wise analytics ──────────────────────────
+
+    public function getDashboardTodayCoverage($session)
+    {
+        $day  = date('l');
+        $date = date('Y-m-d');
+        $sql  = "SELECT
+            COUNT(DISTINCT st.id)                                                         AS total_periods,
+            COUNT(DISTINCT CASE WHEN ssa_c.subject_timetable_id IS NOT NULL THEN st.id END) AS marked_periods,
+            COUNT(DISTINCT CONCAT(st.class_id,'-',st.section_id))                        AS total_sections,
+            COUNT(DISTINCT CASE WHEN ssa_c.subject_timetable_id IS NOT NULL THEN CONCAT(st.class_id,'-',st.section_id) END) AS marked_sections
+          FROM subject_timetable st
+          LEFT JOIN (
+            SELECT DISTINCT subject_timetable_id FROM student_subject_attendances WHERE date = " . $this->db->escape($date) . "
+          ) ssa_c ON ssa_c.subject_timetable_id = st.id
+          WHERE st.day = " . $this->db->escape($day) . " AND st.session_id = " . $this->db->escape($session);
+        return $this->db->query($sql)->row_array();
+    }
+
+    public function getDashboardTodayPresent($session)
+    {
+        $date = date('Y-m-d');
+        $sql  = "SELECT
+            COUNT(*) AS total_marked,
+            SUM(CASE WHEN ssa.attendence_type_id = 1 THEN 1 ELSE 0 END) AS present_count
+          FROM student_subject_attendances ssa
+          JOIN student_session ss ON ss.id = ssa.student_session_id
+          WHERE ssa.date = " . $this->db->escape($date) . " AND ss.session_id = " . $this->db->escape($session);
+        return $this->db->query($sql)->row_array();
+    }
+
+    public function getDashboardTeacherStatus($session)
+    {
+        $day  = date('l');
+        $date = date('Y-m-d');
+        $sql  = "SELECT
+            st.staff_id,
+            TRIM(CONCAT(s.name,' ',IFNULL(s.surname,''))) AS teacher_name,
+            s.image,
+            COUNT(DISTINCT st.id)                                                              AS total_periods,
+            COUNT(DISTINCT CASE WHEN ssa_c.subject_timetable_id IS NOT NULL THEN st.id END)   AS marked_periods,
+            GROUP_CONCAT(
+              CASE WHEN ssa_c.subject_timetable_id IS NULL
+                THEN CONCAT(cl.class,' ',sec.section,' — ',subj.name,' (',TIME_FORMAT(st.time_from,'%h:%i %p'),')')
+              END ORDER BY st.time_from SEPARATOR '|'
+            ) AS pending_detail
+          FROM subject_timetable st
+          JOIN staff s ON s.id = st.staff_id AND s.is_active = 1
+          JOIN classes cl ON cl.id = st.class_id
+          JOIN sections sec ON sec.id = st.section_id
+          JOIN subject_group_subjects sgs ON sgs.id = st.subject_group_subject_id
+          JOIN subjects subj ON subj.id = sgs.subject_id
+          LEFT JOIN (
+            SELECT DISTINCT subject_timetable_id FROM student_subject_attendances WHERE date = " . $this->db->escape($date) . "
+          ) ssa_c ON ssa_c.subject_timetable_id = st.id
+          WHERE st.day = " . $this->db->escape($day) . " AND st.session_id = " . $this->db->escape($session) . "
+          GROUP BY st.staff_id
+          ORDER BY marked_periods ASC, total_periods DESC";
+        return $this->db->query($sql)->result_array();
+    }
+
+    public function getDashboardHeatmap($session)
+    {
+        $day  = date('l');
+        $date = date('Y-m-d');
+        $sql  = "SELECT
+            cl.id AS class_id, cl.class AS class_name,
+            sec.id AS section_id, sec.section AS section_name,
+            COUNT(DISTINCT st.id)                                                              AS total_periods,
+            COUNT(DISTINCT CASE WHEN ssa_c.subject_timetable_id IS NOT NULL THEN st.id END)   AS marked_periods
+          FROM subject_timetable st
+          JOIN classes cl ON cl.id = st.class_id
+          JOIN sections sec ON sec.id = st.section_id
+          LEFT JOIN (
+            SELECT DISTINCT subject_timetable_id FROM student_subject_attendances WHERE date = " . $this->db->escape($date) . "
+          ) ssa_c ON ssa_c.subject_timetable_id = st.id
+          WHERE st.day = " . $this->db->escape($day) . " AND st.session_id = " . $this->db->escape($session) . "
+          GROUP BY st.class_id, st.section_id
+          ORDER BY cl.id, sec.id";
+        return $this->db->query($sql)->result_array();
+    }
+
+    public function getDashboardWeeklyTrend($session)
+    {
+        $sql = "SELECT
+            ssa.date,
+            COUNT(*) AS total_marked,
+            SUM(CASE WHEN ssa.attendence_type_id = 1 THEN 1 ELSE 0 END) AS present_count,
+            ROUND(SUM(CASE WHEN ssa.attendence_type_id = 1 THEN 100.0 ELSE 0 END) / COUNT(*), 1) AS pct
+          FROM student_subject_attendances ssa
+          JOIN student_session ss ON ss.id = ssa.student_session_id
+          WHERE ssa.date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+            AND ssa.date <= CURDATE()
+            AND ss.session_id = " . $this->db->escape($session) . "
+          GROUP BY ssa.date
+          ORDER BY ssa.date";
+        return $this->db->query($sql)->result_array();
+    }
+
+    public function getDashboardLowAttendance($session, $threshold = 75)
+    {
+        $sql = "SELECT
+            students.id AS student_id,
+            students.firstname, students.lastname, students.admission_no,
+            cl.class AS class_name, sec.section AS section_name,
+            ss.id AS student_session_id,
+            COUNT(DISTINCT ssa.id) AS total_records,
+            SUM(CASE WHEN ssa.attendence_type_id = 1 THEN 1 ELSE 0 END) AS present_count,
+            ROUND(SUM(CASE WHEN ssa.attendence_type_id = 1 THEN 100.0 ELSE 0 END) / COUNT(DISTINCT ssa.id), 1) AS pct
+          FROM student_session ss
+          JOIN students ON students.id = ss.student_id AND students.is_active = 'yes'
+          JOIN classes cl ON cl.id = ss.class_id
+          JOIN sections sec ON sec.id = ss.section_id
+          JOIN student_subject_attendances ssa ON ssa.student_session_id = ss.id
+          WHERE ss.session_id = " . $this->db->escape($session) . "
+            AND MONTH(ssa.date) = MONTH(CURDATE())
+            AND YEAR(ssa.date)  = YEAR(CURDATE())
+            AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
+          GROUP BY ss.id
+          HAVING pct < " . (int) $threshold . "
+          ORDER BY pct ASC
+          LIMIT 20";
+        return $this->db->query($sql)->result_array();
+    }
+
+    // ── End dashboard methods ──────────────────────────────────────
+
     public function attendanceYearCount()
     {
         $query = $this->db->select("distinct year(date) as year")->get("student_subject_attendances");

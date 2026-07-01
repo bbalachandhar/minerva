@@ -198,12 +198,13 @@ if (!function_exists('main_menu_array')) {
                 'marksdivision'         => array('index','edit'),                  
             ),
             
-            'attendance' => array(                                 
-                'approve_leave'    => array('index'),                   
-                'stuattendence'    => array('index','edit','attendencereport'),    
-                'subjectattendence'    => array('index','reportbydate'),                   
-                                  
-            ), 
+            'attendance' => array(
+                'approve_leave'        => array('index'),
+                'stuattendence'        => array('index','edit','attendencereport'),
+                'subjectattendence'    => array('index','reportbydate'),
+                'attendancedashboard'  => array('index'),
+
+            ),
             
             'online_examinations' => array(                                 
                 'onlineexam'    => array('index','evalution','assign'),                  
