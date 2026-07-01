@@ -385,8 +385,8 @@ class Studentsubjectattendence_model extends CI_Model
             COUNT(DISTINCT CASE WHEN ssa_c.subject_timetable_id IS NOT NULL THEN st.id END)   AS marked_periods,
             GROUP_CONCAT(
               CASE WHEN ssa_c.subject_timetable_id IS NULL
-                THEN CONCAT(cl.class,' ',sec.section,' — ',subj.name,' (',TIME_FORMAT(st.time_from,'%h:%i %p'),')')
-              END ORDER BY st.time_from SEPARATOR '|'
+                THEN CONCAT(cl.class,' ',sec.section,' — ',subj.name,' (',st.time_from,')')
+              END ORDER BY st.start_time SEPARATOR '|'
             ) AS pending_detail
           FROM subject_timetable st
           JOIN staff s ON s.id = st.staff_id AND s.is_active = 1
