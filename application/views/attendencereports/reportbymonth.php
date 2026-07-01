@@ -282,37 +282,99 @@ $warn_limit = $low_limit + 10;
 </div>
 
 <script>
-$(document).ready(function() {
-    var cls = '<?php echo set_value('class_id'); ?>';
-    var sec = '<?php echo set_value('section_id'); ?>';
-    var subj = '<?php echo set_value('subject_id'); ?>';
-    var dept = '<?php echo set_value('department_id'); ?>';
+$(window).on('load', function() {
+    // ── Saved values from last submit ──────────────────────────
+    var savedDept  = '<?php echo addslashes(set_value('department_id')); ?>';
+    var savedCls   = '<?php echo addslashes(set_value('class_id')); ?>';
+    var savedSec   = '<?php echo addslashes(set_value('section_id')); ?>';
+    var savedSubj  = '<?php echo addslashes(set_value('subject_id')); ?>';
+    var isCollege  = <?php echo ($sch_setting->institution_type == 'college') ? 'true' : 'false'; ?>;
 
-    if (cls) { loadSections(cls, sec); loadSubjects(cls, sec, subj); }
+    // ── Apply Select2 to all dropdowns (searchable) ──────────
+    var s2opts = { width: '100%', allowClear: true };
+    $('#department_id').select2($.extend({}, s2opts, {placeholder: '— All Departments —'}));
+    $('#class_id').select2($.extend({}, s2opts, {placeholder: '— Select Class —'}));
+    $('#section_id').select2($.extend({}, s2opts, {placeholder: '— Select Section —'}));
+    $('#month').select2($.extend({}, s2opts, {placeholder: '— Select Month —', allowClear: false}));
+    $('#subject_id').select2($.extend({}, s2opts, {placeholder: '— All Subjects —'}));
 
-    $('#department_id').on('change', function() {
-        $('#class_id').val(''); $('#section_id').html('<option value="">Select</option>'); $('#subject_id').html('<option value="">All Subjects</option>');
-    });
-    $('#class_id').on('change', function() {
-        loadSections($(this).val(), ''); $('#subject_id').html('<option value="">All Subjects</option>');
-    });
-    $('#section_id').on('change', function() { loadSubjects($('#class_id').val(), $(this).val(), ''); });
-
-    function loadSections(cid, sel) {
-        if (!cid) return;
-        $.getJSON(baseurl + 'sections/getByClass', {class_id: cid, department_id: $('#department_id').val()}, function(data) {
-            var html = '<option value="">Select</option>';
-            $.each(data, function(i, o) { html += '<option value="'+o.section_id+'"'+(sel==o.section_id?' selected':'')+'>'+o.section+'</option>'; });
-            $('#section_id').html(html);
+    // ── Restore cascade on page reload after submit ───────────
+    if (savedCls) {
+        loadSections(savedCls, savedSec, function() {
+            if (savedSec) loadSubjects(savedCls, savedSec, savedSubj);
         });
     }
+
+    // ── Department changes → reload classes ───────────────────
+    $('#department_id').on('change', function() {
+        var deptId = $(this).val();
+        resetDropdown('#class_id',   '— Select Class —');
+        resetDropdown('#section_id', '— Select Section —');
+        resetDropdown('#subject_id', '— All Subjects —', true);
+        if (!deptId || !isCollege) return;
+        $.getJSON(baseurl + 'classes/getClassesByDepartment', {department_id: deptId}, function(data) {
+            var html = '<option value="">— Select Class —</option>';
+            $.each(data, function(i, o) { html += '<option value="'+o.id+'">'+escHtml(o.class)+'</option>'; });
+            $('#class_id').html(html).trigger('change.select2');
+        });
+    });
+
+    // ── Class changes → reload sections ──────────────────────
+    $('#class_id').on('change', function() {
+        var cid = $(this).val();
+        resetDropdown('#section_id', '— Select Section —');
+        resetDropdown('#subject_id', '— All Subjects —', true);
+        if (!cid) return;
+        loadSections(cid, '', null);
+    });
+
+    // ── Section changes → reload subjects ────────────────────
+    $('#section_id').on('change', function() {
+        var sid = $(this).val();
+        resetDropdown('#subject_id', '— All Subjects —', true);
+        if (!sid) return;
+        loadSubjects($('#class_id').val(), sid, '');
+    });
+
+    // ── Helpers ───────────────────────────────────────────────
+    function loadSections(cid, sel, callback) {
+        if (!cid) return;
+        $.getJSON(baseurl + 'sections/getByClass', {class_id: cid, department_id: $('#department_id').val()}, function(data) {
+            var html = '<option value="">— Select Section —</option>';
+            $.each(data, function(i, o) {
+                html += '<option value="'+o.section_id+'"'+(sel && sel==o.section_id?' selected':'')+'>'+escHtml(o.section)+'</option>';
+            });
+            $('#section_id').html(html).trigger('change.select2');
+            if (callback) callback();
+        });
+    }
+
     function loadSubjects(cid, sid, sel) {
         if (!cid || !sid) return;
-        $.post(baseurl + 'admin/subjectgroup/getAllSubjectByClassandSection', {class_id: cid, section_id: sid}, function(data) {
-            var html = '<option value="">All Subjects</option>';
-            $.each(data, function(i, o) { html += '<option value="'+o.subject_id+'"'+(sel==o.subject_id?' selected':'')+'>'+ o.subject_name + (o.subject_code ? ' ('+o.subject_code+')' : '') +'</option>'; });
-            $('#subject_id').html(html);
-        }, 'json');
+        $.post(baseurl + 'admin/subjectgroup/getAllSubjectByClassandSection',
+            {class_id: cid, section_id: sid},
+            function(data) {
+                var html = '<option value="">— All Subjects —</option>';
+                if (data && data.length) {
+                    $.each(data, function(i, o) {
+                        var lbl = escHtml(o.subject_name) + (o.subject_code ? ' ('+escHtml(o.subject_code)+')' : '');
+                        html += '<option value="'+o.subject_id+'"'+(sel && sel==o.subject_id?' selected':'')+'>'+lbl+'</option>';
+                    });
+                }
+                $('#subject_id').html(html).trigger('change.select2');
+            }, 'json'
+        ).fail(function() {
+            $('#subject_id').html('<option value="">— All Subjects —</option>').trigger('change.select2');
+        });
+    }
+
+    function resetDropdown(selector, placeholder, isOptional) {
+        var html = '<option value="">'+(placeholder||'— Select —')+'</option>';
+        $(selector).html(html).trigger('change.select2');
+    }
+
+    function escHtml(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 });
 </script>
