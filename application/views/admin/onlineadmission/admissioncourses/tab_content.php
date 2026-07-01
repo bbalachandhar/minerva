@@ -122,13 +122,18 @@ $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) != 'co
                             <code>course_name, course_code, course_level (UG/PG), admission_type (first_year/lateral), govt_fee, mgt_fee, sort_order, description, is_active (1/0)</code><br>
                             Duplicate <code>course_code</code> entries will be <strong>updated</strong>; new codes will be <strong>inserted</strong>.
                         </p>
-                        <div class="input-group">
-                            <input type="file" id="bulk_course_csv" accept=".csv" class="form-control">
-                            <span class="input-group-btn">
-                                <button class="btn btn-primary" id="btn_bulk_import_courses">
-                                    <i class="fa fa-cloud-upload"></i> Import
-                                </button>
-                            </span>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <label style="margin:0;cursor:pointer;">
+                                <span id="csv_file_label" style="display:inline-block;padding:6px 14px;border:1.5px solid #ccc;border-radius:5px;background:#fff;font-size:13px;color:#555;min-width:200px;">
+                                    <i class="fa fa-file-text-o"></i>&nbsp; <span id="csv_file_name_display">Choose CSV file…</span>
+                                </span>
+                                <input type="file" id="bulk_course_csv" accept=".csv"
+                                       style="position:absolute;opacity:0;width:0;height:0;" tabindex="-1">
+                            </label>
+                            <button class="btn btn-primary" id="btn_bulk_import_courses">
+                                <i class="fa fa-cloud-upload"></i> Import
+                            </button>
+                            <small class="text-muted"><i class="fa fa-info-circle"></i> CSV files only</small>
                         </div>
                         <div id="bulk_import_result" style="margin-top:8px;"></div>
                     </div>
@@ -240,6 +245,12 @@ $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) != 'co
                 });
             }
         }
+
+        // Show selected filename
+        $('#bulk_course_csv').on('change', function(){
+            var name = this.files[0] ? this.files[0].name : 'Choose CSV file…';
+            $('#csv_file_name_display').text(name);
+        });
 
         // Bulk CSV import
         $('#btn_bulk_import_courses').on('click', function(){
