@@ -218,6 +218,59 @@ class Studentsubjectattendence_model extends CI_Model
         return false;
     }
 
+    // ── Report: Class Day Matrix (all students × all periods for a date) ──
+
+    public function getClassDayMatrix($class_id, $section_id, $date, $session)
+    {
+        $day = date('l', strtotime($date));
+
+        // 1. Periods scheduled today for this class-section
+        $period_sql = "SELECT DISTINCT st.id, st.time_from, st.time_to, st.start_time,
+                              subj.name AS subject_name, subj.code AS subject_code,
+                              TRIM(CONCAT(stf.name,' ',IFNULL(stf.surname,''))) AS teacher_name
+                       FROM subject_timetable st
+                       JOIN subject_group_subjects sgs ON sgs.id = st.subject_group_subject_id
+                       JOIN subjects subj ON subj.id = sgs.subject_id
+                       LEFT JOIN staff stf ON stf.id = st.staff_id
+                       WHERE st.class_id = " . $this->db->escape($class_id) . "
+                         AND st.section_id = " . $this->db->escape($section_id) . "
+                         AND st.day = " . $this->db->escape($day) . "
+                         AND st.session_id = " . $this->db->escape($session) . "
+                       ORDER BY st.start_time ASC";
+        $periods = $this->db->query($period_sql)->result_array();
+
+        // 2. All students in this class-section
+        $student_sql = "SELECT ss.id AS student_session_id, s.id AS student_id,
+                               s.firstname, s.middlename, s.lastname,
+                               s.roll_no, s.admission_no
+                        FROM student_session ss
+                        JOIN students s ON s.id = ss.student_id AND s.is_active = 'yes'
+                        WHERE ss.class_id = " . $this->db->escape($class_id) . "
+                          AND ss.section_id = " . $this->db->escape($section_id) . "
+                          AND ss.session_id = " . $this->db->escape($session) . "
+                          AND (ss.is_alumni = 0 OR ss.is_alumni IS NULL)
+                        ORDER BY CAST(s.roll_no AS UNSIGNED) ASC, s.admission_no ASC";
+        $students = $this->db->query($student_sql)->result_array();
+
+        // 3. All attendance records for this date / class / section
+        $att_sql = "SELECT ssa.student_session_id, ssa.subject_timetable_id, ssa.attendence_type_id, ssa.remark
+                    FROM student_subject_attendances ssa
+                    JOIN student_session ss ON ss.id = ssa.student_session_id
+                    WHERE ss.class_id = " . $this->db->escape($class_id) . "
+                      AND ss.section_id = " . $this->db->escape($section_id) . "
+                      AND ss.session_id = " . $this->db->escape($session) . "
+                      AND ssa.date = " . $this->db->escape($date);
+        $att_rows = $this->db->query($att_sql)->result_array();
+
+        // 4. Build lookup: [student_session_id][subject_timetable_id] => type_id
+        $att_map = [];
+        foreach ($att_rows as $a) {
+            $att_map[$a['student_session_id']][$a['subject_timetable_id']] = $a['attendence_type_id'];
+        }
+
+        return compact('periods', 'students', 'att_map');
+    }
+
     // ── Report: subject attendance matrix (reportbymonth redesign) ─
 
     public function getStudentSubjectMatrix($class_id, $section_id, $from_date, $to_date, $subject_id = null, $department_id = null)
