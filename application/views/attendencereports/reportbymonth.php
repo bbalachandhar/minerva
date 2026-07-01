@@ -78,10 +78,7 @@ $warn_limit = $low_limit + 10;
                     <div class="form-group">
                         <label>Class <small class="req">*</small></label>
                         <select id="class_id" name="class_id" class="form-control">
-                            <option value="">Select</option>
-                            <?php foreach ($classlist as $c): ?>
-                            <option value="<?php echo $c['id']; ?>" <?php if (set_value('class_id') == $c['id']) echo 'selected'; ?>><?php echo htmlspecialchars($c['class']); ?></option>
-                            <?php endforeach; ?>
+                            <option value="">— Select Class —</option>
                         </select>
                         <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                     </div>
@@ -283,73 +280,86 @@ $warn_limit = $low_limit + 10;
 
 <script>
 $(window).on('load', function() {
-    // ── Saved values from last submit ──────────────────────────
-    var savedDept  = '<?php echo addslashes(set_value('department_id')); ?>';
-    var savedCls   = '<?php echo addslashes(set_value('class_id')); ?>';
-    var savedSec   = '<?php echo addslashes(set_value('section_id')); ?>';
-    var savedSubj  = '<?php echo addslashes(set_value('subject_id')); ?>';
-    var isCollege  = <?php echo ($sch_setting->institution_type == 'college') ? 'true' : 'false'; ?>;
+    var savedDept = '<?php echo addslashes(set_value('department_id')); ?>';
+    var savedCls  = '<?php echo addslashes(set_value('class_id')); ?>';
+    var savedSec  = '<?php echo addslashes(set_value('section_id')); ?>';
+    var savedSubj = '<?php echo addslashes(set_value('subject_id')); ?>';
+    var allClasses = []; // cached once, filtered client-side per department
 
-    // ── Apply Select2 to all dropdowns (searchable) ──────────
-    var s2opts = { width: '100%', allowClear: true };
-    $('#department_id').select2($.extend({}, s2opts, {placeholder: '— All Departments —'}));
-    $('#class_id').select2($.extend({}, s2opts, {placeholder: '— Select Class —'}));
-    $('#section_id').select2($.extend({}, s2opts, {placeholder: '— Select Section —'}));
-    $('#month').select2($.extend({}, s2opts, {placeholder: '— Select Month —', allowClear: false}));
-    $('#subject_id').select2($.extend({}, s2opts, {placeholder: '— All Subjects —'}));
+    // ── Select2 ──────────────────────────────────────────────
+    var s2 = { width: '100%', allowClear: true };
+    $('#department_id').select2($.extend({}, s2, {placeholder: '— All Departments (optional) —'}));
+    $('#class_id').select2($.extend({}, s2, {placeholder: '— Select Class —'}));
+    $('#section_id').select2($.extend({}, s2, {placeholder: '— Select Section —'}));
+    $('#month').select2($.extend({}, s2, {placeholder: '— Select Month —', allowClear: false}));
+    $('#subject_id').select2($.extend({}, s2, {placeholder: '— All Subjects —'}));
 
-    // ── Restore cascade on page reload after submit ───────────
-    if (savedCls) {
-        loadSections(savedCls, savedSec, function() {
-            if (savedSec) loadSubjects(savedCls, savedSec, savedSubj);
+    // ── Load ALL classes once on page load (no PHP pre-population) ─
+    $.getJSON(baseurl + 'attendencereports/getAllAcademicClasses', function(data) {
+        allClasses = data;
+        renderClasses(allClasses, savedCls, function() {
+            if (savedCls) {
+                loadSections(savedCls, savedSec, function() {
+                    if (savedSec) loadSubjects(savedCls, savedSec, savedSubj);
+                });
+            }
         });
-    }
+    });
 
-    // ── Department changes → reload classes ───────────────────
-    $('#department_id').on('change', function() {
+    // ── Department → filter class list CLIENT-SIDE (instant, no AJAX) ─
+    $('#department_id').on('select2:select select2:unselect select2:clear change', function() {
         var deptId = $(this).val();
-        resetDropdown('#class_id',   '— Select Class —');
-        resetDropdown('#section_id', '— Select Section —');
-        resetDropdown('#subject_id', '— All Subjects —', true);
-        if (!deptId || !isCollege) return;
-        $.getJSON(baseurl + 'classes/getClassesByDepartment', {department_id: deptId}, function(data) {
-            var html = '<option value="">— Select Class —</option>';
-            $.each(data, function(i, o) { html += '<option value="'+o.id+'">'+escHtml(o.class)+'</option>'; });
-            $('#class_id').html(html).trigger('change.select2');
-        });
+        var filtered = deptId
+            ? allClasses.filter(function(c) { return String(c.department_id) === String(deptId); })
+            : allClasses;
+        renderClasses(filtered, '', null);
+        resetDrop('#section_id', '— Select Section —');
+        resetDrop('#subject_id', '— All Subjects —');
     });
 
-    // ── Class changes → reload sections ──────────────────────
-    // Use BOTH direct and Select2 events to guarantee firing
-    $('#class_id').on('change select2:select', function() {
+    // ── Class → load sections ─────────────────────────────────
+    $(document).on('change', '#class_id', function() {
         var cid = $(this).val();
-        resetDropdown('#section_id', '— Select Section —');
-        resetDropdown('#subject_id', '— All Subjects —', true);
-        if (!cid) return;
-        loadSections(cid, '', null);
+        resetDrop('#section_id', '— Select Section —');
+        resetDrop('#subject_id', '— All Subjects —');
+        if (cid) loadSections(cid, '', null);
+    });
+    $('#class_id').on('select2:select', function() {
+        var cid = $(this).val();
+        resetDrop('#section_id', '— Select Section —');
+        resetDrop('#subject_id', '— All Subjects —');
+        if (cid) loadSections(cid, '', null);
     });
 
-    // ── Section changes → reload subjects ────────────────────
-    // Delegated + select2:select covers all Select2 interaction modes
+    // ── Section → load subjects ───────────────────────────────
     $(document).on('change', '#section_id', function() {
         var sid = $(this).val();
-        resetDropdown('#subject_id', '— All Subjects —', true);
-        if (!sid) return;
-        loadSubjects($('#class_id').val(), sid, '');
+        resetDrop('#subject_id', '— All Subjects —');
+        if (sid) loadSubjects($('#class_id').val(), sid, '');
     });
     $('#section_id').on('select2:select', function() {
         var sid = $(this).val();
-        resetDropdown('#subject_id', '— All Subjects —', true);
+        resetDrop('#subject_id', '— All Subjects —');
         if (sid) loadSubjects($('#class_id').val(), sid, '');
     });
 
     // ── Helpers ───────────────────────────────────────────────
+    function renderClasses(classes, sel, callback) {
+        var html = '<option value="">— Select Class —</option>';
+        $.each(classes, function(i, c) {
+            html += '<option value="' + c.id + '" data-dept="' + c.department_id + '"'
+                 + (sel && sel == c.id ? ' selected' : '') + '>' + esc(c['class']) + '</option>';
+        });
+        $('#class_id').html(html).trigger('change.select2');
+        if (callback) callback();
+    }
+
     function loadSections(cid, sel, callback) {
         if (!cid) return;
         $.getJSON(baseurl + 'sections/getByClass', {class_id: cid, department_id: $('#department_id').val()}, function(data) {
             var html = '<option value="">— Select Section —</option>';
             $.each(data, function(i, o) {
-                html += '<option value="'+o.section_id+'"'+(sel && sel==o.section_id?' selected':'')+'>'+escHtml(o.section)+'</option>';
+                html += '<option value="' + o.section_id + '"' + (sel && sel == o.section_id ? ' selected' : '') + '>' + esc(o.section) + '</option>';
             });
             $('#section_id').html(html).trigger('change.select2');
             if (callback) callback();
@@ -358,7 +368,6 @@ $(window).on('load', function() {
 
     function loadSubjects(cid, sid, sel) {
         if (!cid || !sid) return;
-        // Use explicit $.ajax (not $.post shorthand) for reliable JSON handling
         $.ajax({
             type: 'POST',
             url:  baseurl + 'attendencereports/getSubjectsByClassSection',
@@ -368,26 +377,19 @@ $(window).on('load', function() {
                 var html = '<option value="">— All Subjects —</option>';
                 if (data && data.length) {
                     $.each(data, function(i, o) {
-                        var lbl = escHtml(o.subject_name) + (o.subject_code ? ' (' + escHtml(o.subject_code) + ')' : '');
+                        var lbl = esc(o.subject_name) + (o.subject_code ? ' (' + esc(o.subject_code) + ')' : '');
                         html += '<option value="' + o.subject_id + '"' + (sel && sel == o.subject_id ? ' selected' : '') + '>' + lbl + '</option>';
                     });
                 }
                 $('#subject_id').html(html).trigger('change.select2');
             },
-            error: function(xhr) {
-                console.error('Subject load failed:', xhr.status, xhr.responseText);
+            error: function() {
                 $('#subject_id').html('<option value="">— All Subjects —</option>').trigger('change.select2');
             }
         });
     }
 
-    function resetDropdown(selector, placeholder, isOptional) {
-        var html = '<option value="">'+(placeholder||'— Select —')+'</option>';
-        $(selector).html(html).trigger('change.select2');
-    }
-
-    function escHtml(s) {
-        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+    function resetDrop(sel, ph) { $(sel).html('<option value="">' + ph + '</option>').trigger('change.select2'); }
+    function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 });
 </script>

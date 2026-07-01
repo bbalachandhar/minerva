@@ -155,10 +155,7 @@ $pct_bg    = is_null($pct) ? '#f3f4f6' : ($pct >= 80 ? '#d1fae5' : ($pct >= $low
           <div class="form-group">
             <label>Class <small class="req">*</small></label>
             <select id="class_id" name="class_id" class="form-control">
-              <option value="">Select Class</option>
-              <?php foreach ($classlist as $c): ?>
-              <option value="<?php echo $c['id']; ?>" <?php if (set_value('class_id')==$c['id']) echo 'selected'; ?>><?php echo htmlspecialchars($c['class']); ?></option>
-              <?php endforeach; ?>
+              <option value="">— Select Class —</option>
             </select>
             <span class="text-danger"><?php echo form_error('class_id'); ?></span>
           </div>
@@ -460,36 +457,62 @@ $(window).on('load', function() {
     $('#student_id').select2($.extend({},s2,{placeholder:'— Select Student —'}));
     $('#month').select2($.extend({},s2,{placeholder:'— Select Month —',allowClear:false}));
 
-    // ── Restore cascade on reload ─────────────────────────────
-    if (savedCls) {
-        loadSections(savedCls, savedSec, function() {
-            if (savedSec) { loadStudents(savedCls, savedSec, savedStd); }
-        });
-    }
+    var allClasses = []; // cached once, filtered client-side by dept
 
-    // ── Event chain ───────────────────────────────────────────
-    $('#department_id').on('change', function() {
-        var deptId = $(this).val();
-        reset3(); // clear class/section/student
-        if (!deptId || !isCollege) return;
-        $.getJSON(baseurl+'classes/getClassesByDepartment',{department_id:deptId},function(data){
-            var h='<option value="">— Select Class —</option>';
-            $.each(data,function(i,o){h+='<option value="'+o.id+'">'+esc(o.class)+'</option>';});
-            $('#class_id').html(h).trigger('change.select2');
+    // ── Load all classes on page load ────────────────────────
+    $.getJSON(baseurl + 'attendencereports/getAllAcademicClasses', function(data) {
+        allClasses = data;
+        renderClasses(allClasses, savedCls, function() {
+            if (savedCls) {
+                loadSections(savedCls, savedSec, function() {
+                    if (savedSec) loadStudents(savedCls, savedSec, savedStd);
+                });
+            }
         });
     });
-    $('#class_id').on('change', function() {
-        var cid=$(this).val();
-        reset2(); // clear section/student
+
+    // ── Department → filter classes client-side ───────────────
+    $('#department_id').on('select2:select select2:unselect select2:clear change', function() {
+        var deptId = $(this).val();
+        var filtered = deptId
+            ? allClasses.filter(function(c) { return String(c.department_id) === String(deptId); })
+            : allClasses;
+        renderClasses(filtered, '', null);
+        resetDrop('#section_id','— Select Section —');
+        resetDrop('#student_id','— Select Student —');
+    });
+
+    // ── Class → sections ─────────────────────────────────────
+    $(document).on('change','#class_id', function() {
+        var cid=$(this).val(); resetDrop('#section_id','— Select Section —'); resetDrop('#student_id','— Select Student —');
         if (cid) loadSections(cid,'',null);
     });
-    $('#section_id').on('change', function() {
-        var sid=$(this).val(), cid=$('#class_id').val();
+    $('#class_id').on('select2:select', function() {
+        var cid=$(this).val(); resetDrop('#section_id','— Select Section —'); resetDrop('#student_id','— Select Student —');
+        if (cid) loadSections(cid,'',null);
+    });
+
+    // ── Section → students ────────────────────────────────────
+    $(document).on('change','#section_id', function() {
+        var sid=$(this).val(),cid=$('#class_id').val();
         resetDrop('#student_id','— Select Student —');
-        if (sid && cid) loadStudents(cid,sid,'');
+        if (sid&&cid) loadStudents(cid,sid,'');
+    });
+    $('#section_id').on('select2:select', function() {
+        var sid=$(this).val(),cid=$('#class_id').val();
+        resetDrop('#student_id','— Select Student —');
+        if (sid&&cid) loadStudents(cid,sid,'');
     });
 
     // ── AJAX helpers ──────────────────────────────────────────
+    function renderClasses(classes, sel, callback) {
+        var h = '<option value="">— Select Class —</option>';
+        $.each(classes, function(i,c) {
+            h += '<option value="'+c.id+'" data-dept="'+c.department_id+'"'+(sel&&sel==c.id?' selected':'')+'>'+esc(c['class'])+'</option>';
+        });
+        $('#class_id').html(h).trigger('change.select2');
+        if (callback) callback();
+    }
     function loadSections(cid, sel, cb) {
         $.getJSON(baseurl+'sections/getByClass',{class_id:cid,department_id:$('#department_id').val()},function(data){
             var h='<option value="">— Select Section —</option>';
@@ -505,8 +528,6 @@ $(window).on('load', function() {
             $('#student_id').html(h).trigger('change.select2');
         });
     }
-    function reset3(){ resetDrop('#class_id','— Select Class —'); reset2(); }
-    function reset2(){ resetDrop('#section_id','— Select Section —'); resetDrop('#student_id','— Select Student —'); }
     function resetDrop(sel,ph){ $(sel).html('<option value="">'+ph+'</option>').trigger('change.select2'); }
     function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
