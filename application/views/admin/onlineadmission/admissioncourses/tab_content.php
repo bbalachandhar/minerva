@@ -127,7 +127,7 @@ $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) != 'co
                                 <span id="csv_file_label" style="display:inline-block;padding:6px 14px;border:1.5px solid #ccc;border-radius:5px;background:#fff;font-size:13px;color:#555;min-width:200px;">
                                     <i class="fa fa-file-text-o"></i>&nbsp; <span id="csv_file_name_display">Choose CSV file…</span>
                                 </span>
-                                <input type="file" id="bulk_course_csv" accept=".csv"
+                                <input type="file" id="bulk_course_csv" accept=".csv" data-no-filehint="1"
                                        style="position:absolute;opacity:0;width:0;height:0;" tabindex="-1">
                             </label>
                             <button class="btn btn-primary" id="btn_bulk_import_courses">

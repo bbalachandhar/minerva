@@ -426,7 +426,8 @@ $('#addonModal').modal({
     }));
 
     // ── Global file upload: hint labels + validation (300KB, PDF/JPG/PNG) ──
-    $('input[type="file"]').each(function () {
+    // Skip inputs with data-no-filehint="1" (e.g. CSV importers)
+    $('input[type="file"]:not([data-no-filehint])').each(function () {
         if ($(this).next('.file-upload-hint').length === 0) {
             $(this).after(
                 '<div class="file-upload-hint" style="font-size:11px; color:#94a3b8; margin-top:4px; line-height:1.4;">' +
@@ -437,7 +438,7 @@ $('#addonModal').modal({
         }
     });
 
-    $(document).on('change', 'input[type="file"]', function () {
+    $(document).on('change', 'input[type="file"]:not([data-no-filehint])', function () {
         var input = this;
         var $hint = $(input).next('.file-upload-hint');
         var maxSize = 300 * 1024;

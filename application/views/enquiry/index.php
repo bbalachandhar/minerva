@@ -153,6 +153,10 @@ $(document).ready(function() {
                 );
             });
         }
+        // Refresh Select2 if initialized
+        if ($.fn.select2 && courseSelect.data('select2')) {
+            courseSelect.trigger('change.select2');
+        }
     }
 
     $('input[name="course_type"]').on('change', function() {
