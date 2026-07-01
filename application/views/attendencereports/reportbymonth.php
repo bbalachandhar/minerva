@@ -292,7 +292,9 @@ $(window).on('load', function() {
     $('#class_id').select2($.extend({}, s2, {placeholder: '— Select Class —'}));
     $('#section_id').select2($.extend({}, s2, {placeholder: '— Select Section —'}));
     $('#month').select2($.extend({}, s2, {placeholder: '— Select Month —', allowClear: false}));
-    $('#subject_id').select2($.extend({}, s2, {placeholder: '— All Subjects —'}));
+    // Subject: no allowClear/placeholder so the empty "All Subjects" option always
+    // appears as the first visible clickable item in the dropdown list.
+    $('#subject_id').select2({width: '100%', allowClear: false});
 
     // ── Load ALL classes once on page load (no PHP pre-population) ─
     $.getJSON(baseurl + 'attendencereports/getAllAcademicClasses', function(data) {
@@ -374,7 +376,8 @@ $(window).on('load', function() {
             data: {class_id: cid, section_id: sid},
             dataType: 'json',
             success: function(data) {
-                var html = '<option value="">— All Subjects —</option>';
+                // Always put "All Subjects" first so user can switch back to it anytime
+                var html = '<option value="" selected>✦ All Subjects (show all)</option>';
                 if (data && data.length) {
                     $.each(data, function(i, o) {
                         var lbl = esc(o.subject_name) + (o.subject_code ? ' (' + esc(o.subject_code) + ')' : '');
@@ -384,7 +387,7 @@ $(window).on('load', function() {
                 $('#subject_id').html(html).trigger('change.select2');
             },
             error: function() {
-                $('#subject_id').html('<option value="">— All Subjects —</option>').trigger('change.select2');
+                $('#subject_id').html('<option value="" selected>✦ All Subjects (show all)</option>').trigger('change.select2');
             }
         });
     }
