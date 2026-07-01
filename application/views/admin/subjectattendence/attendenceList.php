@@ -2,16 +2,19 @@
 $language1      = $this->customlib->getLanguage();
 $language_name1 = $language1["short_code"];
 
-// Attendance status pill config
+// Attendance status pill config — keys are lowercase+underscore of type name
 $att_colors = [
-    'present'           => ['bg'=>'#27ae60','text'=>'#fff','icon'=>'fa-check-circle'],
-    'late'              => ['bg'=>'#f39c12','text'=>'#fff','icon'=>'fa-clock-o'],
-    'absent'            => ['bg'=>'#e74c3c','text'=>'#fff','icon'=>'fa-times-circle'],
-    'holiday'           => ['bg'=>'#3498db','text'=>'#fff','icon'=>'fa-calendar'],
-    'half_day'          => ['bg'=>'#9b59b6','text'=>'#fff','icon'=>'fa-adjust'],
-    'half_day_second_shift' => ['bg'=>'#16a085','text'=>'#fff','icon'=>'fa-adjust'],
+    'present'                => ['bg'=>'#27ae60','text'=>'#fff','icon'=>'fa-check-circle'],
+    'late'                   => ['bg'=>'#f39c12','text'=>'#fff','icon'=>'fa-clock-o'],
+    'late_with_excuse'       => ['bg'=>'#e67e22','text'=>'#fff','icon'=>'fa-clock-o'],
+    'absent'                 => ['bg'=>'#e74c3c','text'=>'#fff','icon'=>'fa-times-circle'],
+    'holiday'                => ['bg'=>'#3498db','text'=>'#fff','icon'=>'fa-calendar'],
+    'half_day'               => ['bg'=>'#9b59b6','text'=>'#fff','icon'=>'fa-adjust'],
+    'half_day_second_shift'  => ['bg'=>'#16a085','text'=>'#fff','icon'=>'fa-adjust'],
+    'on_duty'                => ['bg'=>'#8e44ad','text'=>'#fff','icon'=>'fa-briefcase'],
+    'medical_leave'          => ['bg'=>'#c0392b','text'=>'#fff','icon'=>'fa-medkit'],
 ];
-$att_default = ['bg'=>'#e9ecef','text'=>'#555','icon'=>'fa-circle-o'];
+$att_default = ['bg'=>'#7f8c8d','text'=>'#fff','icon'=>'fa-circle-o'];
 ?>
 <style>
 /* ── Modern Attendance Page ──────────────────── */
@@ -393,42 +396,39 @@ $(function(){
     <?php endforeach; endif; ?>
   };
 
-  // ── Pill toggle: click label → update visual style ──
-  $(document).on('click', '.att-pill', function(){
-    var $group = $(this).closest('.att-pill-group');
+  // ── Pill toggle: use 'change' event (fires AFTER radio state is updated) ──
+  function updatePillGroup($group) {
     $group.find('.att-pill').each(function(){
       var $radio = $(this).find('input[type="radio"]');
-      var cfg    = attColors[$radio.val()] || {bg:'#95a5a6', text:'#fff'};
+      var val    = $radio.val();
+      var cfg    = attColors[val] || {bg:'#7f8c8d', text:'#fff'};
       if ($radio.is(':checked')) {
-        $(this).addClass('selected').css({ background: cfg.bg, color: cfg.text, borderColor: 'transparent' });
+        $(this).css({ background: cfg.bg, color: cfg.text, border: '2px solid transparent' });
       } else {
-        $(this).removeClass('selected').css({ background: cfg.bg+'18', color: cfg.bg, borderColor: cfg.bg+'40' });
+        $(this).css({ background: cfg.bg+'22', color: cfg.bg, border: '1.5px solid ' + cfg.bg + '55' });
       }
     });
+  }
+
+  $(document).on('change', '.att-pill-group input[type="radio"]', function(){
+    updatePillGroup($(this).closest('.att-pill-group'));
   });
+
+  // On page load: apply correct styles to pre-checked radios (set by PHP)
+  $('.att-pill-group').each(function(){ updatePillGroup($(this)); });
 
   // ── Bulk set all students ──
   $(document).on('change', '.default_radio', function(){
     var returnVal = confirm("<?php echo $this->lang->line('are_you_sure'); ?>");
     if (!returnVal) { $(this).prop('checked', false); return false; }
-    var typeId = $(this).val().replace('radio_', ''); // "radio_1" → "1"
-    // Check the matching radio in every student's pill group and refresh visuals
+    var typeId = $(this).val().replace('radio_', '');
+    // Set each student's matching radio and refresh that row's pill group
     $('.att-pill-group').each(function(){
-      var $match = $(this).find('input[type="radio"][value="' + typeId + '"]');
+      var $grp   = $(this);
+      var $match = $grp.find('input[type="radio"][value="' + typeId + '"]');
       if ($match.length) {
         $match.prop('checked', true);
-        $(this).find('.att-pill').trigger('click.refresh');
-        // Directly update styles
-        var cfg = attColors[typeId] || {bg:'#95a5a6', text:'#fff'};
-        $(this).find('.att-pill').each(function(){
-          var $r = $(this).find('input[type="radio"]');
-          if ($r.val() == typeId) {
-            $(this).addClass('selected').css({ background: cfg.bg, color: cfg.text, borderColor: 'transparent' });
-          } else {
-            var c2 = attColors[$r.val()] || {bg:'#95a5a6'};
-            $(this).removeClass('selected').css({ background: c2.bg+'18', color: c2.bg, borderColor: c2.bg+'40' });
-          }
-        });
+        updatePillGroup($grp);
       }
     });
   });
