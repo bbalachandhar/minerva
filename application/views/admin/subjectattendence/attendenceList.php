@@ -177,7 +177,7 @@ $language_name1 = $language1["short_code"];
                                         <label for="exampleInputEmail1">
                                             <?php echo $this->lang->line('date'); ?>
                                         </label><small class="req"> *</small>
-                                        <input name="date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('date'); ?>" readonly="readonly" />
+                                        <input name="date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('date') ?: $this->customlib->convertDateFormat(date('Y-m-d')); ?>" readonly="readonly" />
                                         <span class="text-danger"><?php echo form_error('date'); ?></span>
                                     </div>
                                 </div>
