@@ -143,18 +143,33 @@ $(document).ready(function() {
         pg_first_year: <?php echo json_encode($pg_first_year_courses); ?>
     };
 
-    $('input[name="course_type"]').on('change', function() {
-        const selectedType = $(this).val();
+    function populateCourses(type) {
         const courseSelect = $('#admission_course_id');
         courseSelect.html('<option value="">Select Course</option>');
-        if (coursesData[selectedType]) {
-            coursesData[selectedType].forEach(function(course) {
+        if (coursesData[type]) {
+            coursesData[type].forEach(function(course) {
                 courseSelect.append(
                     $('<option></option>').attr('value', course.id).text(course.course_name)
                 );
             });
         }
+    }
+
+    $('input[name="course_type"]').on('change', function() {
+        populateCourses($(this).val());
     });
+
+    // Auto-select first available type on load so courses appear immediately
+    var preselectedType = '<?php echo set_value('course_type'); ?>';
+    if (preselectedType) {
+        $('input[name="course_type"][value="' + preselectedType + '"]').prop('checked', true);
+        populateCourses(preselectedType);
+    } else {
+        // Default: check first radio and populate its courses
+        var $firstRadio = $('input[name="course_type"]:first');
+        $firstRadio.prop('checked', true);
+        populateCourses($firstRadio.val());
+    }
     <?php endif; ?>
 
     // Load India states and cities
