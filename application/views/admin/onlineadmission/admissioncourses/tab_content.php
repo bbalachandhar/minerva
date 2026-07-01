@@ -246,6 +246,10 @@ $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) != 'co
             }
         }
 
+        // Remove any stale file-upload-hint near the CSV picker (belt-and-suspenders)
+        $('#bulk_course_csv').closest('label').siblings('.file-upload-hint').remove();
+        $('#bulk_course_csv').next('.file-upload-hint').remove();
+
         // Show selected filename
         $('#bulk_course_csv').on('change', function(){
             var name = this.files[0] ? this.files[0].name : 'Choose CSV file…';
