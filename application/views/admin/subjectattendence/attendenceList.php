@@ -41,7 +41,7 @@ $att_default = ['bg'=>'#e9ecef','text'=>'#555','icon'=>'fa-circle-o'];
 .att-table th {
   background:#2c3e50;color:#fff;padding:10px 12px;
   text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;
-  letter-spacing:.4px;position:sticky;top:0;z-index:1;
+  letter-spacing:.4px;
 }
 .att-table td { padding:9px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle; }
 .att-table tbody tr:hover { background:#f8fbff; }
@@ -270,7 +270,7 @@ $att_default = ['bg'=>'#e9ecef','text'=>'#555','icon'=>'fa-circle-o'];
             <?php endif; ?>
 
             <!-- Student table -->
-            <div class="table-responsive" style="border-radius:8px;overflow:hidden;border:1px solid #e8ecf0;">
+            <div class="table-responsive" style="border-radius:8px;border:1px solid #e8ecf0;">
               <table class="att-table download_label" data-label="<?php echo $this->lang->line('student_list'); ?>">
                 <thead>
                   <tr>
