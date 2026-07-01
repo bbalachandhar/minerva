@@ -1515,6 +1515,28 @@ class Attendencereports extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    // ── AJAX: subjects for a class+section via subject_timetable ──────────
+    // getAllsubjectByClassSection() uses subject_group_class_sections which is
+    // often empty when timetable was built directly. This endpoint reads from
+    // subject_timetable instead — always has data if timetable is set up.
+    public function getSubjectsByClassSection()
+    {
+        $class_id   = (int)($this->input->get_post('class_id'));
+        $section_id = (int)($this->input->get_post('section_id'));
+        if (!$class_id || !$section_id) { $this->output->set_content_type('application/json')->set_output('[]'); return; }
+        $session = $this->setting_model->getCurrentSession();
+        $sql = "SELECT DISTINCT sgs.subject_id, subj.name AS subject_name, subj.code AS subject_code
+                FROM subject_timetable st
+                JOIN subject_group_subjects sgs ON sgs.id = st.subject_group_subject_id
+                JOIN subjects subj ON subj.id = sgs.subject_id
+                WHERE st.class_id  = " . $this->db->escape($class_id) . "
+                  AND st.section_id = " . $this->db->escape($section_id) . "
+                  AND st.session_id = " . $this->db->escape($session) . "
+                ORDER BY subj.name ASC";
+        $rows = $this->db->query($sql)->result_array();
+        $this->output->set_content_type('application/json')->set_output(json_encode($rows));
+    }
+
     // ── AJAX: all academic classes with dept_id (client-side dept filter) ─
     public function getAllAcademicClasses()
     {
