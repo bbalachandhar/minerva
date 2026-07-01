@@ -260,21 +260,38 @@ $pct_bg    = is_null($pct) ? '#f3f4f6' : ($pct >= 80 ? '#d1fae5' : ($pct >= $low
         <span style="margin-left:auto;font-size:11px;color:#9ca3af;font-weight:400;">Scroll to see all days</span>
       </div>
       <div class="stu-detail-scroll" id="period-detail-scroll">
-        <?php foreach ($resultlist['students_attendances'] as $day_data):
+        <?php
+        // Pre-scan for timetable conflicts (same time appears more than once in a day)
+        $has_any_conflict = false;
+        foreach ($resultlist['students_attendances'] as $day_data):
           if (empty($day_data['subjects'])) continue;
+
+          // Build time-slot frequency map to detect conflicts
+          $time_freq = [];
+          foreach ($day_data['subjects'] as $subj) {
+              $slot = $subj->time_from . '–' . $subj->time_to;
+              $time_freq[$slot] = ($time_freq[$slot] ?? 0) + 1;
+          }
+          $has_conflict = max($time_freq) > 1;
+          if ($has_conflict) $has_any_conflict = true;
+
           $dp = 0; $dt = count($day_data['subjects']);
           foreach ($day_data['subjects'] as $idx => $s) {
-              $c = $idx + 1;
+              $c   = $idx + 1;
               $aid = isset($day_data['attendances']) ? ($day_data['attendances']->{"attendence_type_id_".$c} ?? '') : '';
               if ($aid == 1) $dp++;
           }
-          $day_pct   = $dt > 0 ? round($dp * 100 / $dt) : 0;
           $day_color = $dp === $dt ? '#059669' : ($dp > 0 ? '#d97706' : '#dc2626');
         ?>
         <div class="day-block">
           <div class="day-hdr">
             <span class="day-date"><?php echo htmlspecialchars($day_data['date']); ?></span>
             <span class="day-name"><?php echo htmlspecialchars($this->lang->line(strtolower($day_data['day'])) ?: $day_data['day']); ?></span>
+            <?php if ($has_conflict): ?>
+            <span style="background:#fff3cd;color:#92400e;border-radius:10px;padding:1px 8px;font-size:10px;font-weight:700;margin-left:6px;" title="Timetable conflict: two subjects assigned to the same time slot. Fix in the Timetable module.">
+              <i class="fa fa-exclamation-triangle"></i> Timetable conflict
+            </span>
+            <?php endif; ?>
             <span class="day-stat" style="color:<?php echo $day_color; ?>;"><?php echo $dp; ?>/<?php echo $dt; ?> present</span>
           </div>
           <?php foreach ($day_data['subjects'] as $idx => $subj):
@@ -286,12 +303,15 @@ $pct_bg    = is_null($pct) ? '#f3f4f6' : ($pct >= 80 ? '#d1fae5' : ($pct >= $low
                 $pill_key = strtoupper($key ?: 'NA');
                 $dot_col  = $pill_key === 'P' ? '#059669' : ($pill_key === 'A' ? '#dc2626' : ($pill_key === 'H' ? '#3b82f6' : '#d97706'));
             }
+            $this_slot    = $subj->time_from . '–' . $subj->time_to;
+            $slot_conflict = ($time_freq[$this_slot] ?? 1) > 1;
           ?>
-          <div class="period-row">
-            <span class="period-dot" style="background:<?php echo $dot_col; ?>;"></span>
+          <div class="period-row" <?php if ($slot_conflict) echo 'style="background:#fffbeb;"'; ?>>
+            <span class="period-dot" style="background:<?php echo $slot_conflict ? '#f59e0b' : $dot_col; ?>;"></span>
             <span class="period-subj">
               <span class="period-subj-name"><?php echo htmlspecialchars($subj->name); ?></span>
               <?php if ($subj->code): ?><span class="period-subj-code"> (<?php echo htmlspecialchars($subj->code); ?>)</span><?php endif; ?>
+              <?php if ($slot_conflict): ?><span style="font-size:9px;background:#fef3c7;color:#92400e;border-radius:4px;padding:0 5px;margin-left:4px;font-weight:700;">CONFLICT</span><?php endif; ?>
             </span>
             <span class="period-time"><i class="fa fa-clock-o" style="opacity:.4;margin-right:3px;"></i><?php echo htmlspecialchars($subj->time_from); ?>–<?php echo htmlspecialchars($subj->time_to); ?></span>
             <span class="att-pill att-<?php echo $pill_key; ?>"><?php echo $pill_key; ?></span>
@@ -299,6 +319,14 @@ $pct_bg    = is_null($pct) ? '#f3f4f6' : ($pct >= 80 ? '#d1fae5' : ($pct >= $low
           <?php endforeach; ?>
         </div>
         <?php endforeach; ?>
+
+        <?php if ($has_any_conflict): ?>
+        <div style="margin:12px 16px;padding:10px 14px;background:#fff3cd;border-radius:8px;border-left:4px solid #f59e0b;font-size:12px;color:#78350f;">
+          <strong><i class="fa fa-exclamation-triangle"></i> Timetable conflict detected:</strong>
+          Two or more subjects are assigned to the same time slot on some days. This is a data entry error in the timetable.
+          <br><strong>Fix:</strong> Go to <em>Auto Timetable → Subject Load</em> or the existing Timetable module and remove the overlapping subject assignments.
+        </div>
+        <?php endif; ?>
       </div>
     </div>
 
