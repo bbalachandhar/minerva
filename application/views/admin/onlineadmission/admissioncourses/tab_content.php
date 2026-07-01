@@ -104,6 +104,38 @@ $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) != 'co
         echo "12";
     }
     ?>">
+        <!-- Bulk Import Panel -->
+        <div class="box box-default" style="margin-bottom:14px;">
+            <div class="box-header with-border" style="background:#f0f7ff;">
+                <h3 class="box-title"><i class="fa fa-upload text-primary"></i> Bulk Import Courses from CSV</h3>
+                <div class="box-tools pull-right">
+                    <a href="<?php echo site_url('admin/onlineadmission/course_import_template'); ?>" class="btn btn-sm btn-default">
+                        <i class="fa fa-download"></i> Download Template CSV
+                    </a>
+                </div>
+            </div>
+            <div class="box-body">
+                <div class="row" style="align-items:flex-end;">
+                    <div class="col-md-6">
+                        <p style="font-size:12px;color:#666;margin-bottom:8px;">
+                            <strong>CSV columns (in order):</strong>
+                            <code>course_name, course_code, course_level (UG/PG), admission_type (first_year/lateral), govt_fee, mgt_fee, sort_order, description, is_active (1/0)</code><br>
+                            Duplicate <code>course_code</code> entries will be <strong>updated</strong>; new codes will be <strong>inserted</strong>.
+                        </p>
+                        <div class="input-group">
+                            <input type="file" id="bulk_course_csv" accept=".csv" class="form-control">
+                            <span class="input-group-btn">
+                                <button class="btn btn-primary" id="btn_bulk_import_courses">
+                                    <i class="fa fa-cloud-upload"></i> Import
+                                </button>
+                            </span>
+                        </div>
+                        <div id="bulk_import_result" style="margin-top:8px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- general form elements -->
         <div class="box box-primary">
             <div class="box-header with-border">
@@ -208,5 +240,36 @@ $is_school_k12 = (strtolower(trim($sch_setting_detail->institution_type)) != 'co
                 });
             }
         }
+
+        // Bulk CSV import
+        $('#btn_bulk_import_courses').on('click', function(){
+            var file = $('#bulk_course_csv')[0].files[0];
+            if (!file) { alert('Please select a CSV file first.'); return; }
+            if (file.name.split('.').pop().toLowerCase() !== 'csv') { alert('Only .csv files are supported.'); return; }
+
+            var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Importing...');
+            var fd   = new FormData();
+            fd.append('csv_file', file);
+            fd.append('<?php echo $this->security->get_csrf_token_name(); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
+
+            $.ajax({
+                url: '<?php echo site_url("admin/onlineadmission/bulk_import_courses"); ?>',
+                type: 'POST',
+                data: fd,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(res) {
+                    if (res.status == 1) {
+                        $('#bulk_import_result').html('<div class="alert alert-success" style="margin:0;font-size:13px;"><i class="fa fa-check-circle"></i> ' + res.message + '</div>');
+                        setTimeout(function(){ location.reload(); }, 1500);
+                    } else {
+                        $('#bulk_import_result').html('<div class="alert alert-danger" style="margin:0;font-size:13px;"><i class="fa fa-times-circle"></i> ' + res.message + '</div>');
+                    }
+                },
+                error: function(){ $('#bulk_import_result').html('<div class="alert alert-danger" style="margin:0;font-size:13px;">Upload failed. Please try again.</div>'); },
+                complete: function(){ $btn.prop('disabled', false).html('<i class="fa fa-cloud-upload"></i> Import'); }
+            });
+        });
     });
 </script>

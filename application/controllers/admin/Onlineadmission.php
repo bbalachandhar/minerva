@@ -179,6 +179,104 @@ class Onlineadmission extends Admin_Controller
                 redirect('admin/onlineadmission/admissionsetting#' . $this->input->post('active_tab'));
             }
 
+    /**
+     * Download CSV template for bulk course import
+     */
+    public function course_import_template()
+    {
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="courses_import_template.csv"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['course_name','course_code','course_level','admission_type','govt_fee','mgt_fee','sort_order','description','is_active']);
+        fputcsv($out, ['BE - Computer Science and Engineering','BE-CSE','UG','first_year','','','1','','1']);
+        fputcsv($out, ['ME - Applied Electronics','ME-AE','PG','first_year','','','2','','1']);
+        fputcsv($out, ['BE - Civil Engineering (Lateral)','BE-CIVIL-LAT','UG','lateral','','','3','','1']);
+        fclose($out);
+        exit;
+    }
+
+    /**
+     * Bulk import courses from CSV
+     */
+    public function bulk_import_courses()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_add')) {
+            echo json_encode(['status' => 0, 'message' => 'Access denied']); return;
+        }
+
+        if (empty($_FILES['csv_file']['name'])) {
+            echo json_encode(['status' => 0, 'message' => 'No file uploaded']); return;
+        }
+
+        $ext = strtolower(pathinfo($_FILES['csv_file']['name'], PATHINFO_EXTENSION));
+        if ($ext !== 'csv') {
+            echo json_encode(['status' => 0, 'message' => 'Only CSV files are supported']); return;
+        }
+
+        $file = $_FILES['csv_file']['tmp_name'];
+        $handle = fopen($file, 'r');
+        if (!$handle) {
+            echo json_encode(['status' => 0, 'message' => 'Could not read file']); return;
+        }
+
+        $headers = array_map('trim', fgetcsv($handle)); // skip header row
+        $valid_levels = ['UG','PG','ug','pg'];
+        $valid_types  = ['first_year','lateral'];
+
+        $inserted = 0; $updated = 0; $skipped = 0; $errors = [];
+        $row_num = 1;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $row_num++;
+            if (count($row) < 3) { $skipped++; continue; }
+
+            $name         = trim($row[0] ?? '');
+            $code         = trim($row[1] ?? '');
+            $level        = strtoupper(trim($row[2] ?? 'UG'));
+            $type         = trim($row[3] ?? 'first_year') ?: 'first_year';
+            $govt_fee     = is_numeric(trim($row[4] ?? '')) ? trim($row[4]) : null;
+            $mgt_fee      = is_numeric(trim($row[5] ?? '')) ? trim($row[5]) : null;
+            $sort_order   = (int)(trim($row[6] ?? 0)) ?: ($inserted + $updated + 1);
+            $description  = trim($row[7] ?? '');
+            $is_active    = (trim($row[8] ?? '1') === '0') ? 0 : 1;
+
+            if (empty($name)) { $errors[] = "Row $row_num: course_name is required"; $skipped++; continue; }
+            if (!in_array($level, ['UG','PG'])) { $errors[] = "Row $row_num: course_level must be UG or PG"; $skipped++; continue; }
+            if (!in_array($type, $valid_types)) { $type = 'first_year'; }
+
+            $data = [
+                'course_name'    => $name,
+                'course_code'    => $code,
+                'course_level'   => $level,
+                'admission_type' => $type,
+                'govt_fee'       => $govt_fee,
+                'mgt_fee'        => $mgt_fee,
+                'sort_order'     => $sort_order,
+                'description'    => $description,
+                'is_active'      => $is_active,
+            ];
+
+            // Check if code already exists (update) or insert new
+            if (!empty($code)) {
+                $existing = $this->db->where('course_code', $code)->get('online_admission_courses')->row_array();
+                if ($existing) {
+                    $data['id'] = $existing['id'];
+                    $this->Onlineadmissioncourses_model->add($data);
+                    $updated++;
+                    continue;
+                }
+            }
+            $this->Onlineadmissioncourses_model->add($data);
+            $inserted++;
+        }
+        fclose($handle);
+
+        $msg = "$inserted course(s) added, $updated updated, $skipped skipped.";
+        if ($errors) $msg .= ' Errors: ' . implode('; ', array_slice($errors, 0, 5));
+
+        echo json_encode(['status' => 1, 'message' => $msg, 'inserted' => $inserted, 'updated' => $updated, 'skipped' => $skipped]);
+    }
+
         } else {
             // DEBUG: Dump the result object to check its contents
             $this->load->view("layout/header");
