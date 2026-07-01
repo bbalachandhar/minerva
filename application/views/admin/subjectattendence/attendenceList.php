@@ -275,7 +275,7 @@ $att_default = ['bg'=>'#7f8c8d','text'=>'#fff','icon'=>'fa-circle-o'];
             <!-- Student table -->
             <div class="table-responsive">
               <div class="download_label" style="display:none"><?php echo $this->lang->line('student_list'); ?></div>
-              <table class="table table-hover table-striped example" style="margin-bottom:0;font-size:13px;">
+              <table class="table table-hover table-striped" style="margin-bottom:0;font-size:13px;">
                 <thead>
                   <tr style="background:#2c3e50;color:#fff;">
                     <th style="width:40px;background:#2c3e50;color:#fff;">#</th>
@@ -415,18 +415,8 @@ $(function(){
     updatePillGroup($(this).closest('.att-pill-group'));
   });
 
-  // Run after DataTables finishes drawing (student rows)
-  // Use setTimeout to ensure DataTables has re-rendered
-  setTimeout(function(){
-    $('.att-pill-group').each(function(){ updatePillGroup($(this)); });
-  }, 100);
-
-  // Also hook DataTables draw event if table is initialized
-  if ($.fn.DataTable) {
-    $(document).on('draw.dt', function(){
-      $('.att-pill-group').each(function(){ updatePillGroup($(this)); });
-    });
-  }
+  // Apply default pill colours immediately (no DataTables re-render to worry about)
+  $('.att-pill-group').each(function(){ updatePillGroup($(this)); });
 
   // ── Bulk set all students ──
   $(document).on('change', '.default_radio', function(){
