@@ -111,7 +111,7 @@ class Attendencereports extends Admin_Controller
         $data['attendencetypeslist'] = $attendencetypes;
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
-        $data['department_list'] = $this->Department_model->getDepartmentType();
+        $data['department_list'] = $this->Department_model->getDepartmentsForSession($this->setting_model->getCurrentSession());
         $data['class_id']       = "";
         $data['section_id']     = "";
         $data['date']           = "";
@@ -171,7 +171,7 @@ class Attendencereports extends Admin_Controller
             }
         }
         $data['classlist'] = $class;
-        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
+        $data['department_list'] = $this->Department_model->getDepartmentsForSession($this->setting_model->getCurrentSession()); // teaching depts only
         $userdata          = $this->customlib->getUserData();
 
         $data['monthlist']      = $this->customlib->getMonthDropdown();
@@ -288,7 +288,7 @@ class Attendencereports extends Admin_Controller
         $data['section_id']      = $section;
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
-        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
+        $data['department_list'] = $this->Department_model->getDepartmentsForSession($this->setting_model->getCurrentSession()); // teaching depts only
         $searchterm              = '';
         $condition               = "";
         $date_condition          = "";
