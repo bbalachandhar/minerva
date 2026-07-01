@@ -249,7 +249,13 @@ $months = array(
                         <th>Category</th>
                         <th style="width:120px;" class="text-center">Attendance %</th>
                         <th style="width:140px;" class="text-center"><?php echo htmlspecialchars($days_absent_label); ?></th>
-                        <th style="width:90px;" class="text-center" title="Leave blank for full-month attendance. Enter a day number (1–31) to generate punches only up to that day.">Till Day</th>
+                        <th style="width:100px;" class="text-center">
+                          Till Day
+                          <i class="fa fa-info-circle text-info" style="cursor:help;"
+                             data-toggle="tooltip" data-placement="top"
+                             title="Optional. Enter the last working day of the month for this staff (1–31). Leave blank = punches generated for the entire month. Example: enter 15 if the staff left or joined mid-month on the 15th. Days after the Till Day will be marked Absent. Value must be 1–31; entering 0 or leaving blank means full month."></i>
+                          <br><small class="text-muted" style="font-weight:normal;font-size:10px;">(blank = full month)</small>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -471,7 +477,7 @@ $months = array(
                 (maxLopDays !== null ? ' max="' + maxLopDays + '"' : '') + ' placeholder="e.g. 1 or 1.5" value="' + (lopDays === '' ? '' : lopDays) + '">' +
                 '<button type="button" class="btn btn-xs btn-default clear-entry-btn" style="margin-left:4px;vertical-align:middle;" title="Clear this entry"><i class="fa fa-times"></i></button>' +
                 '</td>\n' +
-                '   <td class="text-center"><input type="number" class="form-control input-sm till-day" min="1" max="31" placeholder="—" style="width:56px;margin:auto;" title="Optional: generate punches only up to this day of the month (1–31). Leave blank for full month." value="' + (emp.entered_till_day !== null && typeof emp.entered_till_day !== 'undefined' ? emp.entered_till_day : '') + '"></td>\n' +
+                '   <td class="text-center"><input type="number" class="form-control input-sm till-day" min="1" max="31" placeholder="Full" style="width:60px;margin:auto;" title="Enter last working day (1–31) to limit punch generation. Leave blank or 0 for full month." value="' + (emp.entered_till_day !== null && typeof emp.entered_till_day !== 'undefined' ? emp.entered_till_day : '') + '"></td>\n' +
                 '</tr>');
         });
         $tableBody.html(rows.join('\n'));
@@ -669,8 +675,9 @@ $months = array(
                 }
             }
             // Collect optional till-day per staff
+            // Blank or 0 → full month (no restriction); 1–31 → limit to that day
             var tillRaw = $.trim($row.find('.till-day').val());
-            if (tillRaw !== '') {
+            if (tillRaw !== '' && tillRaw !== '0') {
                 var tillVal = parseInt(tillRaw, 10);
                 if (!isNaN(tillVal) && tillVal >= 1 && tillVal <= 31) {
                     tillDays[empId] = tillVal;
