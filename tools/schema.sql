@@ -12816,3 +12816,49 @@ UPDATE sidebar_sub_menus SET access_permissions="('tt_lesson_browser','can_view'
 UPDATE sidebar_sub_menus SET access_permissions="('tt_room_avail','can_view')"     WHERE url='admin/tt/room_unavail'    AND (access_permissions IS NULL OR access_permissions='');
 UPDATE sidebar_sub_menus SET access_permissions="('tt_subject_colors','can_view')" WHERE url='admin/tt/subject_colors'  AND (access_permissions IS NULL OR access_permissions='');
 UPDATE sidebar_sub_menus SET access_permissions="('tt_subject_avail','can_view')"  WHERE url='admin/tt/subject_unavail' AND (access_permissions IS NULL OR access_permissions='');
+
+-- ── Student Attendance Dashboard (2026-07-01) ────────────────────────────────
+-- Sidebar: Attendance → Dashboard (Student Attn) — first item, level=1
+-- Controller: admin/attendancedashboard/index
+-- Adapts for day-wise (schools) and period-wise (colleges) automatically.
+
+INSERT INTO `permission_category` (`perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`)
+SELECT pc.perm_group_id, 'Student Attendance Dashboard', 'student_attendance_dashboard', 1, 0, 0, 0
+FROM `permission_category` pc
+WHERE pc.`short_code` = 'attendance_report'
+  AND NOT EXISTS (SELECT 1 FROM `permission_category` x WHERE x.`short_code` = 'student_attendance_dashboard')
+LIMIT 1;
+
+INSERT INTO `permission_category` (`perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`)
+SELECT COALESCE((SELECT pg.id FROM `permission_group` pg WHERE pg.`short_code` = 'attendance' LIMIT 1), 1),
+       'Student Attendance Dashboard', 'student_attendance_dashboard', 1, 0, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM `permission_category` WHERE `short_code` = 'student_attendance_dashboard');
+
+INSERT INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`, `can_edit`, `can_delete`)
+SELECT 1, pc.id, 1, 0, 0, 0
+FROM `permission_category` pc
+WHERE pc.`short_code` = 'student_attendance_dashboard'
+  AND NOT EXISTS (
+    SELECT 1 FROM `roles_permissions` rp
+    JOIN `permission_category` rpc ON rpc.id = rp.perm_cat_id
+    WHERE rp.role_id = 1 AND rpc.`short_code` = 'student_attendance_dashboard'
+  );
+
+INSERT INTO `sidebar_sub_menus`
+  (`sidebar_menu_id`, `menu`, `key`, `url`, `permission_group_id`, `activate_controller`, `activate_methods`, `is_active`, `level`, `lang_key`)
+SELECT
+  (SELECT sm.id FROM sidebar_menus sm WHERE sm.activate_menu = 'attendance' LIMIT 1),
+  'Dashboard (Student Attn)', 'student_attendance_dashboard', 'admin/attendancedashboard/index',
+  COALESCE(
+    (SELECT ssm.permission_group_id FROM sidebar_sub_menus ssm WHERE ssm.url LIKE '%stuattendence%' LIMIT 1),
+    (SELECT ssm2.permission_group_id FROM sidebar_sub_menus ssm2 WHERE ssm2.url LIKE '%subjectattendence%' LIMIT 1)
+  ),
+  'attendancedashboard', 'index', 1, 1, 'student_attendance_dashboard'
+WHERE NOT EXISTS (SELECT 1 FROM `sidebar_sub_menus` WHERE `key` = 'student_attendance_dashboard');
+
+UPDATE `sidebar_sub_menus` ssm
+JOIN sidebar_menus sm ON sm.id = ssm.sidebar_menu_id AND sm.activate_menu = 'attendance'
+SET ssm.`level` = ssm.`level` + 10
+WHERE ssm.`key` != 'student_attendance_dashboard' AND ssm.`level` < 100;
+
+UPDATE `sidebar_sub_menus` SET `level` = 1 WHERE `key` = 'student_attendance_dashboard';
