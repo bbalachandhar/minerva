@@ -169,11 +169,34 @@ class Attendancedashboard extends Admin_Controller
 
         if ($this->is_period_wise) {
             $rows = $this->studentsubjectattendence_model->getDashboardLowAttendance($this->current_session, $this->low_att_limit);
+            // Count how many students have ANY attendance record this month
+            $cov_sql = "SELECT COUNT(DISTINCT ssa.student_session_id) AS covered,
+                               (SELECT COUNT(ss2.id) FROM student_session ss2
+                                WHERE ss2.session_id = " . $this->db->escape($this->current_session) . "
+                                  AND (ss2.is_alumni = 0 OR ss2.is_alumni IS NULL)) AS enrolled
+                        FROM student_subject_attendances ssa
+                        JOIN student_session ss ON ss.id = ssa.student_session_id
+                        WHERE ss.session_id = " . $this->db->escape($this->current_session) . "
+                          AND MONTH(ssa.date) = MONTH(CURDATE()) AND YEAR(ssa.date) = YEAR(CURDATE())";
         } else {
             $rows = $this->stuattendence_model->getDashboardDayLowAttendance($this->current_session, $this->low_att_limit);
+            $cov_sql = "SELECT COUNT(DISTINCT sa.student_session_id) AS covered,
+                               (SELECT COUNT(ss2.id) FROM student_session ss2
+                                WHERE ss2.session_id = " . $this->db->escape($this->current_session) . "
+                                  AND (ss2.is_alumni = 0 OR ss2.is_alumni IS NULL)) AS enrolled
+                        FROM student_attendences sa
+                        JOIN student_session ss ON ss.id = sa.student_session_id
+                        WHERE ss.session_id = " . $this->db->escape($this->current_session) . "
+                          AND MONTH(sa.date) = MONTH(CURDATE()) AND YEAR(sa.date) = YEAR(CURDATE())";
         }
+        $cov = $this->db->query($cov_sql)->row_array();
 
-        $this->_json(['threshold' => $this->low_att_limit, 'rows' => $rows]);
+        $this->_json([
+            'threshold' => $this->low_att_limit,
+            'rows'      => $rows,
+            'covered'   => (int) ($cov['covered'] ?? 0),
+            'enrolled'  => (int) ($cov['enrolled'] ?? 0),
+        ]);
     }
 
     // ── helpers ──────────────────────────────────────────────────
