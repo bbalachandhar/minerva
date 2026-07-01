@@ -396,8 +396,14 @@ class Welcome extends Front_Controller
                 }
             }
          
+            // Load courses for the admission form dropdowns
+            $this->data['admission_courses']        = $this->Onlineadmissioncourses_model->getActiveCourses();
+            $this->data['ug_first_year_courses']    = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'first_year');
+            $this->data['ug_lateral_courses']       = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'lateral');
+            $this->data['pg_first_year_courses']    = $this->Onlineadmissioncourses_model->getActiveCourses('pg', 'first_year');
+
             if ($this->form_validation->run() == false) {
-                 
+
                 $this->load_theme('pages/admission', $this->config->item('front_layout'));
             } else {
                 $document_validate  = true;
