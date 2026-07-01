@@ -106,10 +106,7 @@
           <div class="form-group">
             <label>Class <small class="req">*</small></label>
             <select id="class_id" name="class_id" class="form-control">
-              <option value="">Select Class</option>
-              <?php foreach ($classlist as $c): ?>
-              <option value="<?php echo $c['id']; ?>" <?php if ($this->input->post('class_id')==$c['id']) echo 'selected'; ?>><?php echo htmlspecialchars($c['class']); ?></option>
-              <?php endforeach; ?>
+              <option value="">— Select Class —</option>
             </select>
           </div>
         </div>
@@ -306,35 +303,70 @@
 </div>
 
 <script>
-var SCHOOL = '<?php echo addslashes(htmlspecialchars($sch_setting->name ?? '')); ?>';
+var SCHOOL   = '<?php echo addslashes(htmlspecialchars($sch_setting->name ?? '')); ?>';
 var RPT_DATE = '<?php echo isset($date_formatted) ? addslashes(htmlspecialchars($date_formatted)) : ''; ?>';
 var RPT_DAY  = '<?php echo isset($day_name) ? addslashes($day_name) : ''; ?>';
 
+// Flatpickr runs inline — no footer dependency
 flatpickr('#pick_date', { dateFormat:'Y-m-d', altInput:true, altFormat:'D, d M Y', maxDate:'today', allowInput:false });
 
 $(window).on('load', function() {
+    var savedCls = '<?php echo addslashes($this->input->post('class_id') ?: ''); ?>';
+    var savedSec = '<?php echo addslashes($this->input->post('section_id') ?: ''); ?>';
+    var allClasses = []; // cache for client-side dept filtering
+
+    // ── Apply Select2 ─────────────────────────────────────────────
     var s2 = {width:'100%', allowClear:true};
-    $('#department_id').select2($.extend({},s2,{placeholder:'— All Departments —'}));
+    $('#department_id').select2($.extend({},s2,{placeholder:'— All Departments (optional) —'}));
     $('#class_id').select2($.extend({},s2,{placeholder:'— Select Class —'}));
     $('#section_id').select2($.extend({},s2,{placeholder:'— Select Section —'}));
 
-    var savedCls = '<?php echo addslashes($this->input->post('class_id') ?: ''); ?>';
-    var savedSec = '<?php echo addslashes($this->input->post('section_id') ?: ''); ?>';
-    if (savedCls) loadSections(savedCls, savedSec);
+    // ── Load ALL classes once on page load ─────────────────────────
+    $.getJSON(baseurl + 'attendencereports/getAllAcademicClasses', function(data) {
+        allClasses = data;
+        renderClasses(allClasses, savedCls, function() {
+            if (savedCls) loadSections(savedCls, savedSec);
+        });
+    });
 
-    $('#department_id').on('change', function() { resetDrop('#class_id','— Select Class —'); resetDrop('#section_id','— Select Section —'); });
-    $('#class_id').on('change select2:select', function() { resetDrop('#section_id','— Select Section —'); loadSections($(this).val(),''); });
-    $(document).on('change','#section_id', null); $('#section_id').on('select2:select', function(){});
+    // ── Department → filter class list (client-side, no extra AJAX) ─
+    $('#department_id').on('select2:select select2:unselect select2:clear change', function() {
+        var deptId = $(this).val();
+        var filtered = deptId ? allClasses.filter(function(c){ return String(c.department_id) === String(deptId); }) : allClasses;
+        renderClasses(filtered, '', null);
+        resetDrop('#section_id', '— Select Section —');
+    });
 
+    // ── Class → load sections ──────────────────────────────────────
+    $(document).on('change', '#class_id', function() {
+        var cid = $(this).val();
+        resetDrop('#section_id', '— Select Section —');
+        if (cid) loadSections(cid, '');
+    });
+    $('#class_id').on('select2:select', function() {
+        resetDrop('#section_id', '— Select Section —');
+        var cid = $(this).val();
+        if (cid) loadSections(cid, '');
+    });
+
+    function renderClasses(classes, sel, callback) {
+        var h = '<option value="">— Select Class —</option>';
+        $.each(classes, function(i,c) {
+            h += '<option value="'+c.id+'" data-dept="'+c.department_id+'"' + (sel && sel==c.id?' selected':'') + '>'+esc(c['class'])+'</option>';
+        });
+        $('#class_id').html(h).trigger('change.select2');
+        if (callback) callback();
+    }
     function loadSections(cid, sel) {
         if (!cid) return;
-        $.getJSON(baseurl+'sections/getByClass',{class_id:cid,department_id:$('#department_id').val()},function(data){
-            var h='<option value="">— Select Section —</option>';
-            $.each(data,function(i,o){h+='<option value="'+o.section_id+'"'+(sel==o.section_id?' selected':'')+'>'+o.section+'</option>';});
+        $.getJSON(baseurl+'sections/getByClass', {class_id:cid, department_id:$('#department_id').val()}, function(data) {
+            var h = '<option value="">— Select Section —</option>';
+            $.each(data, function(i,o) { h += '<option value="'+o.section_id+'"'+(sel && sel==o.section_id?' selected':'')+'>'+esc(o.section)+'</option>'; });
             $('#section_id').html(h).trigger('change.select2');
         });
     }
-    function resetDrop(sel,ph){ $(sel).html('<option value="">'+ph+'</option>').trigger('change.select2'); }
+    function resetDrop(sel, ph) { $(sel).html('<option value="">'+ph+'</option>').trigger('change.select2'); }
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 });
 
 function exportMatrixCSV() {
