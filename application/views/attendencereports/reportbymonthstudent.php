@@ -391,70 +391,102 @@ $pct_color = is_null($pct) ? '#bbb' : ($pct >= 80 ? '#27ae60' : ($pct >= $low_li
 </div>
 
 <script>
-$(document).ready(function() {
-    var cls  = '<?php echo set_value('class_id'); ?>';
-    var sec  = '<?php echo set_value('section_id'); ?>';
-    var std  = '<?php echo set_value('student_id'); ?>';
-    var subj = '<?php echo set_value('subject_id'); ?>';
-    var dept = '<?php echo set_value('department_id'); ?>';
+$(window).on('load', function() {
+    var savedCls  = '<?php echo addslashes(set_value('class_id')); ?>';
+    var savedSec  = '<?php echo addslashes(set_value('section_id')); ?>';
+    var savedStd  = '<?php echo addslashes(set_value('student_id')); ?>';
+    var savedSubj = '<?php echo addslashes(set_value('subject_id')); ?>';
+    var isCollege = <?php echo ($sch_setting->institution_type == 'college') ? 'true' : 'false'; ?>;
 
-    if (cls) { loadSections(cls, sec, std, subj); }
+    // ── Select2 on all dropdowns ──────────────────────────────
+    var s2 = {width:'100%', allowClear:true};
+    $('#department_id').select2($.extend({},s2,{placeholder:'— All Departments —'}));
+    $('#class_id').select2($.extend({},s2,{placeholder:'— Select Class —'}));
+    $('#section_id').select2($.extend({},s2,{placeholder:'— Select Section —'}));
+    $('#student_id').select2($.extend({},s2,{placeholder:'— Select Student —'}));
+    $('#month').select2($.extend({},s2,{placeholder:'— Select Month —',allowClear:false}));
+    $('#subject_id').select2($.extend({},s2,{placeholder:'— All Subjects —'}));
 
-    $('#department_id').on('change', function() {
-        $('#class_id').val(''); reset();
-    });
-    $('#class_id').on('change', function() { reset(); loadSections($(this).val(),'','',''); });
-    $('#section_id').on('change', function() {
-        $('#student_id').html('<option value="">Select</option>');
-        var cid = $('#class_id').val(), sid = $(this).val();
-        loadStudents(cid, sid, '');
-        loadSubjects(cid, sid, '');
-    });
-
-    function reset() {
-        $('#section_id').html('<option value="">Select</option>');
-        $('#student_id').html('<option value="">Select</option>');
-        $('#subject_id').html('<option value="">All</option>');
+    // ── Restore on reload ─────────────────────────────────────
+    if (savedCls) {
+        loadSections(savedCls, savedSec, function() {
+            if (savedSec) {
+                loadStudents(savedCls, savedSec, savedStd);
+                loadSubjects(savedCls, savedSec, savedSubj);
+            }
+        });
     }
 
-    function loadSections(cid, sel, stdSel, subjSel) {
+    // ── Department change → reload classes ────────────────────
+    $('#department_id').on('change', function() {
+        var deptId = $(this).val();
+        resetDrop('#class_id','— Select Class —');
+        resetDrop('#section_id','— Select Section —');
+        resetDrop('#student_id','— Select Student —');
+        resetDrop('#subject_id','— All Subjects —');
+        if (!deptId || !isCollege) return;
+        $.getJSON(baseurl+'classes/getClassesByDepartment',{department_id:deptId},function(data){
+            var h='<option value="">— Select Class —</option>';
+            $.each(data,function(i,o){h+='<option value="'+o.id+'">'+esc(o.class)+'</option>';});
+            $('#class_id').html(h).trigger('change.select2');
+        });
+    });
+
+    // ── Class change → reload sections ───────────────────────
+    $('#class_id').on('change', function() {
+        var cid=$(this).val();
+        resetDrop('#section_id','— Select Section —');
+        resetDrop('#student_id','— Select Student —');
+        resetDrop('#subject_id','— All Subjects —');
+        if (cid) loadSections(cid,'',null);
+    });
+
+    // ── Section change → reload students + subjects ──────────
+    $('#section_id').on('change', function() {
+        var sid=$(this).val(), cid=$('#class_id').val();
+        resetDrop('#student_id','— Select Student —');
+        resetDrop('#subject_id','— All Subjects —');
+        if (sid && cid) { loadStudents(cid,sid,''); loadSubjects(cid,sid,''); }
+    });
+
+    // ── Helpers ───────────────────────────────────────────────
+    function loadSections(cid, sel, cb) {
         if (!cid) return;
-        $.getJSON(baseurl+'sections/getByClass', {class_id:cid, department_id:$('#department_id').val()}, function(data) {
-            var h = '<option value="">Select</option>';
-            $.each(data, function(i,o){ h += '<option value="'+o.section_id+'"'+(sel==o.section_id?' selected':'')+'>'+o.section+'</option>'; });
-            $('#section_id').html(h);
-            if (sel) { loadStudents(cid, sel, stdSel); loadSubjects(cid, sel, subjSel); }
+        $.getJSON(baseurl+'sections/getByClass',{class_id:cid,department_id:$('#department_id').val()},function(data){
+            var h='<option value="">— Select Section —</option>';
+            $.each(data,function(i,o){h+='<option value="'+o.section_id+'"'+(sel&&sel==o.section_id?' selected':'')+'>'+esc(o.section)+'</option>';});
+            $('#section_id').html(h).trigger('change.select2');
+            if (cb) cb();
         });
     }
     function loadStudents(cid, sid, sel) {
         if (!cid||!sid) return;
-        $.getJSON(baseurl+'student/getByClassAndSection', {class_id:cid,section_id:sid,department_id:$('#department_id').val()}, function(data) {
-            var h = '<option value="">Select</option>';
-            $.each(data, function(i,o){ h += '<option value="'+o.id+'"'+(sel==o.id?' selected':'')+'>'+o.full_name+' ('+o.admission_no+')</option>'; });
-            $('#student_id').html(h);
+        $.getJSON(baseurl+'student/getByClassAndSection',{class_id:cid,section_id:sid,department_id:$('#department_id').val()},function(data){
+            var h='<option value="">— Select Student —</option>';
+            $.each(data,function(i,o){h+='<option value="'+o.id+'"'+(sel&&sel==o.id?' selected':'')+'>'+esc(o.full_name)+' ('+esc(o.admission_no)+')</option>';});
+            $('#student_id').html(h).trigger('change.select2');
         });
     }
     function loadSubjects(cid, sid, sel) {
         if (!cid||!sid) return;
-        $.post(baseurl+'admin/subjectgroup/getAllSubjectByClassandSection', {class_id:cid,section_id:sid}, function(data) {
-            var h = '<option value="">All</option>';
-            $.each(data, function(i,o){ h += '<option value="'+o.subject_id+'"'+(sel==o.subject_id?' selected':'')+'>'+o.subject_name+(o.subject_code?' ('+o.subject_code+')':' ')+'</option>'; });
-            $('#subject_id').html(h);
-        }, 'json');
+        $.post(baseurl+'admin/subjectgroup/getAllSubjectByClassandSection',{class_id:cid,section_id:sid},function(data){
+            var h='<option value="">— All Subjects —</option>';
+            if (data&&data.length) $.each(data,function(i,o){h+='<option value="'+o.subject_id+'"'+(sel&&sel==o.subject_id?' selected':'')+'>'+esc(o.subject_name)+(o.subject_code?' ('+esc(o.subject_code)+')':'')+'</option>';});
+            $('#subject_id').html(h).trigger('change.select2');
+        },'json').fail(function(){$('#subject_id').html('<option value="">— All Subjects —</option>').trigger('change.select2');});
     }
+    function resetDrop(sel, ph) { $(sel).html('<option value="">'+ph+'</option>').trigger('change.select2'); }
+    function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
     <?php if (isset($resultlist) && !empty($resultlist) && $total_held > 0): ?>
-    // Donut chart
     var ctx = document.getElementById('breakdownChart');
     if (ctx) {
         new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Present', 'Absent', 'Not Marked'],
-                datasets: [{ data: [<?php echo $total_present; ?>, <?php echo $total_absent; ?>, <?php echo $total_na; ?>],
-                    backgroundColor: ['#27ae60','#e74c3c','#bdc3c7'], borderWidth: 0 }]
-            },
-            options: { responsive:true, cutout:'65%', plugins:{ legend:{ position:'bottom', labels:{ font:{size:11} } } } }
+            type:'doughnut',
+            data:{labels:['Present','Absent','Not Marked'],
+                  datasets:[{data:[<?php echo $total_present; ?>,<?php echo $total_absent; ?>,<?php echo $total_na; ?>],
+                             backgroundColor:['#27ae60','#e74c3c','#bdc3c7'],borderWidth:0}]},
+            options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}
         });
     }
     <?php endif; ?>

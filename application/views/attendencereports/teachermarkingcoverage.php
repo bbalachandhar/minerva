@@ -252,19 +252,30 @@ function toggleBlock(id) {
     if (!el) return;
     var open = el.style.display !== 'none';
     el.style.display = open ? 'none' : 'block';
-    if (icon) icon.className = open ? 'fa fa-angle-down' : 'fa fa-angle-up';
-    icon.style.color = open ? '#bbb' : '#5b73e8';
+    if (icon) { icon.className = open ? 'fa fa-angle-down' : 'fa fa-angle-up'; icon.style.color = open ? '#bbb' : '#5b73e8'; }
 }
 $(document).ready(function() {
     // Open the first (worst) teacher by default
     var first = document.querySelector('.tchr-block .tchr-header');
     if (first) first.click();
+});
 
-    // Datepicker
+// Datepicker: use $(window).load so bootstrap-datepicker JS is ready (loaded in footer)
+$(window).on('load', function() {
     if ($.fn.datepicker) {
-        $('.datepicker').datepicker({
-            format: '<?php echo $this->customlib->getdateformat(); ?>',
-            autoclose: true
+        $('#from_date, #to_date').datepicker({
+            format:         '<?php echo $this->customlib->getdateformat(); ?>',
+            autoclose:      true,
+            todayHighlight: true,
+            weekStart:      1,
+            orientation:    'bottom auto'
+        });
+        // Ensure toDate >= fromDate
+        $('#from_date').on('changeDate', function(e) {
+            $('#to_date').datepicker('setStartDate', e.date);
+        });
+        $('#to_date').on('changeDate', function(e) {
+            $('#from_date').datepicker('setEndDate', e.date);
         });
     }
 });
